@@ -175,7 +175,12 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
 
         // Get player names preserving their order
         const playerNames = gameState.players.map(p => p.name);
-        const previousWins = gameState.players.map(p => ({ id: p.id, wins: p.wins, isBot: p.isBot }));
+        const previousData = gameState.players.map(p => ({
+            id: p.id,
+            wins: p.wins,
+            totalPoints: p.totalPoints,
+            isBot: p.isBot
+        }));
         const winnerId = gameState.firstPlayerOfRound; // Winner of previous round
 
         // Deal new game
@@ -183,8 +188,9 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
         const newPlayers = (partialState.players as Player[]).map((p, i) => ({
             ...p,
             id: gameState.players[i].id, // Preserve player IDs
-            wins: previousWins[i].wins, // Preserve wins
-            isBot: previousWins[i].isBot, // Preserve bot status
+            wins: previousData[i].wins, // Preserve wins
+            totalPoints: previousData[i].totalPoints, // Preserve points
+            isBot: previousData[i].isBot, // Preserve bot status
         }));
 
         const newState: GameState = {

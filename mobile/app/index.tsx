@@ -1,165 +1,120 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { createRoom, joinRoom } from '../src/core/services/firebase';
-import { PlayerProfile } from '../src/core/types';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withSpring,
+    withSequence,
+    withDelay,
+} from 'react-native-reanimated';
 
-// Mock Profile for MVP (In real app, this comes from Auth)
-const MOCK_PROFILE: PlayerProfile = {
-    uid: 'user-' + Math.floor(Math.random() * 10000),
-    displayName: 'Player ' + Math.floor(Math.random() * 100),
-    gamesPlayed: 0,
-    gamesWon: 0
-};
-
-export default function LobbyScreen() {
+export default function SplashScreen() {
     const router = useRouter();
-    const [roomIdToJoin, setRoomIdToJoin] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [countdown, setCountdown] = useState(3);
+    const scale = useSharedValue(0.3);
+    const opacity = useSharedValue(0);
 
-    const handleCreateRoom = async () => {
-        try {
-            setLoading(true);
-            const newRoomId = await createRoom(MOCK_PROFILE, false);
-            router.push({ pathname: '/game/[id]', params: { id: newRoomId, userId: MOCK_PROFILE.uid } });
-        } catch (error) {
-            Alert.alert("Error", "Failed to create room: " + error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    useEffect(() => {
+        // Animate logo entrance
+        scale.value = withSpring(1, { damping: 10 });
+        opacity.value = withSequence(
+            withDelay(200, withSpring(1)),
+        );
 
-    const handleJoinRoom = async () => {
-        if (!roomIdToJoin.trim()) return;
-        try {
-            setLoading(true);
-            await joinRoom(roomIdToJoin, MOCK_PROFILE);
-            router.push({ pathname: '/game/[id]', params: { id: roomIdToJoin, userId: MOCK_PROFILE.uid } });
-        } catch (error) {
-            Alert.alert("Error", "Failed to join room: " + error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        // Countdown timer
+        const countdownInterval = setInterval(() => {
+            setCountdown(prev => {
+                if (prev <= 1) {
+                    clearInterval(countdownInterval);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        // Navigate to home after 3 seconds
+        const timer = setTimeout(() => {
+            router.replace('/home');
+        }, 3000);
+
+        return () => {
+            clearTimeout(timer);
+            clearInterval(countdownInterval);
+        };
+    }, []);
+
+    const logoStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+        opacity: opacity.value,
+    }));
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Domino Martinique</Text>
-            <Text style={styles.subtitle}>Multiplayer Lobby</Text>
+        <LinearGradient
+            colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']}
+            style={styles.container}
+        >
+            <Animated.View style={[styles.logoContainer, logoStyle]}>
+                <Text style={styles.logo}>🁡</Text>
+                <Text style={styles.title}>DOMINO</Text>
+                <Text style={styles.subtitle}>MARTINIQUE</Text>
+                <View style={styles.divider} />
 
-            <View style={styles.card}>
-                <Text style={styles.label}>Host a Game</Text>
-                <TouchableOpacity
-                    style={styles.buttonPrimary}
-                    onPress={handleCreateRoom}
-                    disabled={loading}
-                >
-                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create New Room</Text>}
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.divider}>
-                <Text style={styles.dividerText}>OR</Text>
-            </View>
-
-            <View style={styles.card}>
-                <Text style={styles.label}>Join a Game</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter Room ID"
-                    placeholderTextColor="#666"
-                    value={roomIdToJoin}
-                    onChangeText={setRoomIdToJoin}
-                    autoCapitalize="none"
-                />
-                <TouchableOpacity
-                    style={styles.buttonSecondary}
-                    onPress={handleJoinRoom}
-                    disabled={loading || !roomIdToJoin}
-                >
-                    {loading ? <ActivityIndicator color="#000" /> : <Text style={styles.buttonTextSecondary}>Join Room</Text>}
-                </TouchableOpacity>
-            </View>
-        </View>
+                {/* Loading Indicator */}
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#FFD700" />
+                    <Text style={styles.loadingText}>{countdown}s</Text>
+                </View>
+            </Animated.View>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212', // Dark theme
-        padding: 20,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+    },
+    logoContainer: {
+        alignItems: 'center',
+    },
+    logo: {
+        fontSize: 80,
+        marginBottom: 20,
     },
     title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#E0E0E0',
-        marginBottom: 10
+        fontSize: 48,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: 8,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 2, height: 2 },
+        textShadowRadius: 4,
     },
     subtitle: {
-        fontSize: 18,
-        color: '#AAAAAA',
-        marginBottom: 40
-    },
-    card: {
-        width: '100%',
-        maxWidth: 400,
-        backgroundColor: '#1E1E1E',
-        padding: 20,
-        borderRadius: 12,
-        marginBottom: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4.65,
-        elevation: 8,
-    },
-    label: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        marginBottom: 15,
-        fontWeight: '600'
-    },
-    input: {
-        backgroundColor: '#2C2C2C',
-        color: '#FFFFFF',
-        padding: 15,
-        borderRadius: 8,
-        marginBottom: 15,
-        fontSize: 16,
-        borderWidth: 1,
-        borderColor: '#333'
-    },
-    buttonPrimary: {
-        backgroundColor: '#4CAF50', // Green
-        padding: 15,
-        borderRadius: 8,
-        alignItems: 'center'
-    },
-    buttonSecondary: {
-        backgroundColor: '#FFFFFF',
-        padding: 15,
-        borderRadius: 8,
-        alignItems: 'center'
-    },
-    buttonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold'
-    },
-    buttonTextSecondary: {
-        color: '#000000',
-        fontSize: 16,
-        fontWeight: 'bold'
+        fontSize: 24,
+        fontWeight: '300',
+        color: '#FFD700',
+        letterSpacing: 10,
+        marginTop: 8,
     },
     divider: {
-        marginVertical: 10,
-        marginBottom: 30
+        width: 120,
+        height: 3,
+        backgroundColor: 'rgba(255,215,0,0.5)',
+        marginTop: 30,
+        borderRadius: 2,
     },
-    dividerText: {
-        color: '#666',
-        fontWeight: 'bold'
-    }
+    loadingContainer: {
+        marginTop: 40,
+        alignItems: 'center',
+        gap: 12,
+    },
+    loadingText: {
+        fontSize: 18,
+        color: 'rgba(255,255,255,0.7)',
+        fontWeight: '600',
+    },
 });

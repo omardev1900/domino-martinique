@@ -16,6 +16,7 @@ export interface Player {
     hand: Domino[]; // En local pour le joueur, masqué pour les autres via API
     handSize: number; // Public pour les autres joueurs
     wins: number; // Nombre de parties gagnées dans la manche (max 3)
+    totalPoints: number; // NEW: Cumulative points across all matches
     isCochon: boolean;
     isBot: boolean;
 }

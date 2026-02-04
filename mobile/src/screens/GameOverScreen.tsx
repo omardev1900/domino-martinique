@@ -68,6 +68,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
                                 <View style={styles.scoreContainer}>
                                     <Text style={[styles.score, isWinner && styles.winnerText]}>{p.wins} Wins</Text>
                                     {p.isCochon && <Text style={styles.pigBadge}>🐷</Text>}
+                                    {isMatchOver && (
+                                        <Text style={[styles.points, p.isCochon && styles.pointsNegative]}>
+                                            {p.totalPoints >= 0 ? '+' : ''}{p.totalPoints} pts
+                                        </Text>
+                                    )}
                                 </View>
                             </Animated.View>
                         );
@@ -166,6 +171,15 @@ const styles = StyleSheet.create({
     pigBadge: {
         fontSize: 20,
         marginLeft: 10,
+    },
+    points: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#2ecc71',
+        marginLeft: 10,
+    },
+    pointsNegative: {
+        color: '#e74c3c',
     },
     countdownText: {
         fontSize: 16,

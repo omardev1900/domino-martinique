@@ -31,6 +31,7 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
         hand: deck.slice(i * HAND_SIZE, (i + 1) * HAND_SIZE),
         handSize: HAND_SIZE,
         wins: 0,
+        totalPoints: 0,
         isCochon: false,
         isBot: false,
     }));
@@ -123,6 +124,43 @@ export const determineFirstPlayer = (players: Player[]): PlayerId => {
 };
 
 /**
+ * calculateCochonPoints : Calcule les points selon le système Cochon
+ * - Winner: +4 (1 cochon) or +5 (2 cochons)
+ * - Each cochon: -1
+ */
+export const calculateCochonPoints = (players: Player[]): Map<PlayerId, number> => {
+    const pointsMap = new Map<PlayerId, number>();
+
+    // Find winner (player with wins >= WINS_TO_WIN_MATCH)
+    const winner = players.find(p => p.wins >= WINS_TO_WIN_MATCH);
+    if (!winner) {
+        // No winner yet, return empty map
+        players.forEach(p => pointsMap.set(p.id, 0));
+        return pointsMap;
+    }
+
+    // Count cochons (players with 0 wins)
+    const cochons = players.filter(p => p.wins === 0);
+    const cochonCount = cochons.length;
+
+    // Calculate points
+    players.forEach(p => {
+        if (p.id === winner.id) {
+            // Winner gets +4 or +5
+            pointsMap.set(p.id, cochonCount === 1 ? 4 : cochonCount === 2 ? 5 : 4);
+        } else if (p.wins === 0) {
+            // Cochon gets -1
+            pointsMap.set(p.id, -1);
+        } else {
+            // Other players get 0
+            pointsMap.set(p.id, 0);
+        }
+    });
+
+    return pointsMap;
+};
+
+/**
  * handleEndOfRound : Met à jour les scores et vérifie la fin du match
  */
 export const handleEndOfRound = (
@@ -146,10 +184,15 @@ export const handleEndOfRound = (
 
     if (matchWinner) {
         newState.phase = 'MATCH_END';
-        // Marquer les "Cochons"
+
+        // Calculate Cochon points
+        const pointsMap = calculateCochonPoints(newState.players);
+
+        // Apply points and mark cochons
         newState.players = newState.players.map(p => ({
             ...p,
-            isCochon: p.wins === 0
+            isCochon: p.wins === 0,
+            totalPoints: p.totalPoints + (pointsMap.get(p.id) || 0)
         }));
     } else {
         newState.phase = 'ROUND_END';
