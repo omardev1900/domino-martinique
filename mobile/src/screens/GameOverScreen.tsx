@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { GameState, Player } from '../core/types';
 import Animated, { FadeIn, ZoomIn, SlideInDown } from 'react-native-reanimated';
@@ -8,11 +8,32 @@ interface GameOverScreenProps {
     gameState: GameState;
     currentUserId: string;
     onReplay: () => void;
+    onNextRound?: () => void;
 }
 
-export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, currentUserId, onReplay }) => {
+export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, currentUserId, onReplay, onNextRound }) => {
+    const [countdown, setCountdown] = useState(10);
+
     // Determine context (Match Over vs Round Over)
     const isMatchOver = gameState.players.some(p => p.wins >= WINS_TO_WIN_MATCH);
+
+    // Auto-restart countdown for next round
+    useEffect(() => {
+        if (!isMatchOver && onNextRound) {
+            const timer = setInterval(() => {
+                setCountdown((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        onNextRound();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            return () => clearInterval(timer);
+        }
+    }, [isMatchOver, onNextRound]);
 
     // Find winner
     // If match over, it's the one with 3 wins.
@@ -53,10 +74,19 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
                     })}
                 </View>
 
+                {!isMatchOver && countdown > 0 && (
+                    <Text style={styles.countdownText}>
+                        Next round starts in {countdown}s...
+                    </Text>
+                )}
+
                 <Animated.View entering={FadeIn.delay(1000)}>
-                    <TouchableOpacity style={styles.replayButton} onPress={onReplay}>
+                    <TouchableOpacity
+                        style={styles.replayButton}
+                        onPress={() => isMatchOver ? onReplay() : onNextRound?.()}
+                    >
                         <Text style={styles.replayText}>
-                            {isMatchOver ? "Back to Lobby" : "Next Round"}
+                            {isMatchOver ? "Back to Lobby" : `Start Next Round${countdown > 0 ? ` (${countdown}s)` : ''}`}
                         </Text>
                     </TouchableOpacity>
                 </Animated.View>
@@ -136,6 +166,12 @@ const styles = StyleSheet.create({
     pigBadge: {
         fontSize: 20,
         marginLeft: 10,
+    },
+    countdownText: {
+        fontSize: 16,
+        color: '#666',
+        marginBottom: 15,
+        fontStyle: 'italic',
     },
     replayButton: {
         backgroundColor: '#1b5e20',

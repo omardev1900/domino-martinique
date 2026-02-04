@@ -169,6 +169,43 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
         }
     };
 
+    const handleNextRound = () => {
+        if (!gameState) return;
+
+        // Get player names preserving their order
+        const playerNames = gameState.players.map(p => p.name);
+        const previousWins = gameState.players.map(p => ({ id: p.id, wins: p.wins, isBot: p.isBot }));
+        const winnerId = gameState.firstPlayerOfRound; // Winner of previous round
+
+        // Deal new game
+        const partialState = dealGame(playerNames);
+        const newPlayers = (partialState.players as Player[]).map((p, i) => ({
+            ...p,
+            id: gameState.players[i].id, // Preserve player IDs
+            wins: previousWins[i].wins, // Preserve wins
+            isBot: previousWins[i].isBot, // Preserve bot status
+        }));
+
+        const newState: GameState = {
+            gameId: gameState.gameId,
+            players: newPlayers,
+            talonMort: partialState.talonMort as Domino[],
+            table: partialState.table!,
+            currentPlayerId: winnerId || newPlayers[0].id, // Winner starts, or fallback to first player
+            phase: 'PLAYING',
+            firstPlayerOfRound: winnerId,
+            history: [],
+            winningCondition: 3,
+            lastActionTimestamp: Date.now()
+        };
+
+        if (gameId) {
+            updateGameState(gameId, newState).catch(err => console.error("Failed to update game state", err));
+        } else {
+            setGameState(newState);
+        }
+    };
+
     // Bot Loop
     useEffect(() => {
         if (!gameState) return;
@@ -270,6 +307,7 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
                     gameState={gameState}
                     currentUserId={localPlayerId}
                     onReplay={handleReplay}
+                    onNextRound={handleNextRound}
                 />
             )}
 
