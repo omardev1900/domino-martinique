@@ -11,6 +11,7 @@ interface DominoTileProps {
     onPress?: () => void;
     disabled?: boolean;
     entering?: any; // Reanimated entering prop
+    noMargin?: boolean; // Remove margin for board tiles
 }
 
 const DOT_POSITIONS: Record<number, number[]> = {
@@ -30,7 +31,8 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     orientation = 'vertical',
     onPress,
     disabled = false,
-    entering
+    entering,
+    noMargin = false
 }) => {
     const isVertical = orientation === 'vertical';
     const width = isVertical ? size : size * 2;
@@ -77,6 +79,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                 onPress={onPress}
                 disabled={disabled || !onPress}
                 style={[
+                    noMargin ? styles.containerNoMargin : styles.container,
                     styles.container,
                     { width, height, flexDirection: isVertical ? 'column' : 'row' },
                 ]}
@@ -107,7 +110,24 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.5,
         shadowRadius: 5,
         elevation: 8,
-        margin: 4,
+        margin: 4, // Margin for player hand tiles
+    },
+    containerNoMargin: {
+        backgroundColor: '#FFFFF0',
+        borderRadius: 10,
+        borderWidth: 3,
+        borderTopColor: '#FFFFFF',
+        borderLeftColor: '#FFFFFF',
+        borderBottomColor: '#D4D4D4',
+        borderRightColor: '#D4D4D4',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 3, height: 5 },
+        shadowOpacity: 0.5,
+        shadowRadius: 5,
+        elevation: 8,
+        margin: 0, // NO margin for board tiles - should touch
     },
     half: {
         alignItems: 'center',

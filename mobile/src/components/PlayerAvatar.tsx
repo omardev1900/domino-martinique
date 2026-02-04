@@ -12,6 +12,7 @@ interface PlayerAvatarProps {
     timerProgress?: number; // 0-1
     size?: number;
     position?: 'top-left' | 'top-right' | 'bottom';
+    onTimeout?: () => void; // Callback when timer expires
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -23,7 +24,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     timerDuration = 20,
     timerProgress = 1,
     size = 60,
-    position = 'bottom'
+    position = 'bottom',
+    onTimeout
 }) => {
     const strokeWidth = 4;
     const radius = (size - strokeWidth) / 2;
@@ -41,11 +43,17 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             // Start countdown
             const interval = setInterval(() => {
                 setSecondsLeft(prev => {
-                    if (prev <= 1) {
+                    const newValue = prev - 1;
+                    if (newValue <= 0) {
                         clearInterval(interval);
+                        // Trigger timeout callback
+                        if (onTimeout) {
+                            console.log('Timer expired - triggering onTimeout');
+                            onTimeout();
+                        }
                         return 0;
                     }
-                    return prev - 1;
+                    return newValue;
                 });
             }, 1000);
 
@@ -60,7 +68,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             animatedProgress.value = 1;
             setSecondsLeft(timerDuration);
         }
-    }, [showTimer, isActive, timerDuration]);
+    }, [showTimer, isActive, timerDuration, onTimeout]);
 
     const animatedProps = useAnimatedProps(() => ({
         strokeDashoffset: circumference * (1 - animatedProgress.value),

@@ -172,10 +172,18 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         const localPlayer = gameState.players.find(p => p.id === localPlayerId);
         if (!localPlayer) return;
 
-        // Find first valid domino
-        const validDomino = localPlayer.hand.find(d =>
+        // Find all valid moves
+        const validMoves = localPlayer.hand.filter(d =>
             checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
         );
+
+        // Find heaviest valid domino (highest sum)
+        let validDomino = null;
+        if (validMoves.length > 0) {
+            // Sort by weight descending (heaviest first)
+            validMoves.sort((a, b) => (b.left + b.right) - (a.left + a.right));
+            validDomino = validMoves[0];
+        }
 
         if (validDomino) {
             console.log("Auto-playing domino:", validDomino);
@@ -377,6 +385,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                     isActive={isMyTurn}
                     showTimer={isMyTurn && !isGameOver}
                     timerDuration={20}
+                    onTimeout={handleTimeout}
                 />
             )}
 

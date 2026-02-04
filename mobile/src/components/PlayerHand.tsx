@@ -12,6 +12,7 @@ interface PlayerHandProps {
     isActive?: boolean;
     showTimer?: boolean;
     timerDuration?: number;
+    onTimeout?: () => void; // Callback when timer expires
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -21,6 +22,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
     isActive = false,
     showTimer = false,
     timerDuration = 20,
+    onTimeout,
 }) => {
     return (
         <View style={styles.container}>
@@ -34,6 +36,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                         timerDuration={timerDuration}
                         size={70}
                         position="bottom"
+                        onTimeout={onTimeout}
                     />
                 </View>
 

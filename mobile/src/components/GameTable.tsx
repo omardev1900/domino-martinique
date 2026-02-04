@@ -48,17 +48,23 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState }) => {
                 showsHorizontalScrollIndicator={false}
             >
                 <View style={styles.boardArea}>
-                    {visualSequence.map((item, index) => (
-                        <View key={item.domino.id} style={styles.tileWrapper}>
-                            <DominoTile
-                                left={item.isReversed ? item.domino.right : item.domino.left}
-                                right={item.isReversed ? item.domino.left : item.domino.right}
-                                orientation="horizontal"
-                                size={32}
-                                disabled // Disabled on board
-                            />
-                        </View>
-                    ))}
+                    {visualSequence.map((item, index) => {
+                        // Detect if this is a double tile
+                        const isDouble = item.domino.isDouble;
+
+                        return (
+                            <View key={item.domino.id} style={styles.tileWrapper}>
+                                <DominoTile
+                                    left={item.isReversed ? item.domino.right : item.domino.left}
+                                    right={item.isReversed ? item.domino.left : item.domino.right}
+                                    orientation={isDouble ? 'vertical' : 'horizontal'}
+                                    size={32}
+                                    disabled
+                                    noMargin // Remove margins for touching tiles
+                                />
+                            </View>
+                        );
+                    })}
                 </View>
             </ScrollView>
         </LinearGradient>
