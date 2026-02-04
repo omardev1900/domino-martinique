@@ -36,30 +36,36 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     const width = isVertical ? size : size * 2;
     const height = isVertical ? size * 2 : size;
 
-    // Dot size relative to tile width
-    const dotSize = size / 5;
+    // Internal padding for pips (percentage of size)
+    const padding = size * 0.15;
+    const innerSize = size - padding * 2;
+
+    // Dot size relative to inner area
+    const dotSize = innerSize / 5;
 
     const renderHalf = (value: DominoSide) => {
         return (
-            <View style={[styles.half, { width: size, height: size }]}>
-                {DOT_POSITIONS[value].map((pos) => {
-                    const row = Math.floor(pos / 3);
-                    const col = pos % 3;
-                    return (
-                        <View
-                            key={pos}
-                            style={[
-                                styles.dot,
-                                {
-                                    width: dotSize,
-                                    height: dotSize,
-                                    top: row * (size / 3) + (size / 3 - dotSize) / 2,
-                                    left: col * (size / 3) + (size / 3 - dotSize) / 2,
-                                },
-                            ]}
-                        />
-                    );
-                })}
+            <View style={[styles.half, { width: size, height: size, padding: padding }]}>
+                <View style={[styles.innerHalf, { width: innerSize, height: innerSize }]}>
+                    {DOT_POSITIONS[value].map((pos) => {
+                        const row = Math.floor(pos / 3);
+                        const col = pos % 3;
+                        return (
+                            <View
+                                key={pos}
+                                style={[
+                                    styles.dot,
+                                    {
+                                        width: dotSize,
+                                        height: dotSize,
+                                        top: row * (innerSize / 3) + (innerSize / 3 - dotSize) / 2,
+                                        left: col * (innerSize / 3) + (innerSize / 3 - dotSize) / 2,
+                                    },
+                                ]}
+                            />
+                        );
+                    })}
+                </View>
             </View>
         );
     };
@@ -76,7 +82,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                 ]}
             >
                 {renderHalf(left)}
-                <View style={[styles.separator, isVertical ? { width: size - 8, height: 2 } : { width: 2, height: size - 8 }]} />
+                <View style={[styles.separator, isVertical ? { width: size - 12, height: 2 } : { width: 2, height: size - 12 }]} />
                 {renderHalf(right)}
             </TouchableOpacity>
         </Animated.View>
@@ -104,6 +110,10 @@ const styles = StyleSheet.create({
         margin: 4,
     },
     half: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    innerHalf: {
         position: 'relative',
     },
     dot: {

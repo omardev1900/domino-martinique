@@ -51,6 +51,48 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
 };
 
 /**
+ * Distribution pour Solo Mode : 2 joueurs x 14 dominos (pas de talon mort)
+ */
+export const dealGameSolo = (playerName: string, botDifficulty: 'beginner' | 'intermediate' = 'beginner'): Partial<GameState> => {
+    const SOLO_HAND_SIZE = 14; // 28 dominos / 2 players = 14 each
+    const deck = shuffleDeck();
+
+    const players: Player[] = [
+        {
+            id: 'p1',
+            name: playerName,
+            hand: deck.slice(0, SOLO_HAND_SIZE),
+            handSize: SOLO_HAND_SIZE,
+            wins: 0,
+            totalPoints: 0,
+            isCochon: false,
+            isBot: false,
+        },
+        {
+            id: 'p2',
+            name: botDifficulty === 'beginner' ? 'Bot Easy' : 'Bot Medium',
+            hand: deck.slice(SOLO_HAND_SIZE, SOLO_HAND_SIZE * 2),
+            handSize: SOLO_HAND_SIZE,
+            wins: 0,
+            totalPoints: 0,
+            isCochon: false,
+            isBot: true,
+        },
+    ];
+
+    return {
+        players,
+        talonMort: [], // No talon mort in solo mode
+        phase: 'PLAYING',
+        table: {
+            sequence: [],
+            leftValue: null,
+            rightValue: null,
+        },
+    };
+};
+
+/**
  * checkValidMove : Vérifie si un domino peut être posé
  */
 export const checkValidMove = (

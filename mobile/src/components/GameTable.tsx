@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: 130, // Space for PlayerHand at bottom
     },
     scrollContent: {
         alignItems: 'center',
@@ -88,7 +89,8 @@ const styles = StyleSheet.create({
         borderWidth: 3,
         borderColor: 'rgba(255,215,0,0.15)', // Subtle gold accent
         minWidth: 300,
-        minHeight: 150,
+        minHeight: 120, // Reduced from 150
+        maxHeight: 140, // Limit height to prevent overlap
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.6,
@@ -96,6 +98,6 @@ const styles = StyleSheet.create({
         elevation: 10,
     },
     tileWrapper: {
-        margin: 2,
+        // No margin - dominoes should touch side by side
     },
 });

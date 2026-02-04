@@ -2,8 +2,19 @@ import { useLocalSearchParams } from 'expo-router';
 import GameScreen from '../../src/screens/GameScreen';
 
 export default function GameRoute() {
-    const { id, userId } = useLocalSearchParams<{ id: string; userId: string }>();
+    const params = useLocalSearchParams<{
+        id: string;
+        userId: string;
+        mode?: string;
+        difficulty?: string;
+    }>();
 
-    // We pass the game ID and userId to the screen. 
-    return <GameScreen gameId={id} userId={userId} />;
+    return (
+        <GameScreen
+            gameId={params.id}
+            userId={params.userId}
+            mode={params.mode as 'solo' | 'multiplayer' | undefined}
+            difficulty={params.difficulty as 'beginner' | 'intermediate' | undefined}
+        />
+    );
 }

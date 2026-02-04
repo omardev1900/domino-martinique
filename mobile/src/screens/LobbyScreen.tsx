@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { GameRoom } from '../core/types';
-import { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Animated from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -12,167 +13,265 @@ interface LobbyScreenProps {
 
 export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserId, onStartGame }) => {
     const isHost = roomData.players[0]?.uid === currentUserId;
-    const canStart = roomData.players.length === 3; // Require exactly 3 players
+    const canStart = roomData.players.length === 3;
+
+    // Create array of 3 slots with player data
+    const slots = Array.from({ length: 3 }, (_, index) => {
+        const player = roomData.players[index];
+        return {
+            player,
+            isCurrentUser: player?.uid === currentUserId,
+            isHost: index === 0,
+            isEmpty: !player,
+        };
+    });
+
+    const renderPlayerCard = (slot: typeof slots[0], index: number) => {
+        const getInitials = (name: string) => {
+            return name
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+        };
+
+        return (
+            <Animated.View
+                key={index}
+                entering={FadeInUp.delay(200 + index * 100).duration(500)}
+                style={styles.playerCardWrapper}
+            >
+                <View
+                    style={[
+                        styles.playerCard,
+                        slot.isCurrentUser && styles.playerCardHighlight,
+                    ]}
+                >
+                    {slot.isEmpty ? (
+                        // Empty Slot
+                        <>
+                            <View style={styles.emptyAvatar}>
+                                <Text style={styles.silhouetteIcon}>👤</Text>
+                            </View>
+                            <Text style={styles.emptyText}>Waiting...</Text>
+                        </>
+                    ) : (
+                        // Occupied Slot
+                        <>
+                            <View style={[styles.avatar, slot.isCurrentUser && styles.avatarHighlight]}>
+                                <Text style={styles.avatarText}>
+                                    {getInitials(slot.player!.displayName)}
+                                </Text>
+                            </View>
+                            <Text style={styles.playerName}>
+                                {slot.player!.displayName}
+                            </Text>
+                            <Text style={styles.playerStatus}>
+                                {slot.isCurrentUser ? '(You)' : slot.isHost ? 'HOST' : 'Player'}
+                            </Text>
+                        </>
+                    )}
+                </View>
+            </Animated.View>
+        );
+    };
 
     return (
-        <View style={styles.container}>
-            <Animated.Text entering={FadeInDown.delay(100)} style={styles.title}>
-                Room Code: {roomData.roomId}
-            </Animated.Text>
-
-            <Animated.View entering={FadeIn.delay(300)} style={styles.card}>
-                <Text style={styles.subtitle}>Players ({roomData.players.length}/3)</Text>
-                <ScrollView style={styles.playerList}>
-                    {roomData.players.map((p, index) => (
-                        <View key={p.uid} style={styles.playerItem}>
-                            <Text style={styles.playerRank}>#{index + 1}</Text>
-                            <Text style={styles.playerName}>
-                                {p.displayName} {p.uid === currentUserId ? "(You)" : ""}
-                            </Text>
-                            {index === 0 && <Text style={styles.hostBadge}>HOST</Text>}
-                        </View>
-                    ))}
-                    {Array.from({ length: 3 - roomData.players.length }).map((_, i) => (
-                        <View key={`empty-${i}`} style={[styles.playerItem, styles.emptyItem]}>
-                            <Text style={styles.emptyText}>Waiting for player...</Text>
-                        </View>
-                    ))}
-                </ScrollView>
+        <LinearGradient
+            colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']}
+            style={styles.container}
+        >
+            {/* Room Code - Top */}
+            <Animated.View entering={FadeIn.delay(100)} style={styles.header}>
+                <Text style={styles.roomCodeLabel}>Room Code</Text>
+                <Text style={styles.roomCode}>{roomData.roomId}</Text>
             </Animated.View>
 
-            <View style={styles.footer}>
+            {/* Player Cards - Center */}
+            <View style={styles.playersContainer}>
+                {slots.map((slot, index) => renderPlayerCard(slot, index))}
+            </View>
+
+            {/* Action Button - Bottom */}
+            <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.footer}>
                 {isHost ? (
                     <>
                         <TouchableOpacity
-                            style={[styles.startButton, !canStart && styles.startButtonDisabled]}
+                            style={[styles.actionButton, !canStart && styles.actionButtonDisabled]}
                             onPress={onStartGame}
                             disabled={!canStart}
+                            activeOpacity={0.8}
                         >
-                            <Text style={styles.startButtonText}>Start Game</Text>
+                            <LinearGradient
+                                colors={canStart ? ['#4CAF50', '#2E7D32'] : ['#555', '#333']}
+                                style={styles.buttonGradient}
+                            >
+                                <Text style={styles.actionButtonText}>
+                                    {canStart ? 'START GAME' : `WAITING FOR ${3 - roomData.players.length} MORE`}
+                                </Text>
+                            </LinearGradient>
                         </TouchableOpacity>
-                        {!canStart && (
-                            <Text style={styles.requirementText}>
-                                Waiting for {3 - roomData.players.length} more player(s)...
-                            </Text>
-                        )}
                     </>
                 ) : (
-                    <Text style={styles.waitingText}>Waiting for host to start...</Text>
+                    <View style={styles.waitingContainer}>
+                        <Text style={styles.waitingText}>Waiting for host to start...</Text>
+                    </View>
                 )}
-            </View>
-        </View>
+            </Animated.View>
+        </LinearGradient>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1b5e20', // Matching GameTable Logic
-        padding: 20,
+        paddingHorizontal: 40,
+        paddingVertical: 30,
+    },
+    // Header
+    header: {
         alignItems: 'center',
+        marginBottom: 30,
+    },
+    roomCodeLabel: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.7)',
+        marginBottom: 4,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+    roomCode: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#FFD700',
+        letterSpacing: 3,
+        fontFamily: 'monospace',
+    },
+    // Player Cards Container
+    playersContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 30,
+        paddingHorizontal: 20,
+    },
+    playerCardWrapper: {
+        flex: 1,
+        maxWidth: 200,
+    },
+    playerCard: {
+        backgroundColor: 'rgba(30,30,30,0.7)',
+        borderRadius: 20,
+        borderWidth: 3,
+        borderColor: 'rgba(255,255,255,0.2)',
+        padding: 24,
+        alignItems: 'center',
+        minHeight: 200,
         justifyContent: 'center',
     },
-    title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 30,
-        textShadowColor: 'rgba(0,0,0,0.5)',
-        textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 5,
+    playerCardHighlight: {
+        borderColor: '#FFD700',
+        backgroundColor: 'rgba(255,215,0,0.1)',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 15,
+        elevation: 10,
     },
-    card: {
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        borderRadius: 20,
-        padding: 20,
-        width: '100%',
-        maxWidth: 400,
-        maxHeight: 400,
-        marginBottom: 30,
-    },
-    subtitle: {
-        fontSize: 18,
-        color: '#ddd',
-        marginBottom: 15,
-        fontWeight: '600',
-    },
-    playerList: {
-        maxHeight: 250,
-    },
-    playerItem: {
-        flexDirection: 'row',
+    // Avatar
+    avatar: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(76,175,80,0.3)',
+        borderWidth: 3,
+        borderColor: '#4CAF50',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        padding: 15,
-        borderRadius: 12,
-        marginBottom: 10,
+        justifyContent: 'center',
+        marginBottom: 12,
     },
-    emptyItem: {
-        backgroundColor: 'rgba(0,0,0,0.1)',
+    avatarHighlight: {
+        borderColor: '#FFD700',
+        backgroundColor: 'rgba(255,215,0,0.2)',
+    },
+    avatarText: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+    },
+    emptyAvatar: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderWidth: 2,
         borderStyle: 'dashed',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(255,255,255,0.3)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
     },
-    emptyText: {
-        color: '#aaa',
-        fontStyle: 'italic',
-    },
-    playerRank: {
-        fontSize: 16,
-        color: '#aaa',
-        marginRight: 15,
-        width: 20,
+    silhouetteIcon: {
+        fontSize: 40,
+        opacity: 0.4,
     },
     playerName: {
         fontSize: 18,
-        color: '#fff',
         fontWeight: 'bold',
-        flex: 1,
+        color: '#FFFFFF',
+        marginBottom: 4,
+        textAlign: 'center',
     },
-    hostBadge: {
-        fontSize: 10,
-        backgroundColor: '#ffd700',
-        color: '#000',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-        fontWeight: 'bold',
+    playerStatus: {
+        fontSize: 12,
+        color: '#FFD700',
+        fontWeight: '600',
+        letterSpacing: 1,
     },
+    emptyText: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.5)',
+        fontStyle: 'italic',
+        textAlign: 'center',
+    },
+    // Footer
     footer: {
+        alignItems: 'center',
+        paddingTop: 20,
+    },
+    actionButton: {
         width: '100%',
+        maxWidth: 400,
+        borderRadius: 30,
+        overflow: 'hidden',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+    },
+    actionButtonDisabled: {
+        opacity: 0.6,
+    },
+    buttonGradient: {
+        paddingVertical: 20,
+        paddingHorizontal: 50,
         alignItems: 'center',
     },
-    startButton: {
-        backgroundColor: '#2ecc71',
-        paddingHorizontal: 60,
-        paddingVertical: 18,
-        borderRadius: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        elevation: 6,
-    },
-    startButtonDisabled: {
-        backgroundColor: '#555',
-        opacity: 0.5,
-    },
-    startButtonText: {
-        color: '#fff',
-        fontSize: 20,
+    actionButtonText: {
+        fontSize: 22,
         fontWeight: 'bold',
+        color: '#FFFFFF',
+        letterSpacing: 2,
+    },
+    waitingContainer: {
+        paddingVertical: 20,
     },
     waitingText: {
-        color: '#bbb',
-        fontSize: 16,
+        fontSize: 18,
+        color: 'rgba(255,255,255,0.7)',
         fontStyle: 'italic',
-        marginTop: 10,
-    },
-    requirementText: {
-        color: '#ffd700',
-        fontSize: 14,
-        fontWeight: '600',
-        marginTop: 12,
-        textAlign: 'center',
     },
 });

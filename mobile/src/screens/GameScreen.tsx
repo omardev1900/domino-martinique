@@ -2,24 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
-import { CircularTimer } from '../components/CircularTimer';
+import { PlayerAvatar } from '../components/PlayerAvatar';
 import { LobbyScreen } from './LobbyScreen';
 import { GameOverScreen } from './GameOverScreen';
 import { SettingsScreen } from './SettingsScreen';
-import { dealGame, handleTurn, passTurn, checkValidMove, determineFirstPlayer } from '../core/LogicEngine';
+import { dealGame, dealGameSolo, handleTurn, passTurn, checkValidMove, determineFirstPlayer } from '../core/LogicEngine';
 import { getBotMove } from '../core/BotEngine';
 import { GameState, Domino, Player, PlayerId, GameRoom, RoomStatus } from '../core/types';
 import { subscribeToRoom, updateGameState, leaveRoom, startGame } from '../core/services/firebase';
 import { Ionicons } from '@expo/vector-icons'; // Ensure you have this installed
 
-export default function GameScreen({ gameId, userId }: { gameId?: string; userId?: string }) {
+interface GameScreenProps {
+    gameId?: string;
+    userId?: string;
+    mode?: 'solo' | 'multiplayer';
+    difficulty?: 'beginner' | 'intermediate';
+}
+
+export default function GameScreen({ gameId, userId, mode, difficulty }: GameScreenProps) {
     const [roomData, setRoomData] = useState<GameRoom | null>(null);
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [localPlayerId] = useState<PlayerId>(userId || 'p1');
     const [showSettings, setShowSettings] = useState(false);
+    const [isSoloMode] = useState(mode === 'solo');
+    const [isStarting, setIsStarting] = useState(false); // Loading state during game start
 
     // Firebase Subscription
     useEffect(() => {
+        // Solo mode - start immediately
+        if (isSoloMode) {
+            startSoloGame();
+            return;
+        }
+
         if (!gameId) {
             startNewLocalGame();
             return;
@@ -29,17 +44,34 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
             setRoomData(data);
             if (data.gameState) {
                 setGameState(data.gameState);
+                setIsStarting(false); // Game loaded successfully
             }
         });
 
         return () => {
             unsubscribe();
-            // Don't auto-leave - allow reconnection
-            // if (userId) {
-            //     leaveRoom(gameId, userId).catch(err => console.error("Failed to leave room", err));
-            // }
         };
-    }, [gameId]);
+    }, [gameId, isSoloMode]);
+
+    const startSoloGame = () => {
+        const partialState = dealGameSolo('Me', difficulty || 'beginner');
+        const players = partialState.players as Player[];
+        const firstPlayerId = determineFirstPlayer(players);
+
+        const fullState: GameState = {
+            gameId: gameId || 'solo-' + Date.now(),
+            players: players,
+            talonMort: [],
+            table: partialState.table!,
+            currentPlayerId: firstPlayerId,
+            phase: 'PLAYING',
+            firstPlayerOfRound: null,
+            history: [],
+            winningCondition: 3,
+            lastActionTimestamp: Date.now()
+        };
+        setGameState(fullState);
+    };
 
     const startNewLocalGame = () => {
         const fullState = createInitialState(['Me', 'Bot 1', 'Bot 2']);
@@ -72,6 +104,7 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
     const handleStartGame = async () => {
         if (!roomData || !gameId) return;
 
+        setIsStarting(true); // Show loading state
         const realPlayers = roomData.players;
         const playerNames = realPlayers.map(p => p.displayName);
 
@@ -91,8 +124,10 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
             // Re-determine first player after mapping real player IDs
             initialState.currentPlayerId = determineFirstPlayer(initialState.players);
             await startGame(gameId, initialState);
+            // Don't set isStarting to false here - let the subscription handle it
         } catch (e: any) {
             Alert.alert("Error", "Failed to start game: " + e.message);
+            setIsStarting(false); // Reset on error
         }
     };
 
@@ -253,6 +288,19 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
 
     if (!gameState) {
         if (!roomData) return <View style={styles.loading}><Text style={styles.text}>Loading...</Text></View>;
+
+        // Show loading screen when starting game instead of lobby
+        if (isStarting) {
+            return (
+                <View style={styles.loading}>
+                    <Text style={styles.text}>Starting game...</Text>
+                    <Text style={[styles.text, { fontSize: 14, marginTop: 10, opacity: 0.7 }]}>
+                        Dealing tiles and preparing the board
+                    </Text>
+                </View>
+            );
+        }
+
         return <LobbyScreen roomData={roomData} currentUserId={localPlayerId} onStartGame={handleStartGame} />;
     }
 
@@ -266,46 +314,69 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
         checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
     ) ?? false;
 
+    // Get opponent players
+    const opponents = gameState.players.filter(p => p.id !== localPlayerId);
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
 
             <GameTable gameState={gameState} />
 
-            {/* HUD / Controls */}
-            <SafeAreaView style={styles.hudContainer} pointerEvents="box-none">
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.iconButton}>
-                        <Ionicons name="settings-sharp" size={24} color="white" />
+            {/* Opponent Avatars */}
+            <SafeAreaView style={styles.opponentsContainer} pointerEvents="box-none">
+                {/* Settings button - top left corner */}
+                <View style={styles.topLeftCorner}>
+                    <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.settingsButton}>
+                        <Ionicons name="settings-sharp" size={20} color="white" />
                     </TouchableOpacity>
-
-                    <View style={[styles.turnIndicator, isMyTurn && styles.myTurnIndicator]}>
-                        <Text style={styles.turnText}>
-                            {isMyTurn ? "Your Turn" : `${gameState.players.find(p => p.id === gameState.currentPlayerId)?.name}'s Turn`}
-                        </Text>
-                    </View>
-                    <CircularTimer
-                        duration={20}
-                        isActive={isMyTurn && !isGameOver}
-                        onTimeout={handleTimeout}
-                    />
+                    {opponents[0] && (
+                        <View style={styles.opponentAvatar}>
+                            <PlayerAvatar
+                                player={opponents[0]}
+                                isActive={gameState.currentPlayerId === opponents[0].id}
+                                showTimer={gameState.currentPlayerId === opponents[0].id && !isGameOver}
+                                timerDuration={20}
+                                size={56}
+                                position="top-left"
+                            />
+                        </View>
+                    )}
                 </View>
 
-                {/* Pass Button Area (Centered or near hand) */}
-                {isMyTurn && !canPlayAny && (
-                    <View style={styles.passContainer}>
-                        <TouchableOpacity style={styles.passButton} onPress={handlePassTurn}>
-                            <Text style={styles.passButtonText}>Pass Turn</Text>
-                        </TouchableOpacity>
+                {/* Top right opponent */}
+                {opponents[1] && (
+                    <View style={styles.topRightCorner}>
+                        <PlayerAvatar
+                            player={opponents[1]}
+                            isActive={gameState.currentPlayerId === opponents[1].id}
+                            showTimer={gameState.currentPlayerId === opponents[1].id && !isGameOver}
+                            timerDuration={20}
+                            size={56}
+                            position="top-right"
+                        />
                     </View>
                 )}
             </SafeAreaView>
 
+            {/* Pass Button Area */}
+            {isMyTurn && !canPlayAny && (
+                <View style={styles.passContainer}>
+                    <TouchableOpacity style={styles.passButton} onPress={handlePassTurn}>
+                        <Text style={styles.passButtonText}>Pass Turn</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* Player Hand with integrated avatar and timer */}
             {localPlayer && (
                 <PlayerHand
                     player={localPlayer}
                     onPlayDomino={handlePlayDomino}
                     disabled={gameState.currentPlayerId !== localPlayerId}
+                    isActive={isMyTurn}
+                    showTimer={isMyTurn && !isGameOver}
+                    timerDuration={20}
                 />
             )}
 
@@ -335,42 +406,35 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     text: { color: 'white' },
-    hudContainer: {
+    opponentsContainer: {
         ...StyleSheet.absoluteFillObject,
-        justifyContent: 'flex-start',
+        pointerEvents: 'box-none',
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 10,
+    topLeftCorner: {
+        position: 'absolute',
+        top: 40,
+        left: 20,
+        alignItems: 'flex-start',
     },
-    iconButton: {
+    topRightCorner: {
+        position: 'absolute',
+        top: 40,
+        right: 20,
+    },
+    settingsButton: {
         padding: 8,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        backgroundColor: 'rgba(0,0,0,0.4)',
         borderRadius: 20,
+        marginBottom: 12,
     },
-    turnIndicator: {
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-        borderRadius: 20,
-    },
-    turnText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    myTurnIndicator: {
-        backgroundColor: '#2ecc71', // Green for action
-        borderWidth: 1,
-        borderColor: '#fff',
+    opponentAvatar: {
+        marginTop: 8,
     },
     passContainer: {
         position: 'absolute',
-        bottom: 140, // Above hand
+        bottom: 130, // Above hand (adjusted for new height)
         alignSelf: 'center',
+        zIndex: 10,
     },
     passButton: {
         backgroundColor: '#e74c3c', // Red for alert/action

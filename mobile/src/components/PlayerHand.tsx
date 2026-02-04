@@ -1,68 +1,102 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Text } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { Domino, Player } from '../core/types';
 import { DominoTile } from './DominoTile';
+import { PlayerAvatar } from './PlayerAvatar';
 
 interface PlayerHandProps {
     player: Player;
     onPlayDomino: (domino: Domino) => void;
     disabled?: boolean;
+    isActive?: boolean;
+    showTimer?: boolean;
+    timerDuration?: number;
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
     player,
     onPlayDomino,
     disabled = false,
+    isActive = false,
+    showTimer = false,
+    timerDuration = 20,
 }) => {
     return (
         <View style={styles.container}>
-            <Text style={styles.playerName}>{player.name}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                {player.hand.map((domino, index) => (
-                    <Animated.View
-                        key={domino.id}
-                        style={styles.tileWrapper}
-                        layout={LinearTransition.springify()} // Smooth reordering when card removed
-                    >
-                        <DominoTile
-                            left={domino.left}
-                            right={domino.right}
-                            size={36}
-                            orientation="vertical"
-                            onPress={() => onPlayDomino(domino)}
-                            disabled={disabled}
-                            entering={FadeInDown.delay(index * 100).springify()} // Staggered dealing
-                        />
-                    </Animated.View>
-                ))}
-            </ScrollView>
+            <View style={styles.contentRow}>
+                {/* Avatar on the left */}
+                <View style={styles.avatarContainer}>
+                    <PlayerAvatar
+                        player={player}
+                        isActive={isActive}
+                        showTimer={showTimer}
+                        timerDuration={timerDuration}
+                        size={70}
+                        position="bottom"
+                    />
+                </View>
+
+                {/* Domino tiles */}
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    style={styles.scrollView}
+                >
+                    {player.hand.map((domino, index) => (
+                        <Animated.View
+                            key={domino.id}
+                            style={styles.tileWrapper}
+                            layout={LinearTransition.springify()}
+                        >
+                            <DominoTile
+                                left={domino.left}
+                                right={domino.right}
+                                size={44}
+                                orientation="vertical"
+                                onPress={() => onPlayDomino(domino)}
+                                disabled={disabled}
+                                entering={FadeInDown.delay(index * 100).springify()}
+                            />
+                        </Animated.View>
+                    ))}
+                </ScrollView>
+            </View>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        padding: 10,
+        backgroundColor: 'rgba(0,0,0,0.5)', // Single solid background
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
+        height: 100, // Reduced from 110
     },
-    playerName: {
-        color: 'white',
-        fontWeight: 'bold',
-        marginBottom: 5,
-        marginLeft: 10,
+    contentRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: '100%',
+    },
+    avatarContainer: {
+        marginRight: 16,
+        justifyContent: 'center',
+    },
+    scrollView: {
+        flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: 10,
-        paddingBottom: 10,
+        alignItems: 'center',
+        paddingRight: 10,
     },
     tileWrapper: {
-        marginRight: 10,
+        marginRight: 8,
     },
 });
