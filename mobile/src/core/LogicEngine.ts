@@ -36,7 +36,7 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
         isBot: false,
     }));
 
-    const talonMort = deck.slice(MAX_PLAYERS * HAND_SIZE);
+    const talonMort = deck.slice(players.length * HAND_SIZE);
 
     return {
         players,
@@ -53,13 +53,13 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
 /**
  * Distribution pour Solo Mode : 2 joueurs x 14 dominos (pas de talon mort)
  */
-export const dealGameSolo = (playerName: string, botDifficulty: 'beginner' | 'intermediate' = 'beginner'): Partial<GameState> => {
-    const SOLO_HAND_SIZE = 14; // 28 dominos / 2 players = 14 each
+export const dealGameSolo = (playerId: string, playerName: string, botDifficulty: 'beginner' | 'intermediate' = 'beginner'): Partial<GameState> => {
+    const SOLO_HAND_SIZE = 7; // Changed from 14 to 7 per rules
     const deck = shuffleDeck();
 
     const players: Player[] = [
         {
-            id: 'p1',
+            id: playerId, // Use provided ID
             name: playerName,
             hand: deck.slice(0, SOLO_HAND_SIZE),
             handSize: SOLO_HAND_SIZE,
@@ -69,7 +69,7 @@ export const dealGameSolo = (playerName: string, botDifficulty: 'beginner' | 'in
             isBot: false,
         },
         {
-            id: 'p2',
+            id: 'bot-1',
             name: botDifficulty === 'beginner' ? 'Bot Easy' : 'Bot Medium',
             hand: deck.slice(SOLO_HAND_SIZE, SOLO_HAND_SIZE * 2),
             handSize: SOLO_HAND_SIZE,
@@ -80,9 +80,11 @@ export const dealGameSolo = (playerName: string, botDifficulty: 'beginner' | 'in
         },
     ];
 
+    const talonMort = deck.slice(SOLO_HAND_SIZE * 2); // Remaining 14 tiles
+
     return {
         players,
-        talonMort: [], // No talon mort in solo mode
+        talonMort,
         phase: 'PLAYING',
         table: {
             sequence: [],
@@ -221,21 +223,30 @@ export const handleEndOfRound = (
     const winnerIndex = newState.players.findIndex(p => p.id === winnerId);
     newState.players[winnerIndex].wins += 1;
 
-    // Vérifier si quelqu'un a atteint 3 victoires
-    const matchWinner = newState.players.find(p => p.wins >= WINS_TO_WIN_MATCH);
+    // Vérifier si quelqu'un a atteint la condition de victoire (3 pour multi, 1 pour solo)
+    const matchWinner = newState.players.find(p => p.wins >= gameState.winningCondition);
 
     if (matchWinner) {
         newState.phase = 'MATCH_END';
 
-        // Calculate Cochon points
-        const pointsMap = calculateCochonPoints(newState.players);
+        // Only calculate Cochon points for multi-round games (typically 3+)
+        if (gameState.winningCondition > 1) {
+            const pointsMap = calculateCochonPoints(newState.players);
 
-        // Apply points and mark cochons
-        newState.players = newState.players.map(p => ({
-            ...p,
-            isCochon: p.wins === 0,
-            totalPoints: p.totalPoints + (pointsMap.get(p.id) || 0)
-        }));
+            // Apply points and mark cochons
+            newState.players = newState.players.map(p => ({
+                ...p,
+                isCochon: p.wins === 0,
+                totalPoints: p.totalPoints + (pointsMap.get(p.id) || 0)
+            }));
+        } else {
+            // Basic win logic for solo/single round
+            newState.players = newState.players.map(p => ({
+                ...p,
+                isCochon: false,
+                totalPoints: p.totalPoints // Keep current points or add nothing
+            }));
+        }
     } else {
         newState.phase = 'ROUND_END';
         newState.firstPlayerOfRound = winnerId; // Le gagnant commence la suivante
@@ -325,8 +336,7 @@ export const handleTurn = (
 
     // 6. Pass Turn
     const currentIdx = newState.players.findIndex(p => p.id === newState.currentPlayerId);
-    // Anti-Clockwise ? Usually just index + 1 if array is ordered.
-    const nextIdx = (currentIdx + 1) % MAX_PLAYERS;
+    const nextIdx = (currentIdx + 1) % newState.players.length;
     newState.currentPlayerId = newState.players[nextIdx].id;
 
     return newState;
@@ -386,7 +396,7 @@ export const passTurn = (
 
     // 5. Pass Turn to next player
     const currentIdx = newState.players.findIndex(p => p.id === newState.currentPlayerId);
-    const nextIdx = (currentIdx + 1) % MAX_PLAYERS;
+    const nextIdx = (currentIdx + 1) % newState.players.length;
     newState.currentPlayerId = newState.players[nextIdx].id;
 
     return newState;

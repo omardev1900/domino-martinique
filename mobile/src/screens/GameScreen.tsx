@@ -54,20 +54,20 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     }, [gameId, isSoloMode]);
 
     const startSoloGame = () => {
-        const partialState = dealGameSolo('Me', difficulty || 'beginner');
+        const partialState = dealGameSolo(localPlayerId, 'Me', difficulty || 'beginner');
         const players = partialState.players as Player[];
         const firstPlayerId = determineFirstPlayer(players);
 
         const fullState: GameState = {
             gameId: gameId || 'solo-' + Date.now(),
             players: players,
-            talonMort: [],
+            talonMort: partialState.talonMort as Domino[], // Now populated
             table: partialState.table!,
             currentPlayerId: firstPlayerId,
             phase: 'PLAYING',
             firstPlayerOfRound: null,
             history: [],
-            winningCondition: 3,
+            winningCondition: 1, // Single round for solo
             lastActionTimestamp: Date.now()
         };
         setGameState(fullState);
@@ -137,10 +137,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
         try {
             const newState = handleTurn(gameState, localPlayerId, domino);
-            if (gameId) {
-                await updateGameState(gameId, newState);
-            } else {
+            if (isSoloMode || !gameId) {
                 setGameState(newState);
+            } else {
+                await updateGameState(gameId, newState);
             }
         } catch (e) {
             console.log("Invalid move", e);
@@ -153,49 +153,66 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
         try {
             const newState = passTurn(gameState, localPlayerId);
-            if (gameId) {
-                await updateGameState(gameId, newState);
-            } else {
+            if (isSoloMode || !gameId) {
                 setGameState(newState);
+            } else {
+                await updateGameState(gameId, newState);
             }
         } catch (e: any) {
             Alert.alert("Cannot Pass", e.message);
         }
     };
 
-    const handleTimeout = async () => {
+    const handleTimeout = async (playerId?: PlayerId) => {
         if (!gameState) return;
-        if (gameState.currentPlayerId !== localPlayerId) return;
 
-        console.log("Turn timeout - checking for valid moves");
+        const activeId = playerId || gameState.currentPlayerId;
 
-        const localPlayer = gameState.players.find(p => p.id === localPlayerId);
-        if (!localPlayer) return;
+        // Safety: only handle timeout if it is actually that player's turn
+        if (gameState.currentPlayerId !== activeId) return;
+
+        console.log(`Turn timeout for ${activeId} - checking for valid moves`);
+
+        const p = gameState.players.find(player => player.id === activeId);
+        if (!p) return;
 
         // Find all valid moves
-        const validMoves = localPlayer.hand.filter(d =>
+        const validMoves = p.hand.filter(d =>
             checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
         );
 
         // Find heaviest valid domino (highest sum)
         let validDomino = null;
         if (validMoves.length > 0) {
-            // Sort by weight descending (heaviest first)
-            validMoves.sort((a, b) => (b.left + b.right) - (a.left + a.right));
-            validDomino = validMoves[0];
+            const sortedMoves = [...validMoves].sort((a, b) => (b.left + b.right) - (a.left + a.right));
+            validDomino = sortedMoves[0];
         }
 
         if (validDomino) {
-            console.log("Auto-playing domino:", validDomino);
+            console.log(`Auto-playing domino for ${activeId}:`, validDomino);
             try {
-                await handlePlayDomino(validDomino);
+                if (p.isBot || isSoloMode) {
+                    const newState = handleTurn(gameState, activeId, validDomino);
+                    setGameState(newState);
+                } else if (gameId) {
+                    await handlePlayDomino(validDomino);
+                } else {
+                    await handlePlayDomino(validDomino); // handlePlayDomino handles local state
+                }
             } catch (e) {
                 console.error("Auto-play failed:", e);
             }
         } else {
-            console.log("No valid moves - auto-passing");
+            console.log(`No valid moves for ${activeId} - auto-passing`);
             try {
-                await handlePassTurn();
+                if (p.isBot || isSoloMode) {
+                    const newState = passTurn(gameState, activeId);
+                    setGameState(newState);
+                } else if (gameId) {
+                    await handlePassTurn();
+                } else {
+                    await handlePassTurn(); // handlePassTurn handles local state
+                }
             } catch (e) {
                 console.error("Auto-pass failed:", e);
             }
@@ -245,51 +262,63 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             phase: 'PLAYING',
             firstPlayerOfRound: winnerId,
             history: [],
-            winningCondition: 3,
+            winningCondition: gameState.winningCondition,
             lastActionTimestamp: Date.now()
         };
 
-        if (gameId) {
-            updateGameState(gameId, newState).catch(err => console.error("Failed to update game state", err));
-        } else {
+        if (isSoloMode || !gameId) {
             setGameState(newState);
+        } else {
+            updateGameState(gameId, newState).catch(err => console.error("Failed to update game state", err));
         }
     };
 
     // Bot Loop
     useEffect(() => {
         if (!gameState) return;
-        if (!gameState.gameId.startsWith('local')) return;
+        // Support bot turns in local, solo, and multiplayer games if bot is present
+        // (Removing restrictive gameId.startsWith checks)
 
         const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
 
         if (currentPlayer?.isBot && (gameState.phase === 'PLAYING')) {
-            const timer = setTimeout(() => {
+            const timer = setTimeout(async () => {
                 const move = getBotMove(
                     currentPlayer.hand,
                     gameState.table.leftValue,
                     gameState.table.rightValue
                 );
 
+                console.log(`[Bot Decision] ${currentPlayer.name} thinking on table [${gameState.table.leftValue}|${gameState.table.rightValue}]`);
+
                 if (move) {
+                    console.log(`[Bot Move] Playing ${move.left}|${move.right}`);
                     try {
                         const newState = handleTurn(gameState, currentPlayer.id, move);
                         setGameState(newState);
-                    } catch (e) { console.error("Bot error"); }
+                    } catch (e) {
+                        console.error("Bot play error (invalid move proposed?):", e, move);
+                    }
                 } else {
-                    // Bot Pass logic - ideally call passTurn here
-                    console.log(`Bot ${currentPlayer.name} passes`);
-                    // Force rotation manually for now as passTurn isn't exported to GameScreen scope yet or handled in hook
-                    const newState = { ...gameState };
-                    const idx = gameState.players.findIndex(p => p.id === currentPlayer.id);
-                    const nextIdx = (idx + 1) % 3;
-                    newState.currentPlayerId = newState.players[nextIdx].id;
-                    setGameState(newState);
+                    // Bot Pass logic when no moves are available
+                    console.log(`Bot ${currentPlayer.name} has no valid moves - passing`);
+                    try {
+                        const newState = passTurn(gameState, currentPlayer.id);
+                        setGameState(newState);
+                    } catch (e) {
+                        console.error("Bot pass error", e);
+                        // Emergency fallback: manually rotate turn if passTurn fails
+                        const fallbackState = { ...gameState };
+                        const idx = gameState.players.findIndex(p => p.id === currentPlayer.id);
+                        const nextIdx = (idx + 1) % gameState.players.length;
+                        fallbackState.currentPlayerId = gameState.players[nextIdx].id;
+                        setGameState(fallbackState);
+                    }
                 }
-            }, 1500);
+            }, 1000); // 1s thinking delay as requested
             return () => clearTimeout(timer);
         }
-    }, [gameState?.currentPlayerId, gameState?.history.length]);
+    }, [gameState?.currentPlayerId, gameState?.phase, gameState?.history.length]);
 
 
     // RENDER LOGIC
@@ -347,6 +376,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                                 timerDuration={20}
                                 size={56}
                                 position="top-left"
+                                onTimeout={() => handleTimeout(opponents[0].id)}
                             />
                         </View>
                     )}
@@ -362,6 +392,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                             timerDuration={20}
                             size={56}
                             position="top-right"
+                            onTimeout={() => handleTimeout(opponents[1].id)}
                         />
                     </View>
                 )}
