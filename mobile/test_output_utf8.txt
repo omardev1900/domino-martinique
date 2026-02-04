@@ -1,0 +1,45 @@
+﻿
+> mobile@1.0.0 test
+> jest src/core/__tests__/BotEngine.test.ts
+
+node.exe : FAIL src/core/__tests__/BotEngine.test.ts
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (FAIL src/core/_...tEngine.test.ts:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  BotEngine
+    ÔêÜ should return a valid move if one exists (4 ms)
+    ÔêÜ should return null if no moves (1 ms)
+  LogicEngine Advanced
+    ├ù handleTurn should update table and current player (4 ms)
+
+  ÔùÅ LogicEngine Advanced ÔÇ║ handleTurn should update table and current player
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "p2"
+    Received: "p1"
+
+    [0m [90m 45 |[39m         
+expect(newState[33m.[39mtable[33m.[39mleftValue)[33m.[39mtoBe([35m6[39m)[33m;[39m
+     [90m 46 |[39m         
+expect(newState[33m.[39mtable[33m.[39mrightValue)[33m.[39mtoBe([35m6[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 47 |[39m         
+expect(newState[33m.[39mcurrentPlayerId)[33m.[39mtoBe([32m'p2'[39m)[33m;[39m [90m// Rotated[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 48 |[39m         
+expect(newState[33m.[39mplayers[[35m0[39m][33m.[39mhand)[33m.[39mtoHaveLength([35m0[39m)[33m;[39m [90m// 
+Card removed[39m
+     [90m 49 |[39m         
+expect(newState[33m.[39mlastActionTimestamp)[33m.[39mtoBeGreaterThan([35m0[39m)[33m;[39m
+     [90m 50 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (src/core/__tests__/BotEngine.test.ts:47:42)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 2 passed, 3 total
+Snapshots:   0 total
+Time:        0.96 s, estimated 1 s
+Ran all test suites matching /src\\core\\__tests__\\BotEngine.test.ts/i.

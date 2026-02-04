@@ -1,0 +1,167 @@
+
+import { dealGame, checkValidMove, determineFirstPlayer, determineWinnerOnBoudé, calculateHandPoints, passTurn, handleTurn } from '../LogicEngine';
+import { Domino, Player, DominoSide, GameState } from '../types';
+
+describe('LogicEngine', () => {
+    describe('dealGame', () => {
+        it('should deal 7 dominos to 3 players', () => {
+            const game = dealGame(['Alice', 'Bob', 'Charlie']);
+            expect(game.players).toHaveLength(3);
+            game.players!.forEach(player => {
+                expect(player.hand).toHaveLength(7);
+            });
+            expect(game.talonMort).toHaveLength(7);
+        });
+    });
+
+    describe('checkValidMove', () => {
+        const domino66: Domino = { id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 };
+        const domino61: Domino = { id: 'd2', left: 6, right: 1, isDouble: false, sum: 7 };
+        const domino00: Domino = { id: 'd3', left: 0, right: 0, isDouble: true, sum: 0 };
+
+        it('should allow any move on empty table', () => {
+            const result = checkValidMove(domino66, null, null);
+            expect(result.canPlay).toBe(true);
+        });
+
+        it('should allow matching left', () => {
+            // Table: 6 ... 4
+            const result = checkValidMove(domino61, 6, 4);
+            // 6 matches 6
+            expect(result.canPlay).toBe(true);
+            expect(result.side).toBe('left');
+        });
+
+        it('should allow matching right', () => {
+            // Table: 4 ... 1
+            const result = checkValidMove(domino61, 4, 1);
+            // 1 matches 1
+            expect(result.canPlay).toBe(true);
+            expect(result.side).toBe('right');
+        });
+
+        it('should reject non-matching domino', () => {
+            // Table: 5 ... 2
+            const result = checkValidMove(domino61, 5, 2);
+            expect(result.canPlay).toBe(false);
+        });
+    });
+
+    describe('determineFirstPlayer', () => {
+        it('should pick player with highest double', () => {
+            const p1 = { id: 'p1', hand: [{ left: 6, right: 6, isDouble: true, sum: 12 }] } as Player;
+            const p2 = { id: 'p2', hand: [{ left: 5, right: 5, isDouble: true, sum: 10 }] } as Player;
+            const p3 = { id: 'p3', hand: [{ left: 1, right: 2, isDouble: false, sum: 3 }] } as Player;
+
+            const winner = determineFirstPlayer([p1, p2, p3]);
+            expect(winner).toBe('p1');
+        });
+
+        it('should pick player with highest sum if no doubles', () => {
+            const p1 = { id: 'p1', hand: [{ left: 0, right: 1, isDouble: false, sum: 1 }] } as Player;
+            const p2 = { id: 'p2', hand: [{ left: 3, right: 4, isDouble: false, sum: 7 }] } as Player; // Highest sum
+            const p3 = { id: 'p3', hand: [{ left: 1, right: 2, isDouble: false, sum: 3 }] } as Player;
+
+            const winner = determineFirstPlayer([p1, p2, p3]);
+            expect(winner).toBe('p2');
+        });
+    });
+
+    describe('determineWinnerOnBoudé', () => {
+        it('should pick player with lowest points', () => {
+            const p1 = { id: 'p1', hand: [{ left: 6, right: 6, sum: 12 }] } as any;
+            const p2 = { id: 'p2', hand: [{ left: 0, right: 0, sum: 0 }] } as any; // Winner
+            const p3 = { id: 'p3', hand: [{ left: 1, right: 1, sum: 2 }] } as any;
+
+            const result = determineWinnerOnBoudé([p1, p2, p3]);
+            expect(result).toBe('p2');
+        });
+
+        it('should return TIE if equal lowest', () => {
+            const p1 = { id: 'p1', hand: [{ left: 1, right: 0, sum: 1 }] } as any;
+            const p2 = { id: 'p2', hand: [{ left: 0, right: 1, sum: 1 }] } as any; // Tie
+            const p3 = { id: 'p3', hand: [{ left: 6, right: 6, sum: 12 }] } as any;
+
+            const result = determineWinnerOnBoudé([p1, p2, p3]);
+            expect(result).toBe('TIE');
+        });
+    });
+});
+
+describe('passTurn', () => {
+    const p1: Player = { id: 'p1', name: 'P1', hand: [{ id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 } as Domino], handSize: 1, wins: 0, isCochon: false, isBot: false };
+    const p2: Player = { id: 'p2', name: 'P2', hand: [{ id: 'd2', left: 0, right: 0, isDouble: true, sum: 0 } as Domino], handSize: 1, wins: 0, isCochon: false, isBot: false };
+    const p3: Player = { id: 'p3', name: 'P3', hand: [{ id: 'd3', left: 2, right: 2, isDouble: true, sum: 4 } as Domino], handSize: 1, wins: 0, isCochon: false, isBot: false };
+
+    let state: GameState = {
+        gameId: 'g1',
+        players: [p1, p2, p3],
+        talonMort: [],
+        table: { sequence: [], leftValue: 6, rightValue: 6 }, // Table matches 6
+        history: [],
+        currentPlayerId: 'p2', // P2 has 0-0, cannot play on 6-6
+        phase: 'PLAYING',
+        firstPlayerOfRound: 'p1',
+        winningCondition: 3,
+        lastActionTimestamp: 0
+    };
+
+    it('should throw if player has a valid move', () => {
+        // P1 has 6-6 and table is 6-6, so P1 can play.
+        const stateCanPlay = { ...state, currentPlayerId: 'p1' };
+        expect(() => passTurn(stateCanPlay, 'p1')).toThrow("Player has valid moves");
+    });
+
+    it('should allow pass if no valid move', () => {
+        // P2 has 0-0, table is 6-6. P2 cannot play.
+        const newState = passTurn(state, 'p2');
+        expect(newState.history).toHaveLength(1);
+        expect(newState.history[0].action).toBe('PASS');
+        expect(newState.currentPlayerId).toBe('p3'); // Rotated
+    });
+
+    it('should detect blocked game (Boudé) after 3 passes', () => {
+        // Simulate 2 previous passes
+        state.history = [
+            { playerId: 'p3', action: 'PASS', timestamp: 0 },
+            { playerId: 'p1', action: 'PASS', timestamp: 0 }
+        ];
+        state.currentPlayerId = 'p2'; // P2 is about to pass (3rd pass)
+
+        const newState = passTurn(state, 'p2');
+
+        // Should end round due to blocked game
+        expect(newState.phase).toBe('ROUND_END');
+        // Winner should be P2 (sum 0) < P3 (sum 4) < P1 (sum 12)
+        expect(newState.firstPlayerOfRound).toBe('p2');
+        expect(newState.players[1].wins).toBe(1);
+    });
+});
+
+describe('handleTurn', () => {
+    let state: GameState;
+    const p1: Player = { id: 'p1', name: 'P1', hand: [], handSize: 0, wins: 0, isCochon: false, isBot: false };
+
+    beforeEach(() => {
+        const d1: Domino = { id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 };
+        p1.hand = [d1];
+        state = {
+            gameId: 'g1',
+            players: [p1],
+            talonMort: [],
+            table: { sequence: [], leftValue: 6, rightValue: 6 },
+            history: [],
+            currentPlayerId: 'p1',
+            phase: 'PLAYING',
+            firstPlayerOfRound: 'p1',
+            winningCondition: 3,
+            lastActionTimestamp: 0
+        };
+    });
+
+    it('should throw if player tries to play a tile not in their hand', () => {
+        const foreignTile: Domino = { id: 'foreign', left: 6, right: 0, isDouble: false, sum: 6 };
+        // We expect LogicEngine to throw "Player does not have this domino"
+        expect(() => handleTurn(state, 'p1', foreignTile)).toThrow("Player does not have this domino");
+    });
+});

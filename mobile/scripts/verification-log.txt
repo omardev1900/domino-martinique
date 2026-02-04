@@ -1,0 +1,19 @@
+🚀 Starting Firebase Verification...
+
+1️⃣ Creating Room...
+✅ Room created with ID: 7HNEXypK3gUm1i9c6DoX
+
+2️⃣ Subscribing to Room updates...
+🔔 Room Update Received: Status=[WAITING], Players=[1]
+
+3️⃣ Second player joining Room...
+🔔 Room Update Received: Status=[WAITING], Players=[2]
+✅ Join action completed (waiting for update via listener...)
+
+4️⃣ Updating Game State...
+🔔 Room Update Received: Status=[WAITING], Players=[2]
+   GameState Phase: PLAYING
+✅ Game State update sent
+
+✅ Verification Finished Successfully!
+Disconnected listener.
