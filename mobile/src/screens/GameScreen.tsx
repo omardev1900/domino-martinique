@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
+import { CircularTimer } from '../components/CircularTimer';
 import { LobbyScreen } from './LobbyScreen';
 import { GameOverScreen } from './GameOverScreen';
 import { SettingsScreen } from './SettingsScreen';
@@ -126,6 +127,37 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
         }
     };
 
+    const handleTimeout = async () => {
+        if (!gameState) return;
+        if (gameState.currentPlayerId !== localPlayerId) return;
+
+        console.log("Turn timeout - checking for valid moves");
+
+        const localPlayer = gameState.players.find(p => p.id === localPlayerId);
+        if (!localPlayer) return;
+
+        // Find first valid domino
+        const validDomino = localPlayer.hand.find(d =>
+            checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
+        );
+
+        if (validDomino) {
+            console.log("Auto-playing domino:", validDomino);
+            try {
+                await handlePlayDomino(validDomino);
+            } catch (e) {
+                console.error("Auto-play failed:", e);
+            }
+        } else {
+            console.log("No valid moves - auto-passing");
+            try {
+                await handlePassTurn();
+            } catch (e) {
+                console.error("Auto-pass failed:", e);
+            }
+        }
+    };
+
 
 
     const handleReplay = () => {
@@ -208,7 +240,11 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
                             {isMyTurn ? "Your Turn" : `${gameState.players.find(p => p.id === gameState.currentPlayerId)?.name}'s Turn`}
                         </Text>
                     </View>
-                    <View style={{ width: 24 }} />
+                    <CircularTimer
+                        duration={20}
+                        isActive={isMyTurn && !isGameOver}
+                        onTimeout={handleTimeout}
+                    />
                 </View>
 
                 {/* Pass Button Area (Centered or near hand) */}
