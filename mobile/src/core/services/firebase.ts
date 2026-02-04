@@ -85,14 +85,27 @@ export const joinRoom = async (roomId: string, playerProfile: PlayerProfile): Pr
         }
 
         const roomData = roomSnap.data() as GameRoom;
-        if (roomData.status !== RoomStatus.WAITING) {
-            throw new Error("Room is already playing or finished");
-        }
 
+        // Check if player is already in room
         const isAlreadyIn = roomData.players.some(p => p.uid === playerProfile.uid);
         if (isAlreadyIn) {
-            console.log("Player already in room");
+            console.log("Player already in room - reconnecting");
             return;
+        }
+
+        // Check if player was in the game but left (reconnection scenario)
+        const wasInGame = roomData.gameState?.players.some(p => p.id === playerProfile.uid);
+        if (wasInGame) {
+            console.log("Player reconnecting to ongoing game");
+            await updateDoc(roomRef, {
+                players: arrayUnion(playerProfile)
+            });
+            return;
+        }
+
+        // New player joining - check status
+        if (roomData.status !== RoomStatus.WAITING) {
+            throw new Error("Room is already playing or finished");
         }
 
         if (roomData.players.length >= 4) {

@@ -34,9 +34,10 @@ export default function GameScreen({ gameId, userId }: { gameId?: string; userId
 
         return () => {
             unsubscribe();
-            if (userId) {
-                leaveRoom(gameId, userId).catch(err => console.error("Failed to leave room", err));
-            }
+            // Don't auto-leave - allow reconnection
+            // if (userId) {
+            //     leaveRoom(gameId, userId).catch(err => console.error("Failed to leave room", err));
+            // }
         };
     }, [gameId]);
 
