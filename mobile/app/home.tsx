@@ -23,7 +23,10 @@ export default function HomeScreen() {
             {/* User Info - Top Right */}
             <Animated.View entering={FadeInRight.duration(400)} style={styles.userInfoContainer}>
                 <View style={styles.userBadge}>
-                    <Text style={styles.userName}>{user?.displayName || 'Invité'}</Text>
+                    <View>
+                        <Text style={styles.userName}>{user?.displayName || 'Invité'}</Text>
+                        <Text style={styles.userId}>ID: {user?.uid?.slice(-6) || '---'}</Text>
+                    </View>
                     <View style={styles.avatarCircle}>
                         <Text style={styles.avatarText}>{user?.displayName?.[0] || 'I'}</Text>
                     </View>
@@ -105,6 +108,10 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: '600',
         fontSize: 14,
+    },
+    userId: {
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 10,
     },
     avatarCircle: {
         width: 32,

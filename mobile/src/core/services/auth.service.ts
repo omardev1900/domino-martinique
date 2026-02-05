@@ -2,7 +2,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlayerProfile } from '../types';
 
-const STORAGE_KEY = '@user_session';
+const STORAGE_KEY_SESSION = '@user_session_active';
+const STORAGE_KEY_GUEST_PROFILE = '@guest_profile_data';
 
 class AuthService {
     private currentUser: PlayerProfile | null = null;
@@ -16,58 +17,88 @@ class AuthService {
 
     /**
      * Login as Guest
-     * Creates a new guest profile if none exists, or arguably just creates a fresh one.
-     * For now, we create a fresh one.
+     * - Checks if a Guest Profile already exists.
+     * - If YES: Loads it and marks session as active.
+     * - If NO: Creates a new one, saves it, and marks session as active.
      */
     async loginAsGuest(): Promise<PlayerProfile> {
-        const guestUser: PlayerProfile = {
-            uid: this.generateGuestId(),
-            displayName: 'Invité',
-            avatarUrl: undefined, // Default avatar will be used
-            gamesPlayed: 0,
-            gamesWon: 0,
-        };
+        let guestUser: PlayerProfile | null = null;
 
-        await this.saveSession(guestUser);
+        try {
+            // 1. Check for existing guest profile
+            const existingProfileJson = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
+            if (existingProfileJson) {
+                guestUser = JSON.parse(existingProfileJson);
+            }
+        } catch (error) {
+            console.warn('Failed to load existing guest profile', error);
+        }
+
+        if (!guestUser) {
+            // 2. Create new guest profile if none exists
+            guestUser = {
+                uid: this.generateGuestId(),
+                displayName: 'Invité',
+                avatarUrl: undefined, // Default avatar will be used
+                gamesPlayed: 0,
+                gamesWon: 0,
+            };
+            // Persist the new profile
+            await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(guestUser));
+        }
+
+        // 3. Activate Session (using the Guest User)
+        await this.activateSession(guestUser);
         return guestUser;
     }
 
     /**
-     * Save user session to local storage
+     * Mark session as active and update memory
      */
-    private async saveSession(user: PlayerProfile): Promise<void> {
+    private async activateSession(user: PlayerProfile): Promise<void> {
         try {
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+            await AsyncStorage.setItem(STORAGE_KEY_SESSION, 'true'); // Simple marker
+            // We rely on the Guest Profile being stored Separately, but for performance, we keep `currentUser` in memory
             this.currentUser = user;
         } catch (error) {
-            console.error('Failed to save session', error);
+            console.error('Failed to activate session', error);
         }
     }
 
     /**
-     * Get current logged in user from memory or storage
+     * Get current logged in user
+     * - Checks if Session is Active.
+     * - If Session Active -> Loads Guest Profile.
      */
     async getCurrentUser(): Promise<PlayerProfile | null> {
         if (this.currentUser) return this.currentUser;
 
         try {
-            const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
-            if (jsonValue != null) {
-                this.currentUser = JSON.parse(jsonValue);
-                return this.currentUser;
+            const isSessionActive = await AsyncStorage.getItem(STORAGE_KEY_SESSION);
+
+            if (isSessionActive === 'true') {
+                // Session is active, load the Guest Profile
+                const guestProfileJson = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
+                if (guestProfileJson) {
+                    this.currentUser = JSON.parse(guestProfileJson);
+                    return this.currentUser;
+                }
             }
         } catch (error) {
-            console.error('Failed to load session', error);
+            console.error('Failed to load session/user', error);
         }
+
         return null;
     }
 
     /**
      * Logout
+     * - Clears the Session Marker.
+     * - KEEPS the Guest Profile Data (stats, etc.).
      */
     async logout(): Promise<void> {
         try {
-            await AsyncStorage.removeItem(STORAGE_KEY);
+            await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
             this.currentUser = null;
         } catch (error) {
             console.error('Failed to logout', error);
@@ -76,12 +107,20 @@ class AuthService {
 
     /**
      * Update user stats
+     * - Updates memory AND the persisted Guest Profile.
      */
     async updateStats(stats: Partial<PlayerProfile>): Promise<void> {
         if (!this.currentUser) return;
 
-        const updatedUser = { ...this.currentUser, ...stats };
-        await this.saveSession(updatedUser);
+        // Update in-memory
+        this.currentUser = { ...this.currentUser, ...stats };
+
+        // Persist updates to the Guest Profile
+        try {
+            await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(this.currentUser));
+        } catch (error) {
+            console.error('Failed to update stats', error);
+        }
     }
 }
 
