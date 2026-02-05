@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import { GameState, Player } from '../core/types';
 import Animated, { FadeIn, ZoomIn, SlideInDown } from 'react-native-reanimated';
 import { WINS_TO_WIN_MATCH } from '../core/constants';
+import SoundManager from '../core/audio/SoundManager';
+import HapticManager from '../core/audio/HapticManager';
 
 interface GameOverScreenProps {
     gameState: GameState;
@@ -16,6 +18,22 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
 
     // Determine context (Match Over vs Round Over)
     const isMatchOver = gameState.players.some(p => p.wins >= WINS_TO_WIN_MATCH);
+
+    // Game Effects on mount
+    useEffect(() => {
+        const localPlayer = gameState.players.find(p => p.id === currentUserId);
+        const sortedPlayers = [...gameState.players].sort((a, b) => b.wins - a.wins);
+        const isWinner = sortedPlayers[0].id === currentUserId;
+
+        if (isWinner) {
+            SoundManager.playSound('win');
+            HapticManager.triggerSuccess();
+        } else {
+            SoundManager.playSound('lose');
+            // No specific error haptic for lose, maybe subtle impact? 
+            // triggerError is for errors usually.
+        }
+    }, [gameState.gameId, currentUserId]);
 
     // Auto-restart countdown for next round
     useEffect(() => {

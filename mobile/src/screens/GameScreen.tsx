@@ -10,7 +10,9 @@ import { dealGame, dealGameSolo, handleTurn, passTurn, checkValidMove, determine
 import { getBotMove } from '../core/BotEngine';
 import { GameState, Domino, Player, PlayerId, GameRoom, RoomStatus } from '../core/types';
 import { subscribeToRoom, updateGameState, leaveRoom, startGame } from '../core/services/firebase';
-import { Ionicons } from '@expo/vector-icons'; // Ensure you have this installed
+import { Ionicons } from '@expo/vector-icons';
+import SoundManager from '../core/audio/SoundManager';
+import HapticManager from '../core/audio/HapticManager';
 
 interface GameScreenProps {
     gameId?: string;
@@ -27,8 +29,13 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     const [isSoloMode] = useState(mode === 'solo');
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
 
-    // Firebase Subscription
+    // Audio & Firebase Subscription
     useEffect(() => {
+        // Preload sounds
+        SoundManager.preloadSounds().then(() => {
+            SoundManager.playMusic('bgm1', 0.3);
+        });
+
         // Solo mode - start immediately
         if (isSoloMode) {
             startSoloGame();
@@ -70,6 +77,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             winningCondition: 1, // Single round for solo
             lastActionTimestamp: Date.now()
         };
+        SoundManager.playSound('shuffle');
         setGameState(fullState);
     };
 
@@ -77,6 +85,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         const fullState = createInitialState(['Me', 'Bot 1', 'Bot 2']);
         fullState.players[1].isBot = true;
         fullState.players[2].isBot = true;
+        SoundManager.playSound('shuffle');
         setGameState(fullState);
     };
 
@@ -137,6 +146,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
         try {
             const newState = handleTurn(gameState, localPlayerId, domino);
+
+            // Audio & Haptics
+            SoundManager.playClack();
+            HapticManager.triggerImpact();
+
             if (isSoloMode || !gameId) {
                 setGameState(newState);
             } else {
@@ -193,6 +207,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             try {
                 if (p.isBot || isSoloMode) {
                     const newState = handleTurn(gameState, activeId, validDomino);
+
+                    // Audio & Haptics for auto-play
+                    SoundManager.playClack();
+                    HapticManager.triggerImpact();
+
                     setGameState(newState);
                 } else if (gameId) {
                     await handlePlayDomino(validDomino);
@@ -207,6 +226,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             try {
                 if (p.isBot || isSoloMode) {
                     const newState = passTurn(gameState, activeId);
+                    SoundManager.playSound('notify');
                     setGameState(newState);
                 } else if (gameId) {
                     await handlePassTurn();
@@ -267,8 +287,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         };
 
         if (isSoloMode || !gameId) {
+            SoundManager.playSound('shuffle');
             setGameState(newState);
         } else {
+            SoundManager.playSound('shuffle');
             updateGameState(gameId, newState).catch(err => console.error("Failed to update game state", err));
         }
     };
@@ -295,6 +317,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                     console.log(`[Bot Move] Playing ${move.left}|${move.right}`);
                     try {
                         const newState = handleTurn(gameState, currentPlayer.id, move);
+
+                        // Audio & Haptics for Bot
+                        SoundManager.playClack();
+                        HapticManager.triggerImpact();
+
                         setGameState(newState);
                     } catch (e) {
                         console.error("Bot play error (invalid move proposed?):", e, move);
