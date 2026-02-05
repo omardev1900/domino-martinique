@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../src/core/services/auth.service';
 
 export default function LoginScreen() {
@@ -10,6 +11,28 @@ export default function LoginScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+
+    /**
+     * Map Firebase error codes to user-friendly French messages
+     */
+    const getErrorMessage = (error: any) => {
+        const code = error.code || '';
+        if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/invalid-email') {
+            return "Email ou mot de passe incorrect.";
+        }
+        if (code === 'auth/user-not-found') {
+            return "Aucun compte trouvé avec cet email.";
+        }
+        if (code === 'auth/email-already-in-use') {
+            return "Cet email est déjà utilisé.";
+        }
+        if (code === 'auth/weak-password') {
+            return "Le mot de passe est trop faible.";
+        }
+        return "Une erreur est survenue. Veuillez réessayer.";
+    };
 
     const handleGuestLogin = async () => {
         setIsLoading(true);
@@ -25,8 +48,9 @@ export default function LoginScreen() {
     };
 
     const handleSignIn = async () => {
+        setErrorMessage('');
         if (!email || !password) {
-            Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+            setErrorMessage('Veuillez remplir tous les champs.');
             return;
         }
         setIsLoading(true);
@@ -35,19 +59,20 @@ export default function LoginScreen() {
             router.replace('/home');
         } catch (error: any) {
             console.error(error);
-            Alert.alert('Erreur de connexion', error.message || 'Une erreur est survenue.');
+            setErrorMessage(getErrorMessage(error));
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleSignUp = async () => {
+        setErrorMessage('');
         if (!email || !password) {
-            Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+            setErrorMessage('Veuillez remplir tous les champs.');
             return;
         }
         if (password.length < 6) {
-            Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères.');
+            setErrorMessage('Le mot de passe doit contenir au moins 6 caractères.');
             return;
         }
         setIsLoading(true);
@@ -56,7 +81,7 @@ export default function LoginScreen() {
             router.replace('/home');
         } catch (error: any) {
             console.error(error);
-            Alert.alert('Erreur d\'inscription', error.message || 'Une erreur est survenue.');
+            setErrorMessage(getErrorMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -87,7 +112,7 @@ export default function LoginScreen() {
 
                     <Text style={styles.orText}>- ou -</Text>
 
-                    {/* Email / Password Form */}
+                    {/* Email Input */}
                     <TextInput
                         style={styles.input}
                         placeholder="Email"
@@ -96,15 +121,33 @@ export default function LoginScreen() {
                         onChangeText={setEmail}
                         autoCapitalize="none"
                         keyboardType="email-address"
+                        autoComplete="email"
+                        textContentType="username"
                     />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Mot de passe"
-                        placeholderTextColor="rgba(255,255,255,0.5)"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                    />
+
+                    {/* Password Input Container */}
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={styles.passwordInput}
+                            placeholder="Mot de passe"
+                            placeholderTextColor="rgba(255,255,255,0.5)"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={!showPassword}
+                            autoComplete="password"
+                            textContentType="password"
+                        />
+                        <TouchableOpacity
+                            style={styles.eyeIcon}
+                            onPress={() => setShowPassword(!showPassword)}
+                        >
+                            <Ionicons
+                                name={showPassword ? "eye-off" : "eye"}
+                                size={24}
+                                color="rgba(255,255,255,0.7)"
+                            />
+                        </TouchableOpacity>
+                    </View>
 
                     <View style={styles.authButtonsRow}>
                         <TouchableOpacity
@@ -123,6 +166,9 @@ export default function LoginScreen() {
                             <Text style={styles.authButtonText}>Inscription</Text>
                         </TouchableOpacity>
                     </View>
+
+                    {/* Error Message Display */}
+                    {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
                     {isLoading && <ActivityIndicator color="#FFD700" style={{ marginTop: 10 }} />}
                 </View>
@@ -215,6 +261,26 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.2)',
     },
+    passwordContainer: {
+        width: '100%',
+        height: 50,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    passwordInput: {
+        flex: 1,
+        height: '100%',
+        paddingHorizontal: 20,
+        fontSize: 16,
+        color: '#FFFFFF',
+    },
+    eyeIcon: {
+        padding: 10,
+    },
     authButtonsRow: {
         flexDirection: 'row',
         gap: 12,
@@ -239,5 +305,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: '#FFFFFF',
+    },
+    errorText: {
+        color: '#FF5252',
+        fontSize: 14,
+        textAlign: 'center',
+        marginTop: 5,
+        fontWeight: '500',
     },
 });
