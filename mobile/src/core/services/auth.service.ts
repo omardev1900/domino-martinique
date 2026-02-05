@@ -4,6 +4,7 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut,
+    updateProfile as updateFirebaseProfile,
     User
 } from 'firebase/auth';
 import { auth } from './firebase';
@@ -89,8 +90,8 @@ class AuthService {
     private mapFirebaseUserToProfile(user: User): PlayerProfile {
         return {
             uid: user.uid,
-            displayName: user.email?.split('@')[0] || 'Joueur',
-            avatarUrl: undefined,
+            displayName: user.displayName || user.email?.split('@')[0] || 'Joueur',
+            avatarUrl: user.photoURL || undefined,
             gamesPlayed: 0,
             gamesWon: 0
         };
@@ -167,6 +168,38 @@ class AuthService {
             } catch (error) {
                 console.error('Failed to update guest stats', error);
             }
+        }
+    }
+
+    /**
+     * Update User Profile (Unified: Guest & Firebase)
+     */
+    async updateProfile(updates: { displayName?: string; photoURL?: string }): Promise<void> {
+        if (!this.currentUser) return;
+
+        // 1. Update Local State
+        const profileUpdates: Partial<PlayerProfile> = {
+            ...(updates.displayName && { displayName: updates.displayName }),
+            ...(updates.photoURL !== undefined && { avatarUrl: updates.photoURL })
+        };
+        this.currentUser = { ...this.currentUser, ...profileUpdates };
+
+        try {
+            // 2. Handle Guest Persistence
+            if (this.currentUser.uid.startsWith('guest_')) {
+                await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(this.currentUser));
+            }
+
+            // 3. Handle Firebase Persistence
+            else if (auth.currentUser) {
+                await updateFirebaseProfile(auth.currentUser, {
+                    displayName: updates.displayName,
+                    photoURL: updates.photoURL
+                });
+            }
+        } catch (error) {
+            console.error('Failed to update profile', error);
+            throw error;
         }
     }
 }

@@ -5,15 +5,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft, FadeInRight } from 'react-native-reanimated';
 import { authService } from '../src/core/services/auth.service';
 import { PlayerProfile } from '../src/core/types';
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 
 export default function HomeScreen() {
     const router = useRouter();
     const [user, setUser] = useState<PlayerProfile | null>(null);
 
-    useEffect(() => {
-        authService.getCurrentUser().then(setUser);
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            authService.getCurrentUser().then(setUser);
+        }, [])
+    );
 
     return (
         <LinearGradient
@@ -22,15 +25,21 @@ export default function HomeScreen() {
         >
             {/* User Info - Top Right */}
             <Animated.View entering={FadeInRight.duration(400)} style={styles.userInfoContainer}>
-                <View style={styles.userBadge}>
+                <TouchableOpacity
+                    style={styles.userBadge}
+                    onPress={() => router.push('/profile')}
+                    activeOpacity={0.8}
+                >
                     <View>
                         <Text style={styles.userName}>{user?.displayName || 'Invité'}</Text>
                         <Text style={styles.userId}>ID: {user?.uid?.slice(-6) || '---'}</Text>
                     </View>
                     <View style={styles.avatarCircle}>
-                        <Text style={styles.avatarText}>{user?.displayName?.[0] || 'I'}</Text>
+                        <Text style={styles.avatarText}>
+                            {user?.avatarUrl || user?.displayName?.[0] || 'I'}
+                        </Text>
                     </View>
-                </View>
+                </TouchableOpacity>
             </Animated.View>
 
             {/* Settings Button - Top Left */}
@@ -124,7 +133,7 @@ const styles = StyleSheet.create({
     avatarText: {
         color: '#0d1f0d',
         fontWeight: 'bold',
-        fontSize: 16,
+        fontSize: 20, // Increased for better emoji visibility
     },
     // Settings Button - Top Left
     settingsContainer: {
