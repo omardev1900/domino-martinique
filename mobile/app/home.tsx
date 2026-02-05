@@ -2,16 +2,34 @@ import React from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp, FadeInLeft } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeInLeft, FadeInRight } from 'react-native-reanimated';
+import { authService } from '../src/core/services/auth.service';
+import { PlayerProfile } from '../src/core/types';
+import { useState, useEffect } from 'react';
 
 export default function HomeScreen() {
     const router = useRouter();
+    const [user, setUser] = useState<PlayerProfile | null>(null);
+
+    useEffect(() => {
+        authService.getCurrentUser().then(setUser);
+    }, []);
 
     return (
         <LinearGradient
             colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']}
             style={styles.container}
         >
+            {/* User Info - Top Right */}
+            <Animated.View entering={FadeInRight.duration(400)} style={styles.userInfoContainer}>
+                <View style={styles.userBadge}>
+                    <Text style={styles.userName}>{user?.displayName || 'Invité'}</Text>
+                    <View style={styles.avatarCircle}>
+                        <Text style={styles.avatarText}>{user?.displayName?.[0] || 'I'}</Text>
+                    </View>
+                </View>
+            </Animated.View>
+
             {/* Settings Button - Top Left */}
             <Animated.View entering={FadeInLeft.duration(400)} style={styles.settingsContainer}>
                 <TouchableOpacity
@@ -66,6 +84,40 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    // User Info - Top Right
+    userInfoContainer: {
+        position: 'absolute',
+        top: 40,
+        right: 30,
+        zIndex: 10,
+    },
+    userBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        padding: 4,
+        paddingLeft: 12,
+        borderRadius: 20,
+        gap: 8,
+    },
+    userName: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    avatarCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FFD700',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarText: {
+        color: '#0d1f0d',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
     // Settings Button - Top Left
     settingsContainer: {

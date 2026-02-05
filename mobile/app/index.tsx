@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { authService } from '../src/core/services/auth.service';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -34,13 +35,29 @@ export default function SplashScreen() {
             });
         }, 1000);
 
-        // Navigate to home after 3 seconds
-        const timer = setTimeout(() => {
-            router.replace('/home');
-        }, 3000);
+        // Check auth and navigate
+        const checkAuthAndNavigate = async () => {
+            try {
+                // Ensure splash visible for at least 3 seconds
+                const [user] = await Promise.all([
+                    authService.getCurrentUser(),
+                    new Promise(resolve => setTimeout(resolve, 3000))
+                ]);
+
+                if (user) {
+                    router.replace('/home');
+                } else {
+                    router.replace('/login');
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                router.replace('/login'); // Fallback
+            }
+        };
+
+        checkAuthAndNavigate();
 
         return () => {
-            clearTimeout(timer);
             clearInterval(countdownInterval);
         };
     }, []);
