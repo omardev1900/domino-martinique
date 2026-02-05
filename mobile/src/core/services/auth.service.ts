@@ -1,5 +1,12 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    User
+} from 'firebase/auth';
+import { auth } from './firebase';
 import { PlayerProfile } from '../types';
 
 const STORAGE_KEY_SESSION = '@user_session_active';
@@ -17,15 +24,11 @@ class AuthService {
 
     /**
      * Login as Guest
-     * - Checks if a Guest Profile already exists.
-     * - If YES: Loads it and marks session as active.
-     * - If NO: Creates a new one, saves it, and marks session as active.
      */
     async loginAsGuest(): Promise<PlayerProfile> {
         let guestUser: PlayerProfile | null = null;
 
         try {
-            // 1. Check for existing guest profile
             const existingProfileJson = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
             if (existingProfileJson) {
                 guestUser = JSON.parse(existingProfileJson);
@@ -35,21 +38,62 @@ class AuthService {
         }
 
         if (!guestUser) {
-            // 2. Create new guest profile if none exists
             guestUser = {
                 uid: this.generateGuestId(),
                 displayName: 'Invité',
-                avatarUrl: undefined, // Default avatar will be used
+                avatarUrl: undefined,
                 gamesPlayed: 0,
                 gamesWon: 0,
             };
-            // Persist the new profile
             await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(guestUser));
         }
 
-        // 3. Activate Session (using the Guest User)
         await this.activateSession(guestUser);
         return guestUser;
+    }
+
+    /**
+     * Firebase Sign In
+     */
+    async signIn(email: string, pass: string): Promise<PlayerProfile> {
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+            const user = userCredential.user;
+
+            const profile = this.mapFirebaseUserToProfile(user);
+            await this.activateSession(profile);
+            return profile;
+        } catch (error) {
+            console.error('Sign In Error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Firebase Sign Up
+     */
+    async signUp(email: string, pass: string): Promise<PlayerProfile> {
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+            const user = userCredential.user;
+
+            const profile = this.mapFirebaseUserToProfile(user);
+            await this.activateSession(profile);
+            return profile;
+        } catch (error) {
+            console.error('Sign Up Error:', error);
+            throw error;
+        }
+    }
+
+    private mapFirebaseUserToProfile(user: User): PlayerProfile {
+        return {
+            uid: user.uid,
+            displayName: user.email?.split('@')[0] || 'Joueur',
+            avatarUrl: undefined,
+            gamesPlayed: 0,
+            gamesWon: 0
+        };
     }
 
     /**
@@ -57,8 +101,7 @@ class AuthService {
      */
     private async activateSession(user: PlayerProfile): Promise<void> {
         try {
-            await AsyncStorage.setItem(STORAGE_KEY_SESSION, 'true'); // Simple marker
-            // We rely on the Guest Profile being stored Separately, but for performance, we keep `currentUser` in memory
+            await AsyncStorage.setItem(STORAGE_KEY_SESSION, 'true');
             this.currentUser = user;
         } catch (error) {
             console.error('Failed to activate session', error);
@@ -67,17 +110,22 @@ class AuthService {
 
     /**
      * Get current logged in user
-     * - Checks if Session is Active.
-     * - If Session Active -> Loads Guest Profile.
      */
     async getCurrentUser(): Promise<PlayerProfile | null> {
         if (this.currentUser) return this.currentUser;
 
         try {
+            // Check session marker
             const isSessionActive = await AsyncStorage.getItem(STORAGE_KEY_SESSION);
 
             if (isSessionActive === 'true') {
-                // Session is active, load the Guest Profile
+                // Priority 1: Check Firebase Auth state (Async)
+                if (auth.currentUser) {
+                    this.currentUser = this.mapFirebaseUserToProfile(auth.currentUser);
+                    return this.currentUser;
+                }
+
+                // Priority 2: Fallback to Guest Profile (Local)
                 const guestProfileJson = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
                 if (guestProfileJson) {
                     this.currentUser = JSON.parse(guestProfileJson);
@@ -93,12 +141,11 @@ class AuthService {
 
     /**
      * Logout
-     * - Clears the Session Marker.
-     * - KEEPS the Guest Profile Data (stats, etc.).
      */
     async logout(): Promise<void> {
         try {
-            await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
+            await signOut(auth); // Sign out from Firebase
+            await AsyncStorage.removeItem(STORAGE_KEY_SESSION); // Clear session marker
             this.currentUser = null;
         } catch (error) {
             console.error('Failed to logout', error);
@@ -107,19 +154,19 @@ class AuthService {
 
     /**
      * Update user stats
-     * - Updates memory AND the persisted Guest Profile.
      */
     async updateStats(stats: Partial<PlayerProfile>): Promise<void> {
         if (!this.currentUser) return;
 
-        // Update in-memory
         this.currentUser = { ...this.currentUser, ...stats };
 
-        // Persist updates to the Guest Profile
-        try {
-            await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(this.currentUser));
-        } catch (error) {
-            console.error('Failed to update stats', error);
+        // Only persist to Guest Profile if it looks like a guest ID
+        if (this.currentUser.uid.startsWith('guest_')) {
+            try {
+                await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(this.currentUser));
+            } catch (error) {
+                console.error('Failed to update guest stats', error);
+            }
         }
     }
 }

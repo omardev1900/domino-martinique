@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { authService } from '../src/core/services/auth.service';
@@ -8,6 +8,8 @@ import { authService } from '../src/core/services/auth.service';
 export default function LoginScreen() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
 
     const handleGuestLogin = async () => {
         setIsLoading(true);
@@ -17,6 +19,44 @@ export default function LoginScreen() {
         } catch (error) {
             console.error(error);
             Alert.alert('Erreur', 'Impossible de se connecter en invité.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSignIn = async () => {
+        if (!email || !password) {
+            Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+            return;
+        }
+        setIsLoading(true);
+        try {
+            await authService.signIn(email, password);
+            router.replace('/home');
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert('Erreur de connexion', error.message || 'Une erreur est survenue.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSignUp = async () => {
+        if (!email || !password) {
+            Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+            return;
+        }
+        if (password.length < 6) {
+            Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères.');
+            return;
+        }
+        setIsLoading(true);
+        try {
+            await authService.signUp(email, password);
+            router.replace('/home');
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert('Erreur d\'inscription', error.message || 'Une erreur est survenue.');
         } finally {
             setIsLoading(false);
         }
@@ -42,19 +82,49 @@ export default function LoginScreen() {
                         onPress={handleGuestLogin}
                         disabled={isLoading}
                     >
-                        {isLoading ? (
-                            <ActivityIndicator color="#0d1f0d" />
-                        ) : (
-                            <Text style={styles.guestButtonText}>Jouer en Invité</Text>
-                        )}
+                        <Text style={styles.guestButtonText}>Jouer en Invité</Text>
                     </TouchableOpacity>
 
-                    {/* Placeholder for future auth methods */}
                     <Text style={styles.orText}>- ou -</Text>
 
-                    <TouchableOpacity style={[styles.secondaryButton, { opacity: 0.5 }]} disabled>
-                        <Text style={styles.secondaryButtonText}>Connexion (Bientôt)</Text>
-                    </TouchableOpacity>
+                    {/* Email / Password Form */}
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Email"
+                        placeholderTextColor="rgba(255,255,255,0.5)"
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Mot de passe"
+                        placeholderTextColor="rgba(255,255,255,0.5)"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                    />
+
+                    <View style={styles.authButtonsRow}>
+                        <TouchableOpacity
+                            style={styles.authButton}
+                            onPress={handleSignIn}
+                            disabled={isLoading}
+                        >
+                            <Text style={styles.authButtonText}>Connexion</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.authButton, styles.signUpButton]}
+                            onPress={handleSignUp}
+                            disabled={isLoading}
+                        >
+                            <Text style={styles.authButtonText}>Inscription</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {isLoading && <ActivityIndicator color="#FFD700" style={{ marginTop: 10 }} />}
                 </View>
             </View>
         </LinearGradient>
@@ -96,26 +166,26 @@ const styles = StyleSheet.create({
         height: 3,
         backgroundColor: 'rgba(255,215,0,0.5)',
         marginTop: 30,
-        marginBottom: 50,
+        marginBottom: 30,
         borderRadius: 2,
     },
     formContainer: {
         width: '100%',
-        maxWidth: 300,
+        maxWidth: 320,
         alignItems: 'center',
-        gap: 20,
+        gap: 16,
     },
     welcomeText: {
         fontSize: 20,
         color: '#FFFFFF',
-        marginBottom: 10,
+        marginBottom: 6,
         opacity: 0.8,
     },
     guestButton: {
         width: '100%',
-        height: 56,
+        height: 50,
         backgroundColor: '#FFD700',
-        borderRadius: 28,
+        borderRadius: 25,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
@@ -125,27 +195,49 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     guestButtonText: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#0d1f0d',
     },
     orText: {
         color: 'rgba(255,255,255,0.3)',
         fontSize: 14,
+        marginVertical: 4,
     },
-    secondaryButton: {
+    input: {
         width: '100%',
-        height: 56,
+        height: 50,
         backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 28,
-        justifyContent: 'center',
-        alignItems: 'center',
+        borderRadius: 12,
+        paddingHorizontal: 20,
+        fontSize: 16,
+        color: '#FFFFFF',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.2)',
     },
-    secondaryButtonText: {
-        fontSize: 16,
-        color: '#FFFFFF',
+    authButtonsRow: {
+        flexDirection: 'row',
+        gap: 12,
+        width: '100%',
+        marginTop: 8,
+    },
+    authButton: {
+        flex: 1,
+        height: 48,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    signUpButton: {
+        backgroundColor: 'rgba(33, 150, 243, 0.3)',
+        borderColor: '#2196F3',
+    },
+    authButtonText: {
+        fontSize: 14,
         fontWeight: '600',
+        color: '#FFFFFF',
     },
 });
