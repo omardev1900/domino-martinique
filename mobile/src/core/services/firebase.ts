@@ -116,7 +116,7 @@ export const joinRoom = async (roomId: string, playerProfile: PlayerProfile): Pr
         }
 
         if (roomData.players.length >= 3) {
-            throw new Error("Impossible de rejoindre : La salle est complète.");
+            throw new Error("Impossible de rejoindre : La table est complète.");
         }
 
         // SAFETY: Remove undefined fields from player profile before adding to array

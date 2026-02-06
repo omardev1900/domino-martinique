@@ -54,7 +54,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                             <View style={styles.emptyAvatar}>
                                 <Text style={styles.silhouetteIcon}>👤</Text>
                             </View>
-                            <Text style={styles.emptyText}>Waiting...</Text>
+                            <Text style={styles.emptyText}>Attente...</Text>
                         </>
                     ) : (
                         // Occupied Slot
@@ -84,8 +84,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
         >
             {/* Room Code - Top */}
             <Animated.View entering={FadeIn.delay(100)} style={styles.header}>
-                <Text style={styles.roomCodeLabel}>Room Code</Text>
-                <Text style={styles.roomCode}>{roomData.roomId}</Text>
+                <Text style={styles.roomCode}>Code : {roomData.roomId}</Text>
             </Animated.View>
 
             {/* Player Cards - Center */}
@@ -108,14 +107,14 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                 style={styles.buttonGradient}
                             >
                                 <Text style={styles.actionButtonText}>
-                                    {canStart ? 'START GAME' : `WAITING FOR ${3 - roomData.players.length} MORE`}
+                                    {canStart ? 'JOUER' : `ATTENDRE ${3 - roomData.players.length} PLUS`}
                                 </Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     </>
                 ) : (
                     <View style={styles.waitingContainer}>
-                        <Text style={styles.waitingText}>Waiting for host to start...</Text>
+                        <Text style={styles.waitingText}>En attente du hote...</Text>
                     </View>
                 )}
             </Animated.View>

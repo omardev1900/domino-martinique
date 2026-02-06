@@ -579,7 +579,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                     <TouchableOpacity
                         onPress={() => {
                             Clipboard.setStringAsync(gameId);
-                            Alert.alert("Copié", "Code de la salle copié !");
+                            Alert.alert("Copié", "Code de la table copié !");
                         }}
                         style={styles.headerCodeButton}
                     >

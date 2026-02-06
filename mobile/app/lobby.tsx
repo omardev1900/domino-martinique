@@ -143,7 +143,7 @@ export default function LobbyScreen() {
                 <ScrollView contentContainerStyle={[styles.createdContainer, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
                     <Animated.View entering={FadeInUp} style={[styles.successCard, isLandscape && styles.successCardLandscape]}>
                         <View style={[isLandscape && styles.successHeaderLandscape]}>
-                            <Text style={styles.successTitle}>Salle Créée !</Text>
+                            <Text style={styles.successTitle}>Table Créée !</Text>
                             <Text style={styles.successSubtitle}>Partage ce code avec tes amis :</Text>
                         </View>
 
@@ -159,7 +159,7 @@ export default function LobbyScreen() {
                             </View>
 
                             <TouchableOpacity style={[styles.primaryButton, isLandscape && styles.primaryButtonLandscape]} onPress={handleStartGame}>
-                                <Text style={styles.buttonText}>Entrer dans la salle</Text>
+                                <Text style={styles.buttonText}>Joindre la table</Text>
                             </TouchableOpacity>
                         </View>
                     </Animated.View>
@@ -223,7 +223,7 @@ export default function LobbyScreen() {
                         style={[styles.tabButton, activeTab === 'PUBLIC' && styles.activeTab]}
                         onPress={() => setActiveTab('PUBLIC')}
                     >
-                        <Text style={[styles.tabText, activeTab === 'PUBLIC' && styles.activeTabText]}>Salles Publiques</Text>
+                        <Text style={[styles.tabText, activeTab === 'PUBLIC' && styles.activeTabText]}>Tables Publiques</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -250,23 +250,27 @@ export default function LobbyScreen() {
                         </Animated.View>
 
                         <Animated.View entering={FadeIn.delay(400)} style={styles.card}>
-                            <Text style={styles.cardTitle}>Créer une Table</Text>
+                            <View style={styles.inlineHeader}>
+                                <TouchableOpacity
+                                    style={styles.miniCheckboxContainer}
+                                    onPress={() => setIsPrivateRoom(!isPrivateRoom)}
+                                >
+                                    <View style={[styles.miniCheckbox, !isPrivateRoom && styles.miniCheckboxChecked]}>
+                                        {!isPrivateRoom && <Text style={styles.miniCheckmark}>✓</Text>}
+                                    </View>
+                                </TouchableOpacity>
+                                <Text style={styles.cardTitle}>Créer une Table {!isPrivateRoom ? '(Publique)' : '(Privée)'}</Text>
+                            </View>
+
                             <TextInput
                                 style={styles.input}
-                                placeholder="Nom (Optionnel)"
+                                placeholder="Nom de la table"
                                 placeholderTextColor="rgba(255,255,255,0.4)"
                                 value={roomNameInput}
                                 onChangeText={setRoomNameInput}
+                                maxLength={12}
                             />
-                            <TouchableOpacity
-                                style={styles.checkboxContainer}
-                                onPress={() => setIsPrivateRoom(!isPrivateRoom)}
-                            >
-                                <View style={[styles.checkbox, !isPrivateRoom && styles.checkboxChecked]}>
-                                    {!isPrivateRoom && <Text style={styles.checkmark}>✓</Text>}
-                                </View>
-                                <Text style={styles.checkboxLabel}>Table Publique</Text>
-                            </TouchableOpacity>
+
                             <TouchableOpacity style={styles.secondaryButton} onPress={handleCreateRoom}>
                                 <Text style={styles.secondaryButtonText}>Créer la Table</Text>
                             </TouchableOpacity>
@@ -284,7 +288,7 @@ export default function LobbyScreen() {
                                 scrollEnabled={false}
                                 ListEmptyComponent={
                                     <View style={styles.emptyContainer}>
-                                        <Text style={styles.emptyText}>Aucune salle publique pour le moment.</Text>
+                                        <Text style={styles.emptyText}>Aucune table publique pour le moment.</Text>
                                     </View>
                                 }
                             />
@@ -415,23 +419,31 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 20,
     },
-    checkbox: {
-        width: 22,
-        height: 22,
-        borderRadius: 6,
+    inlineHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+        gap: 10,
+    },
+    miniCheckboxContainer: {
+        padding: 2,
+    },
+    miniCheckbox: {
+        width: 18,
+        height: 18,
+        borderRadius: 4,
         borderWidth: 2,
         borderColor: '#FFD700',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 10,
     },
-    checkboxChecked: {
+    miniCheckboxChecked: {
         backgroundColor: '#FFD700',
     },
-    checkmark: {
+    miniCheckmark: {
         color: '#0d1f0d',
         fontWeight: 'bold',
-        fontSize: 14,
+        fontSize: 10,
     },
     checkboxLabel: {
         color: '#FFF',
