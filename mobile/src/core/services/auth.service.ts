@@ -43,6 +43,7 @@ class AuthService {
                 uid: this.generateGuestId(),
                 displayName: 'Invité',
                 avatarUrl: undefined,
+                avatarId: undefined,
                 gamesPlayed: 0,
                 gamesWon: 0,
             };
@@ -92,6 +93,7 @@ class AuthService {
             uid: user.uid,
             displayName: user.displayName || user.email?.split('@')[0] || 'Joueur',
             avatarUrl: user.photoURL || undefined,
+            avatarId: user.photoURL || undefined, // Sync avatarId with photoURL (Emoji)
             gamesPlayed: 0,
             gamesWon: 0
         };
@@ -180,7 +182,7 @@ class AuthService {
         // 1. Update Local State
         const profileUpdates: Partial<PlayerProfile> = {
             ...(updates.displayName && { displayName: updates.displayName }),
-            ...(updates.photoURL !== undefined && { avatarUrl: updates.photoURL })
+            ...(updates.photoURL !== undefined && { avatarUrl: updates.photoURL, avatarId: updates.photoURL })
         };
         this.currentUser = { ...this.currentUser, ...profileUpdates };
 

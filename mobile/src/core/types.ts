@@ -13,6 +13,7 @@ export type PlayerId = string;
 export interface Player {
     id: PlayerId;
     name: string;
+    avatarId?: string; // NEW: To sync avatar
     hand: Domino[]; // En local pour le joueur, masqué pour les autres via API
     handSize: number; // Public pour les autres joueurs
     wins: number; // Nombre de parties gagnées dans la manche (max 3)
@@ -60,7 +61,9 @@ export enum RoomStatus {
 export interface PlayerProfile {
     uid: string;
     displayName: string;
-    avatarUrl?: string;
+    avatarUrl?: string; // Legacy?
+    avatarId?: string; // NEW
+    isHost?: boolean; // NEW: Identify host in player list
     gamesPlayed: number;
     gamesWon: number;
 }
@@ -74,4 +77,5 @@ export interface GameRoom {
     createdBy: string; // UID du créateur
     isPrivate: boolean;
     passcode?: string; // Si privé
+    roomName?: string; // Nom personnalisé ou généré
 }

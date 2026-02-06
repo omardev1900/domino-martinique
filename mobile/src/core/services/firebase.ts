@@ -6,14 +6,19 @@ import {
     addDoc,
     doc,
     getDoc,
+    getDocs,
     updateDoc,
+    deleteDoc,
     onSnapshot,
     serverTimestamp,
     arrayUnion,
     arrayRemove,
     DocumentSnapshot,
     DocumentData,
-    FirestoreError
+    FirestoreError,
+    query,
+    where,
+    QuerySnapshot
 } from 'firebase/firestore';
 import { GameRoom, GameState, PlayerProfile, RoomStatus } from '../types';
 
@@ -41,24 +46,24 @@ const ROOMS_COLLECTION = 'rooms';
  * @param hostProfile The profile of the user hosting the game
  * @returns The created room ID
  */
-export const createRoom = async (hostProfile: PlayerProfile, isPrivate: boolean = false, passcode?: string): Promise<string> => {
+export const createRoom = async (hostProfile: PlayerProfile, isPrivate: boolean = false, roomName?: string, passcode?: string): Promise<string> => {
     try {
         const roomData: Omit<GameRoom, 'roomId'> = {
-            createdAt: Date.now(), // Firestore timestamp might be better but Types use number
+            createdAt: Date.now(),
             status: RoomStatus.WAITING,
-            players: [hostProfile],
+            players: [{ ...hostProfile, isHost: true }], // Force Host flag
             gameState: null,
             createdBy: hostProfile.uid,
             isPrivate,
-            ...(passcode && { passcode })
+            ...(passcode && { passcode }),
+            // Default room name if not provided
+            roomName: roomName || `Table #${Math.floor(Math.random() * 9000) + 1000}`
         };
 
-        // Note: We use serverTimestamp() for internal sorting if needed, but for the GameRoom type we stick to number
-        // For now let's overwrite with serverTimestamp just for creation, but typescript expects number.
-        // We will stick to client timestamp for simplicity or we'd need a converter.
-        // Let's rely on Date.now() for this MVP phase.
+        // SAFETY: Remove undefined fields which crash Firestore
+        const cleanRoomData = JSON.parse(JSON.stringify(roomData));
 
-        const docRef = await addDoc(collection(db, ROOMS_COLLECTION), roomData);
+        const docRef = await addDoc(collection(db, ROOMS_COLLECTION), cleanRoomData);
         console.log("Room created with ID: ", docRef.id);
 
         // Update the room with its own ID (optional but helpful)
@@ -107,15 +112,18 @@ export const joinRoom = async (roomId: string, playerProfile: PlayerProfile): Pr
 
         // New player joining - check status
         if (roomData.status !== RoomStatus.WAITING) {
-            throw new Error("Room is already playing or finished");
+            throw new Error("Impossible de rejoindre : La partie a déjà commencé.");
         }
 
-        if (roomData.players.length >= 4) {
-            throw new Error("Room is full");
+        if (roomData.players.length >= 3) {
+            throw new Error("Impossible de rejoindre : La salle est complète.");
         }
+
+        // SAFETY: Remove undefined fields from player profile before adding to array
+        const cleanPlayerProfile = JSON.parse(JSON.stringify({ ...playerProfile, isHost: false }));
 
         await updateDoc(roomRef, {
-            players: arrayUnion(playerProfile)
+            players: arrayUnion(cleanPlayerProfile)
         });
         console.log(`Player ${playerProfile.uid} joined room ${roomId}`);
 
@@ -137,8 +145,29 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
         if (!roomSnap.exists()) return;
 
         const roomData = roomSnap.data() as GameRoom;
+        const playerToRemove = roomData.players.find(p => p.uid === userId);
+
+        // ROBUST REMOVAL: Filter out by UID explicitly
         const updatedPlayers = roomData.players.filter(p => p.uid !== userId);
 
+        // 1. If room is empty, delete it (Ghost Room Fix)
+        if (updatedPlayers.length === 0) {
+            await deleteDoc(roomRef);
+            console.log(`Room ${roomId} deleted (empty)`);
+            return;
+        }
+
+        // 2. If Host left, reassign host or close room
+        // Check if the player leaving was the host
+        if (playerToRemove?.isHost) {
+            // Reassign host to the next player (first in the list)
+            if (updatedPlayers.length > 0) {
+                updatedPlayers[0].isHost = true;
+                console.log(`Host left. New host assigned: ${updatedPlayers[0].displayName}`);
+            }
+        }
+
+        // Force update of players list
         await updateDoc(roomRef, {
             players: updatedPlayers
         });
@@ -157,9 +186,17 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
 export const startGame = async (roomId: string, initialGameState: GameState): Promise<void> => {
     const roomRef = doc(db, ROOMS_COLLECTION, roomId);
     try {
+        // SANITIZATION: Firebase rejects 'undefined'. Replace with null.
+        const sanitizedGameState = JSON.parse(JSON.stringify(initialGameState, (k, v) => v === undefined ? null : v));
+
+        // SAFETY: Ensure currentPlayerId is valid
+        if (!sanitizedGameState.currentPlayerId && sanitizedGameState.players.length > 0) {
+            sanitizedGameState.currentPlayerId = sanitizedGameState.players[0].id;
+        }
+
         await updateDoc(roomRef, {
             status: RoomStatus.PLAYING,
-            gameState: initialGameState
+            gameState: sanitizedGameState
         });
     } catch (e) {
         console.error("Error starting game: ", e);
@@ -218,6 +255,99 @@ export const subscribeToRoom = (
         }
     }, (error) => {
         console.error("Room subscription error:", error);
+        if (onError) onError(error);
+    });
+};
+
+/**
+ * Checks if the user is already in an active game (PLAYING status).
+ * @param userId The user ID to check
+ * @returns The roomId if found, or null
+ */
+export const findActiveRoomForUser = async (userId: string): Promise<string | null> => {
+    try {
+        // Query for rooms that are PLAYING
+        // Note: Array-contains on objects requires exact match.
+        // Since we store full profiles, array-contains is tricky if profile changed slightly (e.g. wins update).
+        // Better approach: Query by status 'PLAYING' and filter client side (assuming low volume of concurrent rooms for MVP).
+        // Or better: Maintain a 'activePlayerIds' array in the room document for easier querying?
+        // For now: Fetch all PLAYING rooms and find user.
+
+        const q = query(
+            collection(db, ROOMS_COLLECTION),
+            where("status", "==", RoomStatus.PLAYING)
+        );
+
+        const snapshot = await getDocs(q);
+
+        for (const doc of snapshot.docs) {
+            const data = doc.data() as GameRoom;
+            // Check if user is in players list OR game state players
+            const isInList = data.players.some(p => p.uid === userId);
+
+            // Also check gameState because sometimes players list might be stale if logic differs, 
+            // but for rejoin, we care about the persistent room data.
+            if (isInList) {
+                return doc.id;
+            }
+        }
+
+        return null;
+    } catch (e) {
+        console.error("Error finding active room:", e);
+        return null; // Fail safe
+    }
+};
+
+/**
+ * Listens to available public rooms in real-time
+ * ... (existing check)
+ */
+export const listenToPublicRooms = (
+    onUpdate: (rooms: GameRoom[]) => void,
+    onError?: (error: FirestoreError) => void
+) => {
+    // Requires an index on 'status' and 'isPrivate' (and potentially createdAt for sorting)
+    // Query: status == 'WAITING' && isPrivate == false
+    // Note: If you want to sort by createdAt, you need a composite index in Firestore.
+    // For now, we will just filter. Client-side sorting is fine for small numbers of rooms.
+
+    // We can't use simple 'where' clauses with real-time listeners easily without indices if we sort too.
+    // Let's stick to the requirements: status == waiting, isPublic == true.
+
+    // NOTE: In Firestore, `isPrivate` might be undefined for old rooms. 
+    // If we only query `isPrivate == false`, we might miss old rooms if they don't have the field.
+    // Ensure all rooms have isPrivate set or handle legacy data if needed. 
+    // We'll assume new rooms created with this version have the flag.
+
+    // To allow sorting by createdAt, we would ideally do:
+    // query(collection(db, ROOMS_COLLECTION), where("status", "==", RoomStatus.WAITING), where("isPrivate", "==", false), orderBy("createdAt", "desc"))
+    // This WILL require a composite index creation link from the console.
+
+    // For MVP/Prototype without forcing index creation immediately, we can fetch list and filter/sort client side if the list isn't huge.
+    // HOWEVER, `onSnapshot` with `where` clauses is efficient. 
+
+    // Let's try the query. If it fails due to missing index, we will see it in logs (and usually get a link to create it).
+
+    const q = query(
+        collection(db, ROOMS_COLLECTION),
+        where("status", "==", RoomStatus.WAITING),
+        where("isPrivate", "==", false)
+        // orderBy("createdAt", "desc") // Commented out to avoid index requirement for now
+    );
+
+    return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
+        const rooms: GameRoom[] = [];
+        snapshot.forEach((doc: any) => {
+            rooms.push({ ...doc.data() } as GameRoom);
+        });
+
+        // Client-side sort to avoid index issues for now
+        rooms.sort((a, b) => b.createdAt - a.createdAt);
+
+        onUpdate(rooms);
+    }, (error: FirestoreError) => {
+        console.error("Public rooms listener error:", error);
         if (onError) onError(error);
     });
 };

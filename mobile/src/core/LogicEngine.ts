@@ -226,25 +226,32 @@ export const handleEndOfRound = (
     // Vérifier si quelqu'un a atteint la condition de victoire (3 pour multi, 1 pour solo)
     const matchWinner = newState.players.find(p => p.wins >= gameState.winningCondition);
 
+    // Calcule les points (Somme des mains des perdants ajoutée au gagnant)
+    // Cette logique s'applique à tous les modes (Solo & Multi) pour avoir un score
+    const losersPoints = newState.players
+        .filter(p => p.id !== winnerId)
+        .reduce((sum, p) => sum + calculateHandPoints(p.hand), 0);
+
+    // Ajoute les points au gagnant pour ce round
+    newState.players[winnerIndex].totalPoints += losersPoints;
+
     if (matchWinner) {
         newState.phase = 'MATCH_END';
 
-        // Only calculate Cochon points for multi-round games (typically 3+)
+        // Logique Cochon supplémentaire si condition > 1 (Optionnel, gardons simple pour l'instant ou cumulons)
         if (gameState.winningCondition > 1) {
             const pointsMap = calculateCochonPoints(newState.players);
-
-            // Apply points and mark cochons
             newState.players = newState.players.map(p => ({
                 ...p,
                 isCochon: p.wins === 0,
-                totalPoints: p.totalPoints + (pointsMap.get(p.id) || 0)
+                // On ajoute les points Cochon EN PLUS ou on garde le standard ? 
+                // Pour l'instant on garde le calcul standard 'losersPoints' fait plus haut, 
+                // et on marque juste les cochons.
             }));
         } else {
-            // Basic win logic for solo/single round
             newState.players = newState.players.map(p => ({
                 ...p,
-                isCochon: false,
-                totalPoints: p.totalPoints // Keep current points or add nothing
+                isCochon: false
             }));
         }
     } else {

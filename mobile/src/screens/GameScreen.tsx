@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import { useNavigation } from 'expo-router';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
@@ -14,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
 import { TURN_DURATION_SECONDS } from '../core/constants';
+import * as Clipboard from 'expo-clipboard';
 
 interface GameScreenProps {
     gameId?: string;
@@ -30,6 +32,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     const [isSoloMode] = useState(mode === 'solo');
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
 
+    const navigation = useNavigation(); // Use navigation for intercepting back
+
     // Audio & Firebase Subscription
     useEffect(() => {
         // Preload sounds
@@ -37,17 +41,20 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             SoundManager.playMusic('bgm1', 0.3);
         });
 
-        // Solo mode - start immediately
+        // Solo mode - start immediately and bypass Firebase checks
         if (isSoloMode) {
+            setIsStarting(false); // Ensure loading is off
             startSoloGame();
             return;
         }
 
         if (!gameId) {
+            setIsStarting(false);
             startNewLocalGame();
             return;
         }
 
+        // Multiplayer loading...
         const unsubscribe = subscribeToRoom(gameId, (data) => {
             setRoomData(data);
             if (data.gameState) {
@@ -60,6 +67,43 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             unsubscribe();
         };
     }, [gameId, isSoloMode]);
+
+    // IN-GAME PROTECTION: Prevent accidental exit
+    React.useEffect(() => {
+        if (!gameState && !isStarting) return; // Only protect if in game or starting
+
+        const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+            // Prevent default behavior of leaving the screen
+            e.preventDefault();
+
+            // Prompt the user before leaving
+            Alert.alert(
+                'Quit Game?',
+                'Are you sure you want to leave the game? You will be removed from the room.',
+                [
+                    { text: "Don't leave", style: 'cancel', onPress: () => { } },
+                    {
+                        text: 'Leave',
+                        style: 'destructive',
+                        // If the user confirmed, then we dispatch the action we blocked earlier
+                        // This will continue the action that had triggered the removal of the screen
+                        onPress: async () => {
+                            if (gameId && userId) {
+                                try {
+                                    await leaveRoom(gameId, userId);
+                                } catch (err) {
+                                    console.error("Error leaving room on exit", err);
+                                }
+                            }
+                            navigation.dispatch(e.data.action);
+                        },
+                    },
+                ]
+            );
+        });
+
+        return unsubscribe;
+    }, [gameState, isStarting, gameId, userId, navigation]);
 
     const startSoloGame = () => {
         const partialState = dealGameSolo(localPlayerId, 'Me', difficulty || 'beginner');
@@ -126,9 +170,15 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             const initialState = createInitialState(playerNames);
             initialState.players = initialState.players.map((p, i) => {
                 if (i < realPlayers.length) {
-                    return { ...p, id: realPlayers[i].uid, name: realPlayers[i].displayName, isBot: false };
+                    return {
+                        ...p,
+                        id: realPlayers[i].uid,
+                        name: realPlayers[i].displayName,
+                        avatarId: realPlayers[i].avatarId, // Emoji or undefined
+                        isBot: false
+                    };
                 } else {
-                    return { ...p, id: `bot-${i}`, name: `Bot ${i}`, isBot: true };
+                    return { ...p, id: `bot-${i}`, name: `Bot ${i}`, isBot: true, avatarId: 'bot' }; // Bot avatar?
                 }
             });
             // Re-determine first player after mapping real player IDs
@@ -166,6 +216,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         if (!gameState) return;
         if (gameState.currentPlayerId !== localPlayerId) return;
 
+        // Double check validation client-side to prevent "Cannot Pass" alert loop if logic engine disagrees
+        const currentCanPlay = localPlayer?.hand.some(d =>
+            checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
+        );
+
+        if (currentCanPlay) {
+            Alert.alert("Action impossible", "Vous avez des dominos jouables. Vous ne pouvez pas passer.");
+            return;
+        }
+
         try {
             const newState = passTurn(gameState, localPlayerId);
             if (isSoloMode || !gameId) {
@@ -174,6 +234,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                 await updateGameState(gameId, newState);
             }
         } catch (e: any) {
+            console.error("Pass Error", e);
+            // If the logic engine still throws "Valid moves", force sync?
             Alert.alert("Cannot Pass", e.message);
         }
     };
@@ -255,6 +317,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
 
     const handleReplay = () => {
+        // Dans GameOverScreen, ce bouton est 'Back to Lobby' si match terminé
+        if (isSoloMode) {
+            navigation.navigate('home' as never); // Force return to home/lobby
+            return;
+        }
+
         if (gameId && roomData?.players[0].uid === userId) {
             // Logic to restart online game would go here (reset state)
             Alert.alert("Notice", "Replay logic for online not fully implemented yet.");
@@ -438,12 +506,35 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
     ) ?? false;
 
-    // Get opponent players
-    const opponents = gameState.players.filter(p => p.id !== localPlayerId);
+    // Get opponent players and formatting for Bot display
+    const opponents = gameState.players
+        .filter(p => p.id !== localPlayerId)
+        .map(p => ({
+            ...p,
+            name: p.isBot ? `Bot (${p.name.split(' ')[0]})` : p.name,
+            avatarId: p.isBot ? '🤖' : p.avatarId
+        }));
 
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+
+            {/* NEW: Game Header with Room Code */}
+            {!isSoloMode && gameId && (
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Room: </Text>
+                    <TouchableOpacity
+                        onPress={() => {
+                            Clipboard.setStringAsync(gameId);
+                            Alert.alert("Copied", "Room Code copied to clipboard!");
+                        }}
+                        style={styles.headerCodeButton}
+                    >
+                        <Text style={styles.headerCode}>{gameId}</Text>
+                        <Ionicons name="copy-outline" size={16} color="#FFD700" style={{ marginLeft: 4 }} />
+                    </TouchableOpacity>
+                </View>
+            )}
 
             <GameTable gameState={gameState} />
 
@@ -475,7 +566,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                     <View style={styles.topRightCorner}>
                         <PlayerAvatar
                             key={`${opponents[1].id}-${gameState.currentPlayerId}`}
-                            player={opponents[1]}
+                            player={opponents[1]} // PlayerAvatar should handle isBot check internally or we override props here
                             isActive={gameState.currentPlayerId === opponents[1].id}
                             showTimer={gameState.currentPlayerId === opponents[1].id && !isGameOver}
                             timerDuration={TURN_DURATION_SECONDS}
@@ -583,5 +674,32 @@ const styles = StyleSheet.create({
         fontSize: 16,
         textTransform: 'uppercase',
     },
+    // Header Styles
+    header: {
+        position: 'absolute',
+        top: 50, // Below status bar
+        alignSelf: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        zIndex: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingVertical: 6,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+    },
+    headerTitle: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    headerCodeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    headerCode: {
+        color: '#FFD700',
+        fontSize: 14,
+        fontWeight: 'bold',
+        marginLeft: 4,
+    },
 });
-

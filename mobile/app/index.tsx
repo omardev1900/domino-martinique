@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Text, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { authService } from '../src/core/services/auth.service';
@@ -35,8 +35,8 @@ export default function SplashScreen() {
             });
         }, 1000);
 
-        // Check auth and navigate
-        const checkAuthAndNavigate = async () => {
+        // Improved logic for safety based on user request ("Timeout de sécurité")
+        const checkAuthSafe = async () => {
             try {
                 // Ensure splash visible for at least 3 seconds
                 const [user] = await Promise.all([
@@ -44,18 +44,53 @@ export default function SplashScreen() {
                     new Promise(resolve => setTimeout(resolve, 3000))
                 ]);
 
-                if (user) {
-                    router.replace('/home');
-                } else {
+                if (!user) {
                     router.replace('/login');
+                    return;
                 }
-            } catch (error) {
-                console.error('Auth check failed:', error);
-                router.replace('/login'); // Fallback
+
+                // Check active room with timeout
+                try {
+                    const { findActiveRoomForUser } = require('../src/core/services/firebase');
+
+                    // Race between check and 3s timeout
+                    const activeRoomId = await Promise.race([
+                        findActiveRoomForUser(user.uid),
+                        new Promise<null>(resolve => setTimeout(() => resolve(null), 3000))
+                    ]);
+
+                    if (activeRoomId) {
+                        Alert.alert(
+                            "Partie en cours",
+                            "Une partie est en cours. Voulez-vous la reprendre ?",
+                            [
+                                {
+                                    text: "Non",
+                                    onPress: () => router.replace('/home'),
+                                    style: "cancel"
+                                },
+                                {
+                                    text: "Oui, reprendre",
+                                    onPress: () => router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } })
+                                }
+                            ]
+                        );
+                        return;
+                    }
+                } catch (e) {
+                    console.error("Rejoin check failed", e);
+                }
+
+                // Proceed to home if no active room or check failed/timed out
+                router.replace('/home');
+
+            } catch (e) {
+                console.error("Critical Splash Error", e);
+                router.replace('/login');
             }
         };
 
-        checkAuthAndNavigate();
+        checkAuthSafe();
 
         return () => {
             clearInterval(countdownInterval);

@@ -34,6 +34,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const animatedProgress = useSharedValue(1);
     const [secondsLeft, setSecondsLeft] = useState(timerDuration);
 
+    // Timer Countdown Effect
     useEffect(() => {
         if (showTimer && isActive) {
             // Reset timer
@@ -44,15 +45,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             const interval = setInterval(() => {
                 setSecondsLeft(prev => {
                     const newValue = prev - 1;
-                    if (newValue <= 0) {
-                        clearInterval(interval);
-                        // Trigger timeout callback
-                        if (onTimeout) {
-                            console.log('Timer expired - triggering onTimeout');
-                            onTimeout();
-                        }
-                        return 0;
-                    }
+                    if (newValue < 0) return 0;
                     return newValue;
                 });
             }, 1000);
@@ -68,7 +61,17 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             animatedProgress.value = 1;
             setSecondsLeft(timerDuration);
         }
-    }, [showTimer, isActive, timerDuration, onTimeout]);
+    }, [showTimer, isActive, timerDuration]);
+
+    // Timeout Trigger Effect (Side Effect Separated from Render)
+    useEffect(() => {
+        if (showTimer && isActive && secondsLeft === 0) {
+            if (onTimeout) {
+                console.log('Timer expired - triggering onTimeout');
+                onTimeout();
+            }
+        }
+    }, [secondsLeft, showTimer, isActive, onTimeout]);
 
     const animatedProps = useAnimatedProps(() => ({
         strokeDashoffset: circumference * (1 - animatedProgress.value),
@@ -101,14 +104,14 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         isActive && styles.activeGlow,
                     ]}
                 >
-                    {/* Show countdown number when timer is active, otherwise show default avatar */}
+                    {/* Show countdown number when timer is active, otherwise show avatar */}
                     {showTimer && isActive ? (
                         <Text style={[styles.countdown, { fontSize: size / 2.2 }]}>
                             {secondsLeft}
                         </Text>
                     ) : (
                         <Text style={[styles.defaultAvatar, { fontSize: size / 1.5 }]}>
-                            👤
+                            {player.avatarId || '👤'}
                         </Text>
                     )}
                 </View>

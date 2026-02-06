@@ -86,8 +86,8 @@
 ---
 
 ## Phase 7: Multiplayer - Public Tables
-- [ ] Automatic matchmaking
-- [ ] Public room listing
+- [ ] Automatic matchmaking (Future)
+- [x] Public room listing (Lobby List & Host Toggle)
 
 ---
 
