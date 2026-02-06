@@ -20,9 +20,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
     const isMatchOver = gameState.players.some(p => p.wins >= WINS_TO_WIN_MATCH);
     const isBoudé = gameState.phase === 'BOUDE';
 
-    // Game Effects on mount
+    // Game Effects on mount (skip during BOUDE - resolution is pending)
     useEffect(() => {
-        const localPlayer = gameState.players.find(p => p.id === currentUserId);
+        // Don't play sounds during BOUDE - wait for resolution
+        if (isBoudé) return;
+
         const sortedPlayers = [...gameState.players].sort((a, b) => b.wins - a.wins);
         const isWinner = sortedPlayers[0].id === currentUserId;
 
@@ -31,28 +33,39 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
             HapticManager.triggerSuccess();
         } else {
             SoundManager.playSound('lose');
-            // No specific error haptic for lose, maybe subtle impact? 
-            // triggerError is for errors usually.
         }
-    }, [gameState.gameId, currentUserId]);
+    }, [gameState.gameId, currentUserId, isBoudé]);
 
-    // Auto-restart countdown for next round
+    // Auto-restart countdown for next round (skip during BOUDE - parent handles resolution)
     useEffect(() => {
-        if (!isMatchOver && onNextRound) {
-            const timer = setInterval(() => {
-                setCountdown((prev) => {
-                    if (prev <= 1) {
-                        clearInterval(timer);
-                        onNextRound();
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
+        // Don't run countdown during BOUDE phase - parent will handle resolution
+        if (isBoudé) return;
+        if (isMatchOver) return;
+        if (!onNextRound) return;
 
-            return () => clearInterval(timer);
+        const timer = setInterval(() => {
+            setCountdown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [isMatchOver, isBoudé, onNextRound]);
+
+    // Separate effect to call onNextRound when countdown reaches 0
+    useEffect(() => {
+        if (countdown === 0 && !isMatchOver && !isBoudé && onNextRound) {
+            // Use setTimeout to defer state update to next tick
+            const timeout = setTimeout(() => {
+                onNextRound();
+            }, 0);
+            return () => clearTimeout(timeout);
         }
-    }, [isMatchOver, onNextRound]);
+    }, [countdown, isMatchOver, isBoudé, onNextRound]);
 
     // Find winner
     // If match over, it's the one with 3 wins.
@@ -104,22 +117,26 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
                     })}
                 </View>
 
-                {!isMatchOver && countdown > 0 && (
+                {/* Countdown - only show for ROUND_END, not BOUDE or MATCH_END */}
+                {!isMatchOver && !isBoudé && countdown > 0 && (
                     <Text style={styles.countdownText}>
                         Next round starts in {countdown}s...
                     </Text>
                 )}
 
-                <Animated.View entering={FadeIn.delay(1000)}>
-                    <TouchableOpacity
-                        style={styles.replayButton}
-                        onPress={() => isMatchOver ? onReplay() : onNextRound?.()}
-                    >
-                        <Text style={styles.replayText}>
-                            {isMatchOver ? "Back to Lobby" : `Start Next Round${countdown > 0 ? ` (${countdown}s)` : ''}`}
-                        </Text>
-                    </TouchableOpacity>
-                </Animated.View>
+                {/* Action buttons - hide during BOUDE (auto-resolving) */}
+                {!isBoudé && (
+                    <Animated.View entering={FadeIn.delay(1000)}>
+                        <TouchableOpacity
+                            style={styles.replayButton}
+                            onPress={() => isMatchOver ? onReplay() : onNextRound?.()}
+                        >
+                            <Text style={styles.replayText}>
+                                {isMatchOver ? "Back to Lobby" : `Start Next Round${countdown > 0 ? ` (${countdown}s)` : ''}`}
+                            </Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                )}
             </Animated.View>
         </View>
     );
