@@ -1,22 +1,36 @@
 
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
+import {
+    View,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+    TextInput,
+    ScrollView,
+    KeyboardAvoidingView,
+    Platform,
+    useWindowDimensions
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authService } from '../src/core/services/auth.service';
 
 export default function LoginScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
+    const { width, height } = useWindowDimensions();
+    const isLandscape = width > height;
+
     const [isLoading, setIsLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
-    /**
-     * Map Firebase error codes to user-friendly French messages
-     */
     const getErrorMessage = (error: any) => {
         const code = error.code || '';
         if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/invalid-email') {
@@ -87,92 +101,108 @@ export default function LoginScreen() {
         }
     };
 
+    const renderLogo = () => (
+        <View style={[styles.logoSection, isLandscape && styles.logoSectionLandscape]}>
+            <Text style={[styles.logo, isLandscape && styles.logoLandscape]}>🁡</Text>
+            <View>
+                <Text style={[styles.title, isLandscape && styles.titleLandscape]}>DOMINO</Text>
+                <Text style={[styles.subtitle, isLandscape && styles.subtitleLandscape]}>MARTINIQUE</Text>
+            </View>
+            {!isLandscape && <View style={styles.divider} />}
+        </View>
+    );
+
+    const renderForm = () => (
+        <View style={[styles.formContainer, isLandscape && styles.formContainerLandscape]}>
+            <Text style={styles.welcomeText}>Bienvenue</Text>
+
+            <TouchableOpacity
+                style={styles.guestButton}
+                onPress={handleGuestLogin}
+                disabled={isLoading}
+            >
+                <Text style={styles.guestButtonText}>Jouer en Invité</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.orText}>- ou -</Text>
+
+            <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+            />
+
+            <View style={styles.passwordContainer}>
+                <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Mot de passe"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                >
+                    <Ionicons
+                        name={showPassword ? "eye-off" : "eye"}
+                        size={24}
+                        color="rgba(255,255,255,0.7)"
+                    />
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.authButtonsRow}>
+                <TouchableOpacity
+                    style={styles.authButton}
+                    onPress={handleSignIn}
+                    disabled={isLoading}
+                >
+                    <Text style={styles.authButtonText}>Connexion</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.authButton, styles.signUpButton]}
+                    onPress={handleSignUp}
+                    disabled={isLoading}
+                >
+                    <Text style={styles.authButtonText}>Inscription</Text>
+                </TouchableOpacity>
+            </View>
+
+            {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+            {isLoading && <ActivityIndicator color="#FFD700" style={{ marginTop: 10 }} />}
+        </View>
+    );
+
     return (
         <LinearGradient
             colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']}
             style={styles.container}
         >
-            <View style={styles.content}>
-                <Text style={styles.logo}>🁡</Text>
-                <Text style={styles.title}>DOMINO</Text>
-                <Text style={styles.subtitle}>MARTINIQUE</Text>
-
-                <View style={styles.divider} />
-
-                <View style={styles.formContainer}>
-                    <Text style={styles.welcomeText}>Bienvenue</Text>
-
-                    <TouchableOpacity
-                        style={styles.guestButton}
-                        onPress={handleGuestLogin}
-                        disabled={isLoading}
-                    >
-                        <Text style={styles.guestButtonText}>Jouer en Invité</Text>
-                    </TouchableOpacity>
-
-                    <Text style={styles.orText}>- ou -</Text>
-
-                    {/* Email Input */}
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Email"
-                        placeholderTextColor="rgba(255,255,255,0.5)"
-                        value={email}
-                        onChangeText={setEmail}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                        autoComplete="email"
-                        textContentType="username"
-                    />
-
-                    {/* Password Input Container */}
-                    <View style={styles.passwordContainer}>
-                        <TextInput
-                            style={styles.passwordInput}
-                            placeholder="Mot de passe"
-                            placeholderTextColor="rgba(255,255,255,0.5)"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry={!showPassword}
-                            autoComplete="password"
-                            textContentType="password"
-                        />
-                        <TouchableOpacity
-                            style={styles.eyeIcon}
-                            onPress={() => setShowPassword(!showPassword)}
-                        >
-                            <Ionicons
-                                name={showPassword ? "eye-off" : "eye"}
-                                size={24}
-                                color="rgba(255,255,255,0.7)"
-                            />
-                        </TouchableOpacity>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+            >
+                <ScrollView
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }
+                    ]}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={[styles.mainLayout, isLandscape && styles.mainLayoutLandscape]}>
+                        {renderLogo()}
+                        {renderForm()}
                     </View>
-
-                    <View style={styles.authButtonsRow}>
-                        <TouchableOpacity
-                            style={styles.authButton}
-                            onPress={handleSignIn}
-                            disabled={isLoading}
-                        >
-                            <Text style={styles.authButtonText}>Connexion</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.authButton, styles.signUpButton]}
-                            onPress={handleSignUp}
-                            disabled={isLoading}
-                        >
-                            <Text style={styles.authButtonText}>Inscription</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Error Message Display */}
-                    {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
-                    {isLoading && <ActivityIndicator color="#FFD700" style={{ marginTop: 10 }} />}
-                </View>
-            </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </LinearGradient>
     );
 }
@@ -181,64 +211,88 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    content: {
-        flex: 1,
+    scrollContent: {
+        flexGrow: 1,
         justifyContent: 'center',
+        paddingHorizontal: 20,
+    },
+    mainLayout: {
+        width: '100%',
         alignItems: 'center',
-        padding: 20,
+    },
+    mainLayoutLandscape: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        gap: 20,
+    },
+    logoSection: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    logoSectionLandscape: {
+        flex: 1,
+        marginBottom: 0,
     },
     logo: {
         fontSize: 80,
-        marginBottom: 20,
+        marginBottom: 10,
+    },
+    logoLandscape: {
+        fontSize: 60,
+        marginBottom: 10,
     },
     title: {
-        fontSize: 48,
+        fontSize: 40,
         fontWeight: '900',
         color: '#FFFFFF',
-        letterSpacing: 8,
-        textShadowColor: 'rgba(0,0,0,0.5)',
-        textShadowOffset: { width: 2, height: 2 },
-        textShadowRadius: 4,
+        letterSpacing: 4,
+        textAlign: 'center',
+    },
+    titleLandscape: {
+        fontSize: 32,
     },
     subtitle: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: '300',
         color: '#FFD700',
-        letterSpacing: 10,
-        marginTop: 8,
+        letterSpacing: 6,
+        textAlign: 'center',
+    },
+    subtitleLandscape: {
+        fontSize: 16,
     },
     divider: {
-        width: 120,
-        height: 3,
-        backgroundColor: 'rgba(255,215,0,0.5)',
-        marginTop: 30,
-        marginBottom: 30,
-        borderRadius: 2,
+        width: 100,
+        height: 2,
+        backgroundColor: 'rgba(255,215,0,0.3)',
+        marginTop: 20,
+        borderRadius: 1,
     },
     formContainer: {
         width: '100%',
         maxWidth: 320,
-        alignItems: 'center',
-        gap: 16,
+        gap: 12,
+    },
+    formContainerLandscape: {
+        flex: 1.2,
+        maxWidth: 400,
     },
     welcomeText: {
-        fontSize: 20,
+        fontSize: 18,
         color: '#FFFFFF',
-        marginBottom: 6,
         opacity: 0.8,
+        textAlign: 'center',
+        marginBottom: 4,
     },
     guestButton: {
         width: '100%',
-        height: 50,
+        height: 48,
         backgroundColor: '#FFD700',
-        borderRadius: 25,
+        borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 5,
+        elevation: 4,
     },
     guestButtonText: {
         fontSize: 16,
@@ -247,15 +301,16 @@ const styles = StyleSheet.create({
     },
     orText: {
         color: 'rgba(255,255,255,0.3)',
-        fontSize: 14,
-        marginVertical: 4,
+        fontSize: 12,
+        textAlign: 'center',
+        marginVertical: 2,
     },
     input: {
         width: '100%',
-        height: 50,
+        height: 48,
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 12,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         fontSize: 16,
         color: '#FFFFFF',
         borderWidth: 1,
@@ -263,7 +318,7 @@ const styles = StyleSheet.create({
     },
     passwordContainer: {
         width: '100%',
-        height: 50,
+        height: 48,
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 12,
         flexDirection: 'row',
@@ -274,7 +329,7 @@ const styles = StyleSheet.create({
     passwordInput: {
         flex: 1,
         height: '100%',
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         fontSize: 16,
         color: '#FFFFFF',
     },
@@ -283,22 +338,22 @@ const styles = StyleSheet.create({
     },
     authButtonsRow: {
         flexDirection: 'row',
-        gap: 12,
+        gap: 10,
         width: '100%',
-        marginTop: 8,
+        marginTop: 4,
     },
     authButton: {
         flex: 1,
-        height: 48,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 24,
+        height: 44,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.3)',
+        borderColor: 'rgba(255,255,255,0.2)',
     },
     signUpButton: {
-        backgroundColor: 'rgba(33, 150, 243, 0.3)',
+        backgroundColor: 'rgba(33, 150, 243, 0.2)',
         borderColor: '#2196F3',
     },
     authButtonText: {
@@ -308,9 +363,8 @@ const styles = StyleSheet.create({
     },
     errorText: {
         color: '#FF5252',
-        fontSize: 14,
+        fontSize: 13,
         textAlign: 'center',
-        marginTop: 5,
-        fontWeight: '500',
+        marginTop: 4,
     },
 });

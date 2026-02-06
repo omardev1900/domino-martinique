@@ -1,4 +1,5 @@
 import { Audio } from 'expo-av';
+import SettingsManager from '../SettingsManager';
 
 type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'boude';
 
@@ -89,6 +90,8 @@ class SoundManager {
                 await this.currentMusic.stopAsync();
             }
 
+            if (!SettingsManager.getSettings().isSoundEnabled) return;
+
             const sound = this.sounds[name];
             if (sound) {
                 await sound.setIsLoopingAsync(true);
@@ -122,6 +125,7 @@ class SoundManager {
 
     async playSound(name: SoundName) {
         try {
+            if (!SettingsManager.getSettings().isSoundEnabled) return;
             // DEBOUNCE: Prevent same sound playing within 100ms
             const now = Date.now();
             const lastTime = this.lastPlayTime[name] || 0;

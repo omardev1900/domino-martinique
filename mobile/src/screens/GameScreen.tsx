@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions } from 'react-native';
 import { useNavigation } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
@@ -25,6 +26,10 @@ interface GameScreenProps {
 }
 
 export default function GameScreen({ gameId, userId, mode, difficulty }: GameScreenProps) {
+    const { width, height } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
+    const isLandscape = width > height;
+
     const [roomData, setRoomData] = useState<GameRoom | null>(null);
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [localPlayerId] = useState<PlayerId>(userId || 'p1');
@@ -565,16 +570,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+            <StatusBar barStyle="light-content" backgroundColor="#0d1f0d" />
 
             {/* NEW: Game Header with Room Code */}
             {!isSoloMode && gameId && (
-                <View style={styles.header}>
+                <View style={[styles.header, { top: Math.max(insets.top, 50) }]}>
                     <Text style={styles.headerTitle}>Room: </Text>
                     <TouchableOpacity
                         onPress={() => {
                             Clipboard.setStringAsync(gameId);
-                            Alert.alert("Copied", "Room Code copied to clipboard!");
+                            Alert.alert("Copié", "Code de la salle copié !");
                         }}
                         style={styles.headerCodeButton}
                     >
@@ -586,10 +591,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
             <GameTable gameState={gameState} />
 
-            {/* Opponent Avatars */}
-            <SafeAreaView style={styles.opponentsContainer} pointerEvents="box-none">
-                {/* Settings button - top left corner */}
-                <View style={styles.topLeftCorner}>
+            {/* Opponent Avatars / Settings Panel */}
+            <View style={styles.uiLayer} pointerEvents="box-none">
+                {/* Top Left Area */}
+                <View style={[styles.topLeftCorner, { top: Math.max(insets.top + 10, 40), left: Math.max(insets.left + 20, 20) }]}>
                     <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.settingsButton}>
                         <Ionicons name="settings-sharp" size={20} color="white" />
                     </TouchableOpacity>
@@ -601,7 +606,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                                 isActive={gameState.currentPlayerId === opponents[0].id}
                                 showTimer={gameState.currentPlayerId === opponents[0].id && !isGameOver && gameState.phase === 'PLAYING'}
                                 timerDuration={TURN_DURATION_SECONDS}
-                                size={56}
+                                size={52}
                                 position="top-left"
                                 onTimeout={() => handleTimeout(opponents[0].id)}
                             />
@@ -609,45 +614,47 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                     )}
                 </View>
 
-                {/* Top right opponent */}
+                {/* Top Right Area */}
                 {opponents[1] && (
-                    <View style={styles.topRightCorner}>
+                    <View style={[styles.topRightCorner, { top: Math.max(insets.top + 10, 40), right: Math.max(insets.right + 20, 20) }]}>
                         <PlayerAvatar
                             key={`${opponents[1].id}-${gameState.currentPlayerId}-${gameState.phase}`}
                             player={opponents[1]}
                             isActive={gameState.currentPlayerId === opponents[1].id}
                             showTimer={gameState.currentPlayerId === opponents[1].id && !isGameOver && gameState.phase === 'PLAYING'}
                             timerDuration={TURN_DURATION_SECONDS}
-                            size={56}
+                            size={52}
                             position="top-right"
                             onTimeout={() => handleTimeout(opponents[1].id)}
                         />
                     </View>
                 )}
-            </SafeAreaView>
 
-            {/* Pass Button Area - Only show during PLAYING phase */}
-            {isMyTurn && !canPlayAny && gameState.phase === 'PLAYING' && (
-                <View style={styles.passContainer}>
-                    <TouchableOpacity style={styles.passButton} onPress={handlePassTurn}>
-                        <Text style={styles.passButtonText}>Pass Turn</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
+                {/* Pass Button Area - Floating above hand */}
+                {isMyTurn && !canPlayAny && gameState.phase === 'PLAYING' && (
+                    <View style={[styles.passContainer, { bottom: 120 + insets.bottom }]}>
+                        <TouchableOpacity style={styles.passButton} onPress={handlePassTurn}>
+                            <Text style={styles.passButtonText}>Passer son tour</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
 
-            {/* Player Hand with integrated avatar and timer */}
-            {localPlayer && (
-                <PlayerHand
-                    key={`${localPlayer.id}-${gameState.currentPlayerId}-${gameState.phase}`}
-                    player={localPlayer}
-                    onPlayDomino={handlePlayDomino}
-                    disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING'}
-                    isActive={isMyTurn}
-                    showTimer={isMyTurn && !isGameOver && gameState.phase === 'PLAYING'}
-                    timerDuration={TURN_DURATION_SECONDS}
-                    onTimeout={() => handleTimeout(localPlayer.id)}
-                />
-            )}
+            {/* Player Hand */}
+            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom }}>
+                {localPlayer && (
+                    <PlayerHand
+                        key={`${localPlayer.id}-${gameState.currentPlayerId}-${gameState.phase}`}
+                        player={localPlayer}
+                        onPlayDomino={handlePlayDomino}
+                        disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING'}
+                        isActive={isMyTurn}
+                        showTimer={isMyTurn && !isGameOver && gameState.phase === 'PLAYING'}
+                        timerDuration={TURN_DURATION_SECONDS}
+                        onTimeout={() => handleTimeout(localPlayer.id)}
+                    />
+                )}
+            </View>
 
             {isGameOver && (
                 <GameOverScreen
@@ -679,65 +686,63 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         pointerEvents: 'box-none',
     },
+    uiLayer: {
+        ...StyleSheet.absoluteFillObject,
+    },
     topLeftCorner: {
         position: 'absolute',
-        top: 40,
-        left: 20,
         alignItems: 'flex-start',
     },
     topRightCorner: {
         position: 'absolute',
-        top: 40,
-        right: 20,
     },
     settingsButton: {
         padding: 8,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         borderRadius: 20,
-        marginBottom: 12,
+        marginBottom: 8,
     },
     opponentAvatar: {
-        marginTop: 8,
+        marginTop: 0,
     },
     passContainer: {
         position: 'absolute',
-        bottom: 130, // Above hand (adjusted for new height)
         alignSelf: 'center',
         zIndex: 10,
     },
     passButton: {
-        backgroundColor: '#e74c3c', // Red for alert/action
-        paddingHorizontal: 30,
-        paddingVertical: 12,
+        backgroundColor: '#c0392b',
+        paddingHorizontal: 25,
+        paddingVertical: 10,
         borderRadius: 25,
-        elevation: 5,
+        elevation: 8,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 5,
     },
     passButtonText: {
         color: '#fff',
         fontWeight: 'bold',
-        fontSize: 16,
+        fontSize: 14,
         textTransform: 'uppercase',
     },
-    // Header Styles
     header: {
         position: 'absolute',
-        top: 50, // Below status bar
         alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
         zIndex: 20,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         paddingVertical: 6,
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     headerTitle: {
-        color: 'rgba(255,255,255,0.7)',
-        fontSize: 14,
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 12,
         fontWeight: '600',
     },
     headerCodeButton: {
@@ -746,7 +751,7 @@ const styles = StyleSheet.create({
     },
     headerCode: {
         color: '#FFD700',
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 'bold',
         marginLeft: 4,
     },

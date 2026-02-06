@@ -1,42 +1,51 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, Share } from 'react-native';
+
+import React, { useState, useEffect } from 'react';
+import {
+    View,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TextInput,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    useWindowDimensions,
+    Platform
+} from 'react-native';
 import { useRouter, useNavigation } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft, FadeIn } from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createRoom, joinRoom, listenToPublicRooms } from '../src/core/services/firebase';
 import { PlayerProfile } from '../src/core/types';
 import { authService } from '../src/core/services/auth.service';
 import { FlatList } from 'react-native-gesture-handler';
 
 export default function LobbyScreen() {
-    // CORRECT FIX: Separate router and navigation
     const router = useRouter();
     const navigation = useNavigation();
+    const insets = useSafeAreaInsets();
+    const { width, height } = useWindowDimensions();
+    const isLandscape = width > height;
+
     const [roomIdToJoin, setRoomIdToJoin] = useState('');
     const [loading, setLoading] = useState(false);
     const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
-
-    // NEW: Real User Profile State
     const [currentUser, setCurrentUser] = useState<PlayerProfile | null>(null);
-
-    // New States for Public Rooms
     const [activeTab, setActiveTab] = useState<'CODE' | 'PUBLIC'>('CODE');
     const [publicRooms, setPublicRooms] = useState<any[]>([]);
     const [isPrivateRoom, setIsPrivateRoom] = useState(false);
     const [roomNameInput, setRoomNameInput] = useState('');
     const [loadingPublicRooms, setLoadingPublicRooms] = useState(false);
 
-    // Fetch Current User on Mount
-    React.useEffect(() => {
+    useEffect(() => {
         const loadUser = async () => {
             const user = await authService.getCurrentUser();
             if (user) {
                 setCurrentUser(user);
             } else {
-                // Determine what to do if no user found? Login as guest?
-                // For now, let's assume auth guard handled it or we trigger guest login
                 const guest = await authService.loginAsGuest();
                 setCurrentUser(guest);
             }
@@ -44,8 +53,7 @@ export default function LobbyScreen() {
         loadUser();
     }, []);
 
-    // Initial Load of Public Rooms
-    React.useEffect(() => {
+    useEffect(() => {
         if (activeTab === 'PUBLIC') {
             setLoadingPublicRooms(true);
             const unsubscribe = listenToPublicRooms((rooms) => {
@@ -59,42 +67,20 @@ export default function LobbyScreen() {
         }
     }, [activeTab]);
 
-    // GHOST ROOM FIX: Intercept Back Navigation
-    React.useEffect(() => {
-        // Ensure navigation is available (it should be in expo-router usually, but safety check)
+    useEffect(() => {
         if (!navigation) return;
-
         const unsubscribe = navigation.addListener('beforeRemove', async (e: any) => {
-            // If we have a created room or joined room (we track this via current room state usually, 
-            // but here we have createdRoomId. For joined rooms, we usually push to GameScreen immediately, 
-            // so we only need to clean up here if we are "waiting" in the lobby as creator)
-
-            // Correction: If we joined a room, we navigated TO GameScreen.
-            // If we are IN GameScreen, GameScreen handles leave.
-            // If we come BACK to Lobby from Game, we are "left".
-            // The issue is: If I *Create* a room, I see "Waiting for players...". If I back out NOW, the room stays.
-
             if (createdRoomId && currentUser) {
-                e.preventDefault(); // Stop navigation
-
-                // Optional: Alert confirmation? User asked for "Systematically executed" for Lobby.
-                // So no alert, just do it.
-                // But we need to await async, so we might need to prevent default, do async, then dispatch again.
-                // Or just fire and forget if we trust it executes before component death? 
-                // React Native useEffect cleanup usually works, but `beforeRemove` is safer for async.
-
-                // Better UX: Show "Leaving..." spinner?
+                e.preventDefault();
                 setLoading(true);
-
                 try {
-                    const { leaveRoom } = require('../src/core/services/firebase'); // Lazy import to avoid circular dep if any
+                    const { leaveRoom } = require('../src/core/services/firebase');
                     await leaveRoom(createdRoomId, currentUser.uid);
                     setCreatedRoomId(null);
-                    // Dispatch the action to go back
                     navigation.dispatch(e.data.action);
                 } catch (err) {
                     console.error("Cleanup error", err);
-                    navigation.dispatch(e.data.action); // Force exit
+                    navigation.dispatch(e.data.action);
                 } finally {
                     setLoading(false);
                 }
@@ -104,16 +90,13 @@ export default function LobbyScreen() {
     }, [createdRoomId, currentUser, navigation]);
 
     const handleCreateRoom = async () => {
-        if (!currentUser) {
-            Alert.alert("Error", "User profile not loaded.");
-            return;
-        }
+        if (!currentUser) return;
         try {
             setLoading(true);
             const newRoomId = await createRoom(currentUser, isPrivateRoom, roomNameInput.trim());
             setCreatedRoomId(newRoomId);
         } catch (error) {
-            Alert.alert("Error", "Failed to create room: " + error);
+            Alert.alert("Error", "Failed to create room.");
         } finally {
             setLoading(false);
         }
@@ -133,29 +116,22 @@ export default function LobbyScreen() {
     };
 
     const handleJoinRoom = async () => {
-        if (!roomIdToJoin.trim()) return;
-        if (!currentUser) {
-            Alert.alert("Error", "User profile not loaded.");
-            return;
-        }
-
+        if (!roomIdToJoin.trim() || !currentUser) return;
         try {
             setLoading(true);
-            await joinRoom(roomIdToJoin, currentUser);
-            router.push({ pathname: '/game/[id]', params: { id: roomIdToJoin, userId: currentUser.uid } });
+            await joinRoom(roomIdToJoin.trim(), currentUser);
+            router.push({ pathname: '/game/[id]', params: { id: roomIdToJoin.trim(), userId: currentUser.uid } });
         } catch (error: any) {
-            Alert.alert("Erreur", error.message || "Impossible de rejoindre : La partie a déjà commencé.");
+            Alert.alert("Erreur", error.message || "Impossible de rejoindre.");
         } finally {
             setLoading(false);
         }
     };
 
-    // Render Logic
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#FFD700" />
-                <Text style={styles.loadingText}>Loading...</Text>
             </View>
         );
     }
@@ -163,37 +139,37 @@ export default function LobbyScreen() {
     if (createdRoomId) {
         return (
             <View style={styles.container}>
-                <LinearGradient
-                    colors={['#1a1a1a', '#000000']}
-                    style={StyleSheet.absoluteFill}
-                />
+                <LinearGradient colors={['#0d1f0d', '#1a3d1a']} style={StyleSheet.absoluteFill} />
+                <ScrollView contentContainerStyle={[styles.createdContainer, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
+                    <Animated.View entering={FadeInUp} style={[styles.successCard, isLandscape && styles.successCardLandscape]}>
+                        <View style={[isLandscape && styles.successHeaderLandscape]}>
+                            <Text style={styles.successTitle}>Salle Créée !</Text>
+                            <Text style={styles.successSubtitle}>Partage ce code avec tes amis :</Text>
+                        </View>
 
-                <Animated.View entering={FadeInUp.delay(200)} style={styles.createdContainer}>
-                    <Text style={styles.successTitle}>Room Created!</Text>
-                    <Text style={styles.successSubtitle}>Share this code with your friends:</Text>
+                        <View style={[isLandscape && styles.successContentLandscape]}>
+                            <TouchableOpacity onPress={handleCopyCode} style={[styles.codeContainer, isLandscape && styles.codeContainerLandscape]}>
+                                <Text style={[styles.roomCode, isLandscape && styles.roomCodeLandscape]}>{createdRoomId}</Text>
+                                <Text style={styles.copyText}>{copied ? "Copié !" : "Appuie pour copier"}</Text>
+                            </TouchableOpacity>
 
-                    <TouchableOpacity onPress={handleCopyCode} style={styles.codeContainer}>
-                        <Text style={styles.roomCode}>{createdRoomId}</Text>
-                        <Text style={styles.copyText}>{copied ? "Copied!" : "Tap to Copy"}</Text>
-                    </TouchableOpacity>
+                            <View style={styles.waitingSection}>
+                                <ActivityIndicator color="#FFD700" size="small" />
+                                <Text style={styles.waitingText}>En attente des joueurs...</Text>
+                            </View>
 
-                    <Text style={styles.waitingText}>Waiting for players to join...</Text>
-                    <ActivityIndicator color="#FFD700" style={{ marginTop: 20 }} />
-
-                    <TouchableOpacity
-                        style={styles.primaryButton}
-                        onPress={handleStartGame}
-                    >
-                        <Text style={styles.buttonText}>Enter Game Room</Text>
-                    </TouchableOpacity>
-                </Animated.View>
+                            <TouchableOpacity style={[styles.primaryButton, isLandscape && styles.primaryButtonLandscape]} onPress={handleStartGame}>
+                                <Text style={styles.buttonText}>Entrer dans la salle</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Animated.View>
+                </ScrollView>
             </View>
         );
     }
 
-    // Public Room List Item
     const renderPublicRoom = ({ item, index }: { item: any, index: number }) => (
-        <Animated.View entering={FadeInLeft.delay(index * 100).springify()}>
+        <Animated.View entering={FadeInLeft.delay(index * 100)}>
             <TouchableOpacity
                 style={styles.roomItem}
                 onPress={() => {
@@ -206,130 +182,116 @@ export default function LobbyScreen() {
                         })
                         .catch(err => {
                             setLoading(false);
-                            Alert.alert("Erreur", err.message || "Impossible de rejoindre la salle.");
+                            Alert.alert("Erreur", err.message || "Impossible de rejoindre.");
                         });
                 }}
             >
                 <View style={styles.roomItemLeft}>
                     <View style={styles.roomAvatar}>
-                        <Text style={styles.roomAvatarText}>
-                            {item.players[0]?.avatarId || item.players[0]?.displayName?.charAt(0).toUpperCase() || '?'}
-                        </Text>
+                        <Text style={styles.roomAvatarText}>{item.players[0]?.displayName?.charAt(0) || '?'}</Text>
                     </View>
                     <View>
                         <Text style={styles.roomNameBold}>{item.roomName || `Table #${item.roomId.slice(0, 4)}`}</Text>
-                        <Text style={styles.roomHost}>Host: {item.players[0]?.displayName || 'Unknown'}</Text>
+                        <Text style={styles.roomHost}>Hôte: {item.players[0]?.displayName}</Text>
                     </View>
                 </View>
-                <View style={styles.roomItemRight}>
-                    <Text style={styles.playerCount}>{item.players.length}/3 👤</Text>
-                </View>
+                <Text style={styles.playerCount}>{item.players.length}/3 👤</Text>
             </TouchableOpacity>
         </Animated.View>
     );
 
     return (
         <View style={styles.container}>
-            <LinearGradient
-                colors={['#1a1a1a', '#2c3e50']}
-                style={StyleSheet.absoluteFill}
-            />
+            <LinearGradient colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']} style={StyleSheet.absoluteFill} />
 
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Text style={styles.backText}>← Back</Text>
+                    <Text style={styles.backText}>← Retour</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>Multiplayer Lobby</Text>
+                <Text style={styles.title} numberOfLines={1}>Multiplayer</Text>
             </View>
 
-            {/* TAB SELECTOR */}
-            <View style={styles.infoContainer}>
+            <View style={styles.tabWrapper}>
                 <View style={styles.tabContainer}>
                     <TouchableOpacity
                         style={[styles.tabButton, activeTab === 'CODE' && styles.activeTab]}
                         onPress={() => setActiveTab('CODE')}
                     >
-                        <Text style={[styles.tabText, activeTab === 'CODE' && styles.activeTabText]}>Join by Code</Text>
+                        <Text style={[styles.tabText, activeTab === 'CODE' && styles.activeTabText]}>Par Code</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.tabButton, activeTab === 'PUBLIC' && styles.activeTab]}
                         onPress={() => setActiveTab('PUBLIC')}
                     >
-                        <Text style={[styles.tabText, activeTab === 'PUBLIC' && styles.activeTabText]}>Public Rooms</Text>
+                        <Text style={[styles.tabText, activeTab === 'PUBLIC' && styles.activeTabText]}>Salles Publiques</Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
-            {activeTab === 'CODE' ? (
-                // JOIN/CREATE SECTION
-                <View style={styles.contentContainer}>
-                    <Animated.View entering={FadeIn.delay(300)} style={styles.card}>
-                        <Text style={styles.cardTitle}>Join a Room</Text>
-                        <Text style={styles.cardSubtitle}>Enter Game Code</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="e.g. X7Z9"
-                            placeholderTextColor="#666"
-                            value={roomIdToJoin}
-                            onChangeText={setRoomIdToJoin}
-                            autoCapitalize="none"
-                            maxLength={30}
-                        />
-                        <TouchableOpacity style={styles.primaryButton} onPress={handleJoinRoom}>
-                            <Text style={styles.buttonText}>Join Game</Text>
-                        </TouchableOpacity>
-                    </Animated.View>
+            <ScrollView
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+                showsVerticalScrollIndicator={false}
+            >
+                {activeTab === 'CODE' ? (
+                    <View style={[styles.mainLayout, isLandscape && styles.mainLayoutLandscape]}>
+                        <Animated.View entering={FadeIn.delay(200)} style={styles.card}>
+                            <Text style={styles.cardTitle}>Rejoindre</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Code (ex: X7Z9)"
+                                placeholderTextColor="rgba(255,255,255,0.4)"
+                                value={roomIdToJoin}
+                                onChangeText={setRoomIdToJoin}
+                                autoCapitalize="none"
+                            />
+                            <TouchableOpacity style={styles.primaryButton} onPress={handleJoinRoom}>
+                                <Text style={styles.buttonText}>Rejoindre</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
 
-                    <Animated.View entering={FadeIn.delay(500)} style={[styles.card, { marginTop: 20 }]}>
-                        <Text style={styles.cardTitle}>Create a Room</Text>
-
-                        <Text style={styles.cardSubtitle}>Room Name (Optional)</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="e.g. Domino Masters"
-                            placeholderTextColor="#666"
-                            value={roomNameInput}
-                            onChangeText={setRoomNameInput}
-                        />
-
-                        {/* PRIVATE / PUBLIC Toggle */}
-                        <TouchableOpacity
-                            style={styles.checkboxContainer}
-                            onPress={() => setIsPrivateRoom(!isPrivateRoom)}
-                        >
-                            <View style={[styles.checkbox, !isPrivateRoom && styles.checkboxChecked]}>
-                                {!isPrivateRoom && <Text style={styles.checkmark}>✓</Text>}
-                            </View>
-                            <Text style={styles.checkboxLabel}>Public Game (visible to everyone)</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.secondaryButton, { opacity: loading ? 0.7 : 1 }]}
-                            onPress={handleCreateRoom}
-                            disabled={loading}
-                        >
-                            <Text style={styles.secondaryButtonText}>Create New Game</Text>
-                        </TouchableOpacity>
-                    </Animated.View>
-                </View>
-            ) : (
-                // PUBLIC LIST SECTION
-                <View style={styles.listContainer}>
-                    {loadingPublicRooms ? (
-                        <ActivityIndicator color="#FFD700" style={{ marginTop: 50 }} />
-                    ) : (
-                        <FlatList
-                            data={publicRooms}
-                            keyExtractor={(item) => item.roomId}
-                            renderItem={renderPublicRoom}
-                            contentContainerStyle={{ paddingBottom: 40 }}
-                            ListEmptyComponent={
-                                <Text style={styles.emptyText}>No public rooms available.</Text>
-                            }
-                        />
-                    )}
-                </View>
-            )}
+                        <Animated.View entering={FadeIn.delay(400)} style={styles.card}>
+                            <Text style={styles.cardTitle}>Créer une Table</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Nom (Optionnel)"
+                                placeholderTextColor="rgba(255,255,255,0.4)"
+                                value={roomNameInput}
+                                onChangeText={setRoomNameInput}
+                            />
+                            <TouchableOpacity
+                                style={styles.checkboxContainer}
+                                onPress={() => setIsPrivateRoom(!isPrivateRoom)}
+                            >
+                                <View style={[styles.checkbox, !isPrivateRoom && styles.checkboxChecked]}>
+                                    {!isPrivateRoom && <Text style={styles.checkmark}>✓</Text>}
+                                </View>
+                                <Text style={styles.checkboxLabel}>Table Publique</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.secondaryButton} onPress={handleCreateRoom}>
+                                <Text style={styles.secondaryButtonText}>Créer la Table</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    </View>
+                ) : (
+                    <View style={styles.listContainer}>
+                        {loadingPublicRooms ? (
+                            <ActivityIndicator color="#FFD700" />
+                        ) : (
+                            <FlatList
+                                data={publicRooms}
+                                keyExtractor={(item) => item.roomId}
+                                renderItem={renderPublicRoom}
+                                scrollEnabled={false}
+                                ListEmptyComponent={
+                                    <View style={styles.emptyContainer}>
+                                        <Text style={styles.emptyText}>Aucune salle publique pour le moment.</Text>
+                                    </View>
+                                }
+                            />
+                        )}
+                    </View>
+                )}
+            </ScrollView>
         </View>
     );
 }
@@ -340,115 +302,108 @@ const styles = StyleSheet.create({
     },
     loadingContainer: {
         flex: 1,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: '#0d1f0d',
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    loadingText: {
-        color: '#FFD700',
-        marginTop: 10,
-        fontSize: 16,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: 60,
         paddingHorizontal: 20,
-        marginBottom: 20,
+        height: 80,
     },
     backButton: {
-        padding: 8,
+        paddingVertical: 10,
+        paddingRight: 15,
     },
     backText: {
         color: '#FFF',
         fontSize: 16,
+        fontWeight: '600',
     },
     title: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: 'bold',
         color: '#FFF',
-        marginLeft: 20,
+        flex: 1,
     },
-    infoContainer: {
+    tabWrapper: {
         paddingHorizontal: 20,
-        marginBottom: 10,
+        marginBottom: 15,
     },
     tabContainer: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 25,
         padding: 4,
     },
     tabButton: {
         flex: 1,
         paddingVertical: 10,
         alignItems: 'center',
-        borderRadius: 8,
+        borderRadius: 21,
     },
     activeTab: {
         backgroundColor: '#FFD700',
     },
     tabText: {
-        color: '#AAA',
-        fontWeight: '600',
+        color: 'rgba(255,255,255,0.6)',
+        fontWeight: 'bold',
     },
     activeTabText: {
-        color: '#000',
+        color: '#0d1f0d',
     },
-    contentContainer: {
-        padding: 20,
-    },
-    listContainer: {
-        flex: 1,
+    scrollContent: {
+        flexGrow: 1,
         paddingHorizontal: 20,
-        marginTop: 10,
+    },
+    mainLayout: {
+        gap: 20,
+    },
+    mainLayoutLandscape: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
     },
     card: {
+        flex: 1,
         backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 16,
+        borderRadius: 20,
         padding: 20,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
     },
     cardTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
-        color: '#FFF',
-        marginBottom: 16,
-    },
-    cardSubtitle: {
-        color: '#AAA',
-        marginBottom: 8,
+        color: '#FFD700',
+        marginBottom: 15,
     },
     input: {
         backgroundColor: 'rgba(0,0,0,0.3)',
-        borderRadius: 8,
-        padding: 12,
+        borderRadius: 12,
+        padding: 14,
         color: '#FFF',
-        fontSize: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
-        marginBottom: 16,
+        marginBottom: 15,
     },
     primaryButton: {
         backgroundColor: '#FFD700',
         padding: 16,
-        borderRadius: 12,
+        borderRadius: 14,
         alignItems: 'center',
     },
     buttonText: {
-        color: '#000',
+        color: '#0d1f0d',
         fontWeight: 'bold',
         fontSize: 16,
     },
     secondaryButton: {
-        backgroundColor: 'transparent',
-        padding: 16,
-        borderRadius: 12,
+        padding: 15,
+        borderRadius: 14,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: '#FFD700',
-        marginTop: 10,
     },
     secondaryButtonText: {
         color: '#FFD700',
@@ -458,11 +413,11 @@ const styles = StyleSheet.create({
     checkboxContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
     checkbox: {
-        width: 24,
-        height: 24,
+        width: 22,
+        height: 22,
         borderRadius: 6,
         borderWidth: 2,
         borderColor: '#FFD700',
@@ -474,60 +429,102 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFD700',
     },
     checkmark: {
-        color: '#000',
+        color: '#0d1f0d',
         fontWeight: 'bold',
+        fontSize: 14,
     },
     checkboxLabel: {
         color: '#FFF',
         fontSize: 14,
     },
-    // Created Room Styles
     createdContainer: {
-        flex: 1,
+        flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    successCard: {
+        width: '100%',
+        maxWidth: 450,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        borderRadius: 24,
+        padding: 30,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    successCardLandscape: {
+        maxWidth: 600,
         padding: 20,
     },
-    successTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#FFD700',
+    successHeaderLandscape: {
+        alignItems: 'center',
         marginBottom: 10,
     },
+    successContentLandscape: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    successTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#FFD700',
+        marginBottom: 8,
+    },
     successSubtitle: {
-        color: '#FFF',
-        fontSize: 16,
-        marginBottom: 30,
+        color: 'rgba(255,255,255,0.6)',
+        marginBottom: 25,
     },
     codeContainer: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        paddingHorizontal: 40,
-        paddingVertical: 20,
-        borderRadius: 12,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        paddingHorizontal: 30,
+        paddingVertical: 15,
+        borderRadius: 16,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: '#FFD700',
-        marginBottom: 20,
+        marginBottom: 25,
+    },
+    codeContainerLandscape: {
+        marginBottom: 15,
+        paddingVertical: 10,
     },
     roomCode: {
-        fontSize: 48,
+        fontSize: 40,
         fontWeight: 'bold',
         color: '#FFF',
         letterSpacing: 4,
     },
+    roomCodeLandscape: {
+        fontSize: 32,
+    },
     copyText: {
-        color: '#AAA',
-        marginTop: 8,
+        color: 'rgba(255,255,255,0.4)',
+        marginTop: 2,
+        fontSize: 11,
+    },
+    waitingSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 20,
     },
     waitingText: {
-        color: '#AAA',
-        marginTop: 20,
+        color: 'rgba(255,255,255,0.5)',
         fontStyle: 'italic',
+        fontSize: 13,
     },
-    // Public Room List Styles
+    primaryButtonLandscape: {
+        paddingVertical: 12,
+        width: '100%',
+        maxWidth: 250,
+    },
+    listContainer: {
+        flex: 1,
+    },
     roomItem: {
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        borderRadius: 16,
         padding: 16,
         marginBottom: 12,
         flexDirection: 'row',
@@ -537,20 +534,22 @@ const styles = StyleSheet.create({
     roomItemLeft: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 12,
     },
     roomAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#34495e',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255,111,0,0.2)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        borderWidth: 1,
+        borderColor: '#ff6f00',
     },
     roomAvatarText: {
-        color: '#FFF',
+        color: '#ff6f00',
         fontWeight: 'bold',
-        fontSize: 18,
+        fontSize: 20,
     },
     roomNameBold: {
         color: '#FFF',
@@ -558,20 +557,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     roomHost: {
-        color: '#AAA',
+        color: 'rgba(255,255,255,0.5)',
         fontSize: 12,
-    },
-    roomItemRight: {
-        alignItems: 'flex-end',
+        marginTop: 2,
     },
     playerCount: {
         color: '#FFD700',
         fontWeight: 'bold',
+        fontSize: 14,
+    },
+    emptyContainer: {
+        paddingTop: 50,
+        alignItems: 'center',
     },
     emptyText: {
-        color: '#AAA',
-        textAlign: 'center',
-        marginTop: 40,
+        color: 'rgba(255,255,255,0.4)',
         fontStyle: 'italic',
     },
 });

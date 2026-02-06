@@ -1,9 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import {
+    View,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    Alert,
+    ActivityIndicator,
+    ScrollView,
+    useWindowDimensions,
+    KeyboardAvoidingView,
+    Platform
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authService } from '../src/core/services/auth.service';
 import { PlayerProfile } from '../src/core/types';
 
@@ -11,6 +24,10 @@ const AVATAR_OPTIONS = ['😎', '🤠', '🤖', '👻', '🦊', '🦁', '🐯', 
 
 export default function ProfileScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
+    const { width, height } = useWindowDimensions();
+    const isLandscape = width > height;
+
     const [user, setUser] = useState<PlayerProfile | null>(null);
     const [displayName, setDisplayName] = useState('');
     const [selectedAvatar, setSelectedAvatar] = useState<string | undefined>(undefined);
@@ -24,8 +41,8 @@ export default function ProfileScreen() {
         const currentUser = await authService.getCurrentUser();
         if (currentUser) {
             setUser(currentUser);
-            setDisplayName(currentUser.displayName);
-            setSelectedAvatar(currentUser.avatarUrl); // Using avatarUrl to store emoji for now
+            setDisplayName(currentUser.displayName || '');
+            setSelectedAvatar(currentUser.avatarUrl);
         }
     };
 
@@ -50,80 +67,94 @@ export default function ProfileScreen() {
         }
     };
 
+    const renderAvatarGrid = () => (
+        <View style={styles.section}>
+            <Text style={styles.label}>CHOISIR UN AVATAR</Text>
+            <View style={styles.avatarGrid}>
+                {AVATAR_OPTIONS.map((emoji) => (
+                    <TouchableOpacity
+                        key={emoji}
+                        style={[
+                            styles.avatarOption,
+                            selectedAvatar === emoji && styles.selectedAvatarOption
+                        ]}
+                        onPress={() => setSelectedAvatar(emoji)}
+                    >
+                        <Text style={styles.avatarOptionText}>{emoji}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        </View>
+    );
+
+    const renderFormControls = () => (
+        <View style={[styles.formSection, isLandscape && styles.formSectionLandscape]}>
+            <View style={styles.section}>
+                <Text style={styles.label}>PSEUDO</Text>
+                <TextInput
+                    style={styles.input}
+                    value={displayName}
+                    onChangeText={setDisplayName}
+                    placeholder="Votre pseudo"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    maxLength={15}
+                />
+            </View>
+
+            <TouchableOpacity
+                style={[styles.saveButton, isLandscape && styles.saveButtonLandscape]}
+                onPress={handleSave}
+                disabled={isLoading}
+            >
+                {isLoading ? (
+                    <ActivityIndicator color="#0d1f0d" />
+                ) : (
+                    <Text style={styles.saveButtonText}>Enregistrer</Text>
+                )}
+            </TouchableOpacity>
+        </View>
+    );
+
     return (
         <LinearGradient
             colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']}
             style={styles.container}
         >
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#FFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Mon Profil</Text>
-                <View style={{ width: 24 }} />
+                <View style={{ width: 44 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
-
-                {/* Current Avatar Display */}
-                <View style={styles.avatarContainer}>
-                    <View style={styles.avatarCircle}>
-                        <Text style={styles.avatarText}>
-                            {selectedAvatar || displayName?.[0] || 'I'}
-                        </Text>
-                    </View>
-                    <Text style={styles.uidText}>ID: {user?.uid?.slice(-6) || '---'}</Text>
-                </View>
-
-                {/* Nickname Input */}
-                <View style={styles.section}>
-                    <Text style={styles.label}>PSEUDO</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={displayName}
-                        onChangeText={setDisplayName}
-                        placeholder="Votre pseudo"
-                        placeholderTextColor="rgba(255,255,255,0.4)"
-                        maxLength={15}
-                    />
-                </View>
-
-                {/* Avatar Selection */}
-                <View style={styles.section}>
-                    <Text style={styles.label}>CHOISIR UN AVATAR</Text>
-                    <View style={styles.avatarGrid}>
-                        {AVATAR_OPTIONS.map((emoji) => (
-                            <TouchableOpacity
-                                key={emoji}
-                                style={[
-                                    styles.avatarOption,
-                                    selectedAvatar === emoji && styles.selectedAvatarOption
-                                ]}
-                                onPress={() => setSelectedAvatar(emoji)}
-                            >
-                                <Text style={styles.avatarOptionText}>{emoji}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
-            </ScrollView>
-
-            {/* Save Button */}
-            <View style={styles.footer}>
-                <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={handleSave}
-                    disabled={isLoading}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1 }}
+            >
+                <ScrollView
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        isLandscape && styles.scrollContentLandscape,
+                        { paddingBottom: insets.bottom + 20 }
+                    ]}
+                    bounces={false}
+                    showsVerticalScrollIndicator={false}
                 >
-                    {isLoading ? (
-                        <ActivityIndicator color="#0d1f0d" />
-                    ) : (
-                        <Text style={styles.saveButtonText}>Enregistrer</Text>
-                    )}
-                </TouchableOpacity>
-            </View>
+                    {/* Left/Top Part: Avatar Selection */}
+                    <View style={[styles.avatarSelectionContainer, isLandscape && styles.avatarSelectionContainerLandscape]}>
+                        <View style={styles.avatarCircle}>
+                            <Text style={styles.avatarText}>
+                                {selectedAvatar || displayName?.[0] || 'I'}
+                            </Text>
+                        </View>
+                        {renderAvatarGrid()}
+                    </View>
 
+                    {/* Right/Bottom Part: Nickname & Action */}
+                    {renderFormControls()}
+                </ScrollView>
+            </KeyboardAvoidingView>
         </LinearGradient>
     );
 }
@@ -136,81 +167,97 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingTop: 50,
-        paddingHorizontal: 20,
-        paddingBottom: 20,
+        paddingHorizontal: 16,
+        height: 60,
     },
     backButton: {
-        padding: 8,
+        padding: 10,
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
         color: '#FFFFFF',
     },
-    content: {
-        padding: 24,
-        alignItems: 'center',
+    scrollContent: {
+        paddingHorizontal: 24,
+        paddingTop: 10,
     },
-    avatarContainer: {
+    scrollContentLandscape: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 40,
+        justifyContent: 'space-around',
+        gap: 30,
+        flexGrow: 1,
+    },
+    avatarSelectionContainer: {
+        alignItems: 'center',
+        width: '100%',
+    },
+    avatarSelectionContainerLandscape: {
+        flex: 1,
+        maxWidth: 350,
+    },
+    formSection: {
+        width: '100%',
+        marginTop: 10,
+    },
+    formSectionLandscape: {
+        flex: 1,
+        maxWidth: 300,
+        justifyContent: 'center',
     },
     avatarCircle: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: 90,
+        height: 90,
+        borderRadius: 45,
         backgroundColor: '#FFD700',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 20,
+        elevation: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 5,
-        elevation: 6,
     },
     avatarText: {
-        fontSize: 48,
+        fontSize: 44,
         fontWeight: 'bold',
         color: '#0d1f0d',
     },
-    uidText: {
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: 12,
-        fontFamily: 'monospace',
-    },
     section: {
         width: '100%',
-        marginBottom: 30,
+        marginBottom: 20,
     },
     label: {
-        color: 'rgba(255,255,255,0.7)',
-        fontSize: 12,
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 11,
         fontWeight: 'bold',
-        marginBottom: 10,
+        marginBottom: 8,
         letterSpacing: 1,
+        textAlign: 'center',
     },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.08)',
         borderRadius: 12,
-        padding: 16,
+        padding: 14,
         color: '#FFFFFF',
-        fontSize: 18,
+        fontSize: 16,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(255,255,255,0.15)',
+        textAlign: 'center',
     },
     avatarGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        gap: 10,
         justifyContent: 'center',
     },
     avatarOption: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
@@ -218,29 +265,24 @@ const styles = StyleSheet.create({
     },
     selectedAvatarOption: {
         borderColor: '#FFD700',
-        backgroundColor: 'rgba(255, 215, 0, 0.2)',
+        backgroundColor: 'rgba(255, 215, 0, 0.15)',
     },
     avatarOptionText: {
-        fontSize: 28,
-    },
-    footer: {
-        padding: 24,
-        paddingBottom: 40,
+        fontSize: 24,
     },
     saveButton: {
         backgroundColor: '#FFD700',
-        height: 56,
-        borderRadius: 28,
+        height: 50,
+        borderRadius: 25,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        elevation: 6,
+        marginTop: 10,
+    },
+    saveButtonLandscape: {
+        marginTop: 0,
     },
     saveButtonText: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#0d1f0d',
     },

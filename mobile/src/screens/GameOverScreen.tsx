@@ -89,7 +89,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
 
             <Animated.View entering={ZoomIn.duration(500)} style={styles.content}>
                 <Text style={styles.header}>
-                    {isBoudé ? "BOUDÉ !" : isMatchOver ? "MATCH OVER" : "ROUND OVER"}
+                    {isBoudé ? "BOUDÉ !" : isMatchOver ? "MANCHE TERMINÉE" : "TOUR TERMINÉ"}
                 </Text>
 
                 {/* BOUDE Phase: Show only waiting message */}
@@ -138,7 +138,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
                         {/* Countdown - only show for ROUND_END, not MATCH_END */}
                         {!isMatchOver && countdown > 0 && (
                             <Text style={styles.countdownText}>
-                                Next round starts in {countdown}s...
+                                Prochain tour dans {countdown}s...
                             </Text>
                         )}
 
@@ -149,7 +149,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
                                 onPress={() => isMatchOver ? onReplay() : onNextRound?.()}
                             >
                                 <Text style={styles.replayText}>
-                                    {isMatchOver ? "Back to Lobby" : `Start Next Round${countdown > 0 ? ` (${countdown}s)` : ''}`}
+                                    {isMatchOver ? "Revenir au lobby" : `Démarrer le tour suivant${countdown > 0 ? ` (${countdown}s)` : ''}`}
                                 </Text>
                             </TouchableOpacity>
                         </Animated.View>

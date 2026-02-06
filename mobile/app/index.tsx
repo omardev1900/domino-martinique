@@ -3,6 +3,7 @@ import { View, StyleSheet, Text, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { authService } from '../src/core/services/auth.service';
+import SettingsManager from '../src/core/SettingsManager';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -38,6 +39,9 @@ export default function SplashScreen() {
         // Improved logic for safety based on user request ("Timeout de sécurité")
         const checkAuthSafe = async () => {
             try {
+                // Load settings first
+                await SettingsManager.loadSettings();
+
                 // Ensure splash visible for at least 3 seconds
                 const [user] = await Promise.all([
                     authService.getCurrentUser(),

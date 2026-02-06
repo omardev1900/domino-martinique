@@ -47,8 +47,8 @@ export default function SoloScreen() {
                             style={styles.cardGradient}
                         >
                             <Text style={styles.difficultyIcon}>🌱</Text>
-                            <Text style={styles.cardTitle}>Beginner</Text>
-                            <Text style={styles.cardDesc}>Easy bot, perfect for learning</Text>
+                            <Text style={styles.cardTitle}>Débutant</Text>
+                            <Text style={styles.cardDesc}>Bot facile<br></br> parfait pour apprendre</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 </Animated.View>
@@ -64,8 +64,8 @@ export default function SoloScreen() {
                             style={styles.cardGradient}
                         >
                             <Text style={styles.difficultyIcon}>🔥</Text>
-                            <Text style={styles.cardTitle}>Intermediate</Text>
-                            <Text style={styles.cardDesc}>Smarter bot, more challenging</Text>
+                            <Text style={styles.cardTitle}>Intermédiaire</Text>
+                            <Text style={styles.cardDesc}>Bot plus intelligent<br></br> plus difficile</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 </Animated.View>
