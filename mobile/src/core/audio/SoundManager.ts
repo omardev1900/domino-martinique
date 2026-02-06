@@ -19,6 +19,10 @@ class SoundManager {
 
     private currentMusic: Audio.Sound | null = null;
 
+    // DEBOUNCE: Track last play time per sound to prevent saturation
+    private lastPlayTime: Record<string, number> = {};
+    private readonly DEBOUNCE_MS = 100;
+
     private constructor() { }
 
     static getInstance(): SoundManager {
@@ -116,13 +120,20 @@ class SoundManager {
 
     async playSound(name: SoundName) {
         try {
+            // DEBOUNCE: Prevent same sound playing within 100ms
+            const now = Date.now();
+            const lastTime = this.lastPlayTime[name] || 0;
+            if (now - lastTime < this.DEBOUNCE_MS) {
+                return; // Skip - too soon
+            }
+            this.lastPlayTime[name] = now;
+
             const soundObject = this.sounds[name];
             if (soundObject) {
                 // Reset to start just in case
                 await soundObject.replayAsync();
-            } else {
-                console.warn(`Sound ${name} not loaded`);
             }
+            // Silently ignore if sound not loaded yet
         } catch (error) {
             console.warn(`Error playing sound ${name}`, error);
         }

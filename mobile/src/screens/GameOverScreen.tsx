@@ -16,8 +16,9 @@ interface GameOverScreenProps {
 export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, currentUserId, onReplay, onNextRound }) => {
     const [countdown, setCountdown] = useState(10);
 
-    // Determine context (Match Over vs Round Over)
+    // Determine context
     const isMatchOver = gameState.players.some(p => p.wins >= WINS_TO_WIN_MATCH);
+    const isBoudé = gameState.phase === 'BOUDE';
 
     // Game Effects on mount
     useEffect(() => {
@@ -67,8 +68,14 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
 
             <Animated.View entering={ZoomIn.duration(500)} style={styles.content}>
                 <Text style={styles.header}>
-                    {isMatchOver ? "MATCH OVER" : "ROUND OVER"}
+                    {isBoudé ? "BOUDÉ !" : isMatchOver ? "MATCH OVER" : "ROUND OVER"}
                 </Text>
+
+                {isBoudé && (
+                    <Text style={styles.boudeSubtitle}>
+                        Jeu bloqué - Calcul des points en cours...
+                    </Text>
+                )}
 
                 <View style={styles.resultsContainer}>
                     {sortedPlayers.map((p, index) => {
@@ -215,5 +222,12 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 18,
         fontWeight: 'bold',
+    },
+    boudeSubtitle: {
+        fontSize: 16,
+        color: '#ff6f00',
+        marginBottom: 20,
+        fontStyle: 'italic',
+        textAlign: 'center',
     },
 });

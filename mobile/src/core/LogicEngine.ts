@@ -392,13 +392,15 @@ export const passTurn = (
     // 4. Check for Blocked Game (Boudé)
     // Regarder les N dernières actions (N = nombre de joueurs)
     // Si ce sont toutes des 'PASS', alors tout le monde est bloqué.
-    const lastActions = newState.history.slice(-MAX_PLAYERS);
+    const numPlayers = newState.players.length;
+    const lastActions = newState.history.slice(-numPlayers);
     const consecutivePasses = lastActions.filter(h => h.action === 'PASS').length;
 
-    if (consecutivePasses === MAX_PLAYERS) {
-        // Jeu bloqué -> On détermine le vainqueur aux points
-        const winnerId = determineWinnerOnBoudé(newState.players);
-        return handleEndOfRound(newState, winnerId);
+    if (consecutivePasses === numPlayers) {
+        // Jeu bloqué -> On passe en phase BOUDE
+        // L'UI se chargera d'afficher l'overlay et d'appeler resolveBoude après 4s
+        newState.phase = 'BOUDE';
+        return newState;
     }
 
     // 5. Pass Turn to next player
@@ -407,4 +409,18 @@ export const passTurn = (
     newState.currentPlayerId = newState.players[nextIdx].id;
 
     return newState;
+};
+
+/**
+ * resolveBoude : Résout la partie bloquée après l'animation
+ */
+export const resolveBoude = (gameState: GameState): { newState: GameState; isTie: boolean } => {
+    const winnerId = determineWinnerOnBoudé(gameState.players);
+
+    if (winnerId === 'TIE') {
+        return { newState: gameState, isTie: true };
+    }
+
+    const newState = handleEndOfRound(gameState, winnerId);
+    return { newState, isTie: false };
 };

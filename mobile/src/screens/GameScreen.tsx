@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
 import { useNavigation } from 'expo-router';
 import { GameTable } from '../components/GameTable';
@@ -7,7 +7,7 @@ import { PlayerAvatar } from '../components/PlayerAvatar';
 import { LobbyScreen } from './LobbyScreen';
 import { GameOverScreen } from './GameOverScreen';
 import { SettingsScreen } from './SettingsScreen';
-import { dealGame, dealGameSolo, handleTurn, passTurn, checkValidMove, determineFirstPlayer } from '../core/LogicEngine';
+import { dealGame, dealGameSolo, handleTurn, passTurn, checkValidMove, determineFirstPlayer, resolveBoude } from '../core/LogicEngine';
 import { getBotMove } from '../core/BotEngine';
 import { GameState, Domino, Player, PlayerId, GameRoom, RoomStatus } from '../core/types';
 import { subscribeToRoom, updateGameState, leaveRoom, startGame } from '../core/services/firebase';
@@ -31,6 +31,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     const [showSettings, setShowSettings] = useState(false);
     const [isSoloMode] = useState(mode === 'solo');
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
+
+    // ATOMIC ACTION GUARD - Prevents race conditions
+    const isProcessing = useRef(false);
+
+    // Ref for fresh state access in Bot useEffect
+    const gameStateRef = useRef<GameState | null>(null);
 
     const navigation = useNavigation(); // Use navigation for intercepting back
 
@@ -192,8 +198,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     };
 
     const handlePlayDomino = async (domino: Domino) => {
-        if (!gameState) return;
+        // ATOMIC GUARD
+        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING') return;
         if (gameState.currentPlayerId !== localPlayerId) return;
+
+        isProcessing.current = true;
 
         try {
             const newState = handleTurn(gameState, localPlayerId, domino);
@@ -209,12 +218,17 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             }
         } catch (e) {
             console.log("Invalid move", e);
+        } finally {
+            isProcessing.current = false;
         }
     };
 
     const handlePassTurn = async () => {
-        if (!gameState) return;
+        // ATOMIC GUARD
+        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING') return;
         if (gameState.currentPlayerId !== localPlayerId) return;
+
+        isProcessing.current = true;
 
         // Double check validation client-side to prevent "Cannot Pass" alert loop if logic engine disagrees
         const currentCanPlay = localPlayer?.hand.some(d =>
@@ -222,6 +236,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         );
 
         if (currentCanPlay) {
+            isProcessing.current = false; // CRITICAL: Release lock before early return
             Alert.alert("Action impossible", "Vous avez des dominos jouables. Vous ne pouvez pas passer.");
             return;
         }
@@ -235,8 +250,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             }
         } catch (e: any) {
             console.error("Pass Error", e);
-            // If the logic engine still throws "Valid moves", force sync?
             Alert.alert("Cannot Pass", e.message);
+        } finally {
+            isProcessing.current = false;
         }
     };
 
@@ -245,12 +261,15 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
      * Activates Auto-Play (Bot mode) for that player and plays their turn.
      */
     const handleTimeout = async (playerId?: PlayerId) => {
-        if (!gameState) return;
+        // ATOMIC GUARD - Critical for preventing race conditions
+        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING') return;
 
         const activeId = playerId || gameState.currentPlayerId;
 
-        // Verify it's actually the active player's turn to avoid race conditions prematurely
+        // Verify it's actually the active player's turn
         if (gameState.currentPlayerId !== activeId) return;
+
+        isProcessing.current = true;
 
         console.log(`[Timeout] Turn timeout for ${activeId} - Activating Auto-Play`);
 
@@ -311,6 +330,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
         } catch (e) {
             console.error("Auto-play execution failed:", e);
+        } finally {
+            isProcessing.current = false;
         }
     };
 
@@ -376,104 +397,131 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         }
     };
 
-    // Bot Loop
+    // Keep ref in sync with state for Bot useEffect
+    useEffect(() => {
+        gameStateRef.current = gameState;
+    }, [gameState]);
+
+    // Bot Loop - INDUSTRIAL LOGIC VERSION
     useEffect(() => {
         if (!gameState) return;
-        // Support bot turns in local, solo, and multiplayer games if bot is present
-        // (Removing restrictive gameId.startsWith checks)
+
+        // HARD PHASE GUARD - Must be PLAYING to enter
+        if (gameState.phase !== 'PLAYING') {
+            console.log(`[Bot Loop] Phase is ${gameState.phase}, not executing.`);
+            return;
+        }
 
         const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
 
-        if (currentPlayer?.isBot && (gameState.phase === 'PLAYING')) {
-            const timer = setTimeout(async () => {
-                // If I am the "host" OR it is a local/solo game OR I am the bot player (Auto-Play my own self)
-                // We need to decide WHO executes the bot move in multiplayer.
-                // To avoid race conditions in normal bot play (start of game), we usually let the Host do it.
-                // But for "Auto-Play" takeover, we want reliability.
-                // Logic: If it's a Bot, we run the logic. 
-                // We use the same deterministic "Heaviest logic" as timeout to be safe?
-                // The original BotEngine uses RANDOM moves.
-                // If a player became a Bot due to timeout, maybe they should stay "dumb" (random) or "smart" (heaviest)?
-                // The task says "comme un Bot". Existing bot is random.
-                // BUT `handleTimeout` used "heaviest".
-                // I'll stick to `handleTimeout` using Heaviest for "Rescue", but the regular Bot loop uses `getBotMove` (Random).
-                // Issue: If `isBot` is set to true, this `useEffect` kicks in!
-                // And `getBotMove` is random.
-                // If 3 clients run this effect, they generate 3 different random moves.
-                // Desync!
+        if (!currentPlayer?.isBot) {
+            return; // Not a bot turn
+        }
 
-                // CRITICAL FIX:
-                // Only ONE client should execute the Bot Move in multiplayer.
-                // Who? The Room Creator (Host).
-                // Or: The player themselves (if they are online but marked as bot? Unlikely if they timed out).
-                // We will rely on the "Room Creator" to drive the Bots to avoid desync.
-                // If Room Creator disconnects, then the game might stall unless we migrate host.
-                // Given the constraints (Fast/Critical), we'll assume the Host is responsible for Bots.
+        // Only Host executes bot moves in multiplayer
+        const isHost = roomData?.players[0].uid === localPlayerId;
+        const shouldExecuteBot = isSoloMode || !gameId || isHost;
+        if (!shouldExecuteBot) return;
 
-                // For "Timeout Rescue" (handleTimeout), ANYONE can trigger it because it uses DETERMINISTIC heaviest move.
-                // Once `isBot` is true, this effect takes over for NEXT turns.
-                // We must change `getBotMove` here to be DETERMINISTIC (Heaviest) OR restrict execution to Host.
+        console.log(`[Bot Loop] Scheduling Bot turn for ${currentPlayer.name}`);
 
-                const isHost = roomData?.players[0].uid === localPlayerId;
-                const shouldExecuteBot = isSoloMode || !gameId || isHost;
+        const timer = setTimeout(() => {
+            // Use FRESH state from ref
+            const freshState = gameStateRef.current;
 
-                if (!shouldExecuteBot) return;
+            // CRITICAL: Re-check phase with fresh state
+            if (!freshState || freshState.phase !== 'PLAYING') {
+                console.log(`[Bot Timer] Fresh state phase is ${freshState?.phase}, aborting.`);
+                return;
+            }
 
-                // Use DETERMINISTIC move for reliability if it was a player-turned-bot?
-                // Or stick to random. If strict Host execution, random is fine (Host decides).
-                const move = getBotMove(
-                    currentPlayer.hand,
-                    gameState.table.leftValue,
-                    gameState.table.rightValue
-                );
+            const freshPlayer = freshState.players.find(p => p.id === freshState.currentPlayerId);
+            if (!freshPlayer?.isBot) {
+                console.log(`[Bot Timer] Current player is not a bot, aborting.`);
+                return;
+            }
 
-                console.log(`[Bot Decision] ${currentPlayer.name} thinking on table [${gameState.table.leftValue}|${gameState.table.rightValue}]`);
+            // Get bot move
+            const move = getBotMove(
+                freshPlayer.hand,
+                freshState.table.leftValue,
+                freshState.table.rightValue
+            );
+
+            console.log(`[Bot Decision] ${freshPlayer.name} thinking on table [${freshState.table.leftValue}|${freshState.table.rightValue}]`);
+
+            try {
+                let newState: GameState;
 
                 if (move) {
                     console.log(`[Bot Move] Playing ${move.left}|${move.right}`);
-                    try {
-                        const newState = handleTurn(gameState, currentPlayer.id, move);
-
-                        // Audio & Haptics for Bot
-                        SoundManager.playClack();
-                        HapticManager.triggerImpact();
-
-                        if (isSoloMode || !gameId) {
-                            setGameState(newState);
-                        } else {
-                            await updateGameState(gameId, newState);
-                        }
-                    } catch (e) {
-                        console.error("Bot play error (invalid move proposed?):", e, move);
-                    }
+                    newState = handleTurn(freshState, freshPlayer.id, move);
+                    SoundManager.playClack();
+                    HapticManager.triggerImpact();
                 } else {
-                    // Bot Pass logic when no moves are available
-                    console.log(`Bot ${currentPlayer.name} has no valid moves - passing`);
-                    try {
-                        const newState = passTurn(gameState, currentPlayer.id);
-                        if (isSoloMode || !gameId) {
-                            setGameState(newState);
-                        } else {
-                            await updateGameState(gameId, newState);
-                        }
-                    } catch (e) {
-                        console.error("Bot pass error", e);
-                        // Emergency fallback: manually rotate turn if passTurn fails
-                        const fallbackState = { ...gameState };
-                        const idx = gameState.players.findIndex(p => p.id === currentPlayer.id);
-                        const nextIdx = (idx + 1) % gameState.players.length;
-                        fallbackState.currentPlayerId = gameState.players[nextIdx].id;
-                        if (isSoloMode || !gameId) {
-                            setGameState(fallbackState);
-                        } else {
-                            await updateGameState(gameId, fallbackState);
-                        }
+                    console.log(`[Bot Pass] ${freshPlayer.name} has no valid moves - passing`);
+                    newState = passTurn(freshState, freshPlayer.id);
+
+                    // CRITICAL: Check if this pass triggered BOUDE
+                    if (newState.phase === 'BOUDE') {
+                        console.log(`[Bot Pass] Game is now BOUDE! Stopping bot loop.`);
                     }
                 }
-            }, 1000); // 1s thinking delay as requested
-            return () => clearTimeout(timer);
-        }
-    }, [gameState?.currentPlayerId, gameState?.phase, gameState?.history.length, roomData, localPlayerId]);
+
+                // Update state
+                if (isSoloMode || !gameId) {
+                    setGameState(newState);
+                } else {
+                    updateGameState(gameId, newState);
+                }
+
+            } catch (e: any) {
+                console.error("[Bot Error]", e.message);
+            }
+        }, 1200); // Slightly longer delay for stability
+
+        return () => {
+            console.log(`[Bot Loop] Cleanup - clearing timer`);
+            clearTimeout(timer);
+        };
+    }, [gameState?.currentPlayerId, gameState?.phase, roomData, localPlayerId, isSoloMode, gameId]);
+
+    // BOUDE Resolution Effect - Automatically resolve blocked games
+    useEffect(() => {
+        if (!gameState || gameState.phase !== 'BOUDE') return;
+
+        console.log(`[BOUDE] Game is blocked! Will resolve in 4 seconds...`);
+        isProcessing.current = false; // Release lock to allow UI updates
+
+        const timer = setTimeout(() => {
+            const freshState = gameStateRef.current;
+            if (!freshState || freshState.phase !== 'BOUDE') return;
+
+            console.log(`[BOUDE] Resolving blocked game...`);
+
+            const { newState, isTie } = resolveBoude(freshState);
+
+            if (isTie) {
+                console.log(`[BOUDE] Tie detected - restarting round`);
+                // Restart the round for tie
+                if (isSoloMode) {
+                    startSoloGame();
+                } else {
+                    // For multiplayer, we would need different logic
+                    setGameState(newState);
+                }
+            } else {
+                console.log(`[BOUDE] Winner determined - showing results`);
+                if (isSoloMode || !gameId) {
+                    setGameState(newState);
+                } else {
+                    updateGameState(gameId, newState);
+                }
+            }
+        }, 4000);
+
+        return () => clearTimeout(timer);
+    }, [gameState?.phase, isSoloMode, gameId]);
 
 
     // RENDER LOGIC
@@ -497,7 +545,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     }
 
     const localPlayer = gameState.players.find(p => p.id === localPlayerId);
-    const isGameOver = gameState.phase === 'MATCH_END' || gameState.phase === 'ROUND_END';
+    const isGameOver = gameState.phase === 'MATCH_END' || gameState.phase === 'ROUND_END' || gameState.phase === 'BOUDE';
 
     const isMyTurn = gameState.currentPlayerId === localPlayerId;
 
@@ -548,10 +596,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                     {opponents[0] && (
                         <View style={styles.opponentAvatar}>
                             <PlayerAvatar
-                                key={`${opponents[0].id}-${gameState.currentPlayerId}`}
+                                key={`${opponents[0].id}-${gameState.currentPlayerId}-${gameState.phase}`}
                                 player={opponents[0]}
                                 isActive={gameState.currentPlayerId === opponents[0].id}
-                                showTimer={gameState.currentPlayerId === opponents[0].id && !isGameOver}
+                                showTimer={gameState.currentPlayerId === opponents[0].id && !isGameOver && gameState.phase === 'PLAYING'}
                                 timerDuration={TURN_DURATION_SECONDS}
                                 size={56}
                                 position="top-left"
@@ -565,10 +613,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                 {opponents[1] && (
                     <View style={styles.topRightCorner}>
                         <PlayerAvatar
-                            key={`${opponents[1].id}-${gameState.currentPlayerId}`}
-                            player={opponents[1]} // PlayerAvatar should handle isBot check internally or we override props here
+                            key={`${opponents[1].id}-${gameState.currentPlayerId}-${gameState.phase}`}
+                            player={opponents[1]}
                             isActive={gameState.currentPlayerId === opponents[1].id}
-                            showTimer={gameState.currentPlayerId === opponents[1].id && !isGameOver}
+                            showTimer={gameState.currentPlayerId === opponents[1].id && !isGameOver && gameState.phase === 'PLAYING'}
                             timerDuration={TURN_DURATION_SECONDS}
                             size={56}
                             position="top-right"
@@ -578,8 +626,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                 )}
             </SafeAreaView>
 
-            {/* Pass Button Area */}
-            {isMyTurn && !canPlayAny && (
+            {/* Pass Button Area - Only show during PLAYING phase */}
+            {isMyTurn && !canPlayAny && gameState.phase === 'PLAYING' && (
                 <View style={styles.passContainer}>
                     <TouchableOpacity style={styles.passButton} onPress={handlePassTurn}>
                         <Text style={styles.passButtonText}>Pass Turn</Text>
@@ -590,12 +638,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             {/* Player Hand with integrated avatar and timer */}
             {localPlayer && (
                 <PlayerHand
-                    key={`${localPlayer.id}-${gameState.currentPlayerId}`}
+                    key={`${localPlayer.id}-${gameState.currentPlayerId}-${gameState.phase}`}
                     player={localPlayer}
                     onPlayDomino={handlePlayDomino}
-                    disabled={gameState.currentPlayerId !== localPlayerId}
+                    disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING'}
                     isActive={isMyTurn}
-                    showTimer={isMyTurn && !isGameOver}
+                    showTimer={isMyTurn && !isGameOver && gameState.phase === 'PLAYING'}
                     timerDuration={TURN_DURATION_SECONDS}
                     onTimeout={() => handleTimeout(localPlayer.id)}
                 />
