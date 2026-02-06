@@ -1,6 +1,6 @@
 import { Audio } from 'expo-av';
 
-type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3';
+type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'boude';
 
 class SoundManager {
     private static instance: SoundManager;
@@ -15,6 +15,7 @@ class SoundManager {
         bgm1: null,
         bgm2: null,
         bgm3: null,
+        boude: null,
     };
 
     private currentMusic: Audio.Sound | null = null;
@@ -57,6 +58,7 @@ class SoundManager {
                 bgm1: require('../../../assets/sounds/bgm1.mp3'),
                 bgm2: require('../../../assets/sounds/bgm2.mp3'),
                 bgm3: require('../../../assets/sounds/bgm3.mp3'),
+                boude: require('../../../assets/sounds/boude.mp3'),
             };
 
             for (const [key, source] of Object.entries(soundMap)) {

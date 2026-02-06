@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { GameState, Player } from '../core/types';
 import Animated, { FadeIn, ZoomIn, SlideInDown } from 'react-native-reanimated';
 import { WINS_TO_WIN_MATCH } from '../core/constants';
@@ -22,7 +22,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
 
     // Game Effects on mount (skip during BOUDE - resolution is pending)
     useEffect(() => {
-        // Don't play sounds during BOUDE - wait for resolution
+        // Don't play win/lose sounds during BOUDE - wait for resolution
         if (isBoudé) return;
 
         const sortedPlayers = [...gameState.players].sort((a, b) => b.wins - a.wins);
@@ -35,6 +35,14 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
             SoundManager.playSound('lose');
         }
     }, [gameState.gameId, currentUserId, isBoudé]);
+
+    // Play specific sound for BOUDE phase
+    useEffect(() => {
+        if (isBoudé) {
+            SoundManager.playSound('boude');
+            HapticManager.triggerImpact(); // Add impact for reinforcement
+        }
+    }, [isBoudé]);
 
     // Auto-restart countdown for next round (skip during BOUDE - parent handles resolution)
     useEffect(() => {
@@ -84,58 +92,68 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ gameState, curre
                     {isBoudé ? "BOUDÉ !" : isMatchOver ? "MATCH OVER" : "ROUND OVER"}
                 </Text>
 
+                {/* BOUDE Phase: Show only waiting message */}
                 {isBoudé && (
-                    <Text style={styles.boudeSubtitle}>
-                        Jeu bloqué - Calcul des points en cours...
-                    </Text>
+                    <View style={styles.boudeContainer}>
+                        <Text style={styles.boudeSubtitle}>
+                            Jeu bloqué !
+                        </Text>
+                        <ActivityIndicator size="large" color="#ff6f00" style={styles.loader} />
+                        <Text style={styles.boudeCalculating}>
+                            Calcul des points en cours...
+                        </Text>
+                    </View>
                 )}
 
-                <View style={styles.resultsContainer}>
-                    {sortedPlayers.map((p, index) => {
-                        const isWinner = index === 0;
-                        return (
-                            <Animated.View
-                                key={p.id}
-                                entering={SlideInDown.delay(index * 200)}
-                                style={[styles.playerRow, isWinner && styles.winnerRow]}
-                            >
-                                <Text style={[styles.rank, isWinner && styles.winnerText]}>#{index + 1}</Text>
-                                <Text style={[styles.name, isWinner && styles.winnerText]}>
-                                    {p.name} {p.id === currentUserId ? "(You)" : ""}
-                                </Text>
-                                <View style={styles.scoreContainer}>
-                                    <Text style={[styles.score, isWinner && styles.winnerText]}>{p.wins} Wins</Text>
-                                    {p.isCochon && <Text style={styles.pigBadge}>🐷</Text>}
-                                    {isMatchOver && (
-                                        <Text style={[styles.points, p.isCochon && styles.pointsNegative]}>
-                                            {p.totalPoints >= 0 ? '+' : ''}{p.totalPoints} pts
-                                        </Text>
-                                    )}
-                                </View>
-                            </Animated.View>
-                        );
-                    })}
-                </View>
-
-                {/* Countdown - only show for ROUND_END, not BOUDE or MATCH_END */}
-                {!isMatchOver && !isBoudé && countdown > 0 && (
-                    <Text style={styles.countdownText}>
-                        Next round starts in {countdown}s...
-                    </Text>
-                )}
-
-                {/* Action buttons - hide during BOUDE (auto-resolving) */}
+                {/* Results Section: Only show when NOT in BOUDE phase */}
                 {!isBoudé && (
-                    <Animated.View entering={FadeIn.delay(1000)}>
-                        <TouchableOpacity
-                            style={styles.replayButton}
-                            onPress={() => isMatchOver ? onReplay() : onNextRound?.()}
-                        >
-                            <Text style={styles.replayText}>
-                                {isMatchOver ? "Back to Lobby" : `Start Next Round${countdown > 0 ? ` (${countdown}s)` : ''}`}
+                    <>
+                        <View style={styles.resultsContainer}>
+                            {sortedPlayers.map((p, index) => {
+                                const isWinner = index === 0;
+                                return (
+                                    <Animated.View
+                                        key={p.id}
+                                        entering={SlideInDown.delay(index * 200)}
+                                        style={[styles.playerRow, isWinner && styles.winnerRow]}
+                                    >
+                                        <Text style={[styles.rank, isWinner && styles.winnerText]}>#{index + 1}</Text>
+                                        <Text style={[styles.name, isWinner && styles.winnerText]}>
+                                            {p.name} {p.id === currentUserId ? "(You)" : ""}
+                                        </Text>
+                                        <View style={styles.scoreContainer}>
+                                            <Text style={[styles.score, isWinner && styles.winnerText]}>{p.wins} Wins</Text>
+                                            {p.isCochon && <Text style={styles.pigBadge}>🐷</Text>}
+                                            {isMatchOver && (
+                                                <Text style={[styles.points, p.isCochon && styles.pointsNegative]}>
+                                                    {p.totalPoints >= 0 ? '+' : ''}{p.totalPoints} pts
+                                                </Text>
+                                            )}
+                                        </View>
+                                    </Animated.View>
+                                );
+                            })}
+                        </View>
+
+                        {/* Countdown - only show for ROUND_END, not MATCH_END */}
+                        {!isMatchOver && countdown > 0 && (
+                            <Text style={styles.countdownText}>
+                                Next round starts in {countdown}s...
                             </Text>
-                        </TouchableOpacity>
-                    </Animated.View>
+                        )}
+
+                        {/* Action buttons */}
+                        <Animated.View entering={FadeIn.delay(1000)}>
+                            <TouchableOpacity
+                                style={styles.replayButton}
+                                onPress={() => isMatchOver ? onReplay() : onNextRound?.()}
+                            >
+                                <Text style={styles.replayText}>
+                                    {isMatchOver ? "Back to Lobby" : `Start Next Round${countdown > 0 ? ` (${countdown}s)` : ''}`}
+                                </Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    </>
                 )}
             </Animated.View>
         </View>
@@ -241,9 +259,22 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     boudeSubtitle: {
-        fontSize: 16,
+        fontSize: 24,
+        fontWeight: 'bold',
         color: '#ff6f00',
-        marginBottom: 20,
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    boudeContainer: {
+        alignItems: 'center',
+        paddingVertical: 30,
+    },
+    loader: {
+        marginVertical: 20,
+    },
+    boudeCalculating: {
+        fontSize: 14,
+        color: '#888',
         fontStyle: 'italic',
         textAlign: 'center',
     },
