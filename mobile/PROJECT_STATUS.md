@@ -23,12 +23,14 @@
 - [x] 2-player game logic adaptation (`dealGameSolo`)
 - [x] Fix Solo Game Loop (Bot auto-play, human interaction unblocked)
 - [x] Connect solo screen to game with bot opponent
+- [x] **Solo mode production-ready on physical devices (iPhone & Samsung)**
 
 ### 4.6 Solo Mode Firebase Decoupling & Bot Refinement ✓ COMPLETE
 - [x] Disable Firebase sync for mode === 'solo'
 - [x] Ensure local state updates in all Solo Mode actions
 - [x] Verify/Fix Bot move selection logic
 - [x] Test Offline/Airplane Mode persistence
+- [x] **Solo mode production-ready on physical devices (iPhone & Samsung)**
 
 ### 4.3 Multiplayer - Private Tables ✓ COMPLETE
 - [x] Backend logic (createRoom, joinRoom)
@@ -54,6 +56,7 @@
 - [x] Fix overflow issues on initial pages (Home, Splash, Settings) on mobile devices
 - [x] Ensure content fits within different screen aspect ratios without clipping (Lobby, GameScreen)
 - [x] Landscape optimization for all core screens (useSafeAreaInsets)
+- [x] **Solo mode production-ready on physical devices (iPhone & Samsung)**
 
 ---
 
@@ -77,6 +80,7 @@
 - [x] Placement Impact (light vibration)
 - [x] Turn Alert (patterned vibration)
 - [x] Error/Invalid Move feedback
+- [x] **Solo mode production-ready on physical devices (iPhone & Samsung)**
 
 ---
 

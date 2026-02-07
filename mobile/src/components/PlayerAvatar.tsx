@@ -13,6 +13,7 @@ interface PlayerAvatarProps {
     size?: number;
     position?: 'top-left' | 'top-right' | 'bottom' | 'top-center';
     layout?: 'vertical' | 'horizontal';
+    namePlacement?: 'above' | 'below'; // Where to place the name in vertical layout
     onTimeout?: () => void; // Callback when timer expires
 }
 
@@ -27,6 +28,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     size = 60,
     position = 'bottom',
     layout = 'vertical',
+    namePlacement = 'below',
     onTimeout
 }) => {
     const strokeWidth = 4;
@@ -82,6 +84,18 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
 
     return (
         <View style={[styles.container, isHorizontal && styles.containerHorizontal]}>
+            {/* Name above avatar in vertical layout */}
+            {!isHorizontal && namePlacement === 'above' && (
+                <View style={styles.nameContainerVertical}>
+                    <Text
+                        style={[styles.playerName, styles.nameVertical]}
+                        numberOfLines={1}
+                    >
+                        {player.name}
+                    </Text>
+                </View>
+            )}
+
             <View style={{ width: size + 12, height: size + 12, alignItems: 'center', justifyContent: 'center' }}>
                 {/* Avatar Circle */}
                 <View
@@ -141,17 +155,29 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                 )}
             </View>
 
-            <View style={isHorizontal ? styles.nameContainerHorizontal : styles.nameContainerVertical}>
-                <Text
-                    style={[
-                        styles.playerName,
-                        isHorizontal ? styles.nameHorizontal : styles.nameVertical
-                    ]}
-                    numberOfLines={1}
-                >
-                    {player.name}
-                </Text>
-            </View>
+            {/* Name below avatar in vertical layout */}
+            {!isHorizontal && namePlacement === 'below' && (
+                <View style={styles.nameContainerVerticalBelow}>
+                    <Text
+                        style={[styles.playerName, styles.nameVertical]}
+                        numberOfLines={1}
+                    >
+                        {player.name}
+                    </Text>
+                </View>
+            )}
+
+            {/* Name beside avatar in horizontal layout */}
+            {isHorizontal && (
+                <View style={styles.nameContainerHorizontal}>
+                    <Text
+                        style={[styles.playerName, styles.nameHorizontal]}
+                        numberOfLines={1}
+                    >
+                        {player.name}
+                    </Text>
+                </View>
+            )}
         </View>
     );
 };
@@ -193,6 +219,9 @@ const styles = StyleSheet.create({
         left: 0,
     },
     nameContainerVertical: {
+        marginBottom: 6,
+    },
+    nameContainerVerticalBelow: {
         marginTop: 6,
     },
     nameContainerHorizontal: {

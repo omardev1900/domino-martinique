@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight } from 'react-native-reanimated';
 import { useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameTable } from '../components/GameTable';
@@ -36,6 +36,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [localPlayerId] = useState<PlayerId>(userId || 'p1');
     const [showSettings, setShowSettings] = useState(false);
+    const [showRoomInfo, setShowRoomInfo] = useState(false);
     const [isSoloMode] = useState(mode === 'solo');
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
 
@@ -693,22 +694,62 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
             <StatusBar barStyle="light-content" translucent />
 
-            {/* NEW: Game Header with Room Code */}
+
+            {/* INFO BUTTON - Discreet top-center button */}
             {!isSoloMode && gameId && (
-                <View style={[styles.header, { top: Math.max(insets.top, 50) }]}>
-                    <Text style={styles.headerTitle}>Room: </Text>
-                    <TouchableOpacity
-                        onPress={() => {
-                            Clipboard.setStringAsync(gameId);
-                            Alert.alert("Copié", "Code de la table copié !");
-                        }}
-                        style={styles.headerCodeButton}
-                    >
-                        <Text style={styles.headerCode}>{gameId}</Text>
-                        <Ionicons name="copy-outline" size={16} color="#FFD700" style={{ marginLeft: 4 }} />
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                    style={[styles.infoButton, { top: Math.max(insets.top + 10, 20) }]}
+                    onPress={() => setShowRoomInfo(!showRoomInfo)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="information-circle-outline" size={24} color="#FFD700" />
+                </TouchableOpacity>
             )}
+
+            {/* ROOM INFO CARD - Floating card with room code */}
+            {!isSoloMode && gameId && showRoomInfo && (
+                <>
+                    {/* Backdrop - close on tap outside */}
+                    <TouchableOpacity
+                        style={styles.infoBackdrop}
+                        activeOpacity={1}
+                        onPress={() => setShowRoomInfo(false)}
+                    >
+                        <View style={styles.infoCard}>
+                            <View style={styles.infoCardHeader}>
+                                <Ionicons name="game-controller-outline" size={20} color="#FFD700" />
+                                <Text style={styles.infoCardTitle}>Code de la salle</Text>
+                            </View>
+
+                            <View style={styles.infoCardCodeContainer}>
+                                <Text style={styles.infoCardCode}>{gameId}</Text>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.infoCardCopyButton}
+                                onPress={() => {
+                                    Clipboard.setStringAsync(gameId);
+                                    Alert.alert("✓ Copié", "Code de la table copié dans le presse-papier !");
+                                    setShowRoomInfo(false);
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons name="copy-outline" size={18} color="#FFF" />
+                                <Text style={styles.infoCardCopyText}>Copier le code</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.infoCardCloseButton}
+                                onPress={() => setShowRoomInfo(false)}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.infoCardCloseText}>Fermer</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
+                </>
+            )}
+
 
             <GameTable gameState={gameState} />
 
@@ -736,9 +777,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                     </View>
                 )}
 
-                {/* MULTIPLAYER: Opponent A */}
+                {/* MULTIPLAYER: Opponent A - Top Left with FadeIn */}
                 {!isSoloMode && opponents[0] && (
-                    <View style={[styles.topLeftArea, { top: Math.max(insets.top + 60, 90), left: Math.max(insets.left + 20, 20) }]}>
+                    <Animated.View
+                        entering={FadeInLeft.delay(200).duration(600)}
+                        style={[styles.topLeftArea, { top: Math.max(insets.top + 5, 15), left: Math.max(insets.left + 10, 10) }]}
+                    >
                         <PlayerAvatar
                             key={`${opponents[0].id}-${gameState.currentPlayerId}`}
                             player={opponents[0]}
@@ -746,16 +790,20 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                             showTimer={gameState.currentPlayerId === opponents[0].id && !isGameOver && gameState.phase === 'PLAYING'}
                             timerDuration={TURN_DURATION_SECONDS}
                             size={52}
-                            layout="horizontal"
+                            layout="vertical"
+                            namePlacement="below"
                             position="top-left"
                             onTimeout={() => handleTimeout(opponents[0].id)}
                         />
-                    </View>
+                    </Animated.View>
                 )}
 
-                {/* MULTIPLAYER: Opponent B */}
+                {/* MULTIPLAYER: Opponent B - Top Right with FadeIn */}
                 {!isSoloMode && opponents[1] && (
-                    <View style={[styles.topRightCorner, { top: Math.max(insets.top + 10, 40), right: Math.max(insets.right + 20, 20) }]}>
+                    <Animated.View
+                        entering={FadeInRight.delay(400).duration(600)}
+                        style={[styles.topRightCorner, { top: Math.max(insets.top + 5, 15), right: Math.max(insets.right + 10, 10) }]}
+                    >
                         <PlayerAvatar
                             key={`${opponents[1].id}-${gameState.currentPlayerId}`}
                             player={opponents[1]}
@@ -763,11 +811,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                             showTimer={gameState.currentPlayerId === opponents[1].id && !isGameOver && gameState.phase === 'PLAYING'}
                             timerDuration={TURN_DURATION_SECONDS}
                             size={52}
-                            layout="horizontal"
+                            layout="vertical"
+                            namePlacement="below"
                             position="top-right"
                             onTimeout={() => handleTimeout(opponents[1].id)}
                         />
-                    </View>
+                    </Animated.View>
                 )}
 
                 {/* Pass Button Area - HIGH Z-INDEX */}
@@ -779,9 +828,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                     </View>
                 )}
 
-                {/* BOTTOM LEFT: Local Player (Me) - Casino Style */}
+                {/* BOTTOM LEFT: Local Player (Me) - Casino Style with FadeIn */}
                 {localPlayer && (
-                    <View style={[styles.bottomLeftArea, { bottom: 20 + insets.bottom, left: 20 + insets.left }]}>
+                    <Animated.View
+                        entering={FadeInLeft.delay(600).duration(600)}
+                        style={[styles.bottomLeftArea, { bottom: 20 + insets.bottom, left: 20 + insets.left }]}
+                    >
                         <Animated.View style={[styles.playerCardMe, isMyTurn && animatedBorderStyle]}>
                             <View style={styles.avatarCircleBottom}>
                                 <Text style={styles.avatarEmoji}>{localPlayer.avatarId || localPlayer.name[0]}</Text>
@@ -794,7 +846,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                                 <View style={styles.activeIndicatorMe} />
                             )}
                         </Animated.View>
-                    </View>
+                    </Animated.View>
                 )}
 
                 {/* BOTTOM RIGHT: Timer Display - Circular like avatars */}
@@ -1004,32 +1056,111 @@ const styles = StyleSheet.create({
         fontSize: 14,
         textTransform: 'uppercase',
     },
-    header: {
+    // Info Button - Discreet top-center button
+    infoButton: {
         position: 'absolute',
         alignSelf: 'center',
-        flexDirection: 'row',
-        alignItems: 'center',
-        zIndex: 20,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        paddingVertical: 6,
-        paddingHorizontal: 14,
-        borderRadius: 20,
+        zIndex: 100,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(0,0,0,0.5)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: '#FFD700',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 5,
     },
-    headerTitle: {
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    headerCodeButton: {
-        flexDirection: 'row',
+    // Info Card - Floating card backdrop
+    infoBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        zIndex: 200,
+        justifyContent: 'center',
         alignItems: 'center',
     },
-    headerCode: {
+    // Info Card - Main container
+    infoCard: {
+        backgroundColor: 'rgba(26, 10, 46, 0.98)',
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#FFD700',
+        padding: 24,
+        width: 320,
+        maxWidth: '85%',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 15,
+        elevation: 20,
+    },
+    // Info Card - Header
+    infoCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+        gap: 8,
+    },
+    infoCardTitle: {
         color: '#FFD700',
-        fontSize: 12,
+        fontSize: 18,
         fontWeight: 'bold',
-        marginLeft: 4,
+    },
+    // Info Card - Code container
+    infoCardCodeContainer: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+    },
+    infoCardCode: {
+        color: '#FFFFFF',
+        fontSize: 20,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        letterSpacing: 2,
+    },
+    // Info Card - Copy button
+    infoCardCopyButton: {
+        backgroundColor: '#4CAF50',
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 12,
+        shadowColor: '#4CAF50',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    infoCardCopyText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    // Info Card - Close button
+    infoCardCloseButton: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    infoCardCloseText: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 14,
+        fontWeight: '600',
     },
 });
