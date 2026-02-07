@@ -69,7 +69,6 @@ export default function ProfileScreen() {
 
     const renderAvatarGrid = () => (
         <View style={styles.section}>
-            <Text style={styles.label}>CHOISIR UN AVATAR</Text>
             <View style={styles.avatarGrid}>
                 {AVATAR_OPTIONS.map((emoji) => (
                     <TouchableOpacity
@@ -90,7 +89,6 @@ export default function ProfileScreen() {
     const renderFormControls = () => (
         <View style={[styles.formSection, isLandscape && styles.formSectionLandscape]}>
             <View style={styles.section}>
-                <Text style={styles.label}>PSEUDO</Text>
                 <TextInput
                     style={styles.input}
                     value={displayName}
@@ -229,14 +227,6 @@ const styles = StyleSheet.create({
         width: '100%',
         marginBottom: 20,
     },
-    label: {
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: 11,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        letterSpacing: 1,
-        textAlign: 'center',
-    },
     input: {
         backgroundColor: 'rgba(255,255,255,0.08)',
         borderRadius: 12,
@@ -246,6 +236,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.15)',
         textAlign: 'center',
+        marginTop: 10,
     },
     avatarGrid: {
         flexDirection: 'row',
@@ -276,10 +267,13 @@ const styles = StyleSheet.create({
         borderRadius: 25,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 20,
+        paddingHorizontal: 30, // Button doesn't take full width
+        alignSelf: 'center',
     },
     saveButtonLandscape: {
-        marginTop: 0,
+        marginTop: 20,
+        width: 180, // Fixed width in landscape
     },
     saveButtonText: {
         fontSize: 16,

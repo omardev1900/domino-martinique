@@ -83,8 +83,8 @@ export default function HomeScreen() {
                                 style={styles.cardGradient}
                             >
                                 <Text style={styles.cardIcon}>🎮</Text>
-                                <Text style={styles.cardTitle}>Solo Mode</Text>
-                                <Text style={styles.cardDesc}>Play vs Bot</Text>
+                                <Text style={styles.cardTitle}>Mode Solo</Text>
+                                <Text style={styles.cardDesc}>Jouer contre le Bot</Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     </Animated.View>
@@ -100,8 +100,8 @@ export default function HomeScreen() {
                                 style={styles.cardGradient}
                             >
                                 <Text style={styles.cardIcon}>👥</Text>
-                                <Text style={styles.cardTitle}>Multiplayer</Text>
-                                <Text style={styles.cardDesc}>Play with Friends</Text>
+                                <Text style={styles.cardTitle}>Mode Multijoueurs</Text>
+                                <Text style={styles.cardDesc}>Jouer contre des amis</Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     </Animated.View>

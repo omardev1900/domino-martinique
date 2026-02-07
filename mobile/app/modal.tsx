@@ -61,7 +61,6 @@ export default function ModalScreen() {
         >
           <View style={[styles.mainBlock, isLandscape && styles.mainBlockLandscape]}>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Préférences</Text>
 
               <View style={styles.row}>
                 <View>
@@ -91,7 +90,6 @@ export default function ModalScreen() {
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Compte</Text>
               <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <Text style={styles.logoutText}>Se déconnecter</Text>
               </TouchableOpacity>

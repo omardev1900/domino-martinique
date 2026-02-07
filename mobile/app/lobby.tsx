@@ -206,9 +206,9 @@ export default function LobbyScreen() {
 
             <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Text style={styles.backText}>← Retour</Text>
+                    <Text style={styles.backText}>←</Text>
                 </TouchableOpacity>
-                <Text style={styles.title} numberOfLines={1}>Multiplayer</Text>
+                <Text style={styles.title} numberOfLines={1}>Multijoueurs</Text>
             </View>
 
             <View style={styles.tabWrapper}>

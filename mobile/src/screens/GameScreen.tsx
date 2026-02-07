@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameTable } from '../components/GameTable';
@@ -43,7 +45,109 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     // Ref for fresh state access in Bot useEffect
     const gameStateRef = useRef<GameState | null>(null);
 
-    const navigation = useNavigation(); // Use navigation for intercepting back
+    const navigation = useNavigation();
+
+    // Timer countdown state
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+    // Pulsing animation for active player border
+    const pulseOpacity = useSharedValue(1);
+
+    useEffect(() => {
+        pulseOpacity.value = withRepeat(
+            withSequence(
+                withTiming(0.3, { duration: 800 }),
+                withTiming(1, { duration: 800 })
+            ),
+            -1,
+            true
+        );
+    }, []);
+
+    const animatedBorderStyle = useAnimatedStyle(() => ({
+        borderColor: `rgba(255, 215, 0, ${pulseOpacity.value})`,
+    }));
+
+    // Timer countdown logic
+    useEffect(() => {
+        if (!gameState || gameState.phase !== 'PLAYING') {
+            setTimeLeft(null);
+            return;
+        }
+
+        const isMyTurn = gameState.currentPlayerId === localPlayerId;
+        if (!isMyTurn) {
+            setTimeLeft(null);
+            return;
+        }
+
+        // Start countdown
+        setTimeLeft(TURN_DURATION_SECONDS);
+
+        const interval = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev === null || prev <= 1) {
+                    clearInterval(interval);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [gameState?.currentPlayerId, gameState?.phase, localPlayerId]);
+
+    // Auto-play or auto-pass when timer expires
+    useEffect(() => {
+        if (timeLeft !== 0) return;
+
+        // Use ref to get fresh state
+        const freshState = gameStateRef.current;
+        if (!freshState) {
+            console.log('⏰ Timer expired but no gameState available');
+            return;
+        }
+
+        if (freshState.currentPlayerId !== localPlayerId) {
+            console.log('⏰ Timer expired but not my turn anymore');
+            return;
+        }
+
+        if (freshState.phase !== 'PLAYING') {
+            console.log('⏰ Timer expired but game phase is', freshState.phase);
+            return;
+        }
+
+        console.log('⏰ Timer expired - checking for valid moves...');
+
+        // CRITICAL: Force release processing lock - timer has absolute priority
+        isProcessing.current = false;
+
+        // Find the local player in fresh state
+        const freshPlayer = freshState.players.find(p => p.id === localPlayerId);
+        if (!freshPlayer) {
+            console.error('⏰ Timer expired but player not found in state');
+            return;
+        }
+
+        // STEP A: Check for valid moves using LogicEngine
+        const validMoves = freshPlayer.hand.filter(domino =>
+            checkValidMove(domino, freshState.table.leftValue, freshState.table.rightValue).canPlay
+        );
+
+        if (validMoves.length > 0) {
+            // STEP B: Auto-play the first valid domino
+            const dominoToPlay = validMoves[0];
+            console.log(`⏰ AUTO-PLAY: Playing ${dominoToPlay.left}|${dominoToPlay.right} automatically`);
+
+            // Call handlePlayDomino as if user clicked
+            handlePlayDomino(dominoToPlay);
+        } else {
+            // STEP C: No valid moves - auto-pass
+            console.log('⏰ AUTO-PASS: No valid moves, passing turn automatically');
+            handlePassTurn();
+        }
+    }, [timeLeft]);
 
     // Audio & Firebase Subscription
     useEffect(() => {
@@ -480,8 +584,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                     updateGameState(gameId, newState);
                 }
 
+                // CRITICAL: Release processing lock after bot action
+                isProcessing.current = false;
+
             } catch (e: any) {
                 console.error("[Bot Error]", e.message);
+                isProcessing.current = false; // Release on error too
             }
         }, 1200); // Slightly longer delay for stability
 
@@ -532,12 +640,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     // RENDER LOGIC
 
     if (!gameState) {
-        if (!roomData) return <View style={styles.loading}><Text style={styles.text}>Loading...</Text></View>;
+        if (!roomData) return <View key="loading-no-room" style={styles.loading}><Text style={styles.text}>Loading...</Text></View>;
 
         // Show loading screen when starting game instead of lobby
         if (isStarting) {
             return (
-                <View style={styles.loading}>
+                <View key="loading-starting" style={styles.loading}>
                     <Text style={styles.text}>Starting game...</Text>
                     <Text style={[styles.text, { fontSize: 14, marginTop: 10, opacity: 0.7 }]}>
                         Dealing tiles and preparing the board
@@ -546,7 +654,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             );
         }
 
-        return <LobbyScreen roomData={roomData} currentUserId={localPlayerId} onStartGame={handleStartGame} />;
+        return <LobbyScreen key="lobby-screen" roomData={roomData} currentUserId={localPlayerId} onStartGame={handleStartGame} />;
     }
 
     const localPlayer = gameState.players.find(p => p.id === localPlayerId);
@@ -562,15 +670,28 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     // Get opponent players and formatting for Bot display
     const opponents = gameState.players
         .filter(p => p.id !== localPlayerId)
-        .map(p => ({
-            ...p,
-            name: p.isBot ? `Bot (${p.name.split(' ')[0]})` : p.name,
-            avatarId: p.isBot ? '🤖' : p.avatarId
-        }));
+        .map(p => {
+            let name = p.name;
+            if (p.isBot) {
+                if (name.toLowerCase().includes('easy')) name = 'Easy Bot';
+                else if (name.toLowerCase().includes('medium') || name.toLowerCase().includes('intermediate')) name = 'Middle Bot';
+            }
+            return {
+                ...p,
+                name: name,
+                avatarId: p.isBot ? '🤖' : p.avatarId
+            };
+        });
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor="#0d1f0d" />
+            {/* Purple Gradient Background */}
+            <LinearGradient
+                colors={['#1a0a2e', '#2d1b4e', '#3a2560']}
+                style={StyleSheet.absoluteFill}
+            />
+
+            <StatusBar barStyle="light-content" translucent />
 
             {/* NEW: Game Header with Room Code */}
             {!isSoloMode && gameId && (
@@ -591,67 +712,108 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
             <GameTable gameState={gameState} />
 
-            {/* Opponent Avatars / Settings Panel */}
+            {/* UI LAYER */}
             <View style={styles.uiLayer} pointerEvents="box-none">
-                {/* Top Left Area */}
-                <View style={[styles.topLeftCorner, { top: Math.max(insets.top + 10, 40), left: Math.max(insets.left + 20, 20) }]}>
-                    <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.settingsButton}>
-                        <Ionicons name="settings-sharp" size={20} color="white" />
-                    </TouchableOpacity>
-                    {opponents[0] && (
-                        <View style={styles.opponentAvatar}>
-                            <PlayerAvatar
-                                key={`${opponents[0].id}-${gameState.currentPlayerId}-${gameState.phase}`}
-                                player={opponents[0]}
-                                isActive={gameState.currentPlayerId === opponents[0].id}
-                                showTimer={gameState.currentPlayerId === opponents[0].id && !isGameOver && gameState.phase === 'PLAYING'}
-                                timerDuration={TURN_DURATION_SECONDS}
-                                size={52}
-                                position="top-left"
-                                onTimeout={() => handleTimeout(opponents[0].id)}
-                            />
-                        </View>
-                    )}
-                </View>
 
-                {/* Top Right Area */}
-                {opponents[1] && (
+                {/* TOP RIGHT: Bot Avatar (Casino Style) - ABSOLUTE POSITIONING */}
+                {isSoloMode && opponents[0] && (
+                    <View style={[styles.botAvatarAbsolute, { top: Math.max(insets.top + 10, 40), right: 20 + insets.right }]}>
+                        <Animated.View style={[
+                            styles.playerCard,
+                            gameState.currentPlayerId === opponents[0].id && animatedBorderStyle
+                        ]}>
+                            <View style={styles.avatarCircleTop}>
+                                <Text style={styles.avatarEmoji}>{opponents[0].avatarId}</Text>
+                            </View>
+                            <View style={styles.playerInfo}>
+                                <Text style={styles.playerNameTop}>{opponents[0].name}</Text>
+                                <Text style={styles.playerScore}>{opponents[0].hand.length}/7</Text>
+                            </View>
+                            {gameState.currentPlayerId === opponents[0].id && (
+                                <View style={styles.activeIndicator} />
+                            )}
+                        </Animated.View>
+                    </View>
+                )}
+
+                {/* MULTIPLAYER: Opponent A */}
+                {!isSoloMode && opponents[0] && (
+                    <View style={[styles.topLeftArea, { top: Math.max(insets.top + 60, 90), left: Math.max(insets.left + 20, 20) }]}>
+                        <PlayerAvatar
+                            key={`${opponents[0].id}-${gameState.currentPlayerId}`}
+                            player={opponents[0]}
+                            isActive={gameState.currentPlayerId === opponents[0].id}
+                            showTimer={gameState.currentPlayerId === opponents[0].id && !isGameOver && gameState.phase === 'PLAYING'}
+                            timerDuration={TURN_DURATION_SECONDS}
+                            size={52}
+                            layout="horizontal"
+                            position="top-left"
+                            onTimeout={() => handleTimeout(opponents[0].id)}
+                        />
+                    </View>
+                )}
+
+                {/* MULTIPLAYER: Opponent B */}
+                {!isSoloMode && opponents[1] && (
                     <View style={[styles.topRightCorner, { top: Math.max(insets.top + 10, 40), right: Math.max(insets.right + 20, 20) }]}>
                         <PlayerAvatar
-                            key={`${opponents[1].id}-${gameState.currentPlayerId}-${gameState.phase}`}
+                            key={`${opponents[1].id}-${gameState.currentPlayerId}`}
                             player={opponents[1]}
                             isActive={gameState.currentPlayerId === opponents[1].id}
                             showTimer={gameState.currentPlayerId === opponents[1].id && !isGameOver && gameState.phase === 'PLAYING'}
                             timerDuration={TURN_DURATION_SECONDS}
                             size={52}
+                            layout="horizontal"
                             position="top-right"
                             onTimeout={() => handleTimeout(opponents[1].id)}
                         />
                     </View>
                 )}
 
-                {/* Pass Button Area - Floating above hand */}
+                {/* Pass Button Area - HIGH Z-INDEX */}
                 {isMyTurn && !canPlayAny && gameState.phase === 'PLAYING' && (
-                    <View style={[styles.passContainer, { bottom: 120 + insets.bottom }]}>
+                    <View style={[styles.passContainer, { bottom: 100 + insets.bottom, zIndex: 100 }]}>
                         <TouchableOpacity style={styles.passButton} onPress={handlePassTurn}>
                             <Text style={styles.passButtonText}>Passer son tour</Text>
                         </TouchableOpacity>
                     </View>
                 )}
+
+                {/* BOTTOM LEFT: Local Player (Me) - Casino Style */}
+                {localPlayer && (
+                    <View style={[styles.bottomLeftArea, { bottom: 20 + insets.bottom, left: 20 + insets.left }]}>
+                        <Animated.View style={[styles.playerCardMe, isMyTurn && animatedBorderStyle]}>
+                            <View style={styles.avatarCircleBottom}>
+                                <Text style={styles.avatarEmoji}>{localPlayer.avatarId || localPlayer.name[0]}</Text>
+                            </View>
+                            <View style={styles.playerInfoMe}>
+                                <Text style={styles.playerNameMe}>{localPlayer.name}</Text>
+                                <Text style={styles.playerScoreMe}>{localPlayer.hand.length}/7</Text>
+                            </View>
+                            {isMyTurn && (
+                                <View style={styles.activeIndicatorMe} />
+                            )}
+                        </Animated.View>
+                    </View>
+                )}
+
+                {/* BOTTOM RIGHT: Timer Display - Circular like avatars */}
+                {isMyTurn && !isGameOver && gameState.phase === 'PLAYING' && timeLeft !== null && (
+                    <View style={[styles.timerContainer, { bottom: 20 + insets.bottom, right: 20 + insets.right }]}>
+                        <View style={styles.timerCircle}>
+                            <Text style={styles.timerText}>{timeLeft}</Text>
+                        </View>
+                    </View>
+                )}
             </View>
 
-            {/* Player Hand */}
-            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom }}>
+            {/* Player Hand - HIGH Z-INDEX */}
+            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom, zIndex: 50 }}>
                 {localPlayer && (
                     <PlayerHand
-                        key={`${localPlayer.id}-${gameState.currentPlayerId}-${gameState.phase}`}
-                        player={localPlayer}
+                        hand={localPlayer.hand}
                         onPlayDomino={handlePlayDomino}
                         disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING'}
-                        isActive={isMyTurn}
-                        showTimer={isMyTurn && !isGameOver && gameState.phase === 'PLAYING'}
-                        timerDuration={TURN_DURATION_SECONDS}
-                        onTimeout={() => handleTimeout(localPlayer.id)}
                     />
                 )}
             </View>
@@ -673,7 +835,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1a1a1a',
     },
     loading: {
         flex: 1,
@@ -689,18 +850,134 @@ const styles = StyleSheet.create({
     uiLayer: {
         ...StyleSheet.absoluteFillObject,
     },
-    topLeftCorner: {
+    topCenterArea: {
         position: 'absolute',
+        alignSelf: 'center',
+        zIndex: 10,
+    },
+    botAvatarAbsolute: {
+        position: 'absolute',
+        zIndex: 20, // Above table and other elements
+    },
+    playerCard: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        borderRadius: 12,
+        padding: 10,
+    },
+    avatarCircleTop: {
+        width: 55,
+        height: 55,
+        borderRadius: 30,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: '#FFD700',
+        marginBottom: 6,
+    },
+    avatarEmoji: {
+        fontSize: 28,
+    },
+    playerInfo: {
+        alignItems: 'center',
+    },
+    playerNameTop: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: 'bold',
+    },
+    playerScore: {
+        color: '#FFD700',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    activeIndicator: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#4CAF50',
+        borderWidth: 2,
+        borderColor: '#FFF',
+    },
+    playerCardMe: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: 30,
+        paddingRight: 15,
+        paddingVertical: 5,
+        gap: 10,
+    },
+    avatarCircleBottom: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: '#FFD700',
+    },
+    playerInfoMe: {
         alignItems: 'flex-start',
+    },
+    playerNameMe: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    playerScoreMe: {
+        color: '#FFD700',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    activeIndicatorMe: {
+        position: 'absolute',
+        top: 2,
+        right: 2,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#4CAF50',
+        borderWidth: 2,
+        borderColor: '#FFF',
+    },
+    timerContainer: {
+        position: 'absolute',
+        zIndex: 15,
+    },
+    timerCircle: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: '#FFD700',
+    },
+    timerText: {
+        color: '#000',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    topLeftArea: {
+        position: 'absolute',
     },
     topRightCorner: {
         position: 'absolute',
+    },
+    bottomLeftArea: {
+        position: 'absolute',
+        zIndex: 10,
     },
     settingsButton: {
         padding: 8,
         backgroundColor: 'rgba(0,0,0,0.5)',
         borderRadius: 20,
-        marginBottom: 8,
     },
     opponentAvatar: {
         marginTop: 0,

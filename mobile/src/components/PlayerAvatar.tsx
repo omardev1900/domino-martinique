@@ -11,7 +11,8 @@ interface PlayerAvatarProps {
     timerDuration?: number;
     timerProgress?: number; // 0-1
     size?: number;
-    position?: 'top-left' | 'top-right' | 'bottom';
+    position?: 'top-left' | 'top-right' | 'bottom' | 'top-center';
+    layout?: 'vertical' | 'horizontal';
     onTimeout?: () => void; // Callback when timer expires
 }
 
@@ -25,6 +26,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     timerProgress = 1,
     size = 60,
     position = 'bottom',
+    layout = 'vertical',
     onTimeout
 }) => {
     const strokeWidth = 4;
@@ -63,11 +65,10 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
         }
     }, [showTimer, isActive, timerDuration]);
 
-    // Timeout Trigger Effect (Side Effect Separated from Render)
+    // Timeout Trigger Effect
     useEffect(() => {
         if (showTimer && isActive && secondsLeft === 0) {
             if (onTimeout) {
-                console.log('Timer expired - triggering onTimeout');
                 onTimeout();
             }
         }
@@ -77,18 +78,10 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
         strokeDashoffset: circumference * (1 - animatedProgress.value),
     }));
 
-    // Determine if name should be above or below
-    const nameAbove = position === 'bottom';
+    const isHorizontal = layout === 'horizontal';
 
     return (
-        <View style={styles.container}>
-            {/* Player Name Above (for main player) */}
-            {nameAbove && (
-                <Text style={[styles.playerName, styles.nameAbove]} numberOfLines={1}>
-                    {player.name}
-                </Text>
-            )}
-
+        <View style={[styles.container, isHorizontal && styles.containerHorizontal]}>
             <View style={{ width: size + 12, height: size + 12, alignItems: 'center', justifyContent: 'center' }}>
                 {/* Avatar Circle */}
                 <View
@@ -104,7 +97,6 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         isActive && styles.activeGlow,
                     ]}
                 >
-                    {/* Show countdown number when timer is active, otherwise show avatar */}
                     {showTimer && isActive ? (
                         <Text style={[styles.countdown, { fontSize: size / 2.2 }]}>
                             {secondsLeft}
@@ -123,7 +115,6 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         height={size + 12}
                         style={styles.timerSvg}
                     >
-                        {/* Background circle */}
                         <Circle
                             cx={(size + 12) / 2}
                             cy={(size + 12) / 2}
@@ -132,7 +123,6 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             strokeWidth={strokeWidth}
                             fill="none"
                         />
-                        {/* Animated progress circle */}
                         <AnimatedCircle
                             cx={(size + 12) / 2}
                             cy={(size + 12) / 2}
@@ -151,12 +141,17 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                 )}
             </View>
 
-            {/* Player Name Below (for opponents) */}
-            {!nameAbove && (
-                <Text style={[styles.playerName, styles.nameBelow]} numberOfLines={1}>
+            <View style={isHorizontal ? styles.nameContainerHorizontal : styles.nameContainerVertical}>
+                <Text
+                    style={[
+                        styles.playerName,
+                        isHorizontal ? styles.nameHorizontal : styles.nameVertical
+                    ]}
+                    numberOfLines={1}
+                >
                     {player.name}
                 </Text>
-            )}
+            </View>
         </View>
     );
 };
@@ -165,6 +160,13 @@ const styles = StyleSheet.create({
     container: {
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    containerHorizontal: {
+        flexDirection: 'row',
+        backgroundColor: 'transparent',
+        paddingRight: 0,
+        borderRadius: 40,
+        height: 70,
     },
     avatar: {
         backgroundColor: 'rgba(50,50,50,0.9)',
@@ -190,17 +192,24 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
     },
+    nameContainerVertical: {
+        marginTop: 6,
+    },
+    nameContainerHorizontal: {
+        marginLeft: 4,
+    },
     playerName: {
         color: '#FFFFFF',
         fontSize: 12,
-        fontWeight: '600',
-        maxWidth: 100,
+        fontWeight: 'bold',
         textAlign: 'center',
     },
-    nameAbove: {
-        marginBottom: 6,
+    nameHorizontal: {
+        fontSize: 14,
+        textAlign: 'left',
+        minWidth: 80,
     },
-    nameBelow: {
-        marginTop: 6,
+    nameVertical: {
+        maxWidth: 80,
     },
 });

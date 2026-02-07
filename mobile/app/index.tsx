@@ -15,10 +15,20 @@ import Animated, {
 export default function SplashScreen() {
     const router = useRouter();
     const [countdown, setCountdown] = useState(3);
+    const [isMounted, setIsMounted] = useState(false);
     const scale = useSharedValue(0.3);
     const opacity = useSharedValue(0);
 
+    // Mark component as mounted
     useEffect(() => {
+        setIsMounted(true);
+        return () => setIsMounted(false);
+    }, []);
+
+    useEffect(() => {
+        // Wait for component to be mounted before any navigation
+        if (!isMounted) return;
+
         // Animate logo entrance
         scale.value = withSpring(1, { damping: 10 });
         opacity.value = withSequence(
@@ -48,6 +58,9 @@ export default function SplashScreen() {
                     new Promise(resolve => setTimeout(resolve, 3000))
                 ]);
 
+                // Double-check component is still mounted before navigating
+                if (!isMounted) return;
+
                 if (!user) {
                     router.replace('/login');
                     return;
@@ -62,6 +75,8 @@ export default function SplashScreen() {
                         findActiveRoomForUser(user.uid),
                         new Promise<null>(resolve => setTimeout(() => resolve(null), 3000))
                     ]);
+
+                    if (!isMounted) return; // Check again before showing alert
 
                     if (activeRoomId) {
                         Alert.alert(
@@ -86,11 +101,15 @@ export default function SplashScreen() {
                 }
 
                 // Proceed to home if no active room or check failed/timed out
-                router.replace('/home');
+                if (isMounted) {
+                    router.replace('/home');
+                }
 
             } catch (e) {
                 console.error("Critical Splash Error", e);
-                router.replace('/login');
+                if (isMounted) {
+                    router.replace('/login');
+                }
             }
         };
 
@@ -99,7 +118,7 @@ export default function SplashScreen() {
         return () => {
             clearInterval(countdownInterval);
         };
-    }, []);
+    }, [isMounted]);
 
     const logoStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
