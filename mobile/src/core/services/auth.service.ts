@@ -113,6 +113,7 @@ class AuthService {
 
     /**
      * Get current logged in user
+     * Waits for Firebase Auth to initialize before checking
      */
     async getCurrentUser(): Promise<PlayerProfile | null> {
         if (this.currentUser) return this.currentUser;
@@ -122,9 +123,23 @@ class AuthService {
             const isSessionActive = await AsyncStorage.getItem(STORAGE_KEY_SESSION);
 
             if (isSessionActive === 'true') {
-                // Priority 1: Check Firebase Auth state (Async)
-                if (auth.currentUser) {
-                    this.currentUser = this.mapFirebaseUserToProfile(auth.currentUser);
+                // Wait for Firebase Auth to initialize (important for persistence)
+                console.log('🔄 Waiting for Firebase Auth to initialize...');
+                const firebaseUser = await new Promise<User | null>((resolve) => {
+                    const unsubscribe = auth.onAuthStateChanged((user) => {
+                        unsubscribe(); // Unsubscribe immediately after first call
+                        if (user) {
+                            console.log(`🔥 Firebase Auth restored session for: ${user.uid}`);
+                        } else {
+                            console.log('🔥 Firebase Auth: No persisted session found');
+                        }
+                        resolve(user);
+                    });
+                });
+
+                // Priority 1: Check Firebase Auth state
+                if (firebaseUser) {
+                    this.currentUser = this.mapFirebaseUserToProfile(firebaseUser);
                     return this.currentUser;
                 }
 

@@ -18,14 +18,19 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
     const hasAutoStarted = useRef(false);
 
     // AUTO-START: Lancer automatiquement la partie dès que 3 joueurs sont présents
+    // LOGIQUE DE FALLBACK:
+    // - L'hôte (position 0) démarre après 2 secondes
+    // - Les autres joueurs démarrent après 5 secondes (fallback si l'hôte est absent/déconnecté)
     useEffect(() => {
-        if (!canStart || !isHost || hasAutoStarted.current) {
+        if (!canStart || hasAutoStarted.current) {
             return;
         }
 
-        console.log('🎮 3 joueurs détectés - Démarrage automatique dans 2 secondes...');
+        const delay = isHost ? 2000 : 5000; // 2s pour l'hôte, 5s pour les autres
 
-        // Démarrer le compte à rebours visuel
+        console.log(`🎮 3 joueurs détectés - Démarrage ${isHost ? 'prioritaire (hôte)' : 'fallback'} dans ${delay / 1000}s...`);
+
+        // Démarrer le compte à rebours visuel (toujours 2s pour l'affichage)
         setAutoStartCountdown(2);
 
         const countdownInterval = setInterval(() => {
@@ -38,14 +43,14 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
             });
         }, 1000);
 
-        // Lancer la partie après 2 secondes
+        // Lancer la partie après le délai approprié
         const autoStartTimer = setTimeout(() => {
             if (roomData.players.length === 3 && !hasAutoStarted.current) {
                 hasAutoStarted.current = true;
-                console.log('🚀 Lancement automatique de la partie !');
+                console.log(`🚀 Lancement automatique ${isHost ? 'par l\'hôte' : 'par fallback'} !`);
                 onStartGame();
             }
-        }, 2000);
+        }, delay);
 
         return () => {
             clearTimeout(autoStartTimer);

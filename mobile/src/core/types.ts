@@ -71,6 +71,7 @@ export interface PlayerProfile {
 export interface GameRoom {
     roomId: string;
     createdAt: number;
+    lastActivity: number; // Timestamp of last activity for cleanup
     status: RoomStatus;
     players: PlayerProfile[]; // Liste des joueurs connectés (max 3)
     gameState: GameState | null; // État complet de la partie une fois lancée

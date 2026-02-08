@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { authService } from '../src/core/services/auth.service';
@@ -50,46 +50,58 @@ export default function SplashScreen() {
                 if (!isMounted) return;
 
                 if (!user) {
+                    console.log('❌ No user found - redirecting to login');
                     router.replace('/login');
                     return;
                 }
 
+                console.log(`✅ User authenticated: ${user.uid}`);
+
                 // Check active room with timeout
                 try {
+                    console.log('🔍 Checking for active room...');
                     const { findActiveRoomForUser } = require('../src/core/services/firebase');
 
                     // Race between check and 3s timeout
                     const activeRoomId = await Promise.race([
                         findActiveRoomForUser(user.uid),
-                        new Promise<null>(resolve => setTimeout(() => resolve(null), 3000))
+                        new Promise<null>(resolve => setTimeout(() => {
+                            console.log('⏱️ Active room check timed out after 3s');
+                            resolve(null);
+                        }, 3000))
                     ]);
 
                     if (!isMounted) return; // Check again before showing alert
 
                     if (activeRoomId) {
-                        Alert.alert(
-                            "Partie en cours",
-                            "Une partie est en cours. Voulez-vous la reprendre ?",
-                            [
-                                {
-                                    text: "Non",
-                                    onPress: () => router.replace('/home'),
-                                    style: "cancel"
-                                },
-                                {
-                                    text: "Oui, reprendre",
-                                    onPress: () => router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } })
-                                }
-                            ]
-                        );
+                        console.log(`✅ Active room found: ${activeRoomId} - showing reconnection alert`);
+
+                        // Small delay to ensure DOM is ready
+                        setTimeout(() => {
+                            // Use window.confirm for web compatibility
+                            const shouldReconnect = window.confirm(
+                                "🎮 Reconnexion\n\nVous avez une partie en cours. Voulez-vous la reprendre ?"
+                            );
+
+                            if (shouldReconnect) {
+                                console.log(`User accepted reconnection to room: ${activeRoomId}`);
+                                router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } });
+                            } else {
+                                console.log('User declined reconnection');
+                                router.replace('/home');
+                            }
+                        }, 100);
                         return;
+                    } else {
+                        console.log('❌ No active room found - proceeding to home');
                     }
                 } catch (e) {
-                    console.error("Rejoin check failed", e);
+                    console.error("❌ Rejoin check failed:", e);
                 }
 
                 // Proceed to home if no active room or check failed/timed out
                 if (isMounted) {
+                    console.log('➡️ Navigating to home screen');
                     router.replace('/home');
                 }
 

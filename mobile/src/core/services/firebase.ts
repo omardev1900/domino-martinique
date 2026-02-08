@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import {
     getFirestore,
     collection,
@@ -38,6 +38,12 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
+// Configure Firebase Auth persistence for web
+// This ensures the user session persists across browser sessions
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error('Failed to set Firebase Auth persistence:', error);
+});
+
 // Collection References
 const ROOMS_COLLECTION = 'rooms';
 
@@ -48,8 +54,10 @@ const ROOMS_COLLECTION = 'rooms';
  */
 export const createRoom = async (hostProfile: PlayerProfile, isPrivate: boolean = false, roomName?: string, passcode?: string): Promise<string> => {
     try {
+        const now = Date.now();
         const roomData: Omit<GameRoom, 'roomId'> = {
-            createdAt: Date.now(),
+            createdAt: now,
+            lastActivity: now, // Track last activity for cleanup
             status: RoomStatus.WAITING,
             players: [{ ...hostProfile, isHost: true }], // Force Host flag
             gameState: null,
@@ -93,39 +101,48 @@ export const joinRoom = async (roomId: string, playerProfile: PlayerProfile): Pr
 
         const roomData = roomSnap.data() as GameRoom;
 
-        // Check if player is already in room
+        // PRIORITY 1: Check if player is already in room (reconnection)
         const isAlreadyIn = roomData.players.some(p => p.uid === playerProfile.uid);
         if (isAlreadyIn) {
-            console.log("Player already in room - reconnecting");
-            return;
-        }
-
-        // Check if player was in the game but left (reconnection scenario)
-        const wasInGame = roomData.gameState?.players.some(p => p.id === playerProfile.uid);
-        if (wasInGame) {
-            console.log("Player reconnecting to ongoing game");
+            console.log("✅ Player already in room - reconnecting");
+            // Update lastActivity to keep room alive
             await updateDoc(roomRef, {
-                players: arrayUnion(playerProfile)
+                lastActivity: Date.now()
             });
             return;
         }
 
-        // New player joining - check status
+        // PRIORITY 2: Check if player was in the game but disconnected (reconnection scenario)
+        const wasInGame = roomData.gameState?.players.some(p => p.id === playerProfile.uid);
+        if (wasInGame) {
+            console.log("✅ Player reconnecting to ongoing game (was disconnected)");
+            // Re-add player to the room's player list
+            const cleanPlayerProfile = JSON.parse(JSON.stringify(playerProfile));
+            await updateDoc(roomRef, {
+                players: arrayUnion(cleanPlayerProfile),
+                lastActivity: Date.now()
+            });
+            return;
+        }
+
+        // PRIORITY 3: New player joining - check status
         if (roomData.status !== RoomStatus.WAITING) {
             throw new Error("Impossible de rejoindre : La partie a déjà commencé.");
         }
 
+        // PRIORITY 4: New player joining - check capacity
         if (roomData.players.length >= 3) {
             throw new Error("Impossible de rejoindre : La table est complète.");
         }
 
-        // SAFETY: Remove undefined fields from player profile before adding to array
+        // PRIORITY 5: Add new player
         const cleanPlayerProfile = JSON.parse(JSON.stringify({ ...playerProfile, isHost: false }));
 
         await updateDoc(roomRef, {
-            players: arrayUnion(cleanPlayerProfile)
+            players: arrayUnion(cleanPlayerProfile),
+            lastActivity: Date.now() // Update activity timestamp
         });
-        console.log(`Player ${playerProfile.uid} joined room ${roomId}`);
+        console.log(`✅ Player ${playerProfile.uid} joined room ${roomId}`);
 
     } catch (e) {
         console.error("Error joining room: ", e);
@@ -266,6 +283,8 @@ export const subscribeToRoom = (
  */
 export const findActiveRoomForUser = async (userId: string): Promise<string | null> => {
     try {
+        console.log(`🔍 Searching for active room for user: ${userId}`);
+
         // Query for rooms that are PLAYING
         // Note: Array-contains on objects requires exact match.
         // Since we store full profiles, array-contains is tricky if profile changed slightly (e.g. wins update).
@@ -279,19 +298,24 @@ export const findActiveRoomForUser = async (userId: string): Promise<string | nu
         );
 
         const snapshot = await getDocs(q);
+        console.log(`🔍 Found ${snapshot.docs.length} PLAYING rooms to check`);
 
         for (const doc of snapshot.docs) {
             const data = doc.data() as GameRoom;
-            // Check if user is in players list OR game state players
-            const isInList = data.players.some(p => p.uid === userId);
 
-            // Also check gameState because sometimes players list might be stale if logic differs, 
-            // but for rejoin, we care about the persistent room data.
-            if (isInList) {
+            // Check if user is in players list (currently connected)
+            const isInPlayersList = data.players.some(p => p.uid === userId);
+
+            // Check if user is in gameState players (was in game, might be disconnected)
+            const isInGameState = data.gameState?.players.some(p => p.id === userId);
+
+            if (isInPlayersList || isInGameState) {
+                console.log(`✅ Found active room for user ${userId}: ${doc.id} (inPlayersList: ${isInPlayersList}, inGameState: ${isInGameState})`);
                 return doc.id;
             }
         }
 
+        console.log(`❌ No active room found for user: ${userId}`);
         return null;
     } catch (e) {
         console.error("Error finding active room:", e);
@@ -338,8 +362,19 @@ export const listenToPublicRooms = (
 
     return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
         const rooms: GameRoom[] = [];
+        const now = Date.now();
+        const FIVE_MINUTES = 5 * 60 * 1000; // 5 minutes in milliseconds
+
         snapshot.forEach((doc: any) => {
-            rooms.push({ ...doc.data() } as GameRoom);
+            const roomData = { ...doc.data() } as GameRoom;
+
+            // Filter out abandoned rooms (inactive for more than 5 minutes)
+            const timeSinceActivity = now - (roomData.lastActivity || roomData.createdAt);
+            if (timeSinceActivity < FIVE_MINUTES) {
+                rooms.push(roomData);
+            } else {
+                console.log(`🧹 Filtering out abandoned room: ${roomData.roomId} (inactive for ${Math.round(timeSinceActivity / 60000)} minutes)`);
+            }
         });
 
         // Client-side sort to avoid index issues for now

@@ -69,7 +69,43 @@ export default function LoginScreen() {
         }
         setIsLoading(true);
         try {
-            await authService.signIn(email, password);
+            const user = await authService.signIn(email, password);
+            console.log(`✅ User signed in: ${user?.uid}`);
+
+            // Check for active room after successful login
+            if (user) {
+                try {
+                    console.log('🔍 Checking for active room after login...');
+                    const { findActiveRoomForUser } = require('../src/core/services/firebase');
+                    const activeRoomId = await findActiveRoomForUser(user.uid);
+
+                    if (activeRoomId) {
+                        console.log(`✅ Active room found: ${activeRoomId} - showing reconnection alert`);
+
+                        // Small delay to ensure DOM is ready
+                        setTimeout(() => {
+                            // Use window.confirm for web compatibility
+                            const shouldReconnect = window.confirm(
+                                "🎮 Reconnexion\n\nVous avez une partie en cours. Voulez-vous la reprendre ?"
+                            );
+
+                            if (shouldReconnect) {
+                                console.log(`User accepted reconnection to room: ${activeRoomId}`);
+                                router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } });
+                            } else {
+                                console.log('User declined reconnection');
+                                router.replace('/home');
+                            }
+                        }, 100);
+                        return;
+                    } else {
+                        console.log('❌ No active room found - proceeding to home');
+                    }
+                } catch (e) {
+                    console.error("❌ Rejoin check failed:", e);
+                }
+            }
+
             router.replace('/home');
         } catch (error: any) {
             console.error(error);
