@@ -14,7 +14,6 @@ import Animated, {
 
 export default function SplashScreen() {
     const router = useRouter();
-    const [countdown, setCountdown] = useState(3);
     const [isMounted, setIsMounted] = useState(false);
     const scale = useSharedValue(0.3);
     const opacity = useSharedValue(0);
@@ -34,17 +33,6 @@ export default function SplashScreen() {
         opacity.value = withSequence(
             withDelay(200, withSpring(1)),
         );
-
-        // Countdown timer
-        const countdownInterval = setInterval(() => {
-            setCountdown(prev => {
-                if (prev <= 1) {
-                    clearInterval(countdownInterval);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
 
         // Improved logic for safety based on user request ("Timeout de sécurité")
         const checkAuthSafe = async () => {
@@ -114,10 +102,6 @@ export default function SplashScreen() {
         };
 
         checkAuthSafe();
-
-        return () => {
-            clearInterval(countdownInterval);
-        };
     }, [isMounted]);
 
     const logoStyle = useAnimatedStyle(() => ({
@@ -139,7 +123,6 @@ export default function SplashScreen() {
                 {/* Loading Indicator */}
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#FFD700" />
-                    <Text style={styles.loadingText}>{countdown}s</Text>
                 </View>
             </Animated.View>
         </LinearGradient>
@@ -186,10 +169,5 @@ const styles = StyleSheet.create({
         marginTop: 40,
         alignItems: 'center',
         gap: 12,
-    },
-    loadingText: {
-        fontSize: 18,
-        color: 'rgba(255,255,255,0.7)',
-        fontWeight: '600',
     },
 });
