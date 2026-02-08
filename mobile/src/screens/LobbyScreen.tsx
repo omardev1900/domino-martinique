@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { GameRoom } from '../core/types';
 import { FadeIn, FadeInUp } from 'react-native-reanimated';
@@ -14,6 +14,44 @@ interface LobbyScreenProps {
 export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserId, onStartGame }) => {
     const isHost = roomData.players[0]?.uid === currentUserId;
     const canStart = roomData.players.length === 3;
+    const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(null);
+    const hasAutoStarted = useRef(false);
+
+    // AUTO-START: Lancer automatiquement la partie dès que 3 joueurs sont présents
+    useEffect(() => {
+        if (!canStart || !isHost || hasAutoStarted.current) {
+            return;
+        }
+
+        console.log('🎮 3 joueurs détectés - Démarrage automatique dans 2 secondes...');
+
+        // Démarrer le compte à rebours visuel
+        setAutoStartCountdown(2);
+
+        const countdownInterval = setInterval(() => {
+            setAutoStartCountdown(prev => {
+                if (prev === null || prev <= 1) {
+                    clearInterval(countdownInterval);
+                    return null;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        // Lancer la partie après 2 secondes
+        const autoStartTimer = setTimeout(() => {
+            if (roomData.players.length === 3 && !hasAutoStarted.current) {
+                hasAutoStarted.current = true;
+                console.log('🚀 Lancement automatique de la partie !');
+                onStartGame();
+            }
+        }, 2000);
+
+        return () => {
+            clearTimeout(autoStartTimer);
+            clearInterval(countdownInterval);
+        };
+    }, [canStart, isHost, roomData.players.length, onStartGame]);
 
     // Create array of 3 slots with player data
     const slots = Array.from({ length: 3 }, (_, index) => {
@@ -98,7 +136,12 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                     <>
                         <TouchableOpacity
                             style={[styles.actionButton, !canStart && styles.actionButtonDisabled]}
-                            onPress={onStartGame}
+                            onPress={() => {
+                                if (canStart && !hasAutoStarted.current) {
+                                    hasAutoStarted.current = true;
+                                    onStartGame();
+                                }
+                            }}
                             disabled={!canStart}
                             activeOpacity={0.8}
                         >
@@ -107,14 +150,27 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                 style={styles.buttonGradient}
                             >
                                 <Text style={styles.actionButtonText}>
-                                    {canStart ? 'JOUER' : `ATTENDRE ${3 - roomData.players.length} PLUS`}
+                                    {autoStartCountdown !== null
+                                        ? `DÉMARRAGE DANS ${autoStartCountdown}...`
+                                        : canStart
+                                            ? 'JOUER'
+                                            : `ATTENDRE ${3 - roomData.players.length} PLUS`}
                                 </Text>
                             </LinearGradient>
                         </TouchableOpacity>
+                        {autoStartCountdown !== null && (
+                            <Text style={styles.autoStartHint}>
+                                Appuyez pour démarrer immédiatement
+                            </Text>
+                        )}
                     </>
                 ) : (
                     <View style={styles.waitingContainer}>
-                        <Text style={styles.waitingText}>En attente du hote...</Text>
+                        <Text style={styles.waitingText}>
+                            {autoStartCountdown !== null
+                                ? `Démarrage dans ${autoStartCountdown}...`
+                                : 'En attente du hote...'}
+                        </Text>
                     </View>
                 )}
             </Animated.View>
@@ -272,5 +328,12 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: 'rgba(255,255,255,0.7)',
         fontStyle: 'italic',
+    },
+    autoStartHint: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.6)',
+        fontStyle: 'italic',
+        marginTop: 12,
+        textAlign: 'center',
     },
 });
