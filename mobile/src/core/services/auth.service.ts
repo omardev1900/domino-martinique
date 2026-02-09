@@ -92,6 +92,7 @@ class AuthService {
         return {
             uid: user.uid,
             displayName: user.displayName || user.email?.split('@')[0] || 'Joueur',
+            email: user.email || undefined,
             avatarUrl: user.photoURL || undefined,
             avatarId: user.photoURL || undefined, // Sync avatarId with photoURL (Emoji)
             gamesPlayed: 0,

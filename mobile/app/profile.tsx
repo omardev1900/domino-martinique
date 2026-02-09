@@ -37,6 +37,7 @@ export default function ProfileScreen() {
 
     const [user, setUser] = useState<PlayerProfile | null>(null);
     const [displayName, setDisplayName] = useState('');
+    const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
     const [selectedAvatar, setSelectedAvatar] = useState<string | undefined>(undefined);
     const [selectedTheme, setSelectedTheme] = useState<TableTheme>('classic');
     const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +51,13 @@ export default function ProfileScreen() {
         if (currentUser) {
             setUser(currentUser);
             setDisplayName(currentUser.displayName || '');
+
+            // Try to get email from current user profile
+            // We'll use a safer check for email if it's available in the profile or auth
+            if (currentUser.email) {
+                setUserEmail(currentUser.email);
+            }
+
             // Force avatar to image avatar if current is emoji or invalid
             const currentAvatar = currentUser.avatarUrl;
             if (currentAvatar && AVAILABLE_AVATARS.includes(currentAvatar as AvatarId)) {
@@ -149,6 +157,9 @@ export default function ProfileScreen() {
     const renderFormControls = () => (
         <View style={[styles.formSection, isLandscape && styles.formSectionLandscape]}>
             <View style={styles.section}>
+                {userEmail && (
+                    <Text style={styles.emailText}>{userEmail}</Text>
+                )}
                 <TextInput
                     style={styles.input}
                     value={displayName}
@@ -308,7 +319,14 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.15)',
         textAlign: 'center',
-        marginTop: 10,
+        marginTop: 5,
+    },
+    emailText: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 13,
+        textAlign: 'center',
+        marginBottom: 5,
+        fontStyle: 'italic',
     },
     avatarGrid: {
         flexDirection: 'row',
@@ -359,7 +377,15 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     selectedThemeOption: {
-        opacity: 1,
+        borderColor: '#FFFFFF',
+        borderWidth: 2,
+        borderRadius: 14,
+        padding: 2,
+        shadowColor: '#FFFFFF',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 10,
+        elevation: 8,
     },
     themePreview: {
         width: 70,

@@ -1,5 +1,13 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import {
+    initializeAuth,
+    // @ts-ignore
+    getReactNativePersistence,
+    browserLocalPersistence,
+    getAuth
+} from 'firebase/auth';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     getFirestore,
     collection,
@@ -36,13 +44,25 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
-export const auth = getAuth(app);
 
-// Configure Firebase Auth persistence for web
-// This ensures the user session persists across browser sessions
-setPersistence(auth, browserLocalPersistence).catch((error) => {
-    console.error('Failed to set Firebase Auth persistence:', error);
-});
+// Initialize Auth with cross-platform persistence
+let authInstance;
+try {
+    if (Platform.OS === 'web') {
+        authInstance = initializeAuth(app, {
+            persistence: browserLocalPersistence
+        });
+    } else {
+        authInstance = initializeAuth(app, {
+            persistence: getReactNativePersistence(AsyncStorage)
+        });
+    }
+} catch (error) {
+    // If already initialized, use getAuth()
+    authInstance = getAuth(app);
+}
+
+export const auth = authInstance;
 
 // Collection References
 const ROOMS_COLLECTION = 'rooms';

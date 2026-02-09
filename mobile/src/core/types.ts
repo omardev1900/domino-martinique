@@ -61,6 +61,7 @@ export enum RoomStatus {
 export interface PlayerProfile {
     uid: string;
     displayName: string;
+    email?: string; // NEW
     avatarUrl?: string; // Legacy?
     avatarId?: string; // NEW
     isHost?: boolean; // NEW: Identify host in player list
