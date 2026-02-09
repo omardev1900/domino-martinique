@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight } from 'react-native-reanimated';
 import { useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GameTable } from '../components/GameTable';
+import { GameTable } from '../../components/game/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
 import { LobbyScreen } from './LobbyScreen';
@@ -19,6 +19,8 @@ import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
 import { TURN_DURATION_SECONDS } from '../core/constants';
 import * as Clipboard from 'expo-clipboard';
+import SettingsManager from '../core/SettingsManager';
+import { TableTheme } from '../core/themes/tableThemes';
 
 interface GameScreenProps {
     gameId?: string;
@@ -39,6 +41,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     const [showRoomInfo, setShowRoomInfo] = useState(false);
     const [isSoloMode] = useState(mode === 'solo');
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
+    const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
 
     // ATOMIC ACTION GUARD - Prevents race conditions
     const isProcessing = useRef(false);
@@ -63,6 +66,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             -1,
             true
         );
+    }, []);
+
+    // Load saved table theme
+    useEffect(() => {
+        const settings = SettingsManager.getSettings();
+        setTableTheme(settings.tableTheme);
     }, []);
 
     const animatedBorderStyle = useAnimatedStyle(() => ({
@@ -751,7 +760,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             )}
 
 
-            <GameTable gameState={gameState} />
+            <GameTable gameState={gameState} theme={tableTheme} />
 
             {/* UI LAYER */}
             <View style={styles.uiLayer} pointerEvents="box-none">

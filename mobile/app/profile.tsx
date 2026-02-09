@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -19,8 +18,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authService } from '../src/core/services/auth.service';
 import { PlayerProfile } from '../src/core/types';
+import SettingsManager from '../src/core/SettingsManager';
+import { TableTheme, TABLE_THEMES } from '../src/core/themes/tableThemes';
 
 const AVATAR_OPTIONS = ['😎', '🤠', '🤖', '👻', '🦊', '🦁', '🐯', '🐼'];
+
+const THEME_OPTIONS: { theme: TableTheme; label: string; icon: string }[] = [
+    { theme: 'classic', label: 'Classique', icon: '🟢' },
+    { theme: 'modern', label: 'Moderne', icon: '🔵' },
+    { theme: 'luxury', label: 'Luxe', icon: '🔴' },
+];
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -31,6 +38,7 @@ export default function ProfileScreen() {
     const [user, setUser] = useState<PlayerProfile | null>(null);
     const [displayName, setDisplayName] = useState('');
     const [selectedAvatar, setSelectedAvatar] = useState<string | undefined>(undefined);
+    const [selectedTheme, setSelectedTheme] = useState<TableTheme>('classic');
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -44,6 +52,10 @@ export default function ProfileScreen() {
             setDisplayName(currentUser.displayName || '');
             setSelectedAvatar(currentUser.avatarUrl);
         }
+
+        // Load current theme
+        const settings = SettingsManager.getSettings();
+        setSelectedTheme(settings.tableTheme);
     };
 
     const handleSave = async () => {
@@ -58,6 +70,10 @@ export default function ProfileScreen() {
                 displayName: displayName.trim(),
                 photoURL: selectedAvatar
             });
+
+            // Save theme
+            await SettingsManager.setTableTheme(selectedTheme);
+
             router.back();
         } catch (error) {
             console.error(error);
@@ -82,6 +98,32 @@ export default function ProfileScreen() {
                         <Text style={styles.avatarOptionText}>{emoji}</Text>
                     </TouchableOpacity>
                 ))}
+            </View>
+        </View>
+    );
+
+    const renderThemeSelector = () => (
+        <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Thème de la table</Text>
+            <View style={styles.themeGrid}>
+                {THEME_OPTIONS.map(({ theme, label, icon }) => {
+                    const themeColors = TABLE_THEMES[theme];
+                    return (
+                        <TouchableOpacity
+                            key={theme}
+                            style={[
+                                styles.themeOption,
+                                selectedTheme === theme && styles.selectedThemeOption
+                            ]}
+                            onPress={() => setSelectedTheme(theme)}
+                        >
+                            <View style={[styles.themePreview, { backgroundColor: themeColors.felt, borderColor: themeColors.border }]}>
+                                <Text style={styles.themeIcon}>{icon}</Text>
+                            </View>
+                            <Text style={styles.themeLabel}>{label}</Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
         </View>
     );
@@ -147,6 +189,7 @@ export default function ProfileScreen() {
                             </Text>
                         </View>
                         {renderAvatarGrid()}
+                        {renderThemeSelector()}
                     </View>
 
                     {/* Right/Bottom Part: Nickname & Action */}
@@ -260,6 +303,46 @@ const styles = StyleSheet.create({
     },
     avatarOptionText: {
         fontSize: 24,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    themeGrid: {
+        flexDirection: 'row',
+        gap: 12,
+        justifyContent: 'center',
+    },
+    themeOption: {
+        alignItems: 'center',
+        gap: 8,
+    },
+    selectedThemeOption: {
+        opacity: 1,
+    },
+    themePreview: {
+        width: 70,
+        height: 70,
+        borderRadius: 12,
+        borderWidth: 4,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    themeIcon: {
+        fontSize: 28,
+    },
+    themeLabel: {
+        fontSize: 12,
+        color: '#FFFFFF',
+        fontWeight: '500',
     },
     saveButton: {
         backgroundColor: '#FFD700',

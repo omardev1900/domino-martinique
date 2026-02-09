@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { Domino as DominoType } from '../../src/core/types';
 import { DominoDots } from './DominoDots';
 
@@ -9,6 +10,7 @@ interface DominoProps {
     orientation?: 'vertical' | 'horizontal';
     isReversed?: boolean; // If true, swap top/bottom or left/right visually
     style?: StyleProp<ViewStyle>;
+    animated?: boolean; // Enable animation on mount
 }
 
 export const Domino: React.FC<DominoProps> = ({
@@ -16,12 +18,14 @@ export const Domino: React.FC<DominoProps> = ({
     size = 40,
     orientation = 'vertical',
     isReversed = false,
-    style
+    style,
+    animated = true
 }) => {
     const width = orientation === 'vertical' ? size : size * 2;
     const height = orientation === 'vertical' ? size * 2 : size;
 
     // Calculate values based on reverse flag
+    // When isReversed=true, the domino is physically flipped on the table
     const firstValue = isReversed ? domino.right : domino.left;
     const secondValue = isReversed ? domino.left : domino.right;
 
@@ -30,18 +34,24 @@ export const Domino: React.FC<DominoProps> = ({
     const dotColor = '#1a1a1a'; // Dark, almost black dots
     const borderColor = '#bbb';
 
+    const Container = animated ? Animated.View : View;
+    const animationProps = animated ? { entering: ZoomIn.duration(300).springify() } : {};
+
     return (
-        <View style={[
-            styles.container,
-            {
-                width,
-                height,
-                flexDirection: orientation === 'vertical' ? 'column' : 'row',
-                backgroundColor,
-                borderColor,
-            },
-            style
-        ]}>
+        <Container
+            {...animationProps}
+            style={[
+                styles.container,
+                {
+                    width,
+                    height,
+                    flexDirection: orientation === 'vertical' ? 'column' : 'row',
+                    backgroundColor,
+                    borderColor,
+                },
+                style
+            ]}
+        >
             {/* First Half */}
             <View style={[styles.half, { width: size, height: size }]}>
                 <DominoDots value={firstValue} size={size} color={dotColor} />
@@ -57,7 +67,7 @@ export const Domino: React.FC<DominoProps> = ({
             <View style={[styles.half, { width: size, height: size }]}>
                 <DominoDots value={secondValue} size={size} color={dotColor} />
             </View>
-        </View>
+        </Container>
     );
 };
 

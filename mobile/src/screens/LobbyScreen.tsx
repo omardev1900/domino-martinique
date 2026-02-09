@@ -104,7 +104,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                         <>
                             <View style={[styles.avatar, slot.isCurrentUser && styles.avatarHighlight]}>
                                 <Text style={styles.avatarText}>
-                                    {getInitials(slot.player!.displayName)}
+                                    {slot.player!.avatarId || getInitials(slot.player!.displayName)}
                                 </Text>
                             </View>
                             <Text style={styles.playerName}>

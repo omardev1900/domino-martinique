@@ -102,19 +102,35 @@ export const checkValidMove = (
     leftValue: DominoSide | null,
     rightValue: DominoSide | null
 ): { canPlay: boolean; side?: 'left' | 'right'; isReversed?: boolean } => {
+    console.log(`🔍 checkValidMove: [${domino.left}|${domino.right}] against L=${leftValue} R=${rightValue}`);
+
     // Premier coup de la partie
     if (leftValue === null || rightValue === null) {
+        console.log('  ✅ First move');
         return { canPlay: true, side: 'left', isReversed: false };
     }
 
     // Vérification à gauche
-    if (domino.left === leftValue) return { canPlay: true, side: 'left', isReversed: true };
-    if (domino.right === leftValue) return { canPlay: true, side: 'left', isReversed: false };
+    if (domino.left === leftValue) {
+        console.log(`  ✅ LEFT: domino.left(${domino.left}) === leftValue(${leftValue}) → isReversed=true`);
+        return { canPlay: true, side: 'left', isReversed: true };
+    }
+    if (domino.right === leftValue) {
+        console.log(`  ✅ LEFT: domino.right(${domino.right}) === leftValue(${leftValue}) → isReversed=false`);
+        return { canPlay: true, side: 'left', isReversed: false };
+    }
 
     // Vérification à droite
-    if (domino.left === rightValue) return { canPlay: true, side: 'right', isReversed: false };
-    if (domino.right === rightValue) return { canPlay: true, side: 'right', isReversed: true };
+    if (domino.left === rightValue) {
+        console.log(`  ✅ RIGHT: domino.left(${domino.left}) === rightValue(${rightValue}) → isReversed=false`);
+        return { canPlay: true, side: 'right', isReversed: false };
+    }
+    if (domino.right === rightValue) {
+        console.log(`  ✅ RIGHT: domino.right(${domino.right}) === rightValue(${rightValue}) → isReversed=true`);
+        return { canPlay: true, side: 'right', isReversed: true };
+    }
 
+    console.log('  ❌ Cannot play');
     return { canPlay: false };
 };
 
@@ -302,6 +318,14 @@ export const handleTurn = (
     // 3. Update Table
     const playedDomino = { ...domino };
 
+    console.log('🎲 BEFORE PLAY:', {
+        domino: `[${playedDomino.left}|${playedDomino.right}]`,
+        side,
+        isReversed,
+        currentLeft: newState.table.leftValue,
+        currentRight: newState.table.rightValue
+    });
+
     // Add to table sequence
     newState.table.sequence.push({
         domino: playedDomino,
@@ -316,16 +340,22 @@ export const handleTurn = (
         newState.table.rightValue = playedDomino.right;
     } else {
         if (side === 'left') {
-            // LogicEngine checkValidMove logic recap:
-            // if left matches left -> reversed=true, new exposed is right.
-            // if right matches left -> reversed=false, new exposed is left.
+            // LogicEngine checkValidMove logic:
+            // if domino.left matches leftValue -> isReversed=true, expose domino.right
+            // if domino.right matches leftValue -> isReversed=false, expose domino.left
             newState.table.leftValue = isReversed ? playedDomino.right : playedDomino.left;
         } else {
-            // if left matches right -> reversed=false, new exposed is right.
-            // if right matches right -> reversed=true, new exposed is left.
+            // if domino.left matches rightValue -> isReversed=false, expose domino.right
+            // if domino.right matches rightValue -> isReversed=true, expose domino.left
             newState.table.rightValue = isReversed ? playedDomino.left : playedDomino.right;
         }
     }
+
+    console.log('🎲 AFTER PLAY:', {
+        newLeft: newState.table.leftValue,
+        newRight: newState.table.rightValue,
+        sequenceLength: newState.table.sequence.length
+    });
 
     // 4. Update History & Timestamp
     newState.history.push({

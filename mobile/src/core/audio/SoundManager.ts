@@ -1,4 +1,4 @@
-import { Audio, AudioMode } from 'expo-audio';
+import { Audio } from 'expo-av';
 import SettingsManager from '../SettingsManager';
 
 type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'boude';
@@ -38,9 +38,9 @@ class SoundManager {
         try {
             // Configure Audio behavior (crucial for iOS silent mode)
             await Audio.setAudioModeAsync({
-                allowsRecording: false,
-                playsInSilentMode: true,
-            } as AudioMode);
+                allowsRecordingIOS: false,
+                playsInSilentModeIOS: true,
+            });
 
             // Load sounds
             const soundMap: Record<SoundName, any> = {
@@ -59,7 +59,7 @@ class SoundManager {
 
             for (const [key, source] of Object.entries(soundMap)) {
                 try {
-                    const sound = await Audio.Sound.createAsync(source);
+                    const { sound } = await Audio.Sound.createAsync(source);
                     this.sounds[key as SoundName] = sound;
                     // console.log(`Loaded ${key}`);
                 } catch (e) {
