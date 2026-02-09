@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight } from 'react-native-reanimated';
 import { useNavigation } from 'expo-router';
@@ -21,6 +21,8 @@ import { TURN_DURATION_SECONDS } from '../core/constants';
 import * as Clipboard from 'expo-clipboard';
 import SettingsManager from '../core/SettingsManager';
 import { TableTheme } from '../core/themes/tableThemes';
+import { authService } from '../core/services/auth.service';
+import { AVAILABLE_AVATARS, AvatarId, getAvatarImage } from '../core/avatars';
 
 interface GameScreenProps {
     gameId?: string;
@@ -42,6 +44,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     const [isSoloMode] = useState(mode === 'solo');
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
+
+    // Player profile data for solo mode
+    const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
+    const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
 
     // ATOMIC ACTION GUARD - Prevents race conditions
     const isProcessing = useRef(false);
@@ -68,11 +74,37 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         );
     }, []);
 
-    // Load saved table theme
+    // Load saved table theme and player profile
+    // This must complete BEFORE starting the game
+    const [profileLoaded, setProfileLoaded] = useState(false);
+
     useEffect(() => {
-        const settings = SettingsManager.getSettings();
-        setTableTheme(settings.tableTheme);
-    }, []);
+        const loadSettings = async () => {
+            const settings = SettingsManager.getSettings();
+            setTableTheme(settings.tableTheme);
+
+            // Load player profile for solo mode
+            if (isSoloMode) {
+                try {
+                    const profile = await authService.getCurrentUser();
+                    if (profile) {
+                        setPlayerDisplayName(profile.displayName || 'Moi');
+                        // Validate avatar is a valid image avatar
+                        const avatar = profile.avatarUrl;
+                        if (avatar && AVAILABLE_AVATARS.includes(avatar as AvatarId)) {
+                            setPlayerAvatarId(avatar);
+                        } else {
+                            setPlayerAvatarId('avatar_01');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading profile:', error);
+                }
+            }
+            setProfileLoaded(true);
+        };
+        loadSettings();
+    }, [isSoloMode]);
 
     const animatedBorderStyle = useAnimatedStyle(() => ({
         borderColor: `rgba(255, 215, 0, ${pulseOpacity.value})`,
@@ -166,8 +198,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             SoundManager.playMusic('bgm1', 0.3);
         });
 
-        // Solo mode - start immediately and bypass Firebase checks
+        // Solo mode - wait for profile to load first
         if (isSoloMode) {
+            if (!profileLoaded) {
+                return; // Wait for profile to load
+            }
             setIsStarting(false); // Ensure loading is off
             startSoloGame();
             return;
@@ -191,7 +226,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         return () => {
             unsubscribe();
         };
-    }, [gameId, isSoloMode]);
+    }, [gameId, isSoloMode, profileLoaded]);
 
     // IN-GAME PROTECTION: Prevent accidental exit
     React.useEffect(() => {
@@ -231,7 +266,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     }, [gameState, isStarting, gameId, userId, navigation]);
 
     const startSoloGame = () => {
-        const partialState = dealGameSolo(localPlayerId, 'Me', difficulty || 'beginner');
+        const partialState = dealGameSolo(localPlayerId, playerDisplayName, playerAvatarId, difficulty || 'beginner');
         const players = partialState.players as Player[];
         const firstPlayerId = determineFirstPlayer(players);
 
@@ -772,8 +807,21 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                             styles.playerCard,
                             gameState.currentPlayerId === opponents[0].id && animatedBorderStyle
                         ]}>
-                            <View style={styles.avatarCircleTop}>
-                                <Text style={styles.avatarEmoji}>{opponents[0].avatarId}</Text>
+                            <View style={[styles.avatarCircleTop, { overflow: 'hidden' }]}>
+                                {opponents[0].avatarId && AVAILABLE_AVATARS.includes(opponents[0].avatarId as AvatarId) ? (
+                                    <Image
+                                        source={getAvatarImage(opponents[0].avatarId)}
+                                        style={{
+                                            width: 60 * 1.6,
+                                            height: 60 * 1.6,
+                                            position: 'absolute',
+                                            top: -(60 * 1.6 - 60) * 0.25,
+                                        }}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <Text style={styles.avatarEmoji}>{opponents[0].avatarId || '🤖'}</Text>
+                                )}
                             </View>
                             <View style={styles.playerInfo}>
                                 <Text style={styles.playerNameTop}>{opponents[0].name}</Text>
@@ -844,8 +892,21 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                         style={[styles.bottomLeftArea, { bottom: 20 + insets.bottom, left: 20 + insets.left }]}
                     >
                         <Animated.View style={[styles.playerCardMe, isMyTurn && animatedBorderStyle]}>
-                            <View style={styles.avatarCircleBottom}>
-                                <Text style={styles.avatarEmoji}>{localPlayer.avatarId || localPlayer.name[0]}</Text>
+                            <View style={[styles.avatarCircleBottom, { overflow: 'hidden' }]}>
+                                {localPlayer.avatarId && AVAILABLE_AVATARS.includes(localPlayer.avatarId as AvatarId) ? (
+                                    <Image
+                                        source={getAvatarImage(localPlayer.avatarId)}
+                                        style={{
+                                            width: 50 * 1.6,
+                                            height: 50 * 1.6,
+                                            position: 'absolute',
+                                            top: -(50 * 1.6 - 50) * 0.25,
+                                        }}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <Text style={styles.avatarEmoji}>{localPlayer.name[0]}</Text>
+                                )}
                             </View>
                             <View style={styles.playerInfoMe}>
                                 <Text style={styles.playerNameMe}>{localPlayer.name}</Text>

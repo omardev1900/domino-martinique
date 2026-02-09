@@ -53,7 +53,7 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
 /**
  * Distribution pour Solo Mode : 2 joueurs x 14 dominos (pas de talon mort)
  */
-export const dealGameSolo = (playerId: string, playerName: string, botDifficulty: 'beginner' | 'intermediate' = 'beginner'): Partial<GameState> => {
+export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'beginner' | 'intermediate' = 'beginner'): Partial<GameState> => {
     const SOLO_HAND_SIZE = 7; // Changed from 14 to 7 per rules
     const deck = shuffleDeck();
 
@@ -61,6 +61,7 @@ export const dealGameSolo = (playerId: string, playerName: string, botDifficulty
         {
             id: playerId, // Use provided ID
             name: playerName,
+            avatarId: avatarId,
             hand: deck.slice(0, SOLO_HAND_SIZE),
             handSize: SOLO_HAND_SIZE,
             wins: 0,
@@ -102,35 +103,19 @@ export const checkValidMove = (
     leftValue: DominoSide | null,
     rightValue: DominoSide | null
 ): { canPlay: boolean; side?: 'left' | 'right'; isReversed?: boolean } => {
-    console.log(`🔍 checkValidMove: [${domino.left}|${domino.right}] against L=${leftValue} R=${rightValue}`);
-
     // Premier coup de la partie
     if (leftValue === null || rightValue === null) {
-        console.log('  ✅ First move');
         return { canPlay: true, side: 'left', isReversed: false };
     }
 
     // Vérification à gauche
-    if (domino.left === leftValue) {
-        console.log(`  ✅ LEFT: domino.left(${domino.left}) === leftValue(${leftValue}) → isReversed=true`);
-        return { canPlay: true, side: 'left', isReversed: true };
-    }
-    if (domino.right === leftValue) {
-        console.log(`  ✅ LEFT: domino.right(${domino.right}) === leftValue(${leftValue}) → isReversed=false`);
-        return { canPlay: true, side: 'left', isReversed: false };
-    }
+    if (domino.left === leftValue) return { canPlay: true, side: 'left', isReversed: true };
+    if (domino.right === leftValue) return { canPlay: true, side: 'left', isReversed: false };
 
     // Vérification à droite
-    if (domino.left === rightValue) {
-        console.log(`  ✅ RIGHT: domino.left(${domino.left}) === rightValue(${rightValue}) → isReversed=false`);
-        return { canPlay: true, side: 'right', isReversed: false };
-    }
-    if (domino.right === rightValue) {
-        console.log(`  ✅ RIGHT: domino.right(${domino.right}) === rightValue(${rightValue}) → isReversed=true`);
-        return { canPlay: true, side: 'right', isReversed: true };
-    }
+    if (domino.left === rightValue) return { canPlay: true, side: 'right', isReversed: false };
+    if (domino.right === rightValue) return { canPlay: true, side: 'right', isReversed: true };
 
-    console.log('  ❌ Cannot play');
     return { canPlay: false };
 };
 
@@ -318,14 +303,6 @@ export const handleTurn = (
     // 3. Update Table
     const playedDomino = { ...domino };
 
-    console.log('🎲 BEFORE PLAY:', {
-        domino: `[${playedDomino.left}|${playedDomino.right}]`,
-        side,
-        isReversed,
-        currentLeft: newState.table.leftValue,
-        currentRight: newState.table.rightValue
-    });
-
     // Add to table sequence
     newState.table.sequence.push({
         domino: playedDomino,
@@ -340,7 +317,6 @@ export const handleTurn = (
         newState.table.rightValue = playedDomino.right;
     } else {
         if (side === 'left') {
-            // LogicEngine checkValidMove logic:
             // if domino.left matches leftValue -> isReversed=true, expose domino.right
             // if domino.right matches leftValue -> isReversed=false, expose domino.left
             newState.table.leftValue = isReversed ? playedDomino.right : playedDomino.left;
@@ -350,12 +326,6 @@ export const handleTurn = (
             newState.table.rightValue = isReversed ? playedDomino.left : playedDomino.right;
         }
     }
-
-    console.log('🎲 AFTER PLAY:', {
-        newLeft: newState.table.leftValue,
-        newRight: newState.table.rightValue,
-        sequenceLength: newState.table.sequence.length
-    });
 
     // 4. Update History & Timestamp
     newState.history.push({

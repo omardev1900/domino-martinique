@@ -6,7 +6,8 @@ import {
     Text,
     TouchableOpacity,
     ScrollView,
-    useWindowDimensions
+    useWindowDimensions,
+    Image
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInLeft, FadeInRight } from 'react-native-reanimated';
 import { authService } from '../src/core/services/auth.service';
 import { PlayerProfile } from '../src/core/types';
+import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../src/core/avatars';
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -27,6 +29,9 @@ export default function HomeScreen() {
             authService.getCurrentUser().then(setUser);
         }, [])
     );
+
+    // Check if avatar is a valid image avatar
+    const isImageAvatar = user?.avatarUrl && AVAILABLE_AVATARS.includes(user.avatarUrl as AvatarId);
 
     return (
         <LinearGradient
@@ -55,9 +60,17 @@ export default function HomeScreen() {
                     >
                         <Text style={styles.userName} numberOfLines={1}>{user?.displayName || 'Invité'}</Text>
                         <View style={styles.avatarCircle}>
-                            <Text style={styles.avatarText}>
-                                {user?.avatarUrl || user?.displayName?.[0] || 'I'}
-                            </Text>
+                            {isImageAvatar ? (
+                                <Image
+                                    source={getAvatarImage(user?.avatarUrl)}
+                                    style={styles.avatarImage}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <Text style={styles.avatarText}>
+                                    {user?.displayName?.[0] || 'I'}
+                                </Text>
+                            )}
                         </View>
                     </TouchableOpacity>
                 </Animated.View>
@@ -151,6 +164,13 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFD700',
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
+    },
+    avatarImage: {
+        width: 32 * 1.6,
+        height: 32 * 1.6,
+        position: 'absolute',
+        top: -(32 * 1.6 - 32) * 0.25,
     },
     avatarText: {
         color: '#0d1f0d',

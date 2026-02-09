@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { GameRoom } from '../core/types';
 import { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -102,10 +103,23 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                     ) : (
                         // Occupied Slot
                         <>
-                            <View style={[styles.avatar, slot.isCurrentUser && styles.avatarHighlight]}>
-                                <Text style={styles.avatarText}>
-                                    {slot.player!.avatarId || getInitials(slot.player!.displayName)}
-                                </Text>
+                            <View style={[styles.avatar, slot.isCurrentUser && styles.avatarHighlight, { overflow: 'hidden' }]}>
+                                {slot.player?.avatarId && AVAILABLE_AVATARS.includes(slot.player.avatarId as AvatarId) ? (
+                                    <Image
+                                        source={getAvatarImage(slot.player.avatarId)}
+                                        style={{
+                                            width: 80 * 1.6,
+                                            height: 80 * 1.6,
+                                            position: 'absolute',
+                                            top: -(80 * 1.6 - 80) * 0.25,
+                                        }}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <Text style={styles.avatarText}>
+                                        {getInitials(slot.player!.displayName)}
+                                    </Text>
+                                )}
                             </View>
                             <Text style={styles.playerName}>
                                 {slot.player!.displayName}

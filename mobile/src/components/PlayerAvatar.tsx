@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, Image } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedProps, withTiming, Easing } from 'react-native-reanimated';
 import { Player } from '../core/types';
+import { getAvatarImage, AvatarId } from '../core/avatars';
 
 interface PlayerAvatarProps {
     player: Player;
@@ -82,6 +83,17 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
 
     const isHorizontal = layout === 'horizontal';
 
+    // Check if avatarId is a valid image avatar (starts with 'avatar_')
+    const isImageAvatar = player.avatarId && player.avatarId.startsWith('avatar_');
+    const avatarImage = isImageAvatar ? getAvatarImage(player.avatarId) : null;
+
+    // Image scaling factor to zoom into the face (top portion)
+    // 1.8 means the image will be 80% larger, showing only the top ~55%
+    const imageScale = 1.8;
+    const imageSize = size * imageScale;
+    // Offset to move image up, showing just the face
+    const imageOffset = -(imageSize - size) * 0.25;
+
     return (
         <View style={[styles.container, isHorizontal && styles.containerHorizontal]}>
             {/* Name above avatar in vertical layout */}
@@ -107,6 +119,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             borderRadius: size / 2,
                             borderWidth: isActive ? 3 : 2,
                             borderColor: isActive ? '#FFD700' : 'rgba(255,255,255,0.3)',
+                            overflow: 'hidden', // Important for image cropping
                         },
                         isActive && styles.activeGlow,
                     ]}
@@ -115,6 +128,18 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         <Text style={[styles.countdown, { fontSize: size / 2.2 }]}>
                             {secondsLeft}
                         </Text>
+                    ) : isImageAvatar && avatarImage ? (
+                        <Image
+                            source={avatarImage}
+                            style={{
+                                width: imageSize,
+                                height: imageSize,
+                                position: 'absolute',
+                                top: imageOffset,
+                                left: (size - imageSize) / 2,
+                            }}
+                            resizeMode="cover"
+                        />
                     ) : (
                         <Text style={[styles.defaultAvatar, { fontSize: size / 1.5 }]}>
                             {player.avatarId || '👤'}

@@ -10,7 +10,8 @@ import {
     ScrollView,
     useWindowDimensions,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,8 +21,7 @@ import { authService } from '../src/core/services/auth.service';
 import { PlayerProfile } from '../src/core/types';
 import SettingsManager from '../src/core/SettingsManager';
 import { TableTheme, TABLE_THEMES } from '../src/core/themes/tableThemes';
-
-const AVATAR_OPTIONS = ['😎', '🤠', '🤖', '👻', '🦊', '🦁', '🐯', '🐼'];
+import { AVAILABLE_AVATARS, getAvatarImage, AvatarId } from '../src/core/avatars';
 
 const THEME_OPTIONS: { theme: TableTheme; label: string; icon: string }[] = [
     { theme: 'classic', label: 'Classique', icon: '🟢' },
@@ -50,7 +50,17 @@ export default function ProfileScreen() {
         if (currentUser) {
             setUser(currentUser);
             setDisplayName(currentUser.displayName || '');
-            setSelectedAvatar(currentUser.avatarUrl);
+            // Force avatar to image avatar if current is emoji or invalid
+            const currentAvatar = currentUser.avatarUrl;
+            if (currentAvatar && AVAILABLE_AVATARS.includes(currentAvatar as AvatarId)) {
+                setSelectedAvatar(currentAvatar);
+            } else {
+                // Default to first avatar if emoji or invalid
+                setSelectedAvatar('avatar_01');
+            }
+        } else {
+            // Default for new users
+            setSelectedAvatar('avatar_01');
         }
 
         // Load current theme
@@ -85,17 +95,25 @@ export default function ProfileScreen() {
 
     const renderAvatarGrid = () => (
         <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Choisir un avatar</Text>
+
+            {/* Image Avatars - Square display */}
             <View style={styles.avatarGrid}>
-                {AVATAR_OPTIONS.map((emoji) => (
+                {AVAILABLE_AVATARS.map((avatarId) => (
                     <TouchableOpacity
-                        key={emoji}
+                        key={avatarId}
                         style={[
                             styles.avatarOption,
-                            selectedAvatar === emoji && styles.selectedAvatarOption
+                            styles.avatarImageOption,
+                            selectedAvatar === avatarId && styles.selectedAvatarOption
                         ]}
-                        onPress={() => setSelectedAvatar(emoji)}
+                        onPress={() => setSelectedAvatar(avatarId)}
                     >
-                        <Text style={styles.avatarOptionText}>{emoji}</Text>
+                        <Image
+                            source={getAvatarImage(avatarId)}
+                            style={styles.avatarImage}
+                            resizeMode="cover"
+                        />
                     </TouchableOpacity>
                 ))}
             </View>
@@ -184,9 +202,11 @@ export default function ProfileScreen() {
                     {/* Left/Top Part: Avatar Selection */}
                     <View style={[styles.avatarSelectionContainer, isLandscape && styles.avatarSelectionContainerLandscape]}>
                         <View style={styles.avatarCircle}>
-                            <Text style={styles.avatarText}>
-                                {selectedAvatar || displayName?.[0] || 'I'}
-                            </Text>
+                            <Image
+                                source={getAvatarImage(selectedAvatar || 'avatar_01')}
+                                style={styles.avatarCircleImage}
+                                resizeMode="cover"
+                            />
                         </View>
                         {renderAvatarGrid()}
                         {renderThemeSelector()}
@@ -260,6 +280,15 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 5,
+        overflow: 'hidden',
+        borderWidth: 3,
+        borderColor: '#FFD700',
+    },
+    avatarCircleImage: {
+        width: 90 * 1.6,
+        height: 90 * 1.6,
+        position: 'absolute',
+        top: -(90 * 1.6 - 90) * 0.25,
     },
     avatarText: {
         fontSize: 44,
@@ -303,6 +332,15 @@ const styles = StyleSheet.create({
     },
     avatarOptionText: {
         fontSize: 24,
+    },
+    avatarImageOption: {
+        padding: 0,
+        overflow: 'hidden',
+    },
+    avatarImage: {
+        width: 56,
+        height: 56,
+        borderRadius: 8,
     },
     sectionTitle: {
         fontSize: 16,
