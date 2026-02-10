@@ -176,37 +176,42 @@ La partie est déclarée **bloquée** lorsque :
 * aucun joueur ne peut poser de domino,   
 * ou lorsque tous les joueurs sont boudés.
 
-### **7.1 Résolution du blocage**
-
 * Le joueur ayant la **plus petite somme** des points des dominos restants dans sa main remporte la partie.  
-* En cas d’égalité parfaite entre plusieurs joueurs, une **nouvelle partie est immédiatement relancée**.
+* **En cas d’égalité parfaite** : La partie est déclarée **nulle**. Elle n'est pas comptabilisée et une nouvelle partie démarre (nouvelle donne).
+* Le vainqueur d'une partie (si pas d'égalité) commence la manche suivante.
 
-## **8\. Victoire d’une partie**
+## **8. Victoire d’une partie**
 
 Une partie est remportée lorsqu’un joueur :
-
 * **vide entièrement sa main**,  
    ou  
-* gagne suite à un **blocage**, en ayant le plus faible total de points.
+* gagne suite à un **blocage**, en ayant le plus faible total de points (voir règle 7.1 pour les égalités).
 
 Le vainqueur obtient **1 victoire**.
 
-## **9\. Manche**
+## **9. Manche**
 
 Une **manche** est composée de plusieurs parties.
 
 ### **Fin de manche**
+Une manche se termine lorsqu'une des conditions suivantes est remplie :
+1. Un joueur atteint **3 victoires** ET il reste au moins un **Cochon** (joueur avec 0 victoire).
+2. **Chiré** : Chaque joueur a obtenu exactement **1 victoire** (score 1-1-1). La manche s'arrête immédiatement car il n'y a plus de cochon.
 
-* Une manche se termine lorsqu’un joueur atteint **3 victoires**.
+**Note** : Tant qu'il y a au moins un joueur à 0 victoire (un cochon), la manche continue jusqu'à ce qu'un joueur atteigne le seuil de 3 victoires.
 
-Le joueur ayant atteint ce seuil est déclaré **vainqueur de la manche**.
+## **Mode de jeu**
+* **Mode manche** : La partie globale se termine quand un joueur gagne **3 manches**.
+* **Mode score** : On comptabilise le nombre de points issus des victoires et pertes pour atteindre le score défini par l'hôte (ex : 5, 15, x).
+* **Mode cochon** : La partie se termine dès que **3 cochons** ont été infligés au total.
 
-## **10\. Système de points et “Cochon”**
+## **10. Système de points et “Cochon”**
 
-* Un joueur ayant **0 victoire** à la fin d’une manche est déclaré **“Cochon”**.  
-* **Si 1 cochon** : le vainqueur de la manche gagne **\+4 points**  
-* **Si 2 cochons** : le vainqueur de la manche gagne **\+5 points**  
-* Chaque joueur “cochon” reçoit **–1 point**
+* Un joueur ayant **0 victoire** à la fin d’une manche est déclaré **“Cochon”**.
+* **Si 1 cochon** : le vainqueur de la manche gagne **+4 points**.
+* **Si 2 cochons** : le vainqueur de la manche gagne **+5 points**.
+* Chaque joueur “cochon” reçoit **-1 point**.
+* **Chiré** : Si la manche se termine parce que tout le monde a gagné au moins une fois (pas de cochon), aucun point de manche (+4/+5) n'est attribué. C'est un match nul technique pour la manche.
 
 Les points sont ajoutés au **total général** du joueur.
 
