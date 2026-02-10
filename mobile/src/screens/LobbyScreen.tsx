@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { GameRoom } from '../core/types';
+import { GameRoom, GameMode } from '../core/types';
 import { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
+import { updateRoomSettings } from '../core/services/firebase';
+import { Ionicons } from '@expo/vector-icons';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -17,6 +19,24 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
     const canStart = roomData.players.length === 3;
     const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(null);
     const hasAutoStarted = useRef(false);
+
+    const [gameMode, setGameMode] = useState<GameMode>(roomData.gameMode || 'MANCHE');
+    const [winningCondition, setWinningCondition] = useState(roomData.winningCondition || 3);
+
+    // Sync settings to Firebase when host changes them
+    useEffect(() => {
+        if (isHost && (gameMode !== roomData.gameMode || winningCondition !== roomData.winningCondition)) {
+            updateRoomSettings(roomData.roomId, { gameMode, winningCondition });
+        }
+    }, [gameMode, winningCondition, isHost]);
+
+    // Update local state when room data changes (for non-hosts)
+    useEffect(() => {
+        if (!isHost) {
+            if (roomData.gameMode) setGameMode(roomData.gameMode);
+            if (roomData.winningCondition) setWinningCondition(roomData.winningCondition);
+        }
+    }, [roomData.gameMode, roomData.winningCondition, isHost]);
 
     // AUTO-START: Lancer automatiquement la partie dès que 3 joueurs sont présents
     // LOGIQUE DE FALLBACK:
@@ -116,9 +136,16 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                         resizeMode="cover"
                                     />
                                 ) : (
-                                    <Text style={styles.avatarText}>
-                                        {getInitials(slot.player!.displayName)}
-                                    </Text>
+                                    <Image
+                                        source={getAvatarImage('avatar_01')}
+                                        style={{
+                                            width: 80 * 1.6,
+                                            height: 80 * 1.6,
+                                            position: 'absolute',
+                                            top: -(80 * 1.6 - 80) * 0.25,
+                                        }}
+                                        resizeMode="cover"
+                                    />
                                 )}
                             </View>
                             <Text style={styles.playerName}>
@@ -148,6 +175,61 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
             <View style={styles.playersContainer}>
                 {slots.map((slot, index) => renderPlayerCard(slot, index))}
             </View>
+
+            {/* Game Options - Middle Section */}
+            <Animated.View entering={FadeIn.delay(400)} style={styles.optionsSection}>
+                <Text style={styles.sectionTitle}>CONFIGURATIONS DE LA TABLE</Text>
+
+                <View style={styles.optionsRow}>
+                    <View style={styles.optionItem}>
+                        <Text style={styles.optionLabel}>MODE DE JEU</Text>
+                        {isHost ? (
+                            <View style={styles.buttonGroup}>
+                                {(['MANCHE', 'SCORE', 'COCHON'] as GameMode[]).map(mode => (
+                                    <TouchableOpacity
+                                        key={mode}
+                                        style={[styles.modeButton, gameMode === mode && styles.activeModeButton]}
+                                        onPress={() => setGameMode(mode)}
+                                    >
+                                        <Text style={[styles.modeButtonText, gameMode === mode && styles.activeModeButtonText]}>
+                                            {mode}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        ) : (
+                            <View style={styles.readOnlyValue}>
+                                <Text style={styles.optionValue}>{gameMode}</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    <View style={styles.optionItem}>
+                        <Text style={styles.optionLabel}>CONDITION : <Text style={styles.winningValueText}>{winningCondition}</Text></Text>
+                        {isHost ? (
+                            <View style={styles.conditionControls}>
+                                <TouchableOpacity
+                                    onPress={() => setWinningCondition(Math.max(1, winningCondition - 1))}
+                                    style={styles.adjustButton}
+                                >
+                                    <Ionicons name="remove-circle-outline" size={28} color="#FFD700" />
+                                </TouchableOpacity>
+                                <Text style={styles.conditionValueText}>{winningCondition}</Text>
+                                <TouchableOpacity
+                                    onPress={() => setWinningCondition(Math.min(100, winningCondition + 1))}
+                                    style={styles.adjustButton}
+                                >
+                                    <Ionicons name="add-circle-outline" size={28} color="#FFD700" />
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <View style={styles.readOnlyValue}>
+                                <Text style={styles.optionValue}>{winningCondition} {gameMode === 'MANCHE' ? 'Manches' : gameMode === 'SCORE' ? 'Points' : 'Cochons'}</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </Animated.View>
 
             {/* Action Button - Bottom */}
             <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.footer}>
@@ -240,9 +322,9 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 3,
         borderColor: 'rgba(255,255,255,0.2)',
-        padding: 24,
+        padding: 16,
         alignItems: 'center',
-        minHeight: 200,
+        minHeight: 160,
         justifyContent: 'center',
     },
     playerCardHighlight: {
@@ -354,5 +436,91 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         marginTop: 12,
         textAlign: 'center',
+    },
+    // Options Section
+    optionsSection: {
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.2)',
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#FFD700',
+        marginBottom: 15,
+        textAlign: 'center',
+        letterSpacing: 2,
+    },
+    optionsRow: {
+        flexDirection: 'row',
+        gap: 20,
+    },
+    optionItem: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    optionLabel: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.6)',
+        marginBottom: 8,
+        fontWeight: 'bold',
+    },
+    buttonGroup: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 10,
+        padding: 4,
+        width: '100%',
+    },
+    modeButton: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: 'center',
+        borderRadius: 8,
+    },
+    activeModeButton: {
+        backgroundColor: '#FFD700',
+    },
+    modeButtonText: {
+        color: '#FFF',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    activeModeButtonText: {
+        color: '#000',
+    },
+    conditionControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15,
+    },
+    adjustButton: {
+        padding: 5,
+    },
+    conditionValueText: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#FFF',
+        minWidth: 40,
+        textAlign: 'center',
+    },
+    readOnlyValue: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        width: '100%',
+        alignItems: 'center',
+    },
+    optionValue: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    winningValueText: {
+        color: '#FFD700',
     },
 });

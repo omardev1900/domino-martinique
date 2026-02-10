@@ -1,12 +1,18 @@
 
 import React, { useMemo, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Text } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, FadeIn, ZoomIn } from 'react-native-reanimated';
 import { GameState, Domino } from '../core/types';
 import { DominoTile } from './DominoTile';
+import { Ionicons } from '@expo/vector-icons';
+import { TABLE_THEMES, TableTheme } from '../core/themes/tableThemes';
+import { checkValidMove } from '../core/LogicEngine';
 
 interface GameTableProps {
     gameState: GameState;
+    theme?: TableTheme;
+    pendingDomino?: Domino | null; // The domino currently being played
+    onSideSelect?: (side: 'left' | 'right') => void;
 }
 
 interface VisualTile {
@@ -14,36 +20,42 @@ interface VisualTile {
     isReversed: boolean;
 }
 
-export const GameTable: React.FC<GameTableProps> = ({ gameState }) => {
-    const { width } = Dimensions.get('window');
+export const GameTable: React.FC<GameTableProps> = ({
+    gameState,
+    theme = 'classic',
+    pendingDomino,
+    onSideSelect
+}) => {
+    const themeColors = TABLE_THEMES[theme];
     const scale = useSharedValue(1);
+
+    // Filter which arrows should be shown based on actual validity
+    const showLeftArrow = useMemo(() => {
+        if (!pendingDomino || !onSideSelect) return false;
+        return checkValidMove(pendingDomino, gameState.table.leftValue, null).canPlay;
+    }, [pendingDomino, gameState.table.leftValue]);
+
+    const showRightArrow = useMemo(() => {
+        if (!pendingDomino || !onSideSelect) return false;
+        return checkValidMove(pendingDomino, null, gameState.table.rightValue).canPlay;
+    }, [pendingDomino, gameState.table.rightValue]);
 
     // Dynamic Zoom Logic
     useEffect(() => {
         const tileCount = gameState.table.sequence.length;
         let newScale = 1;
+        if (tileCount > 15) newScale = 0.55;
+        else if (tileCount > 12) newScale = 0.65;
+        else if (tileCount > 9) newScale = 0.75;
+        else if (tileCount > 6) newScale = 0.85;
 
-        if (tileCount > 15) {
-            newScale = 0.55;
-        } else if (tileCount > 12) {
-            newScale = 0.65;
-        } else if (tileCount > 9) {
-            newScale = 0.75;
-        } else if (tileCount > 6) {
-            newScale = 0.85;
-        }
-
-        scale.value = withSpring(newScale, {
-            damping: 15,
-            stiffness: 100
-        });
+        scale.value = withSpring(newScale, { damping: 15, stiffness: 100 });
     }, [gameState.table.sequence.length]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }]
     }));
 
-    // Reconstruct visual order from chronological sequence
     const visualSequence = useMemo(() => {
         const list: VisualTile[] = [];
         gameState.table.sequence.forEach((item) => {
@@ -51,21 +63,16 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState }) => {
                 list.push({ domino: item.domino, isReversed: item.isReversed });
                 return;
             }
-
-            if (item.sideAtTable === 'left') {
-                list.unshift({ domino: item.domino, isReversed: item.isReversed });
-            } else {
-                list.push({ domino: item.domino, isReversed: item.isReversed });
-            }
+            if (item.sideAtTable === 'left') list.unshift({ domino: item.domino, isReversed: item.isReversed });
+            else list.push({ domino: item.domino, isReversed: item.isReversed });
         });
         return list;
     }, [gameState.table.sequence]);
 
     return (
         <View style={styles.container}>
-            {/* Oval Casino Table */}
-            <View style={styles.tableOuter}>
-                <View style={styles.tableInner}>
+            <View style={[styles.tableOuter, { backgroundColor: themeColors.border }]}>
+                <View style={[styles.tableInner, { backgroundColor: themeColors.felt }]}>
                     <ScrollView
                         horizontal
                         contentContainerStyle={styles.scrollContent}
@@ -74,21 +81,36 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState }) => {
                     >
                         <Animated.View style={[styles.dominosArea, animatedStyle]}>
                             <View style={styles.tileSequence}>
-                                {visualSequence.map((item) => {
-                                    const isDouble = item.domino.isDouble;
-                                    return (
-                                        <View key={item.domino.id} style={styles.tileWrapper}>
-                                            <DominoTile
-                                                left={item.isReversed ? item.domino.right : item.domino.left}
-                                                right={item.isReversed ? item.domino.left : item.domino.right}
-                                                orientation={isDouble ? 'vertical' : 'horizontal'}
-                                                size={32}
-                                                disabled
-                                                noMargin
-                                            />
-                                        </View>
-                                    );
-                                })}
+                                {/* LEFT ARROW */}
+                                {showLeftArrow && (
+                                    <TouchableOpacity style={styles.sideSelector} onPress={() => onSideSelect?.('left')}>
+                                        <Animated.View entering={ZoomIn.duration(300)} style={styles.sideSelectorInner}>
+                                            <Ionicons name="chevron-back" size={32} color="#FFD700" />
+                                        </Animated.View>
+                                    </TouchableOpacity>
+                                )}
+
+                                {visualSequence.map((item) => (
+                                    <View key={item.domino.id} style={styles.tileWrapper}>
+                                        <DominoTile
+                                            left={item.isReversed ? item.domino.right : item.domino.left}
+                                            right={item.isReversed ? item.domino.left : item.domino.right}
+                                            orientation={item.domino.isDouble ? 'vertical' : 'horizontal'}
+                                            size={32}
+                                            disabled
+                                            noMargin
+                                        />
+                                    </View>
+                                ))}
+
+                                {/* RIGHT ARROW */}
+                                {showRightArrow && (
+                                    <TouchableOpacity style={styles.sideSelector} onPress={() => onSideSelect?.('right')}>
+                                        <Animated.View entering={ZoomIn.duration(300)} style={styles.sideSelectorInner}>
+                                            <Ionicons name="chevron-forward" size={32} color="#FFD700" />
+                                        </Animated.View>
+                                    </TouchableOpacity>
+                                )}
                             </View>
                         </Animated.View>
                     </ScrollView>
@@ -104,35 +126,35 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 10,
-        paddingTop: 100, // Increased space for top avatars
-        paddingBottom: 140, // Space for hand
+        paddingTop: 80,
+        paddingBottom: 130,
     },
     tableOuter: {
-        width: '100%',
-        maxWidth: 700,
-        aspectRatio: 2.2, // Oval shape
-        backgroundColor: '#4A2C1B', // Dark wood border
-        borderRadius: 200,
-        padding: 12,
+        width: '95%',
+        maxWidth: 850,
+        aspectRatio: 1.8,
+        borderRadius: 40,
+        padding: 15,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.5,
-        shadowRadius: 20,
-        elevation: 15,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.6,
+        shadowRadius: 25,
+        elevation: 20,
     },
     tableInner: {
         flex: 1,
-        backgroundColor: '#2D7A4F', // Casino green felt
-        borderRadius: 190,
+        borderRadius: 30,
         overflow: 'hidden',
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     scrollContent: {
         alignItems: 'center',
         justifyContent: 'center',
         flexGrow: 1,
-        paddingHorizontal: 40,
+        paddingHorizontal: 60,
     },
     dominosArea: {
         justifyContent: 'center',
@@ -144,11 +166,29 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     tileWrapper: {
-        // Depth effect for dominos on table
         shadowColor: '#000',
         shadowOffset: { width: 2, height: 2 },
         shadowOpacity: 0.5,
         shadowRadius: 3,
         elevation: 5,
     },
+    sideSelector: {
+        marginHorizontal: 15,
+        zIndex: 100,
+    },
+    sideSelectorInner: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        borderWidth: 3,
+        borderColor: '#FFD700',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 1,
+        shadowRadius: 15,
+        elevation: 15,
+    }
 });

@@ -1,4 +1,4 @@
-import { Domino, DominoSide, Player, PlayerId, GameState, GamePhase } from './types';
+import { Domino, DominoSide, Player, PlayerId, GameState, GamePhase, GameMode, MancheResult } from './types';
 import { ALL_DOMINOS, HAND_SIZE, TALON_MORT_SIZE, WINS_TO_WIN_MATCH, MAX_PLAYERS } from './constants';
 
 /**
@@ -31,8 +31,10 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
         hand: deck.slice(i * HAND_SIZE, (i + 1) * HAND_SIZE),
         handSize: HAND_SIZE,
         wins: 0,
+        mancheWins: 0,
         totalPoints: 0,
         isCochon: false,
+        totalCochons: 0,
         isBot: false,
     }));
 
@@ -47,41 +49,60 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
             leftValue: null,
             rightValue: null,
         },
+        gameMode: 'MANCHE',
+        winningCondition: WINS_TO_WIN_MATCH,
+        lastActionTimestamp: Date.now(),
     };
 };
 
 /**
- * Distribution pour Solo Mode : 2 joueurs x 14 dominos (pas de talon mort)
+ * Distribution pour Solo Mode : 3 joueurs (1 humain + 2 bots) x 7 dominos
  */
 export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'beginner' | 'intermediate' = 'beginner'): Partial<GameState> => {
-    const SOLO_HAND_SIZE = 7; // Changed from 14 to 7 per rules
+    const HAND_SIZE = 7;
     const deck = shuffleDeck();
 
     const players: Player[] = [
         {
-            id: playerId, // Use provided ID
+            id: playerId,
             name: playerName,
             avatarId: avatarId,
-            hand: deck.slice(0, SOLO_HAND_SIZE),
-            handSize: SOLO_HAND_SIZE,
+            hand: deck.slice(0, HAND_SIZE),
+            handSize: HAND_SIZE,
             wins: 0,
+            mancheWins: 0,
             totalPoints: 0,
             isCochon: false,
+            totalCochons: 0,
             isBot: false,
         },
         {
             id: 'bot-1',
-            name: botDifficulty === 'beginner' ? 'Bot Easy' : 'Bot Medium',
-            hand: deck.slice(SOLO_HAND_SIZE, SOLO_HAND_SIZE * 2),
-            handSize: SOLO_HAND_SIZE,
+            name: botDifficulty === 'beginner' ? 'Bot Facile' : 'Bot Moyen',
+            hand: deck.slice(HAND_SIZE, HAND_SIZE * 2),
+            handSize: HAND_SIZE,
             wins: 0,
+            mancheWins: 0,
             totalPoints: 0,
             isCochon: false,
+            totalCochons: 0,
+            isBot: true,
+        },
+        {
+            id: 'bot-2',
+            name: botDifficulty === 'beginner' ? 'Bot Débutant' : 'Bot Avancé',
+            hand: deck.slice(HAND_SIZE * 2, HAND_SIZE * 3),
+            handSize: HAND_SIZE,
+            wins: 0,
+            mancheWins: 0,
+            totalPoints: 0,
+            isCochon: false,
+            totalCochons: 0,
             isBot: true,
         },
     ];
 
-    const talonMort = deck.slice(SOLO_HAND_SIZE * 2); // Remaining 14 tiles
+    const talonMort = deck.slice(HAND_SIZE * 3); // Remaining 7 tiles
 
     return {
         players,
@@ -92,6 +113,9 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             leftValue: null,
             rightValue: null,
         },
+        gameMode: 'MANCHE',
+        winningCondition: WINS_TO_WIN_MATCH,
+        lastActionTimestamp: Date.now(),
     };
 };
 
@@ -104,17 +128,21 @@ export const checkValidMove = (
     rightValue: DominoSide | null
 ): { canPlay: boolean; side?: 'left' | 'right'; isReversed?: boolean } => {
     // Premier coup de la partie
-    if (leftValue === null || rightValue === null) {
+    if (leftValue === null && rightValue === null) {
         return { canPlay: true, side: 'left', isReversed: false };
     }
 
-    // Vérification à gauche
-    if (domino.left === leftValue) return { canPlay: true, side: 'left', isReversed: true };
-    if (domino.right === leftValue) return { canPlay: true, side: 'left', isReversed: false };
+    // Vérification à gauche (uniquement si leftValue est défini)
+    if (leftValue !== null) {
+        if (domino.left === leftValue) return { canPlay: true, side: 'left', isReversed: true };
+        if (domino.right === leftValue) return { canPlay: true, side: 'left', isReversed: false };
+    }
 
-    // Vérification à droite
-    if (domino.left === rightValue) return { canPlay: true, side: 'right', isReversed: false };
-    if (domino.right === rightValue) return { canPlay: true, side: 'right', isReversed: true };
+    // Vérification à droite (uniquement si rightValue est défini)
+    if (rightValue !== null) {
+        if (domino.left === rightValue) return { canPlay: true, side: 'right', isReversed: false };
+        if (domino.right === rightValue) return { canPlay: true, side: 'right', isReversed: true };
+    }
 
     return { canPlay: false };
 };
@@ -126,18 +154,16 @@ export const calculateHandPoints = (hand: Domino[]): number => {
     return hand.reduce((sum, d) => sum + d.left + d.right, 0);
 };
 
-/**
- * determineWinnerOnBoudé : Logique en cas de blocage
- * Le gagnant est celui avec le moins de points. 
- * Si égalité parfaite entre les scores les plus bas, la partie est nulle.
- */
 export const determineWinnerOnBoudé = (players: Player[]): PlayerId | 'TIE' => {
-    const scores = players.map(p => ({ id: p.id, score: calculateHandPoints(p.hand) }));
+    const scores = players.map(p => ({ id: p.id, score: calculateHandPoints(p.hand), hand: p.hand }));
     const minScore = Math.min(...scores.map(s => s.score));
-    const winners = scores.filter(s => s.score === minScore);
+    const candidates = scores.filter(s => s.score === minScore);
 
-    if (winners.length > 1) return 'TIE';
-    return winners[0].id;
+    if (candidates.length === 1) return candidates[0].id;
+
+    // RULE: If more than one player has the same minimum score, it's a TIE. 
+    // No tie-breaker. The round is ignored and restarted.
+    return 'TIE';
 };
 
 /**
@@ -168,21 +194,19 @@ export const determineFirstPlayer = (players: Player[]): PlayerId => {
     return bestPlayerId;
 };
 
-/**
- * calculateCochonPoints : Calcule les points selon le système Cochon
- * - Winner: +4 (1 cochon) or +5 (2 cochons)
- * - Each cochon: -1
- */
-export const calculateCochonPoints = (players: Player[]): Map<PlayerId, number> => {
+export const calculateCochonPoints = (players: Player[]): { pointsMap: Map<PlayerId, number>; result: MancheResult } => {
     const pointsMap = new Map<PlayerId, number>();
 
-    // Find winner (player with wins >= WINS_TO_WIN_MATCH)
-    const winner = players.find(p => p.wins >= WINS_TO_WIN_MATCH);
-    if (!winner) {
-        // No winner yet, return empty map
+    // Check for Chiré (everyone has at least one win)
+    const isChiré = players.every(p => p.wins >= 1);
+    if (isChiré) {
         players.forEach(p => pointsMap.set(p.id, 0));
-        return pointsMap;
+        return { pointsMap, result: 'CHIRE' };
     }
+
+    // Find winner (player with highest wins)
+    const sortedByWins = [...players].sort((a, b) => b.wins - a.wins);
+    const winner = sortedByWins[0];
 
     // Count cochons (players with 0 wins)
     const cochons = players.filter(p => p.wins === 0);
@@ -191,18 +215,18 @@ export const calculateCochonPoints = (players: Player[]): Map<PlayerId, number> 
     // Calculate points
     players.forEach(p => {
         if (p.id === winner.id) {
-            // Winner gets +4 or +5
-            pointsMap.set(p.id, cochonCount === 1 ? 4 : cochonCount === 2 ? 5 : 4);
+            // Winner gets exactly 4 or 5 points for the manche
+            pointsMap.set(p.id, cochonCount === 1 ? 4 : cochonCount === 2 ? 5 : 0);
         } else if (p.wins === 0) {
             // Cochon gets -1
             pointsMap.set(p.id, -1);
         } else {
-            // Other players get 0
-            pointsMap.set(p.id, 0);
+            // Non-winner, non-cochon: they get their wins as points
+            pointsMap.set(p.id, p.wins);
         }
     });
 
-    return pointsMap;
+    return { pointsMap, result: 'COCHON' };
 };
 
 /**
@@ -216,48 +240,56 @@ export const handleEndOfRound = (
 
     if (winnerId === 'TIE') {
         newState.phase = 'BOUDE';
-        // Dans la règle Martiniquaise, une égalité en boudé annule souvent la partie
         return newState;
     }
 
-    // Incrémenter la victoire
+    // 1. Increment round win
     const winnerIndex = newState.players.findIndex(p => p.id === winnerId);
-    newState.players[winnerIndex].wins += 1;
+    if (winnerIndex !== -1) {
+        newState.players[winnerIndex].wins += 1;
+    }
 
-    // Vérifier si quelqu'un a atteint la condition de victoire (3 pour multi, 1 pour solo)
-    const matchWinner = newState.players.find(p => p.wins >= gameState.winningCondition);
+    // 2. Check for Manche Termination
+    const isChiré = newState.players.every(p => p.wins >= 1);
+    const reachesThreshold = newState.players.some(p => p.wins >= gameState.winningCondition);
 
-    // Calcule les points (Somme des mains des perdants ajoutée au gagnant)
-    // Cette logique s'applique à tous les modes (Solo & Multi) pour avoir un score
-    const losersPoints = newState.players
-        .filter(p => p.id !== winnerId)
-        .reduce((sum, p) => sum + calculateHandPoints(p.hand), 0);
+    // Rule: Manche ends if Chiré OR someone reached the win limit
+    const endOfManche = isChiré || reachesThreshold;
 
-    // Ajoute les points au gagnant pour ce round
-    newState.players[winnerIndex].totalPoints += losersPoints;
+    if (endOfManche) {
+        const { pointsMap, result } = calculateCochonPoints(newState.players);
+        newState.mancheResult = result;
 
-    if (matchWinner) {
-        newState.phase = 'MATCH_END';
+        newState.players = newState.players.map(p => {
+            const manchePts = pointsMap.get(p.id) || 0;
+            const isWinnerOfManche = result === 'COCHON' && (p.id === winnerId || manchePts >= 4);
+            const isCochonNow = p.wins === 0 && result === 'COCHON';
+            const pointsToAdd = result === 'CHIRE' ? p.wins : manchePts;
 
-        // Logique Cochon supplémentaire si condition > 1 (Optionnel, gardons simple pour l'instant ou cumulons)
-        if (gameState.winningCondition > 1) {
-            const pointsMap = calculateCochonPoints(newState.players);
-            newState.players = newState.players.map(p => ({
+            return {
                 ...p,
-                isCochon: p.wins === 0,
-                // On ajoute les points Cochon EN PLUS ou on garde le standard ? 
-                // Pour l'instant on garde le calcul standard 'losersPoints' fait plus haut, 
-                // et on marque juste les cochons.
-            }));
-        } else {
-            newState.players = newState.players.map(p => ({
-                ...p,
-                isCochon: false
-            }));
+                isCochon: isCochonNow,
+                totalCochons: p.totalCochons + (isCochonNow ? 1 : 0),
+                mancheWins: p.mancheWins + (isWinnerOfManche ? 1 : 0),
+                totalPoints: p.totalPoints + pointsToAdd
+            };
+        });
+
+        // 3. Final Match End Check
+        let isMatchOver = false;
+        if (newState.gameMode === 'MANCHE') {
+            isMatchOver = newState.players.some(p => p.mancheWins >= newState.winningCondition);
+        } else if (newState.gameMode === 'SCORE') {
+            isMatchOver = newState.players.some(p => p.totalPoints >= newState.winningCondition);
+        } else if (newState.gameMode === 'COCHON') {
+            const totalMatchCochons = newState.players.reduce((sum, p) => sum + p.totalCochons, 0);
+            isMatchOver = totalMatchCochons >= newState.winningCondition;
         }
+
+        newState.phase = isMatchOver ? 'MATCH_END' : 'MANCHE_END';
     } else {
         newState.phase = 'ROUND_END';
-        newState.firstPlayerOfRound = winnerId; // Le gagnant commence la suivante
+        newState.firstPlayerOfRound = winnerId;
     }
 
     return newState;
@@ -270,17 +302,19 @@ export const handleEndOfRound = (
 export const handleTurn = (
     gameState: GameState,
     playerId: PlayerId,
-    domino: Domino
+    domino: Domino,
+    forcedSide?: 'left' | 'right'
 ): GameState => {
     // 1. Validation Logic
     const { canPlay, side, isReversed } = checkValidMove(
         domino,
-        gameState.table.leftValue,
-        gameState.table.rightValue
+        forcedSide === 'right' ? null : gameState.table.leftValue,
+        forcedSide === 'left' ? null : gameState.table.rightValue
     );
 
-    if (!canPlay || !side) {
-        throw new Error("Invalid move");
+    // If a side was forced, ensure the resulting 'side' matches accurately
+    if (!canPlay || !side || (forcedSide && side !== forcedSide)) {
+        throw new Error(`Invalid move: Domino cannot be played on the ${forcedSide || 'selected'} side.`);
     }
 
     // Clone state deeply (simplified for structural clone)
@@ -317,12 +351,8 @@ export const handleTurn = (
         newState.table.rightValue = playedDomino.right;
     } else {
         if (side === 'left') {
-            // if domino.left matches leftValue -> isReversed=true, expose domino.right
-            // if domino.right matches leftValue -> isReversed=false, expose domino.left
             newState.table.leftValue = isReversed ? playedDomino.right : playedDomino.left;
         } else {
-            // if domino.left matches rightValue -> isReversed=false, expose domino.right
-            // if domino.right matches rightValue -> isReversed=true, expose domino.left
             newState.table.rightValue = isReversed ? playedDomino.left : playedDomino.right;
         }
     }

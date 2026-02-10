@@ -127,3 +127,28 @@
 - [ ] Store Assets
 - [ ] Beta Testing
 - [ ] Publication
+
+---
+
+---
+
+## Phase 11: Updated Martinican Rules (Refined Logic)
+
+### 11.1 Advanced Victory & Tie-breaking Logic (In Progress)
+- [ ] Implement Tie-breaker for blocked games (Highest Double rule)
+- [ ] Implement "Chiré" condition (1-1-1 terminates the manche)
+- [ ] Implement "Tant qu'il y a cochon" condition (Manche continues if someone is at 0 wins)
+- [ ] Add Game Modes support:
+    - [ ] Mode Manche (Best of 3 manches)
+    - [ ] Mode Score (Target score points)
+    - [ ] Mode Cochon (3 cochons total)
+
+### 11.2 Refined Scoring System
+- [ ] Implement +4 / +5 points for Manche winner based on Cochon count
+- [ ] Implement -1 point deduction for Cochons
+- [ ] Distinguish between Round Victories (Wins 1,2,3) and Manche Points (Total score)
+
+### 11.3 UI Updates for New Rules
+- [ ] Display "Chiré" on GameOver screen when 1-1-1 happens
+- [ ] Update Scoreboard to show both Wins and Cumulative Points
+- [ ] Specific "Cochon" animations or badges on results screen

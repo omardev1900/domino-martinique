@@ -10,24 +10,29 @@ export interface Domino {
 
 export type PlayerId = string;
 
+export type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
+export type MancheResult = 'NORMAL' | 'CHIRE' | 'COCHON';
+
 export interface Player {
     id: PlayerId;
     name: string;
-    avatarId?: string; // NEW: To sync avatar
-    hand: Domino[]; // En local pour le joueur, masqué pour les autres via API
-    handSize: number; // Public pour les autres joueurs
-    wins: number; // Nombre de parties gagnées dans la manche (max 3)
-    totalPoints: number; // NEW: Cumulative points across all matches
+    avatarId?: string;
+    hand: Domino[];
+    handSize: number;
+    wins: number; // Nombre de parties (victoires) dans la manche en cours
+    mancheWins: number; // Nombre de manches gagnées (pour le Mode Manche)
+    totalPoints: number; // Score cumulé (pour le Mode Score)
     isCochon: boolean;
+    totalCochons: number; // NEW: Total cochons infligés à ce joueur pendant le match
     isBot: boolean;
 }
 
-export type GamePhase = 'LOBBY' | 'DEALING' | 'PLAYING' | 'BOUDE' | 'ROUND_END' | 'MATCH_END';
+export type GamePhase = 'LOBBY' | 'DEALING' | 'PLAYING' | 'BOUDE' | 'ROUND_END' | 'MATCH_END' | 'MANCHE_END';
 
 export interface GameState {
     gameId: string;
     players: Player[];
-    talonMort: Domino[]; // 7 dominos écartés (jamais en main)
+    talonMort: Domino[];
     table: {
         sequence: { domino: Domino; sideAtTable: 'left' | 'right'; isReversed: boolean }[];
         leftValue: DominoSide | null;
@@ -42,8 +47,10 @@ export interface GameState {
         domino?: Domino;
         timestamp: number;
     }[];
-    winningCondition: number; // Par défaut 3
-    lastActionTimestamp: number; // Pour le timer
+    winningCondition: number; // Seuil pour terminer (3 victoires, 100 pts, etc.)
+    gameMode: GameMode; // NEW: Mode de jeu
+    mancheResult?: MancheResult; // NEW: Résultat de la manche (pour affichage Chiré)
+    lastActionTimestamp: number;
 }
 
 
@@ -80,4 +87,7 @@ export interface GameRoom {
     isPrivate: boolean;
     passcode?: string; // Si privé
     roomName?: string; // Nom personnalisé ou généré
+    rematchVotes?: string[]; // IDs des joueurs qui veulent rejouer
+    gameMode?: GameMode; // NEW: Mode de jeu choisi par l'hôte
+    winningCondition?: number; // Condition de victoire
 }

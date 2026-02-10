@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, interpolateColor } from 'react-native-reanimated';
 import { DominoSide } from '../core/types';
 
 interface DominoTileProps {
@@ -12,6 +12,7 @@ interface DominoTileProps {
     disabled?: boolean;
     entering?: any; // Reanimated entering prop
     noMargin?: boolean; // Remove margin for board tiles
+    isPlayable?: boolean; // NEW: Should the tile glow?
 }
 
 const DOT_POSITIONS: Record<number, number[]> = {
@@ -32,7 +33,8 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     onPress,
     disabled = false,
     entering,
-    noMargin = false
+    noMargin = false,
+    isPlayable = false
 }) => {
     const isVertical = orientation === 'vertical';
     const width = isVertical ? size : size * 2;
@@ -72,6 +74,39 @@ export const DominoTile: React.FC<DominoTileProps> = ({
         );
     };
 
+    const glowValue = useSharedValue(0);
+
+    React.useEffect(() => {
+        if (isPlayable) {
+            glowValue.value = withRepeat(
+                withSequence(
+                    withTiming(1, { duration: 800 }),
+                    withTiming(0, { duration: 800 })
+                ),
+                -1,
+                true
+            );
+        } else {
+            glowValue.value = 0;
+        }
+    }, [isPlayable]);
+
+    const animatedGlowStyle = useAnimatedStyle(() => {
+        if (!isPlayable) return {};
+        return {
+            shadowColor: '#4CAF50',
+            shadowOpacity: withTiming(isPlayable ? 0.8 : 0),
+            shadowRadius: 10 + glowValue.value * 5,
+            borderColor: interpolateColor(
+                glowValue.value,
+                [0, 1],
+                ['#D4D4D4', '#4CAF50']
+            ),
+            borderWidth: 3,
+            transform: [{ scale: 1 + glowValue.value * 0.03 }]
+        };
+    });
+
     return (
         <Animated.View entering={entering || ZoomIn.duration(400)} style={{ opacity: disabled ? 0.8 : 1 }}>
             <TouchableOpacity
@@ -82,6 +117,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                     noMargin ? styles.containerNoMargin : styles.container,
                     styles.container,
                     { width, height, flexDirection: isVertical ? 'column' : 'row' },
+                    isPlayable && animatedGlowStyle,
                 ]}
             >
                 {renderHalf(left)}

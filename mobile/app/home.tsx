@@ -30,8 +30,6 @@ export default function HomeScreen() {
         }, [])
     );
 
-    // Check if avatar is a valid image avatar
-    const isImageAvatar = user?.avatarUrl && AVAILABLE_AVATARS.includes(user.avatarUrl as AvatarId);
 
     return (
         <LinearGradient
@@ -60,17 +58,11 @@ export default function HomeScreen() {
                     >
                         <Text style={styles.userName} numberOfLines={1}>{user?.displayName || 'Invité'}</Text>
                         <View style={styles.avatarCircle}>
-                            {isImageAvatar ? (
-                                <Image
-                                    source={getAvatarImage(user?.avatarUrl)}
-                                    style={styles.avatarImage}
-                                    resizeMode="cover"
-                                />
-                            ) : (
-                                <Text style={styles.avatarText}>
-                                    {user?.displayName?.[0] || 'I'}
-                                </Text>
-                            )}
+                            <Image
+                                source={getAvatarImage((user?.avatarUrl && AVAILABLE_AVATARS.includes(user.avatarUrl as AvatarId)) ? user.avatarUrl : 'avatar_01')}
+                                style={styles.avatarImage}
+                                resizeMode="cover"
+                            />
                         </View>
                     </TouchableOpacity>
                 </Animated.View>

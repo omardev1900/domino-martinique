@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated';
 import { useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GameTable } from '../../components/game/GameTable';
+import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
 import { LobbyScreen } from './LobbyScreen';
@@ -12,8 +12,8 @@ import { GameOverScreen } from './GameOverScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { dealGame, dealGameSolo, handleTurn, passTurn, checkValidMove, determineFirstPlayer, resolveBoude } from '../core/LogicEngine';
 import { getBotMove } from '../core/BotEngine';
-import { GameState, Domino, Player, PlayerId, GameRoom, RoomStatus } from '../core/types';
-import { subscribeToRoom, updateGameState, leaveRoom, startGame } from '../core/services/firebase';
+import { GameState, Domino, Player, PlayerId, GameRoom, RoomStatus, GameMode } from '../core/types';
+import { subscribeToRoom, updateGameState, leaveRoom, startGame, resetRoomToLobby, voteForRematch, clearRematchVotes } from '../core/services/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
@@ -29,9 +29,11 @@ interface GameScreenProps {
     userId?: string;
     mode?: 'solo' | 'multiplayer';
     difficulty?: 'beginner' | 'intermediate';
+    gameMode?: GameMode;
+    winningCondition?: number;
 }
 
-export default function GameScreen({ gameId, userId, mode, difficulty }: GameScreenProps) {
+export default function GameScreen({ gameId, userId, mode, difficulty, gameMode, winningCondition }: GameScreenProps) {
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const isLandscape = width > height;
@@ -41,6 +43,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
     const [localPlayerId] = useState<PlayerId>(userId || 'p1');
     const [showSettings, setShowSettings] = useState(false);
     const [showRoomInfo, setShowRoomInfo] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     const [isSoloMode] = useState(mode === 'solo');
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
@@ -54,6 +57,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
     // Ref for fresh state access in Bot useEffect
     const gameStateRef = useRef<GameState | null>(null);
+    const [pendingDomino, setPendingDomino] = useState<Domino | null>(null);
 
     const navigation = useNavigation();
 
@@ -110,21 +114,20 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         borderColor: `rgba(255, 215, 0, ${pulseOpacity.value})`,
     }));
 
+    // Timer reset on turn change
+    useEffect(() => {
+        if (gameState?.phase === 'PLAYING' && gameState?.currentPlayerId === localPlayerId) {
+            setTimeLeft(TURN_DURATION_SECONDS);
+        } else {
+            setTimeLeft(null);
+        }
+    }, [gameState?.currentPlayerId, gameState?.phase, localPlayerId]);
+
     // Timer countdown logic
     useEffect(() => {
-        if (!gameState || gameState.phase !== 'PLAYING') {
-            setTimeLeft(null);
+        if (!gameState || gameState.phase !== 'PLAYING' || isPaused || timeLeft === null) {
             return;
         }
-
-        const isMyTurn = gameState.currentPlayerId === localPlayerId;
-        if (!isMyTurn) {
-            setTimeLeft(null);
-            return;
-        }
-
-        // Start countdown
-        setTimeLeft(TURN_DURATION_SECONDS);
 
         const interval = setInterval(() => {
             setTimeLeft(prev => {
@@ -137,11 +140,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [gameState?.currentPlayerId, gameState?.phase, localPlayerId]);
+    }, [gameState?.phase, isPaused, timeLeft === null]);
 
     // Auto-play or auto-pass when timer expires
     useEffect(() => {
-        if (timeLeft !== 0) return;
+        if (timeLeft !== 0 || isPaused) return;
 
         // Use ref to get fresh state
         const freshState = gameStateRef.current;
@@ -217,8 +220,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         // Multiplayer loading...
         const unsubscribe = subscribeToRoom(gameId, (data) => {
             setRoomData(data);
+            // Sync game state - status null means we return to lobby
+            setGameState(data.gameState || null);
             if (data.gameState) {
-                setGameState(data.gameState);
                 setIsStarting(false); // Game loaded successfully
             }
         });
@@ -273,13 +277,14 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         const fullState: GameState = {
             gameId: gameId || 'solo-' + Date.now(),
             players: players,
-            talonMort: partialState.talonMort as Domino[], // Now populated
+            talonMort: partialState.talonMort as Domino[],
             table: partialState.table!,
             currentPlayerId: firstPlayerId,
             phase: 'PLAYING',
             firstPlayerOfRound: null,
             history: [],
-            winningCondition: 1, // Single round for solo
+            winningCondition: winningCondition !== undefined ? Number(winningCondition) : 3,
+            gameMode: gameMode || 'MANCHE',
             lastActionTimestamp: Date.now()
         };
         SoundManager.playSound('shuffle');
@@ -294,7 +299,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         setGameState(fullState);
     };
 
-    const createInitialState = (playerNames: string[]): GameState => {
+    const createInitialState = (playerNames: string[], gMode: GameMode = 'MANCHE', wCond: number = 3): GameState => {
         const partialState = dealGame(playerNames);
         const players = partialState.players as Player[];
 
@@ -310,7 +315,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             phase: 'PLAYING',
             firstPlayerOfRound: null,
             history: [],
-            winningCondition: 3,
+            winningCondition: wCond,
+            gameMode: gMode,
             lastActionTimestamp: Date.now()
         };
     };
@@ -327,7 +333,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         }
 
         try {
-            const initialState = createInitialState(playerNames);
+            const initialState = createInitialState(
+                playerNames,
+                roomData.gameMode || 'MANCHE',
+                roomData.winningCondition || 3
+            );
             initialState.players = initialState.players.map((p, i) => {
                 if (i < realPlayers.length) {
                     return {
@@ -353,13 +363,47 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
     const handlePlayDomino = async (domino: Domino) => {
         // ATOMIC GUARD
-        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING') return;
+        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) return;
         if (gameState.currentPlayerId !== localPlayerId) return;
 
+        // Check for double side possibility
+        const { canPlay, side } = checkValidMove(domino, gameState.table.leftValue, gameState.table.rightValue);
+
+        if (!canPlay) return;
+
+        // Special case: Both sides (left and right) are possible
+        const canPlayLeft = checkValidMove(domino, gameState.table.leftValue, null).canPlay;
+        const canPlayRight = checkValidMove(domino, null, gameState.table.rightValue).canPlay;
+
+        // ONLY offer choice if BOTH sides are actually valid and different values
+        if (canPlayLeft && canPlayRight && gameState.table.leftValue !== gameState.table.rightValue) {
+            SoundManager.playSound('notify'); // Feedback for selection
+            setPendingDomino(domino);
+            return;
+        }
+
+        executeMove(domino);
+    };
+
+    const confirmSidePlay = (side: 'left' | 'right') => {
+        if (!pendingDomino || !gameState) return;
+
+        // Pass the side constraint to handleTurn logic if we can
+        // For now, we manually handle the side in executesMove or just call executeMove
+        // Wait, handleTurn doesn't take side. It determines it.
+        // I need to update LogicEngine.ts to support forcing a side.
+
+        executeMove(pendingDomino, side);
+        setPendingDomino(null);
+    };
+
+    const executeMove = async (domino: Domino, forcedSide?: 'left' | 'right') => {
+        if (isProcessing.current || !gameState) return;
         isProcessing.current = true;
 
         try {
-            const newState = handleTurn(gameState, localPlayerId, domino);
+            // Updated handleTurn in LogicEngine to accept optional side
+            const newState = handleTurn(gameState, localPlayerId, domino, forcedSide);
 
             // Audio & Haptics
             SoundManager.playClack();
@@ -379,7 +423,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
     const handlePassTurn = async () => {
         // ATOMIC GUARD
-        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING') return;
+        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) return;
         if (gameState.currentPlayerId !== localPlayerId) return;
 
         isProcessing.current = true;
@@ -491,54 +535,103 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
 
 
-    const handleReplay = () => {
-        // Dans GameOverScreen, ce bouton est 'Back to Lobby' si match terminé
+    const handleReplay = async () => {
         if (isSoloMode) {
-            navigation.navigate('home' as never); // Force return to home/lobby
+            navigation.navigate('home' as never);
             return;
         }
 
-        if (gameId && roomData?.players[0].uid === userId) {
-            // Logic to restart online game would go here (reset state)
-            Alert.alert("Notice", "Replay logic for online not fully implemented yet.");
+        if (gameId && roomData) {
+            const isHost = roomData.players[0].uid === userId;
+            if (isHost) {
+                try {
+                    await resetRoomToLobby(gameId);
+                    await clearRematchVotes(gameId); // Also clear votes when going back to lobby
+                } catch (e: any) {
+                    Alert.alert("Erreur", "Impossible de réinitialiser la salle : " + e.message);
+                }
+            } else {
+                Alert.alert("Attente", "Seul l'hôte peut ramener tout le monde au lobby.");
+            }
         } else {
+            // Local game (not solo mode route, but no gameId)
             startNewLocalGame();
+        }
+    };
+
+    const handleRestartMatch = () => {
+        if (isSoloMode) {
+            startSoloGame();
+        }
+    };
+
+    const handleVoteRematch = async () => {
+        if (!gameId) return;
+        try {
+            await voteForRematch(gameId, localPlayerId);
+        } catch (e: any) {
+            Alert.alert("Erreur", "Impossible de voter pour la revanche : " + e.message);
+        }
+    };
+
+    const handleLeaveRoom = async () => {
+        if (!gameId) {
+            navigation.navigate('home' as never);
+            return;
+        }
+
+        try {
+            await leaveRoom(gameId, localPlayerId);
+            navigation.navigate('home' as never);
+        } catch (e: any) {
+            console.error("Error leaving room", e);
+            navigation.navigate('home' as never); // Fallback exit
         }
     };
 
     const handleNextRound = () => {
         if (!gameState) return;
 
+        const isMancheEnd = gameState.phase === 'MANCHE_END';
+
         // Get player names preserving their order
         const playerNames = gameState.players.map(p => p.name);
         const previousData = gameState.players.map(p => ({
             id: p.id,
-            wins: p.wins,
             totalPoints: p.totalPoints,
+            mancheWins: p.mancheWins,
+            totalCochons: p.totalCochons,
             isBot: p.isBot
         }));
-        const winnerId = gameState.firstPlayerOfRound; // Winner of previous round
+
+        let winnerId = gameState.firstPlayerOfRound; // Winner of previous round
 
         // Deal new game
         const partialState = dealGame(playerNames);
         const newPlayers = (partialState.players as Player[]).map((p, i) => ({
             ...p,
             id: gameState.players[i].id, // Preserve player IDs
-            wins: previousData[i].wins, // Preserve wins
-            totalPoints: previousData[i].totalPoints, // Preserve points
-            isBot: previousData[i].isBot, // Preserve bot status/auto-play
+            wins: isMancheEnd ? 0 : gameState.players[i].wins, // Reset wins if new manche
+            mancheWins: previousData[i].mancheWins,
+            totalPoints: previousData[i].totalPoints,
+            totalCochons: previousData[i].totalCochons,
+            isBot: previousData[i].isBot,
         }));
 
+        // If no winner (TIE), determine starter based on highest double in NEW hands
+        if (!winnerId) {
+            winnerId = determineFirstPlayer(newPlayers);
+        }
+
         const newState: GameState = {
-            gameId: gameState.gameId,
+            ...gameState,
             players: newPlayers,
             talonMort: partialState.talonMort as Domino[],
             table: partialState.table!,
-            currentPlayerId: winnerId || newPlayers[0].id, // Winner starts, or fallback to first player
+            currentPlayerId: winnerId,
             phase: 'PLAYING',
-            firstPlayerOfRound: winnerId,
+            firstPlayerOfRound: null,
             history: [],
-            winningCondition: gameState.winningCondition,
             lastActionTimestamp: Date.now()
         };
 
@@ -546,10 +639,44 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             SoundManager.playSound('shuffle');
             setGameState(newState);
         } else {
+            // Multiplayer: Only host should trigger next round to avoid double state creation
+            const isHost = roomData?.players[0].uid === userId;
+            if (!isHost) {
+                Alert.alert("Attente", "Seul l'hôte peut lancer la manche suivante.");
+                return;
+            }
+
             SoundManager.playSound('shuffle');
             updateGameState(gameId, newState).catch(err => console.error("Failed to update game state", err));
         }
     };
+
+    // Rematch logic - HOST ONLY checks votes and triggers restart
+    useEffect(() => {
+        if (isSoloMode || !gameId || !roomData) return;
+
+        const isHost = roomData.players[0].uid === localPlayerId;
+        if (!isHost) return;
+
+        // If no votes yet, ignore
+        if (!roomData.rematchVotes || roomData.rematchVotes.length === 0) return;
+
+        const allVoted = roomData.players.every(p => roomData.rematchVotes?.includes(p.uid));
+
+        if (allVoted && roomData.players.length > 0) {
+            console.log("🎲 Everyone voted for rematch! Starting new game...");
+            const restartGame = async () => {
+                try {
+                    await clearRematchVotes(gameId);
+                    // handleStartGame already shuffles and starts
+                    await handleStartGame();
+                } catch (e) {
+                    console.error("Rematch start error", e);
+                }
+            };
+            restartGame();
+        }
+    }, [roomData?.rematchVotes, roomData?.players.length, isSoloMode, gameId, localPlayerId]);
 
     // Keep ref in sync with state for Bot useEffect
     useEffect(() => {
@@ -574,7 +701,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
         // Only Host executes bot moves in multiplayer
         const isHost = roomData?.players[0].uid === localPlayerId;
-        const shouldExecuteBot = isSoloMode || !gameId || isHost;
+        const shouldExecuteBot = (isSoloMode || !gameId || isHost) && !isPaused;
         if (!shouldExecuteBot) return;
 
         console.log(`[Bot Loop] Scheduling Bot turn for ${currentPlayer.name}`);
@@ -584,8 +711,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             const freshState = gameStateRef.current;
 
             // CRITICAL: Re-check phase with fresh state
-            if (!freshState || freshState.phase !== 'PLAYING') {
-                console.log(`[Bot Timer] Fresh state phase is ${freshState?.phase}, aborting.`);
+            if (!freshState || freshState.phase !== 'PLAYING' || isPaused) {
+                console.log(`[Bot Timer] Game is paused or phase is ${freshState?.phase}, aborting.`);
                 return;
             }
 
@@ -642,7 +769,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             console.log(`[Bot Loop] Cleanup - clearing timer`);
             clearTimeout(timer);
         };
-    }, [gameState?.currentPlayerId, gameState?.phase, roomData, localPlayerId, isSoloMode, gameId]);
+    }, [gameState?.currentPlayerId, gameState?.phase, roomData, localPlayerId, isSoloMode, gameId, isPaused]);
 
     // BOUDE Resolution Effect - Automatically resolve blocked games
     useEffect(() => {
@@ -661,7 +788,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
             if (isTie) {
                 console.log(`[BOUDE] Tie detected - restarting round`);
-                // Restart the round for tie
                 if (isSoloMode) {
                     startSoloGame();
                 } else {
@@ -702,34 +828,37 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
         return <LobbyScreen key="lobby-screen" roomData={roomData} currentUserId={localPlayerId} onStartGame={handleStartGame} />;
     }
 
+    const isGameOver = gameState.phase === 'MATCH_END' || gameState.phase === 'MANCHE_END' || gameState.phase === 'ROUND_END' || gameState.phase === 'BOUDE';
     const localPlayer = gameState.players.find(p => p.id === localPlayerId);
-    const isGameOver = gameState.phase === 'MATCH_END' || gameState.phase === 'ROUND_END' || gameState.phase === 'BOUDE';
-
     const isMyTurn = gameState.currentPlayerId === localPlayerId;
 
-    // Check if player has any valid move
+    const getPlayerScore = (player: Player) => {
+        if (!gameState) return "";
+        switch (gameState.gameMode) {
+            case 'MANCHE': return `${player.mancheWins} ${player.mancheWins > 1 ? 'Manches' : 'Manche'}`;
+            case 'SCORE': return `${player.totalPoints} pts`;
+            case 'COCHON': return `${player.totalCochons} 🐷`;
+            default: return "";
+        }
+    };
+
     const canPlayAny = localPlayer?.hand.some(d =>
         checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
     ) ?? false;
 
-    // Get opponent players and formatting for Bot display
-    const opponents = gameState.players
-        .filter(p => p.id !== localPlayerId)
-        .map(p => {
-            let name = p.name;
-            if (p.isBot) {
-                if (name.toLowerCase().includes('easy')) name = 'Easy Bot';
-                else if (name.toLowerCase().includes('medium') || name.toLowerCase().includes('intermediate')) name = 'Middle Bot';
-            }
-            return {
-                ...p,
-                name: name,
-                avatarId: p.isBot ? '🤖' : p.avatarId
-            };
-        });
+    // Get opponent players
+    const opponents = gameState.players.filter(p => p.id !== localPlayerId);
 
     return (
         <View style={styles.container}>
+            {/* CHOICE BANNER (Overlay) */}
+            {pendingDomino && (
+                <View style={styles.choiceBanner} pointerEvents="none">
+                    <Animated.View entering={FadeIn.duration(300)}>
+                        <Text style={styles.choiceText}>CHOISISSEZ UN CÔTÉ</Text>
+                    </Animated.View>
+                </View>
+            )}
             {/* Purple Gradient Background */}
             <LinearGradient
                 colors={['#1a0a2e', '#2d1b4e', '#3a2560']}
@@ -738,6 +867,17 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
 
             <StatusBar barStyle="light-content" translucent />
 
+
+            {/* PAUSE BUTTON - Solo Mode Only */}
+            {isSoloMode && gameState && gameState.phase === 'PLAYING' && (
+                <TouchableOpacity
+                    style={[styles.pauseBottomButton, { top: Math.max(insets.top + 10, 20), left: 20 + insets.left }]}
+                    onPress={() => setIsPaused(!isPaused)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name={isPaused ? "play" : "pause"} size={28} color="#FFD700" />
+                </TouchableOpacity>
+            )}
 
             {/* INFO BUTTON - Discreet top-center button */}
             {!isSoloMode && gameId && (
@@ -795,137 +935,86 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
             )}
 
 
-            <GameTable gameState={gameState} theme={tableTheme} />
+            <GameTable
+                gameState={gameState}
+                theme={tableTheme}
+                pendingDomino={pendingDomino}
+                onSideSelect={pendingDomino ? confirmSidePlay : undefined}
+            />
 
             {/* UI LAYER */}
             <View style={styles.uiLayer} pointerEvents="box-none">
 
-                {/* TOP RIGHT: Bot Avatar (Casino Style) - ABSOLUTE POSITIONING */}
-                {isSoloMode && opponents[0] && (
-                    <View style={[styles.botAvatarAbsolute, { top: Math.max(insets.top + 10, 40), right: 20 + insets.right }]}>
-                        <Animated.View style={[
-                            styles.playerCard,
-                            gameState.currentPlayerId === opponents[0].id && animatedBorderStyle
-                        ]}>
-                            <View style={[styles.avatarCircleTop, { overflow: 'hidden' }]}>
-                                {opponents[0].avatarId && AVAILABLE_AVATARS.includes(opponents[0].avatarId as AvatarId) ? (
-                                    <Image
-                                        source={getAvatarImage(opponents[0].avatarId)}
-                                        style={{
-                                            width: 60 * 1.6,
-                                            height: 60 * 1.6,
-                                            position: 'absolute',
-                                            top: -(60 * 1.6 - 60) * 0.25,
-                                        }}
-                                        resizeMode="cover"
-                                    />
-                                ) : (
-                                    <Text style={styles.avatarEmoji}>{opponents[0].avatarId || '🤖'}</Text>
-                                )}
-                            </View>
-                            <View style={styles.playerInfo}>
-                                <Text style={styles.playerNameTop}>{opponents[0].name}</Text>
-                                <Text style={styles.playerScore}>{opponents[0].hand.length}/7</Text>
-                            </View>
-                            {gameState.currentPlayerId === opponents[0].id && (
-                                <View style={styles.activeIndicator} />
-                            )}
-                        </Animated.View>
-                    </View>
-                )}
-
-                {/* MULTIPLAYER: Opponent A - Top Left with FadeIn */}
-                {!isSoloMode && opponents[0] && (
+                {/* Opponents Display - Both Solo and Multiplayer now use same layout for 3 players */}
+                {opponents[0] && (
                     <Animated.View
                         entering={FadeInLeft.delay(200).duration(600)}
                         style={[styles.topLeftArea, { top: Math.max(insets.top + 5, 15), left: Math.max(insets.left + 10, 10) }]}
                     >
                         <PlayerAvatar
-                            key={`${opponents[0].id}-${gameState.currentPlayerId}`}
+                            key={`${opponents[0]?.id}-${gameState.currentPlayerId}`}
                             player={opponents[0]}
-                            isActive={gameState.currentPlayerId === opponents[0].id}
-                            showTimer={gameState.currentPlayerId === opponents[0].id && !isGameOver && gameState.phase === 'PLAYING'}
+                            isActive={gameState.currentPlayerId === opponents[0]?.id}
+                            showTimer={gameState.currentPlayerId === opponents[0]?.id && !isGameOver && gameState.phase === 'PLAYING'}
                             timerDuration={TURN_DURATION_SECONDS}
                             size={52}
                             layout="vertical"
                             namePlacement="below"
+                            score={getPlayerScore(opponents[0])}
                             position="top-left"
-                            onTimeout={() => handleTimeout(opponents[0].id)}
+                            onTimeout={() => handleTimeout(opponents[0]?.id)}
                         />
                     </Animated.View>
                 )}
 
-                {/* MULTIPLAYER: Opponent B - Top Right with FadeIn */}
-                {!isSoloMode && opponents[1] && (
+                {opponents[1] && (
                     <Animated.View
                         entering={FadeInRight.delay(400).duration(600)}
                         style={[styles.topRightCorner, { top: Math.max(insets.top + 5, 15), right: Math.max(insets.right + 10, 10) }]}
                     >
                         <PlayerAvatar
-                            key={`${opponents[1].id}-${gameState.currentPlayerId}`}
+                            key={`${opponents[1]?.id}-${gameState.currentPlayerId}`}
                             player={opponents[1]}
-                            isActive={gameState.currentPlayerId === opponents[1].id}
-                            showTimer={gameState.currentPlayerId === opponents[1].id && !isGameOver && gameState.phase === 'PLAYING'}
+                            isActive={gameState.currentPlayerId === opponents[1]?.id}
+                            showTimer={gameState.currentPlayerId === opponents[1]?.id && !isGameOver && gameState.phase === 'PLAYING'}
                             timerDuration={TURN_DURATION_SECONDS}
                             size={52}
                             layout="vertical"
                             namePlacement="below"
+                            score={getPlayerScore(opponents[1])}
                             position="top-right"
-                            onTimeout={() => handleTimeout(opponents[1].id)}
+                            onTimeout={() => handleTimeout(opponents[1]?.id)}
                         />
                     </Animated.View>
                 )}
 
                 {/* Pass Button Area - HIGH Z-INDEX */}
                 {isMyTurn && !canPlayAny && gameState.phase === 'PLAYING' && (
-                    <View style={[styles.passContainer, { bottom: 100 + insets.bottom, zIndex: 100 }]}>
+                    <View style={[styles.passContainer, { bottom: 120 + insets.bottom, zIndex: 100 }]}>
                         <TouchableOpacity style={styles.passButton} onPress={handlePassTurn}>
                             <Text style={styles.passButtonText}>Passer son tour</Text>
                         </TouchableOpacity>
                     </View>
                 )}
 
-                {/* BOTTOM LEFT: Local Player (Me) - Casino Style with FadeIn */}
+                {/* BOTTOM LEFT: Local Player (Me) */}
                 {localPlayer && (
                     <Animated.View
                         entering={FadeInLeft.delay(600).duration(600)}
                         style={[styles.bottomLeftArea, { bottom: 20 + insets.bottom, left: 20 + insets.left }]}
                     >
-                        <Animated.View style={[styles.playerCardMe, isMyTurn && animatedBorderStyle]}>
-                            <View style={[styles.avatarCircleBottom, { overflow: 'hidden' }]}>
-                                {localPlayer.avatarId && AVAILABLE_AVATARS.includes(localPlayer.avatarId as AvatarId) ? (
-                                    <Image
-                                        source={getAvatarImage(localPlayer.avatarId)}
-                                        style={{
-                                            width: 50 * 1.6,
-                                            height: 50 * 1.6,
-                                            position: 'absolute',
-                                            top: -(50 * 1.6 - 50) * 0.25,
-                                        }}
-                                        resizeMode="cover"
-                                    />
-                                ) : (
-                                    <Text style={styles.avatarEmoji}>{localPlayer.name[0]}</Text>
-                                )}
-                            </View>
-                            <View style={styles.playerInfoMe}>
-                                <Text style={styles.playerNameMe}>{localPlayer.name}</Text>
-                                <Text style={styles.playerScoreMe}>{localPlayer.hand.length}/7</Text>
-                            </View>
-                            {isMyTurn && (
-                                <View style={styles.activeIndicatorMe} />
-                            )}
-                        </Animated.View>
+                        <PlayerAvatar
+                            player={localPlayer}
+                            isActive={isMyTurn}
+                            showTimer={isMyTurn && !isGameOver && gameState.phase === 'PLAYING'}
+                            timerDuration={TURN_DURATION_SECONDS}
+                            size={60}
+                            layout="horizontal"
+                            score={getPlayerScore(localPlayer)}
+                            position="bottom"
+                            onTimeout={() => handleTimeout(localPlayerId)}
+                        />
                     </Animated.View>
-                )}
-
-                {/* BOTTOM RIGHT: Timer Display - Circular like avatars */}
-                {isMyTurn && !isGameOver && gameState.phase === 'PLAYING' && timeLeft !== null && (
-                    <View style={[styles.timerContainer, { bottom: 20 + insets.bottom, right: 20 + insets.right }]}>
-                        <View style={styles.timerCircle}>
-                            <Text style={styles.timerText}>{timeLeft}</Text>
-                        </View>
-                    </View>
                 )}
             </View>
 
@@ -936,6 +1025,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                         hand={localPlayer.hand}
                         onPlayDomino={handlePlayDomino}
                         disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING'}
+                        leftValue={gameState.table.leftValue as any}
+                        rightValue={gameState.table.rightValue as any}
                     />
                 )}
             </View>
@@ -946,7 +1037,34 @@ export default function GameScreen({ gameId, userId, mode, difficulty }: GameScr
                     currentUserId={localPlayerId}
                     onReplay={handleReplay}
                     onNextRound={handleNextRound}
+                    onRestartMatch={handleRestartMatch}
+                    onVoteRematch={handleVoteRematch}
+                    onLeaveRoom={handleLeaveRoom}
+                    rematchVotes={roomData?.rematchVotes}
+                    isSolo={isSoloMode}
                 />
+            )}
+
+            {/* PAUSE OVERLAY */}
+            {isPaused && (
+                <View style={styles.pauseOverlay}>
+                    <Animated.View entering={FadeInLeft.duration(300)} style={styles.pauseContent}>
+                        <Ionicons name="pause-circle" size={80} color="#FFD700" />
+                        <Text style={styles.pauseTitle}>PAUSE</Text>
+                        <TouchableOpacity
+                            style={styles.resumeButton}
+                            onPress={() => setIsPaused(false)}
+                        >
+                            <Text style={styles.resumeButtonText}>REPRENDRE</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.quitButton}
+                            onPress={() => navigation.navigate('home' as never)}
+                        >
+                            <Text style={styles.quitButtonText}>QUITTER LA PARTIE</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
             )}
 
             {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
@@ -1126,6 +1244,71 @@ const styles = StyleSheet.create({
         fontSize: 14,
         textTransform: 'uppercase',
     },
+    pauseBottomButton: {
+        position: 'absolute',
+        zIndex: 100,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#FFD700',
+    },
+    pauseOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 200,
+    },
+    pauseContent: {
+        alignItems: 'center',
+        backgroundColor: '#1a2a1a',
+        padding: 40,
+        borderRadius: 30,
+        borderWidth: 2,
+        borderColor: '#FFD700',
+        width: '80%',
+    },
+    pauseTitle: {
+        color: '#FFF',
+        fontSize: 32,
+        fontWeight: 'bold',
+        marginTop: 20,
+        marginBottom: 30,
+        letterSpacing: 4,
+    },
+    resumeButton: {
+        backgroundColor: '#4CAF50',
+        paddingHorizontal: 40,
+        paddingVertical: 15,
+        borderRadius: 30,
+        width: '100%',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    resumeButtonText: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    quitButton: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        paddingHorizontal: 40,
+        paddingVertical: 15,
+        borderRadius: 30,
+        width: '100%',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    quitButtonText: {
+        color: '#CCC',
+        fontSize: 16,
+        fontWeight: '600',
+    },
     // Info Button - Discreet top-center button
     infoButton: {
         position: 'absolute',
@@ -1232,5 +1415,31 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.7)',
         fontSize: 14,
         fontWeight: '600',
+    },
+    choiceBanner: {
+        position: 'absolute',
+        top: 150,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 200,
+    },
+    choiceText: {
+        backgroundColor: 'rgba(255, 215, 0, 0.95)',
+        color: '#1a0a2e',
+        fontSize: 18,
+        fontWeight: '900',
+        paddingHorizontal: 25,
+        paddingVertical: 12,
+        borderRadius: 30,
+        borderWidth: 2,
+        borderColor: '#FFF',
+        overflow: 'hidden',
+        textAlign: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 10,
     },
 });

@@ -2,19 +2,24 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
-import { Domino } from '../core/types';
+import { Domino, DominoSide } from '../core/types';
 import { DominoTile } from './DominoTile';
+import { checkValidMove } from '../core/LogicEngine';
 
 interface PlayerHandProps {
     hand: Domino[];
     onPlayDomino: (domino: Domino) => void;
     disabled?: boolean;
+    leftValue?: DominoSide | null; // NEW: Table extremities
+    rightValue?: DominoSide | null; // NEW: Table extremities
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
     hand,
     onPlayDomino,
     disabled = false,
+    leftValue = null,
+    rightValue = null,
 }) => {
     return (
         <View style={styles.container}>
@@ -34,10 +39,11 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                         <DominoTile
                             left={domino.left}
                             right={domino.right}
-                            size={40} // Slightly larger for better visibility
+                            size={40}
                             orientation="vertical"
                             onPress={() => onPlayDomino(domino)}
                             disabled={disabled}
+                            isPlayable={!disabled && checkValidMove(domino, leftValue, rightValue).canPlay}
                             entering={FadeInDown.delay(index * 10).springify()}
                         />
                     </Animated.View>

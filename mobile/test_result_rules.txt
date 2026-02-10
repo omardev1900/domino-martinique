@@ -1,0 +1,16 @@
+PASS src/__tests__/rules_scenarios.test.ts
+  Domino Martiniquais Rules - Termination Scenarios
+    √ Scenario 2-1-1: Should end in CHIRE (No cochon) (4 ms)
+    √ Scenario 3-0-0: Should reward 5 pts (2 cochons) (1 ms)
+    √ Scenario 3-1-0: Should reward 4 pts (1 cochon) (1 ms)
+    √ Scenario 2-1-0: Should continue round (Cochon remains)
+    Tie-break Logic (BOUDE)
+      √ Tie-break: Highest Double wins (1 ms)
+      √ Tie-break: Highest Double among multiple doubles
+      √ Tie-break: If no doubles, highest sum among tied players wins (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       7 passed, 7 total
+Snapshots:   0 total
+Time:        1.475 s, estimated 2 s
+Ran all test suites matching /src\\__tests__\\rules_scenarios.test.ts/i.

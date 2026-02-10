@@ -15,6 +15,7 @@ interface PlayerAvatarProps {
     position?: 'top-left' | 'top-right' | 'bottom' | 'top-center';
     layout?: 'vertical' | 'horizontal';
     namePlacement?: 'above' | 'below'; // Where to place the name in vertical layout
+    score?: string; // NEW: Current score to display (e.g. "2 wins" or "45 pts")
     onTimeout?: () => void; // Callback when timer expires
 }
 
@@ -30,6 +31,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     position = 'bottom',
     layout = 'vertical',
     namePlacement = 'below',
+    score,
     onTimeout
 }) => {
     const strokeWidth = 4;
@@ -83,9 +85,12 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
 
     const isHorizontal = layout === 'horizontal';
 
-    // Check if avatarId is a valid image avatar (starts with 'avatar_')
-    const isImageAvatar = player.avatarId && player.avatarId.startsWith('avatar_');
-    const avatarImage = isImageAvatar ? getAvatarImage(player.avatarId) : null;
+    // Use player's avatarId or fallback to default 'avatar_01'
+    const finalAvatarId = (player.avatarId && player.avatarId.startsWith('avatar_'))
+        ? (player.avatarId as AvatarId)
+        : 'avatar_01';
+
+    const avatarImage = getAvatarImage(finalAvatarId);
 
     // Image scaling factor to zoom into the face (top portion)
     // 1.8 means the image will be 80% larger, showing only the top ~55%
@@ -105,6 +110,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     >
                         {player.name}
                     </Text>
+                    {score && <Text style={styles.playerScore}>{score}</Text>}
                 </View>
             )}
 
@@ -128,7 +134,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         <Text style={[styles.countdown, { fontSize: size / 2.2 }]}>
                             {secondsLeft}
                         </Text>
-                    ) : isImageAvatar && avatarImage ? (
+                    ) : (
                         <Image
                             source={avatarImage}
                             style={{
@@ -140,10 +146,6 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             }}
                             resizeMode="cover"
                         />
-                    ) : (
-                        <Text style={[styles.defaultAvatar, { fontSize: size / 1.5 }]}>
-                            {player.avatarId || '👤'}
-                        </Text>
                     )}
                 </View>
 
@@ -174,7 +176,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             strokeLinecap="round"
                             animatedProps={animatedProps}
                             rotation="-90"
-                            origin={`${(size + 12) / 2}, ${(size + 12) / 2}`}
+                            originX={(size + 12) / 2}
+                            originY={(size + 12) / 2}
                         />
                     </Svg>
                 )}
@@ -189,6 +192,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     >
                         {player.name}
                     </Text>
+                    {score && <Text style={styles.playerScore}>{score}</Text>}
                 </View>
             )}
 
@@ -201,6 +205,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     >
                         {player.name}
                     </Text>
+                    {score && <Text style={[styles.playerScore, styles.scoreHorizontal]}>{score}</Text>}
                 </View>
             )}
         </View>
@@ -266,4 +271,14 @@ const styles = StyleSheet.create({
     nameVertical: {
         maxWidth: 80,
     },
+    playerScore: {
+        color: '#FFD700',
+        fontSize: 10,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginTop: 1,
+    },
+    scoreHorizontal: {
+        textAlign: 'left',
+    }
 });

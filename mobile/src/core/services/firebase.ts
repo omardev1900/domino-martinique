@@ -28,7 +28,7 @@ import {
     where,
     QuerySnapshot
 } from 'firebase/firestore';
-import { GameRoom, GameState, PlayerProfile, RoomStatus } from '../types';
+import { GameRoom, GameState, PlayerProfile, RoomStatus, GameMode } from '../types';
 
 // Configuration Firebase
 const firebaseConfig = {
@@ -171,9 +171,24 @@ export const joinRoom = async (roomId: string, playerProfile: PlayerProfile): Pr
 };
 
 /**
+ * Updates room settings (game mode, winning condition)
+ */
+export const updateRoomSettings = async (roomId: string, settings: { gameMode?: GameMode, winningCondition?: number }): Promise<void> => {
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    try {
+        await updateDoc(roomRef, {
+            ...settings,
+            lastActivity: Date.now()
+        });
+        console.log(`✅ Room settings updated for ${roomId}:`, settings);
+    } catch (e) {
+        console.error("Error updating room settings: ", e);
+        throw e;
+    }
+};
+
+/**
  * Leaving a room
- * @param roomId 
- * @param userId 
  */
 export const leaveRoom = async (roomId: string, userId: string): Promise<void> => {
     const roomRef = doc(db, ROOMS_COLLECTION, roomId);
@@ -242,6 +257,23 @@ export const startGame = async (roomId: string, initialGameState: GameState): Pr
 };
 
 /**
+ * Resets the room to lobby state (host only)
+ * @param roomId 
+ */
+export const resetRoomToLobby = async (roomId: string): Promise<void> => {
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    try {
+        await updateDoc(roomRef, {
+            status: RoomStatus.WAITING,
+            gameState: null
+        });
+    } catch (e) {
+        console.error("Error resetting room: ", e);
+        throw e;
+    }
+};
+
+/**
  * Updates the game state (sync moves)
  * @param roomId 
  * @param newGameState 
@@ -266,6 +298,39 @@ export const updateGameState = async (roomId: string, newGameState: Partial<Game
         await updateDoc(roomRef, updateData);
     } catch (e) {
         console.error("Error updating game state: ", e);
+        throw e;
+    }
+};
+
+/**
+ * Votes for a rematch in a finished game
+ * @param roomId 
+ * @param userId 
+ */
+export const voteForRematch = async (roomId: string, userId: string): Promise<void> => {
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    try {
+        await updateDoc(roomRef, {
+            rematchVotes: arrayUnion(userId)
+        });
+    } catch (e) {
+        console.error("Error voting for rematch: ", e);
+        throw e;
+    }
+};
+
+/**
+ * Clears all rematch votes (usually when starting a new game)
+ * @param roomId 
+ */
+export const clearRematchVotes = async (roomId: string): Promise<void> => {
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    try {
+        await updateDoc(roomRef, {
+            rematchVotes: []
+        });
+    } catch (e) {
+        console.error("Error clearing rematch votes: ", e);
         throw e;
     }
 };
