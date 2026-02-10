@@ -62,12 +62,32 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
     const HAND_SIZE = 7;
     const deck = shuffleDeck();
 
+    // Helper to find and remove a specific domino from the deck
+    const pull = (l: number, r: number): Domino => {
+        const idx = deck.findIndex(d => (d.left === l && d.right === r) || (d.left === r && d.right === l));
+        if (idx === -1) return deck.pop()!; // Fallback
+        return deck.splice(idx, 1)[0];
+    };
+
+    // --- DEBUG SCÉNARIO BOUDÉ ---
+    const testPlayerHand: Domino[] = [
+        pull(6, 6), // Seul 6 du jeu sur la table
+        pull(1, 1), pull(1, 2), pull(1, 3), pull(1, 4), pull(1, 5), pull(0, 0)
+    ];
+    const testBot1Hand: Domino[] = [
+        pull(2, 2), pull(2, 3), pull(2, 4), pull(2, 5), pull(0, 1), pull(0, 2), pull(0, 3)
+    ];
+    const testBot2Hand: Domino[] = [
+        pull(3, 3), pull(3, 4), pull(3, 5), pull(4, 4), pull(4, 5), pull(5, 5), pull(0, 4)
+    ];
+    const testTalon = deck.splice(0, 7);
+
     const players: Player[] = [
         {
             id: playerId,
             name: playerName,
             avatarId: avatarId,
-            hand: deck.slice(0, HAND_SIZE),
+            hand: testPlayerHand,
             handSize: HAND_SIZE,
             wins: 0,
             mancheWins: 0,
@@ -79,7 +99,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         {
             id: 'bot-1',
             name: botDifficulty === 'beginner' ? 'Bot Facile' : 'Bot Moyen',
-            hand: deck.slice(HAND_SIZE, HAND_SIZE * 2),
+            hand: testBot1Hand,
             handSize: HAND_SIZE,
             wins: 0,
             mancheWins: 0,
@@ -91,7 +111,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         {
             id: 'bot-2',
             name: botDifficulty === 'beginner' ? 'Bot Débutant' : 'Bot Avancé',
-            hand: deck.slice(HAND_SIZE * 2, HAND_SIZE * 3),
+            hand: testBot2Hand,
             handSize: HAND_SIZE,
             wins: 0,
             mancheWins: 0,
@@ -102,7 +122,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         },
     ];
 
-    const talonMort = deck.slice(HAND_SIZE * 3); // Remaining 7 tiles
+    const talonMort = testTalon;
 
     return {
         players,
@@ -299,23 +319,37 @@ export const handleEndOfRound = (
  * handleTurn : Gère le coup d'un joueur (humain ou bot)
  * Met à jour le plateau, la main du joueur, et passe au suivant.
  */
+import { getValidMoves } from './DominoEngine';
+
+/**
+ * Met à jour le plateau, la main du joueur, et passe au suivant.
+ */
 export const handleTurn = (
     gameState: GameState,
     playerId: PlayerId,
     domino: Domino,
     forcedSide?: 'left' | 'right'
 ): GameState => {
-    // 1. Validation Logic
-    const { canPlay, side, isReversed } = checkValidMove(
-        domino,
-        forcedSide === 'right' ? null : gameState.table.leftValue,
-        forcedSide === 'left' ? null : gameState.table.rightValue
-    );
+    // 1. Validation Logic with the new engine
+    const allValidMoves = getValidMoves([domino], {
+        left: gameState.table.leftValue,
+        right: gameState.table.rightValue
+    });
 
-    // If a side was forced, ensure the resulting 'side' matches accurately
-    if (!canPlay || !side || (forcedSide && side !== forcedSide)) {
-        throw new Error(`Invalid move: Domino cannot be played on the ${forcedSide || 'selected'} side.`);
+    // Filter by forcedSide if provided
+    const possibleMoves = forcedSide
+        ? allValidMoves.filter(m => m.side === forcedSide)
+        : allValidMoves;
+
+    if (possibleMoves.length === 0) {
+        throw new Error(`Invalid move: Domino cannot be played ${forcedSide ? 'on the ' + forcedSide + ' side' : 'anywhere'}.`);
     }
+
+    // On prend le premier coup valide (en cas d'ambiguïté sans forcedSide, ce qui ne devrait pas arriver pour un humain car GameScreen gère le choix)
+    const move = possibleMoves[0];
+    const side = move.side === 'start' ? 'left' : move.side;
+    const isReversed = move.isReversed;
+
 
     // Clone state deeply (simplified for structural clone)
     const newState: GameState = JSON.parse(JSON.stringify(gameState));

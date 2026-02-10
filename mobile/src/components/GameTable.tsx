@@ -1,12 +1,13 @@
 
 import React, { useMemo, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions, TouchableOpacity, Text } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, FadeIn, ZoomIn } from 'react-native-reanimated';
 import { GameState, Domino } from '../core/types';
 import { DominoTile } from './DominoTile';
 import { Ionicons } from '@expo/vector-icons';
 import { TABLE_THEMES, TableTheme } from '../core/themes/tableThemes';
-import { checkValidMove } from '../core/LogicEngine';
+import { getValidMoves, ValidMove } from '../core/DominoEngine';
+
 
 interface GameTableProps {
     gameState: GameState;
@@ -20,37 +21,40 @@ interface VisualTile {
     isReversed: boolean;
 }
 
-export const GameTable: React.FC<GameTableProps> = ({
-    gameState,
-    theme = 'classic',
-    pendingDomino,
-    onSideSelect
-}) => {
+/**
+ * Composant GameTable : Gère l'affichage du plateau de jeu et des dominos posés.
+ */
+export const GameTable: React.FC<GameTableProps> = ({ gameState, pendingDomino, onSideSelect, theme = 'luxury' }) => {
     const themeColors = TABLE_THEMES[theme];
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+    const isLandscape = screenWidth > screenHeight;
     const scale = useSharedValue(1);
 
-    // Filter which arrows should be shown based on actual validity
+    // Filter which arrows should be shown based on actual validity using the new engine
     const showLeftArrow = useMemo(() => {
         if (!pendingDomino || !onSideSelect) return false;
-        return checkValidMove(pendingDomino, gameState.table.leftValue, null).canPlay;
-    }, [pendingDomino, gameState.table.leftValue]);
+        const validMoves = getValidMoves([pendingDomino], { left: gameState.table.leftValue, right: null });
+        return validMoves.some((m: ValidMove) => m.side === 'left' || m.side === 'start');
+    }, [pendingDomino, gameState.table.leftValue, onSideSelect]);
 
     const showRightArrow = useMemo(() => {
         if (!pendingDomino || !onSideSelect) return false;
-        return checkValidMove(pendingDomino, null, gameState.table.rightValue).canPlay;
-    }, [pendingDomino, gameState.table.rightValue]);
+        const validMoves = getValidMoves([pendingDomino], { left: null, right: gameState.table.rightValue });
+        return validMoves.some((m: ValidMove) => m.side === 'right' || m.side === 'start');
+    }, [pendingDomino, gameState.table.rightValue, onSideSelect]);
+
 
     // Dynamic Zoom Logic
     useEffect(() => {
         const tileCount = gameState.table.sequence.length;
         let newScale = 1;
-        if (tileCount > 15) newScale = 0.55;
-        else if (tileCount > 12) newScale = 0.65;
-        else if (tileCount > 9) newScale = 0.75;
-        else if (tileCount > 6) newScale = 0.85;
+        if (tileCount > 15) newScale = isLandscape ? 0.45 : 0.55;
+        else if (tileCount > 12) newScale = isLandscape ? 0.55 : 0.65;
+        else if (tileCount > 9) newScale = isLandscape ? 0.65 : 0.75;
+        else if (tileCount > 6) newScale = isLandscape ? 0.75 : 0.85;
 
         scale.value = withSpring(newScale, { damping: 15, stiffness: 100 });
-    }, [gameState.table.sequence.length]);
+    }, [gameState.table.sequence.length, isLandscape]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }]
@@ -70,8 +74,12 @@ export const GameTable: React.FC<GameTableProps> = ({
     }, [gameState.table.sequence]);
 
     return (
-        <View style={styles.container}>
-            <View style={[styles.tableOuter, { backgroundColor: themeColors.border }]}>
+        <View style={[styles.container, isLandscape && styles.containerLandscape]}>
+            <View style={[
+                styles.tableOuter,
+                { backgroundColor: themeColors.border },
+                isLandscape && { aspectRatio: 2.2, width: '90%', maxWidth: 700 }
+            ]}>
                 <View style={[styles.tableInner, { backgroundColor: themeColors.felt }]}>
                     <ScrollView
                         horizontal
@@ -85,7 +93,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                                 {showLeftArrow && (
                                     <TouchableOpacity style={styles.sideSelector} onPress={() => onSideSelect?.('left')}>
                                         <Animated.View entering={ZoomIn.duration(300)} style={styles.sideSelectorInner}>
-                                            <Ionicons name="chevron-back" size={32} color="#FFD700" />
+                                            <Ionicons name="chevron-back" size={28} color="#FFD700" />
                                         </Animated.View>
                                     </TouchableOpacity>
                                 )}
@@ -96,7 +104,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                                             left={item.isReversed ? item.domino.right : item.domino.left}
                                             right={item.isReversed ? item.domino.left : item.domino.right}
                                             orientation={item.domino.isDouble ? 'vertical' : 'horizontal'}
-                                            size={32}
+                                            size={isLandscape ? 28 : 32}
                                             disabled
                                             noMargin
                                         />
@@ -107,7 +115,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                                 {showRightArrow && (
                                     <TouchableOpacity style={styles.sideSelector} onPress={() => onSideSelect?.('right')}>
                                         <Animated.View entering={ZoomIn.duration(300)} style={styles.sideSelectorInner}>
-                                            <Ionicons name="chevron-forward" size={32} color="#FFD700" />
+                                            <Ionicons name="chevron-forward" size={28} color="#FFD700" />
                                         </Animated.View>
                                     </TouchableOpacity>
                                 )}
@@ -128,6 +136,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingTop: 80,
         paddingBottom: 130,
+    },
+    containerLandscape: {
+        paddingTop: 40,
+        paddingBottom: 80,
     },
     tableOuter: {
         width: '95%',
@@ -173,13 +185,13 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     sideSelector: {
-        marginHorizontal: 15,
+        marginHorizontal: 30, // Increased margin to clear central message
         zIndex: 100,
     },
     sideSelectorInner: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
+        width: 70, // Slightly larger
+        height: 70,
+        borderRadius: 35,
         backgroundColor: 'rgba(0,0,0,0.85)',
         borderWidth: 3,
         borderColor: '#FFD700',

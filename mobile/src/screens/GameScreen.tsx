@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated';
@@ -10,8 +11,10 @@ import { PlayerAvatar } from '../components/PlayerAvatar';
 import { LobbyScreen } from './LobbyScreen';
 import { GameOverScreen } from './GameOverScreen';
 import { SettingsScreen } from './SettingsScreen';
-import { dealGame, dealGameSolo, handleTurn, passTurn, checkValidMove, determineFirstPlayer, resolveBoude } from '../core/LogicEngine';
+import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude } from '../core/LogicEngine';
+import { getValidMoves } from '../core/DominoEngine';
 import { getBotMove } from '../core/BotEngine';
+
 import { GameState, Domino, Player, PlayerId, GameRoom, RoomStatus, GameMode } from '../core/types';
 import { subscribeToRoom, updateGameState, leaveRoom, startGame, resetRoomToLobby, voteForRematch, clearRematchVotes } from '../core/services/firebase';
 import { Ionicons } from '@expo/vector-icons';
@@ -175,19 +178,23 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             return;
         }
 
-        // STEP A: Check for valid moves using LogicEngine
-        const validMoves = freshPlayer.hand.filter(domino =>
-            checkValidMove(domino, freshState.table.leftValue, freshState.table.rightValue).canPlay
-        );
+        // STEP A: Check for valid moves
+        const validMoves = getValidMoves(freshPlayer.hand, {
+            left: freshState.table.leftValue,
+            right: freshState.table.rightValue
+        });
+
 
         if (validMoves.length > 0) {
             // STEP B: Auto-play the first valid domino
-            const dominoToPlay = validMoves[0];
+            const move = validMoves[0];
+            const dominoToPlay = move.tile;
             console.log(`⏰ AUTO-PLAY: Playing ${dominoToPlay.left}|${dominoToPlay.right} automatically`);
 
             // Call handlePlayDomino as if user clicked
             handlePlayDomino(dominoToPlay);
         } else {
+
             // STEP C: No valid moves - auto-pass
             console.log('⏰ AUTO-PASS: No valid moves, passing turn automatically');
             handlePassTurn();
@@ -232,8 +239,22 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         };
     }, [gameId, isSoloMode, profileLoaded]);
 
+    // Check if player has ANY playable domino (NEW: Before early return for hooks safety)
+    const canPlayAny = useMemo(() => {
+        if (!gameState) return false;
+        const localPlayer = gameState.players.find(p => p.id === localPlayerId);
+        if (!localPlayer) return false;
+        const moves = getValidMoves(localPlayer.hand, {
+            left: gameState.table.leftValue,
+            right: gameState.table.rightValue
+        });
+        return moves.length > 0;
+    }, [gameState?.players, gameState?.table.leftValue, gameState?.table.rightValue, localPlayerId]);
+
+
     // IN-GAME PROTECTION: Prevent accidental exit
-    React.useEffect(() => {
+    useEffect(() => {
+
         if (!gameState && !isStarting) return; // Only protect if in game or starting
 
         const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
@@ -366,24 +387,26 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) return;
         if (gameState.currentPlayerId !== localPlayerId) return;
 
-        // Check for double side possibility
-        const { canPlay, side } = checkValidMove(domino, gameState.table.leftValue, gameState.table.rightValue);
+        // Check for possible moves with the new engine
+        const validMoves = getValidMoves([domino], {
+            left: gameState.table.leftValue,
+            right: gameState.table.rightValue
+        });
 
-        if (!canPlay) return;
+        if (validMoves.length === 0) return;
 
-        // Special case: Both sides (left and right) are possible
-        const canPlayLeft = checkValidMove(domino, gameState.table.leftValue, null).canPlay;
-        const canPlayRight = checkValidMove(domino, null, gameState.table.rightValue).canPlay;
-
-        // ONLY offer choice if BOTH sides are actually valid and different values
-        if (canPlayLeft && canPlayRight && gameState.table.leftValue !== gameState.table.rightValue) {
+        // If multiple sides are possible, ask the user (always show if > 1 option)
+        if (validMoves.length > 1) {
             SoundManager.playSound('notify'); // Feedback for selection
             setPendingDomino(domino);
             return;
         }
 
-        executeMove(domino);
+        // Only one possible side
+        const move = validMoves[0];
+        executeMove(domino, move.side === 'start' ? undefined : move.side);
     };
+
 
     const confirmSidePlay = (side: 'left' | 'right') => {
         if (!pendingDomino || !gameState) return;
@@ -428,16 +451,18 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         isProcessing.current = true;
 
-        // Double check validation client-side to prevent "Cannot Pass" alert loop if logic engine disagrees
-        const currentCanPlay = localPlayer?.hand.some(d =>
-            checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
-        );
+        // Double check validation client-side to prevent "Cannot Pass" alert loop
+        const currentValidMoves = getValidMoves(localPlayer?.hand || [], {
+            left: gameState.table.leftValue,
+            right: gameState.table.rightValue
+        });
 
-        if (currentCanPlay) {
+        if (currentValidMoves.length > 0) {
             isProcessing.current = false; // CRITICAL: Release lock before early return
             Alert.alert("Action impossible", "Vous avez des dominos jouables. Vous ne pouvez pas passer.");
             return;
         }
+
 
         try {
             const newState = passTurn(gameState, localPlayerId);
@@ -464,6 +489,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         const activeId = playerId || gameState.currentPlayerId;
 
+        // CRITICAL FIX: Reset pending domino if player was choosing a side but timed out
+        setPendingDomino(null);
+
         // Verify it's actually the active player's turn
         if (gameState.currentPlayerId !== activeId) return;
 
@@ -486,27 +514,31 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         const stateForTurn = gameState;
 
         // Find all valid moves
-        const validMoves = p.hand.filter(d =>
-            checkValidMove(d, stateForTurn.table.leftValue, stateForTurn.table.rightValue).canPlay
-        );
+        const validMoves = getValidMoves(p.hand, {
+            left: stateForTurn.table.leftValue,
+            right: stateForTurn.table.rightValue
+        });
+
 
         // Find heaviest valid domino (highest sum) - Deterministic for all clients
-        let validDomino = null;
+        let validMove = null;
         if (validMoves.length > 0) {
-            const sortedMoves = [...validMoves].sort((a, b) => (b.left + b.right) - (a.left + a.right));
-            validDomino = sortedMoves[0];
+            const sortedMoves = [...validMoves].sort((a, b) => (b.tile.left + b.tile.right) - (a.tile.left + a.tile.right));
+            validMove = sortedMoves[0];
         }
+
 
         try {
             let newState: GameState;
 
-            if (validDomino) {
-                console.log(`[Auto-Play] Playing heaviest domino for ${activeId}:`, validDomino);
-                newState = handleTurn(stateForTurn, activeId, validDomino);
+            if (validMove) {
+                console.log(`[Auto-Play] Playing heaviest domino for ${activeId}:`, validMove.tile);
+                newState = handleTurn(stateForTurn, activeId, validMove.tile, validMove.side === 'start' ? undefined : validMove.side);
 
                 // Audio effect
                 SoundManager.playClack();
             } else {
+
                 console.log(`[Auto-Play] No valid moves for ${activeId} - Passing`);
                 newState = passTurn(stateForTurn, activeId);
                 SoundManager.playSound('notify');
@@ -723,10 +755,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             }
 
             // Get bot move
-            const move = getBotMove(
+            const decision = getBotMove(
                 freshPlayer.hand,
                 freshState.table.leftValue,
-                freshState.table.rightValue
+                freshState.table.rightValue,
+                isSoloMode ? 'expert' : 'medium' // On peut ajuster ici selon le besoin
             );
 
             console.log(`[Bot Decision] ${freshPlayer.name} thinking on table [${freshState.table.leftValue}|${freshState.table.rightValue}]`);
@@ -734,14 +767,17 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             try {
                 let newState: GameState;
 
-                if (move) {
-                    console.log(`[Bot Move] Playing ${move.left}|${move.right}`);
-                    newState = handleTurn(freshState, freshPlayer.id, move);
+                if (decision) {
+                    const { tile, side } = decision;
+                    console.log(`[Bot Move] Playing ${tile.left}|${tile.right} on ${side}`);
+                    // Si side est 'start', on laisse forcedSide undefined
+                    newState = handleTurn(freshState, freshPlayer.id, tile, side === 'start' ? undefined : side);
                     SoundManager.playClack();
                     HapticManager.triggerImpact();
                 } else {
                     console.log(`[Bot Pass] ${freshPlayer.name} has no valid moves - passing`);
                     newState = passTurn(freshState, freshPlayer.id);
+
 
                     // CRITICAL: Check if this pass triggered BOUDE
                     if (newState.phase === 'BOUDE') {
@@ -842,10 +878,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     };
 
-    const canPlayAny = localPlayer?.hand.some(d =>
-        checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
-    ) ?? false;
-
     // Get opponent players
     const opponents = gameState.players.filter(p => p.id !== localPlayerId);
 
@@ -853,7 +885,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         <View style={styles.container}>
             {/* CHOICE BANNER (Overlay) */}
             {pendingDomino && (
-                <View style={styles.choiceBanner} pointerEvents="none">
+                <View style={[
+                    styles.choiceBanner,
+                    isLandscape ? { top: 15, bottom: undefined } : { bottom: 160 }
+                ]} pointerEvents="none">
                     <Animated.View entering={FadeIn.duration(300)}>
                         <Text style={styles.choiceText}>CHOISISSEZ UN CÔTÉ</Text>
                     </Animated.View>
@@ -1418,20 +1453,20 @@ const styles = StyleSheet.create({
     },
     choiceBanner: {
         position: 'absolute',
-        top: 150,
+        bottom: 140, // Just above the player hand
         left: 0,
         right: 0,
         alignItems: 'center',
         zIndex: 200,
     },
     choiceText: {
-        backgroundColor: 'rgba(255, 215, 0, 0.95)',
+        backgroundColor: 'rgba(255, 215, 0, 0.9)',
         color: '#1a0a2e',
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: '900',
-        paddingHorizontal: 25,
-        paddingVertical: 12,
-        borderRadius: 30,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 18,
         borderWidth: 2,
         borderColor: '#FFF',
         overflow: 'hidden',

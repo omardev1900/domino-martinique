@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator, Image, ScrollView } from 'react-native';
 import { GameState, Player, PlayerId } from '../core/types';
 import Animated, { FadeIn, ZoomIn, SlideInDown, ZoomInEasyUp } from 'react-native-reanimated';
 import { WINS_TO_WIN_MATCH } from '../core/constants';
@@ -35,6 +35,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     rematchVotes = [],
     isSolo
 }) => {
+    const { height: screenHeight, width: screenWidth } = useWindowDimensions();
+    const isLandscape = screenWidth > screenHeight;
     const [countdown, setCountdown] = useState(10);
 
     // Determine context
@@ -125,201 +127,287 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         <View style={styles.container}>
             <View style={styles.overlay} />
 
-            <Animated.View entering={ZoomIn.duration(500)} style={styles.content}>
-                <Text style={styles.header}>
-                    {isMatchOver
-                        ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : "MATCH TERMINÉ")
-                        : isMancheOver ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : "MANCHE TERMINÉE")
-                            : isBoudé ? "BOUDÉ !" : "PARTIE TERMINÉE"}
-                </Text>
+            <Animated.View entering={ZoomIn.duration(500)} style={[styles.content, isLandscape && styles.contentLandscape]}>
+                {isLandscape ? (
+                    <View style={styles.landscapeWrapper}>
+                        {/* LEFT COLUMN: Result Summary & Winner */}
+                        <View style={styles.leftColumn}>
+                            <Text style={[styles.header, styles.headerLandscape]}>
+                                {isMatchOver
+                                    ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : "MATCH\nTERMINÉ")
+                                    : isMancheOver ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : "MANCHE\nTERMINÉE")
+                                        : isBoudé ? "BOUDÉ !" : "PARTIE\nTERMINÉE"}
+                            </Text>
 
-                <View style={styles.gameModeBadge}>
-                    <Text style={styles.gameModeText}>MODE {gameState.gameMode}</Text>
-                </View>
-
-                {/* WINNER SPOTLIGHT - Emotional Centerpiece */}
-                {roundWinner ? (
-                    <Animated.View entering={ZoomInEasyUp.duration(600).delay(200)} style={styles.winnerSpotlight}>
-                        <View style={styles.avatarGlow}>
-                            <View style={styles.avatarCircleBig}>
-                                {roundWinner.avatarId && AVAILABLE_AVATARS.includes(roundWinner.avatarId as AvatarId) ? (
-                                    <Image
-                                        source={getAvatarImage(roundWinner.avatarId)}
-                                        style={styles.winnerAvatarImage}
-                                        resizeMode="cover"
-                                    />
-                                ) : (
-                                    <Image
-                                        source={getAvatarImage('avatar_01')}
-                                        style={styles.winnerAvatarImage}
-                                        resizeMode="cover"
-                                    />
-                                )}
+                            <View style={[styles.gameModeBadge, styles.gameModeBadgeLandscape]}>
+                                <Text style={styles.gameModeText}>MODE {gameState.gameMode}</Text>
                             </View>
-                            {gameState.mancheResult !== 'CHIRE' && (
-                                <View style={styles.winnerBadge}>
-                                    <Text style={styles.winnerBadgeText}>WINNER</Text>
+
+                            {roundWinner && (
+                                <View style={styles.winnerSpotlightLandscape}>
+                                    <View style={styles.avatarCircleLandscape}>
+                                        <Image
+                                            source={getAvatarImage((roundWinner.avatarId as AvatarId) || 'avatar_01')}
+                                            style={styles.avatarImageLandscape}
+                                            resizeMode="cover"
+                                        />
+                                    </View>
+                                    <Text style={styles.winnerNameLandscape}>
+                                        {gameState.mancheResult === 'CHIRE' ? "MATCH NUL" : roundWinner.name}
+                                    </Text>
+                                    <Text style={styles.winReasonLandscape}>
+                                        {gameState.mancheResult === 'CHIRE' ? "Pas de cochon" : "A posé ses dominos"}
+                                    </Text>
                                 </View>
                             )}
                         </View>
-                        <Text style={styles.winnerName}>
-                            {gameState.mancheResult === 'CHIRE' ? "MATCH NUL" : roundWinner.name}
-                        </Text>
-                        {gameState.mancheResult === 'CHIRE' ? (
-                            <Text style={styles.winReason}>Pas de cochon, la manche s'arrête !</Text>
-                        ) : !isBoudé && (
-                            <Text style={styles.winReason}>A posé tous ses dominos !</Text>
-                        )}
-                    </Animated.View>
-                ) : isBoudé ? (
-                    <Text style={styles.tieText}>ÉGALITÉ ! La partie est nulle et va être recommencée.</Text>
-                ) : null}
 
-                {/* BOUDE Details: Show points breakdown under the winner */}
-                {isBoudé && (
-                    <Animated.View entering={FadeIn.delay(800)} style={styles.boudeDetails}>
-                        <View style={styles.pointsBreakdown}>
-                            {gameState.players.map((p) => {
-                                const points = p.hand.reduce((sum, d) => sum + d.left + d.right, 0);
-                                const isWinner = roundWinner?.id === p.id;
-                                return (
-                                    <View key={p.id} style={styles.pointRow}>
-                                        <Text style={[styles.pointName, isWinner && styles.pointWinner]}>
-                                            {p.name} {isWinner ? '🏆' : ''}
-                                        </Text>
-                                        <Text style={[styles.pointValue, isWinner && styles.pointWinner]}>{points} pts</Text>
-                                    </View>
-                                );
-                            })}
-                        </View>
-                        <ActivityIndicator size="small" color="#ff6f00" style={styles.loader} />
-                    </Animated.View>
-                )}
-
-                {/* Results Section: Only show when NOT in BOUDE phase */}
-                {!isBoudé && (
-                    <>
-                        <View style={styles.resultsContainer}>
-                            {sortedPlayers.map((p, index) => {
-                                const isWinner = index === 0;
-                                return (
-                                    <Animated.View
-                                        key={p.id}
-                                        entering={SlideInDown.delay(index * 200)}
-                                        style={[styles.playerRow, isWinner && styles.winnerRow]}
-                                    >
-                                        <Text style={[styles.rank, isWinner && styles.winnerText]}>#{index + 1}</Text>
-                                        <Text style={[styles.name, isWinner && styles.winnerText]}>
-                                            {p.name} {p.id === currentUserId ? "(Moi)" : ""}
-                                        </Text>
-                                        {!isSolo && rematchVotes.includes(p.id) && (
-                                            <View style={styles.readyBadge}>
-                                                <Text style={styles.readyBadgeText}>PRÊT</Text>
-                                            </View>
-                                        )}
-                                        <View style={styles.scoreContainer}>
-                                            <View style={styles.scoreColumn}>
-                                                <Text style={[styles.scoreMain, isWinner && styles.winnerText]}>
-                                                    {p.wins} {p.wins > 1 ? 'Wins' : 'Win'}
-                                                </Text>
-                                                {gameState.gameMode === 'MANCHE' && (
-                                                    <Text style={styles.scoreSub}>
-                                                        {p.mancheWins} {p.mancheWins > 1 ? 'Manches' : 'Manche'}
-                                                    </Text>
-                                                )}
-                                            </View>
-
-                                            {p.isCochon && <Text style={styles.pigBadge}>🐷</Text>}
-
+                        {/* RIGHT COLUMN: Results & Actions */}
+                        <View style={styles.rightColumn}>
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                <View style={styles.resultsContainerLandscape}>
+                                    {sortedPlayers.map((p, index) => (
+                                        <View key={p.id} style={[styles.playerRow, index === 0 && styles.winnerRow, { paddingVertical: 6 }]}>
+                                            <Text style={styles.rank}>#{index + 1}</Text>
+                                            <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
                                             <View style={styles.scoreColumnEnd}>
-                                                {gameState.gameMode === 'COCHON' && (
-                                                    <Text style={styles.cochonCountLabel}>{p.totalCochons} 🐷</Text>
-                                                )}
-                                                {(isMatchOver || gameState.gameMode === 'SCORE' || p.totalPoints !== 0) && (
-                                                    <Text style={[styles.points, p.totalPoints < 0 && styles.pointsNegative]}>
-                                                        {p.totalPoints >= 0 ? '+' : ''}{p.totalPoints} pts
-                                                    </Text>
-                                                )}
+                                                <Text style={styles.scoreMain}>{p.wins} Win</Text>
+                                                <Text style={styles.points}>+{p.totalPoints} pts</Text>
                                             </View>
                                         </View>
-                                    </Animated.View>
-                                );
-                            })}
-                        </View>
+                                    ))}
+                                </View>
 
-                        {/* Countdown - only show for MANCHE_END, not MATCH_END, and not in solo */}
-                        {isMancheOver && !isMatchOver && countdown > 0 && !isSolo && (
-                            <Text style={styles.countdownText}>
-                                Prochaine manche dans {countdown}s...
-                            </Text>
-                        )}
-
-                        {/* Action buttons */}
-                        <Animated.View entering={FadeIn.delay(1000)} style={styles.buttonContainer}>
-                            {isMatchOver && isSolo && onRestartMatch && (
-                                <TouchableOpacity
-                                    style={[styles.replayButton, styles.restartMatchButton]}
-                                    onPress={onRestartMatch}
-                                >
-                                    <Text style={styles.replayText}>Rejouer le match</Text>
-                                </TouchableOpacity>
-                            )}
-
-                            {isMatchOver && !isSolo && (
-                                <>
-                                    {!rematchVotes.includes(currentUserId) && (
-                                        <TouchableOpacity
-                                            style={[styles.replayButton, styles.rematchButton]}
-                                            onPress={onVoteRematch}
-                                        >
-                                            <Text style={styles.replayText}>Proposer une revanche</Text>
+                                <View style={styles.buttonContainerLandscape}>
+                                    {(isMancheOver || isBoudé) && !isMatchOver && (
+                                        <TouchableOpacity style={[styles.actionButton, styles.nextRoundButton]} onPress={onNextRound}>
+                                            <Text style={styles.actionButtonText}>
+                                                {isBoudé ? "Calculer les points" : "Manche suivante"}
+                                            </Text>
                                         </TouchableOpacity>
                                     )}
 
+                                    {!isMancheOver && !isMatchOver && !isBoudé && (
+                                        <TouchableOpacity style={[styles.actionButton, styles.nextRoundButton]} onPress={onNextRound}>
+                                            <Text style={styles.actionButtonText}>Tour suivant</Text>
+                                        </TouchableOpacity>
+                                    )}
+
+                                    {/* Exit Button */}
                                     <TouchableOpacity
-                                        style={[styles.replayButton, styles.leaveButton]}
-                                        onPress={onLeaveRoom}
+                                        style={[styles.actionButton, styles.homeButton, !isSolo && { backgroundColor: '#d32f2f' }]}
+                                        onPress={isSolo ? onReplay : onLeaveRoom}
                                     >
-                                        <Text style={styles.replayText}>Quitter la table</Text>
+                                        <Text style={styles.actionButtonText}>
+                                            {isSolo ? "Quitter" : "Quitter la table"}
+                                        </Text>
                                     </TouchableOpacity>
-                                </>
-                            )}
+                                </View>
+                            </ScrollView>
+                        </View>
+                    </View>
+                ) : (
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        style={{ width: '100%' }}
+                        contentContainerStyle={{ alignItems: 'center', paddingBottom: 10 }}
+                    >
+                        <Text style={styles.header}>
+                            {isMatchOver
+                                ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : "MATCH TERMINÉ")
+                                : isMancheOver ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : "MANCHE TERMINÉE")
+                                    : isBoudé ? "BOUDÉ !" : "PARTIE TERMINÉE"}
+                        </Text>
 
-                            {isMancheOver && !isMatchOver && (
-                                <TouchableOpacity
-                                    style={styles.replayButton}
-                                    onPress={() => onNextRound?.()}
-                                >
-                                    <Text style={styles.replayText}>
-                                        {isSolo
-                                            ? "Démarrer la manche suivante"
-                                            : `Démarrer la manche suivante${countdown > 0 ? ` (${countdown}s)` : ''}`
-                                        }
+                        <View style={styles.gameModeBadge}>
+                            <Text style={styles.gameModeText}>MODE {gameState.gameMode}</Text>
+                        </View>
+
+                        {/* WINNER SPOTLIGHT - Emotional Centerpiece */}
+                        {roundWinner ? (
+                            <Animated.View entering={ZoomInEasyUp.duration(600).delay(200)} style={[styles.winnerSpotlight, isLandscape && { marginBottom: 10 }]}>
+                                <View style={styles.avatarGlow}>
+                                    <View style={[styles.avatarCircleBig, isLandscape && { width: 60, height: 60 }]}>
+                                        {roundWinner.avatarId && AVAILABLE_AVATARS.includes(roundWinner.avatarId as AvatarId) ? (
+                                            <Image
+                                                source={getAvatarImage(roundWinner.avatarId)}
+                                                style={[styles.winnerAvatarImage, isLandscape && { width: 60 * 1.6, height: 60 * 1.6, top: -(60 * 1.6 - 60) * 0.25 }]}
+                                                resizeMode="cover"
+                                            />
+                                        ) : (
+                                            <Image
+                                                source={getAvatarImage('avatar_01')}
+                                                style={[styles.winnerAvatarImage, isLandscape && { width: 60 * 1.6, height: 60 * 1.6, top: -(60 * 1.6 - 60) * 0.25 }]}
+                                                resizeMode="cover"
+                                            />
+                                        )}
+                                    </View>
+                                    {gameState.mancheResult !== 'CHIRE' && (
+                                        <View style={styles.winnerBadge}>
+                                            <Text style={styles.winnerBadgeText}>WINNER</Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <Text style={[styles.winnerName, isLandscape && { fontSize: 18, marginTop: 2 }]}>
+                                    {gameState.mancheResult === 'CHIRE' ? "MATCH NUL" : roundWinner.name}
+                                </Text>
+                                {gameState.mancheResult === 'CHIRE' ? (
+                                    <Text style={styles.winReason}>Pas de cochon, la manche s'arrête !</Text>
+                                ) : !isBoudé && (
+                                    <Text style={styles.winReason}>A posé tous ses dominos !</Text>
+                                )}
+                            </Animated.View>
+                        ) : isBoudé ? (
+                            <Text style={styles.tieText}>ÉGALITÉ ! La partie est nulle et va être recommencée.</Text>
+                        ) : null}
+
+                        {/* BOUDE Details: Show points breakdown under the winner */}
+                        {isBoudé && (
+                            <Animated.View entering={FadeIn.delay(800)} style={styles.boudeDetails}>
+                                <View style={styles.pointsBreakdown}>
+                                    {gameState.players.map((p) => {
+                                        const points = p.hand.reduce((sum, d) => sum + d.left + d.right, 0);
+                                        const isWinner = roundWinner?.id === p.id;
+                                        return (
+                                            <View key={p.id} style={styles.pointRow}>
+                                                <Text style={[styles.pointName, isWinner && styles.pointWinner]}>
+                                                    {p.name} {isWinner ? '🏆' : ''}
+                                                </Text>
+                                                <Text style={[styles.pointValue, isWinner && styles.pointWinner]}>{points} pts</Text>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                                <ActivityIndicator size="small" color="#ff6f00" style={styles.loader} />
+                            </Animated.View>
+                        )}
+
+                        {/* Results Section: Only show when NOT in BOUDE phase */}
+                        {!isBoudé && (
+                            <>
+                                <View style={styles.resultsContainer}>
+                                    {sortedPlayers.map((p, index) => {
+                                        const isWinner = index === 0;
+                                        return (
+                                            <Animated.View
+                                                key={p.id}
+                                                entering={SlideInDown.delay(index * 200)}
+                                                style={[styles.playerRow, isWinner && styles.winnerRow]}
+                                            >
+                                                <Text style={[styles.rank, isWinner && styles.winnerText]}>#{index + 1}</Text>
+                                                <Text style={[styles.name, isWinner && styles.winnerText]}>
+                                                    {p.name} {p.id === currentUserId ? "(Moi)" : ""}
+                                                </Text>
+                                                {!isSolo && rematchVotes.includes(p.id) && (
+                                                    <View style={styles.readyBadge}>
+                                                        <Text style={styles.readyBadgeText}>PRÊT</Text>
+                                                    </View>
+                                                )}
+                                                <View style={styles.scoreContainer}>
+                                                    <View style={styles.scoreColumn}>
+                                                        <Text style={[styles.scoreMain, isWinner && styles.winnerText]}>
+                                                            {p.wins} {p.wins > 1 ? 'Wins' : 'Win'}
+                                                        </Text>
+                                                        {gameState.gameMode === 'MANCHE' && (
+                                                            <Text style={styles.scoreSub}>
+                                                                {p.mancheWins} {p.mancheWins > 1 ? 'Manches' : 'Manche'}
+                                                            </Text>
+                                                        )}
+                                                    </View>
+
+                                                    {p.isCochon && <Text style={styles.pigBadge}>🐷</Text>}
+
+                                                    <View style={styles.scoreColumnEnd}>
+                                                        {gameState.gameMode === 'COCHON' && (
+                                                            <Text style={styles.cochonCountLabel}>{p.totalCochons} 🐷</Text>
+                                                        )}
+                                                        {(isMatchOver || gameState.gameMode === 'SCORE' || p.totalPoints !== 0) && (
+                                                            <Text style={[styles.points, p.totalPoints < 0 && styles.pointsNegative]}>
+                                                                {p.totalPoints >= 0 ? '+' : ''}{p.totalPoints} pts
+                                                            </Text>
+                                                        )}
+                                                    </View>
+                                                </View>
+                                            </Animated.View>
+                                        );
+                                    })}
+                                </View>
+
+                                {/* Countdown - only show for MANCHE_END, not MATCH_END, and not in solo */}
+                                {isMancheOver && !isMatchOver && countdown > 0 && !isSolo && (
+                                    <Text style={styles.countdownText}>
+                                        Prochaine manche dans {countdown}s...
                                     </Text>
-                                </TouchableOpacity>
-                            )}
+                                )}
 
-                            {isMatchOver && (
-                                <TouchableOpacity
-                                    style={styles.replayButton}
-                                    onPress={() => onReplay()}
-                                >
-                                    <Text style={styles.replayText}>Retourner à l'accueil</Text>
-                                </TouchableOpacity>
-                            )}
+                                {/* Action buttons */}
+                                <Animated.View entering={FadeIn.delay(1000)} style={styles.buttonContainer}>
+                                    {isMatchOver && isSolo && onRestartMatch && (
+                                        <TouchableOpacity
+                                            style={[styles.replayButton, styles.restartMatchButton]}
+                                            onPress={onRestartMatch}
+                                        >
+                                            <Text style={styles.replayText}>Rejouer le match</Text>
+                                        </TouchableOpacity>
+                                    )}
 
-                            {!isMancheOver && !isMatchOver && !isBoudé && (
-                                <TouchableOpacity
-                                    style={styles.replayButton}
-                                    onPress={() => onNextRound?.()}
-                                >
-                                    <Text style={styles.replayText}>
-                                        {isSolo ? "Tour suivant" : "Continuer"}
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-                        </Animated.View>
-                    </>
+                                    {isMatchOver && !isSolo && (
+                                        <>
+                                            {!rematchVotes.includes(currentUserId) && (
+                                                <TouchableOpacity
+                                                    style={[styles.replayButton, styles.rematchButton]}
+                                                    onPress={onVoteRematch}
+                                                >
+                                                    <Text style={styles.replayText}>Proposer une revanche</Text>
+                                                </TouchableOpacity>
+                                            )}
+
+                                            <TouchableOpacity
+                                                style={[styles.replayButton, styles.leaveButton]}
+                                                onPress={onLeaveRoom}
+                                            >
+                                                <Text style={styles.replayText}>Quitter la table</Text>
+                                            </TouchableOpacity>
+                                        </>
+                                    )}
+
+                                    {isMancheOver && !isMatchOver && (
+                                        <TouchableOpacity
+                                            style={styles.replayButton}
+                                            onPress={() => onNextRound?.()}
+                                        >
+                                            <Text style={styles.replayText}>
+                                                {isSolo
+                                                    ? "Démarrer la manche suivante"
+                                                    : `Démarrer la manche suivante${countdown > 0 ? ` (${countdown}s)` : ''}`
+                                                }
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+
+                                    {isMatchOver && (
+                                        <TouchableOpacity
+                                            style={styles.replayButton}
+                                            onPress={() => onReplay()}
+                                        >
+                                            <Text style={styles.replayText}>Retourner à l'accueil</Text>
+                                        </TouchableOpacity>
+                                    )}
+
+                                    {!isMancheOver && !isMatchOver && !isBoudé && (
+                                        <TouchableOpacity
+                                            style={styles.replayButton}
+                                            onPress={() => onNextRound?.()}
+                                        >
+                                            <Text style={styles.replayText}>
+                                                {isSolo ? "Tour suivant" : "Continuer"}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </Animated.View>
+                            </>
+                        )}
+                    </ScrollView>
                 )}
             </Animated.View>
         </View>
@@ -338,29 +426,58 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.85)',
     },
     content: {
-        width: '85%',
+        width: '90%',
         backgroundColor: '#fff',
         borderRadius: 20,
-        padding: 25,
+        padding: 15,
         elevation: 10,
+    },
+    contentLandscape: {
+        width: '95%',
+        height: '90%',
+        padding: 0,
+        overflow: 'hidden',
+    },
+    landscapeWrapper: {
+        flexDirection: 'row',
+        flex: 1,
+    },
+    leftColumn: {
+        flex: 0.45,
+        backgroundColor: '#fff',
+        padding: 15,
+        justifyContent: 'center',
         alignItems: 'center',
+        borderRightWidth: 1,
+        borderRightColor: '#f0f0f0',
+    },
+    rightColumn: {
+        flex: 0.55,
+        backgroundColor: '#fafafa',
+        padding: 10,
     },
     header: {
-        fontSize: 36,
+        fontSize: 28,
         fontWeight: '900',
-        color: '#d32f2f', // Red for intensity
-        marginBottom: 20,
+        color: '#d32f2f',
+        marginBottom: 10,
+        textAlign: 'center',
         textTransform: 'uppercase',
+    },
+    headerLandscape: {
+        fontSize: 18,
+        lineHeight: 22,
+        marginBottom: 8,
     },
     resultsContainer: {
         width: '100%',
-        marginBottom: 30,
+        marginBottom: 15,
     },
     playerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 15,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
@@ -415,19 +532,19 @@ const styles = StyleSheet.create({
     },
     replayButton: {
         backgroundColor: '#1b5e20',
-        paddingHorizontal: 40,
-        paddingVertical: 15,
+        paddingHorizontal: 30,
+        paddingVertical: 12,
         borderRadius: 30,
     },
     replayText: {
         color: '#fff',
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
     },
     buttonContainer: {
         width: '100%',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
     },
     restartMatchButton: {
         backgroundColor: '#2e7d32', // Green for "Play Again"
@@ -500,9 +617,23 @@ const styles = StyleSheet.create({
         color: '#d32f2f',
         fontWeight: 'bold',
     },
+    gameModeBadge: {
+        backgroundColor: '#f5f5f5',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        marginBottom: 15,
+    },
+    gameModeText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#666',
+    },
     winnerSpotlight: {
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 10,
         width: '100%',
     },
     avatarGlow: {
@@ -516,20 +647,20 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     avatarCircleBig: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
         backgroundColor: '#f5f5f5',
-        borderWidth: 4,
+        borderWidth: 3,
         borderColor: '#FFD700',
         justifyContent: 'center',
         alignItems: 'center',
         overflow: 'hidden',
     },
     winnerAvatarImage: {
-        width: 100 * 1.6,
-        height: 100 * 1.6,
-        top: -(100 * 1.6 - 100) * 0.25,
+        width: 80 * 1.6,
+        height: 80 * 1.6,
+        top: -(80 * 1.6 - 80) * 0.25,
     },
     winnerEmoji: {
         fontSize: 50,
@@ -550,7 +681,7 @@ const styles = StyleSheet.create({
         fontWeight: '900',
     },
     winnerName: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
         marginTop: 5,
@@ -582,34 +713,81 @@ const styles = StyleSheet.create({
     scoreColumn: {
         flex: 1,
     },
+    scoreSub: {
+        fontSize: 12,
+        color: '#888',
+    },
+    gameModeBadgeLandscape: {
+        marginBottom: 15,
+        paddingVertical: 2,
+    },
+    winnerSpotlightLandscape: {
+        alignItems: 'center',
+        marginTop: 5,
+    },
+    avatarCircleLandscape: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        borderWidth: 3,
+        borderColor: '#FFD700',
+        overflow: 'hidden',
+        backgroundColor: '#f5f5f5',
+    },
+    avatarImageLandscape: {
+        width: 60 * 1.6,
+        height: 60 * 1.6,
+        top: -(60 * 1.6 - 60) * 0.25,
+        alignSelf: 'center',
+    },
+    winnerNameLandscape: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#333',
+        marginTop: 4,
+    },
+    winReasonLandscape: {
+        fontSize: 10,
+        color: '#666',
+        fontStyle: 'italic',
+    },
+    resultsContainerLandscape: {
+        width: '100%',
+        marginBottom: 10,
+    },
+    buttonContainerLandscape: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        justifyContent: 'center',
+        marginTop: 5,
+    },
+    actionButton: {
+        backgroundColor: '#2e7d32',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        minWidth: 100,
+        alignItems: 'center',
+    },
+    nextRoundButton: {
+        backgroundColor: '#1b5e20',
+    },
+    homeButton: {
+        backgroundColor: '#555',
+    },
+    actionButtonText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
     scoreColumnEnd: {
         alignItems: 'flex-end',
         minWidth: 80,
     },
     scoreMain: {
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#333',
-    },
-    scoreSub: {
-        fontSize: 12,
-        color: '#666',
-        marginTop: 2,
-    },
-    gameModeBadge: {
-        backgroundColor: 'rgba(255,215,0,0.2)',
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.5)',
-        marginBottom: 15,
-        alignSelf: 'center',
-    },
-    gameModeText: {
-        color: '#FFD700',
-        fontSize: 12,
-        fontWeight: '900',
-        letterSpacing: 2,
     },
 });

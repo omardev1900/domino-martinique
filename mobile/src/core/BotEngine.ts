@@ -1,23 +1,31 @@
-import { Domino, DominoSide, Player, PlayerId } from './types';
-import { checkValidMove } from './LogicEngine';
+import { Domino, DominoSide } from './types';
+import { getBotMove as getEngineBotMove, ValidMove } from './DominoEngine';
 
 /**
- * Level 1 Bot: Randomly picks a valid move.
- * Returns the domino to play, or null if no valid move is possible.
+ * Interface pour le retour du Bot
+ */
+export interface BotDecision {
+    tile: Domino;
+    side: 'left' | 'right' | 'start';
+}
+
+/**
+ * Point d'entrée pour obtenir le coup d'un bot.
+ * Utilise le nouveau DominoEngine pour calculer la meilleure stratégie.
  */
 export const getBotMove = (
     hand: Domino[],
     leftValue: DominoSide | null,
-    rightValue: DominoSide | null
-): Domino | null => {
-    const validMoves = hand.filter(
-        (d) => checkValidMove(d, leftValue, rightValue).canPlay
-    );
+    rightValue: DominoSide | null,
+    difficulty: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend' = 'medium'
+): BotDecision | null => {
 
-    if (validMoves.length === 0) {
-        return null;
-    }
+    const decision = getEngineBotMove(hand, { left: leftValue, right: rightValue }, difficulty);
 
-    const randomIndex = Math.floor(Math.random() * validMoves.length);
-    return validMoves[randomIndex];
+    if (!decision) return null;
+
+    return {
+        tile: decision.tile,
+        side: decision.side
+    };
 };
