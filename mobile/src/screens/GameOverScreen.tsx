@@ -166,16 +166,25 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                         <View style={styles.rightColumn}>
                             <ScrollView showsVerticalScrollIndicator={false}>
                                 <View style={styles.resultsContainerLandscape}>
-                                    {sortedPlayers.map((p, index) => (
-                                        <View key={p.id} style={[styles.playerRow, index === 0 && styles.winnerRow, { paddingVertical: 6 }]}>
-                                            <Text style={styles.rank}>#{index + 1}</Text>
-                                            <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
-                                            <View style={styles.scoreColumnEnd}>
-                                                <Text style={styles.scoreMain}>{p.wins} Win</Text>
-                                                <Text style={styles.points}>+{p.totalPoints} pts</Text>
+                                    {sortedPlayers.map((p, index) => {
+                                        const points = p.totalPoints || 0;
+                                        const sign = points > 0 ? '+' : '';
+                                        const isCochon = points < 0;
+                                        return (
+                                            <View key={p.id} style={[styles.playerRow, index === 0 && styles.winnerRow, { paddingVertical: 6 }]}>
+                                                <Text style={styles.rank}>#{index + 1}</Text>
+                                                <Text style={styles.name} numberOfLines={1}>
+                                                    {p.name} {isCochon ? '🐷' : ''}
+                                                </Text>
+                                                <View style={styles.scoreColumnEnd}>
+                                                    <Text style={styles.scoreMain}>{p.wins} {p.wins > 1 ? 'Wins' : 'Win'}</Text>
+                                                    <Text style={[styles.points, isCochon && { color: '#ffb300' }]}>
+                                                        {sign}{points} pts
+                                                    </Text>
+                                                </View>
                                             </View>
-                                        </View>
-                                    ))}
+                                        );
+                                    })}
                                 </View>
 
                                 <View style={styles.buttonContainerLandscape}>

@@ -31,7 +31,7 @@ interface GameScreenProps {
     gameId?: string;
     userId?: string;
     mode?: 'solo' | 'multiplayer';
-    difficulty?: 'beginner' | 'intermediate';
+    difficulty?: 'easy' | 'medium' | 'expert' | 'legend';
     gameMode?: GameMode;
     winningCondition?: number;
 }
@@ -291,7 +291,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     }, [gameState, isStarting, gameId, userId, navigation]);
 
     const startSoloGame = () => {
-        const partialState = dealGameSolo(localPlayerId, playerDisplayName, playerAvatarId, difficulty || 'beginner');
+        const partialState = dealGameSolo(localPlayerId, playerDisplayName, playerAvatarId, difficulty || 'easy');
         const players = partialState.players as Player[];
         const firstPlayerId = determineFirstPlayer(players);
 
@@ -636,7 +636,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             isBot: p.isBot
         }));
 
-        let winnerId = gameState.firstPlayerOfRound; // Winner of previous round
+        // PRD: Double rule for Match start and EVERY new Manche start
+        // Otherwise, winner of previous round starts.
+        let winnerId = isMancheEnd ? null : gameState.firstPlayerOfRound;
 
         // Deal new game
         const partialState = dealGame(playerNames);

@@ -58,36 +58,16 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
 /**
  * Distribution pour Solo Mode : 3 joueurs (1 humain + 2 bots) x 7 dominos
  */
-export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'beginner' | 'intermediate' = 'beginner'): Partial<GameState> => {
+export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'easy' | 'medium' | 'expert' | 'legend' = 'medium'): Partial<GameState> => {
     const HAND_SIZE = 7;
     const deck = shuffleDeck();
-
-    // Helper to find and remove a specific domino from the deck
-    const pull = (l: number, r: number): Domino => {
-        const idx = deck.findIndex(d => (d.left === l && d.right === r) || (d.left === r && d.right === l));
-        if (idx === -1) return deck.pop()!; // Fallback
-        return deck.splice(idx, 1)[0];
-    };
-
-    // --- DEBUG SCÉNARIO BOUDÉ ---
-    const testPlayerHand: Domino[] = [
-        pull(6, 6), // Seul 6 du jeu sur la table
-        pull(1, 1), pull(1, 2), pull(1, 3), pull(1, 4), pull(1, 5), pull(0, 0)
-    ];
-    const testBot1Hand: Domino[] = [
-        pull(2, 2), pull(2, 3), pull(2, 4), pull(2, 5), pull(0, 1), pull(0, 2), pull(0, 3)
-    ];
-    const testBot2Hand: Domino[] = [
-        pull(3, 3), pull(3, 4), pull(3, 5), pull(4, 4), pull(4, 5), pull(5, 5), pull(0, 4)
-    ];
-    const testTalon = deck.splice(0, 7);
 
     const players: Player[] = [
         {
             id: playerId,
             name: playerName,
             avatarId: avatarId,
-            hand: testPlayerHand,
+            hand: deck.slice(0, HAND_SIZE),
             handSize: HAND_SIZE,
             wins: 0,
             mancheWins: 0,
@@ -98,8 +78,8 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         },
         {
             id: 'bot-1',
-            name: botDifficulty === 'beginner' ? 'Bot Facile' : 'Bot Moyen',
-            hand: testBot1Hand,
+            name: `Bot ${botDifficulty === 'easy' ? 'Débutant' : botDifficulty === 'medium' ? 'Moyen' : botDifficulty === 'expert' ? 'Expert' : 'Légende'}`,
+            hand: deck.slice(HAND_SIZE, HAND_SIZE * 2),
             handSize: HAND_SIZE,
             wins: 0,
             mancheWins: 0,
@@ -110,8 +90,8 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         },
         {
             id: 'bot-2',
-            name: botDifficulty === 'beginner' ? 'Bot Débutant' : 'Bot Avancé',
-            hand: testBot2Hand,
+            name: `Bot ${botDifficulty === 'easy' ? 'Novice' : botDifficulty === 'medium' ? 'Initié' : botDifficulty === 'expert' ? 'Pro' : 'Maître'}`,
+            hand: deck.slice(HAND_SIZE * 2, HAND_SIZE * 3),
             handSize: HAND_SIZE,
             wins: 0,
             mancheWins: 0,
@@ -122,7 +102,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         },
     ];
 
-    const talonMort = testTalon;
+    const talonMort = deck.slice(HAND_SIZE * 3);
 
     return {
         players,
@@ -241,8 +221,8 @@ export const calculateCochonPoints = (players: Player[]): { pointsMap: Map<Playe
             // Cochon gets -1
             pointsMap.set(p.id, -1);
         } else {
-            // Non-winner, non-cochon: they get their wins as points
-            pointsMap.set(p.id, p.wins);
+            // Non-winner, non-cochon: they get 0 (PRD: points are for winner/cochons)
+            pointsMap.set(p.id, 0);
         }
     });
 
@@ -269,11 +249,15 @@ export const handleEndOfRound = (
         newState.players[winnerIndex].wins += 1;
     }
 
-    // 2. Check for Manche Termination
+    // 3. Set starter for the next round (always the winner, unless TIE)
+    if (winnerId !== 'TIE') {
+        newState.firstPlayerOfRound = winnerId;
+    } else {
+        newState.firstPlayerOfRound = null;
+    }
+
     const isChiré = newState.players.every(p => p.wins >= 1);
     const reachesThreshold = newState.players.some(p => p.wins >= gameState.winningCondition);
-
-    // Rule: Manche ends if Chiré OR someone reached the win limit
     const endOfManche = isChiré || reachesThreshold;
 
     if (endOfManche) {
@@ -282,9 +266,11 @@ export const handleEndOfRound = (
 
         newState.players = newState.players.map(p => {
             const manchePts = pointsMap.get(p.id) || 0;
-            const isWinnerOfManche = result === 'COCHON' && (p.id === winnerId || manchePts >= 4);
+            const isWinnerOfManche = result === 'COCHON' && (p.id === winnerId || (p.wins === Math.max(...newState.players.map(pl => pl.wins))));
             const isCochonNow = p.wins === 0 && result === 'COCHON';
-            const pointsToAdd = result === 'CHIRE' ? p.wins : manchePts;
+
+            // For Chiré, everyone gets 0. For COCHON, use the pointsMap (+4, +5, -1, 0)
+            const pointsToAdd = result === 'CHIRE' ? 0 : manchePts;
 
             return {
                 ...p,
@@ -295,7 +281,7 @@ export const handleEndOfRound = (
             };
         });
 
-        // 3. Final Match End Check
+        // 4. Final Match End Check
         let isMatchOver = false;
         if (newState.gameMode === 'MANCHE') {
             isMatchOver = newState.players.some(p => p.mancheWins >= newState.winningCondition);
@@ -309,7 +295,6 @@ export const handleEndOfRound = (
         newState.phase = isMatchOver ? 'MATCH_END' : 'MANCHE_END';
     } else {
         newState.phase = 'ROUND_END';
-        newState.firstPlayerOfRound = winnerId;
     }
 
     return newState;
