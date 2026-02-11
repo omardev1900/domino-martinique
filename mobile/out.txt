@@ -1,0 +1,59 @@
+  console.log
+    [Score] Calculation: Winner=p2, Cochons=2
+
+      at log (src/core/LogicEngine.ts:215:13)
+
+  console.log
+    [Score] Calculation: Winner=p2, Cochons=2
+
+      at log (src/core/LogicEngine.ts:215:13)
+
+  console.log
+    [Score] Calculation: Winner=p2, Cochons=1
+
+      at log (src/core/LogicEngine.ts:215:13)
+
+  console.log
+    [Score] Calculation: Winner=p3, Cochons=2
+
+      at log (src/core/LogicEngine.ts:215:13)
+
+  console.log
+    [Score] Calculation: Winner=p3, Cochons=2
+
+      at log (src/core/LogicEngine.ts:215:13)
+
+  console.log
+    [Score] Calculation: Winner=p1, Cochons=1
+
+      at log (src/core/LogicEngine.ts:215:13)
+
+FAIL src/core/StressTest.test.ts
+  Phase 2.3: Stress Test Simulation
+    √ Match termination in MANCHE mode (38 ms)
+    × Match termination in SCORE mode (6 ms)
+    √ Match termination in COCHON mode (individual limit) (5 ms)
+    √ Points consistency after multiple rounds (3 ms)
+
+  ● Phase 2.3: Stress Test Simulation › Match termination in SCORE mode
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "MATCH_END"
+    Received: "PLAYING"
+
+    [0m [90m 66 |[39m     test([32m'Match termination in SCORE mode'[39m[33m,[39m () [33m=>[39m {
+     [90m 67 |[39m         [36mconst[39m { state } [33m=[39m simulateMatch([32m'SCORE'[39m[33m,[39m [35m20[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 68 |[39m         expect(state[33m.[39mphase)[33m.[39mtoBe([32m'MATCH_END'[39m)[33m;[39m
+     [90m    |[39m                             [31m[1m^[22m[39m
+     [90m 69 |[39m         expect(state[33m.[39mplayers[33m.[39msome(p [33m=>[39m p[33m.[39mtotalPoints [33m>=[39m [35m20[39m))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 70 |[39m     })[33m;[39m
+     [90m 71 |[39m[0m
+
+      at Object.toBe (src/core/StressTest.test.ts:68:29)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 3 passed, 4 total
+Snapshots:   0 total
+Time:        1.11 s, estimated 2 s
+Ran all test suites matching /src\\core\\StressTest.test.ts/i.

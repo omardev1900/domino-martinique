@@ -19,15 +19,15 @@ export interface Player {
     avatarId?: string;
     hand: Domino[];
     handSize: number;
-    wins: number; // Nombre de parties (victoires) dans la manche en cours
-    mancheWins: number; // Nombre de manches gagnées (pour le Mode Manche)
+    wins: number; // Nombre de PARTIES gagnées dans la MANCHE en cours
+    mancheWins: number; // Nombre de MANCHES gagnées dans le MATCH
     totalPoints: number; // Score cumulé (pour le Mode Score)
     isCochon: boolean;
-    totalCochons: number; // NEW: Total cochons infligés à ce joueur pendant le match
+    totalCochons: number;
     isBot: boolean;
 }
 
-export type GamePhase = 'LOBBY' | 'DEALING' | 'PLAYING' | 'BOUDE' | 'ROUND_END' | 'MATCH_END' | 'MANCHE_END';
+export type GamePhase = 'LOBBY' | 'DEALING' | 'PLAYING' | 'BOUDE' | 'PARTIE_END' | 'MATCH_END' | 'MANCHE_END';
 
 export interface GameState {
     gameId: string;

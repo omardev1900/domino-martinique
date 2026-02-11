@@ -1,0 +1,74 @@
+﻿node.exe : PASS src/core/DominoEngine.test.ts
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/core/DominoEngine.test.ts:Strin 
+   g) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  DominoEngine Migration (Phase 1.4)
+    ÔêÜ Premier coup : Autorise les 7 dominos de la main (13 ms)
+    ÔêÜ Validation des correspondances standard (4 cas) (1 ms)
+    ÔêÜ Stress Test : 100 simulations de tours de bots strat├®giques (7 ms)
+    ÔêÜ Intelligence Valou : Priorit├® aux doubles pour commencer (2 ms)
+
+PASS src/core/__tests__/LogicEngine.test.ts
+  LogicEngine
+    dealGame
+      ÔêÜ should deal 7 dominos to 3 players (11 ms)
+    checkValidMove
+      ÔêÜ should allow any move on empty table (1 ms)
+      ÔêÜ should allow matching left (1 ms)
+      ÔêÜ should allow matching right (1 ms)
+      ÔêÜ should reject non-matching domino (1 ms)
+    determineFirstPlayer
+      ÔêÜ should pick player with highest double (1 ms)
+      ÔêÜ should pick player with highest sum if no doubles
+    determineWinnerOnBoud├®
+      ÔêÜ should pick player with lowest points (1 ms)
+      ÔêÜ should return TIE if equal lowest (1 ms)
+  passTurn
+    ÔêÜ should throw if player has a valid move (26 ms)
+    ÔêÜ should allow pass if no valid move (1 ms)
+    ÔêÜ should detect blocked game (Boud├®) after 3 passes
+  handleTurn
+    ÔêÜ should throw if player tries to play a tile not in their hand (2 ms)
+
+FAIL src/core/__tests__/BotEngine.test.ts
+  BotEngine
+    ÔêÜ should return a valid move if one exists (8 ms)
+    ÔêÜ should return null if no moves
+  LogicEngine Advanced
+    ├ù handleTurn should update table and current player (3 ms)
+
+  ÔùÅ LogicEngine Advanced ÔÇ║ handleTurn should update table and current player
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 0
+    Received length: 1
+    Received array:  [{"id": "d2", "isDouble": true, "left": 1, "right": 1, "sum": 2}]
+
+    [0m [90m 57 |[39m         expect(newState[33m.[39mtable[33m.[39mrightValue)
+[33m.[39mtoBe([35m6[39m)[33m;[39m
+     [90m 58 |[39m         
+expect(newState[33m.[39mcurrentPlayerId)[33m.[39mtoBe([32m'p2'[39m)[33m;[39m 
+[90m// Rotated[39m
+    [31m[1m>[22m[39m[90m 59 |[39m         expect(newState[33m.[39mplayers[[35
+m0[39m][33m.[39mhand)[33m.[39mtoHaveLength([35m0[39m)[33m;[39m [90m// Card 
+removed[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 60 |[39m         expect(newState[33m.[39mlastActionTimestamp)[33m.[39m
+toBeGreaterThan([35m0[39m)[33m;[39m
+     [90m 61 |[39m     })[33m;[39m
+     [90m 62 |[39m })[33m;[39m[0m
+
+      at Object.toHaveLength (src/core/__tests__/BotEngine.test.ts:59:42)
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       1 failed, 19 passed, 20 total
+Snapshots:   0 total
+Time:        2.514 s
+Ran all test suites matching /src\\core\\__tests__\\LogicEngine.test.ts|src\\core\\__t
+ests__\\BotEngine.test.ts|src\\core\\DominoEngine.test.ts/i.
+

@@ -207,12 +207,20 @@ export const calculateCochonPoints = (players: Player[]): { pointsMap: Map<Playe
     // Find winner (player with highest wins)
     const sortedByWins = [...players].sort((a, b) => b.wins - a.wins);
     const winnerId = sortedByWins[0].id;
+    const totalWinsOnTable = players.reduce((sum, p) => sum + p.wins, 0);
 
     // Count cochons (players with 0 wins)
     const cochons = players.filter(p => p.wins === 0);
     const cochonCount = cochons.length;
 
-    console.log(`[Score] Calculation: Winner=${winnerId}, Cochons=${cochonCount}`);
+    console.log(`[Score] Calculation: Winner=${winnerId}, TotalWins=${totalWinsOnTable}, Cochons=${cochonCount}`);
+
+    // Phase 2.2: Enforcement of "3 Rounds Minimum" for Cochon declaration
+    // As per user request: "Cochon s'affiche au min de 3 parties jouées"
+    if (cochonCount > 0 && totalWinsOnTable < 3) {
+        console.log(`[Score] Not enough rounds for Cochon (${totalWinsOnTable} < 3). Normal end.`);
+        return { pointsMap: new Map(), result: 'NORMAL' };
+    }
 
     // Calculate points
     players.forEach(p => {
@@ -231,8 +239,10 @@ export const calculateCochonPoints = (players: Player[]): { pointsMap: Map<Playe
     return { pointsMap, result: 'COCHON' };
 };
 
+const MANCHE_WIN_THRESHOLD = 3;
+
 /**
- * handleEndOfRound : Met à jour les scores et vérifie la fin du match
+ * handleEndOfRound : Met à jour les scores et vérifie la fin de la MANCHE ou du MATCH
  */
 export const handleEndOfRound = (
     gameState: GameState,
@@ -254,12 +264,12 @@ export const handleEndOfRound = (
         return p;
     });
 
-    // 3. Set starter for the next round
+    // 3. Set starter for the next partie
     newState.firstPlayerOfRound = winnerId;
 
     // 4. Check if Manche is over
     const isChiré = newState.players.every(p => p.wins >= 1);
-    const reachesThreshold = newState.players.some(p => p.wins >= newState.winningCondition);
+    const reachesThreshold = newState.players.some(p => p.wins >= MANCHE_WIN_THRESHOLD);
     const endOfManche = isChiré || reachesThreshold;
 
     if (endOfManche) {
@@ -297,7 +307,8 @@ export const handleEndOfRound = (
 
         newState.phase = isMatchOver ? 'MATCH_END' : 'MANCHE_END';
     } else {
-        newState.phase = 'ROUND_END';
+        newState.phase = 'PARTIE_END';
+        newState.mancheResult = undefined; // IMPORTANT: Clear previous results if manche is ongoing
     }
 
     return newState;

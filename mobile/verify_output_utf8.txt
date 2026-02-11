@@ -1,0 +1,11 @@
+﻿--- STARTING LOGIC VERIFICATION ---
+1. Playing first domino (6-6)
+   Table ends: 6 and 6
+   Sequence length: 1
+2. Playing 6-2 to the LEFT
+   Table ends: 2 and 6
+   Sequence[0]: 6 - 2 (isReversed: true )
+3. Playing 2-3 to the LEFT (should match the 2)
+   Table ends: 3 and 6
+--- LOGIC VERIFICATION SUCCESSFUL ---
+

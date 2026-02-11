@@ -139,8 +139,17 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                         : isBoudé ? "BOUDÉ !" : "PARTIE\nTERMINÉE"}
                             </Text>
 
-                            <View style={[styles.gameModeBadge, styles.gameModeBadgeLandscape]}>
-                                <Text style={styles.gameModeText}>MODE {gameState.gameMode}</Text>
+                            <View style={styles.badgeRowLandscape}>
+                                <View style={[styles.gameModeBadge, styles.gameModeBadgeLandscape]}>
+                                    <Text style={styles.gameModeText}>MODE {gameState.gameMode}</Text>
+                                </View>
+                                <View style={styles.objectiveBadge}>
+                                    <Text style={styles.objectiveText}>
+                                        {gameState.gameMode === 'MANCHE' ? `Objectif : ${gameState.winningCondition} manches` :
+                                            gameState.gameMode === 'SCORE' ? `Objectif : ${gameState.winningCondition} pts` :
+                                                `Objectif : ${gameState.winningCondition} cochons`}
+                                    </Text>
+                                </View>
                             </View>
 
                             {roundWinner && (
@@ -228,8 +237,17 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                     : isBoudé ? "BOUDÉ !" : "PARTIE TERMINÉE"}
                         </Text>
 
-                        <View style={styles.gameModeBadge}>
-                            <Text style={styles.gameModeText}>MODE {gameState.gameMode}</Text>
+                        <View style={styles.badgeRow}>
+                            <View style={styles.gameModeBadge}>
+                                <Text style={styles.gameModeText}>MODE {gameState.gameMode}</Text>
+                            </View>
+                            <View style={styles.objectiveBadge}>
+                                <Text style={styles.objectiveText}>
+                                    {gameState.gameMode === 'MANCHE' ? `Objectif : Gagner ${gameState.winningCondition} manches` :
+                                        gameState.gameMode === 'SCORE' ? `Objectif : Atteindre ${gameState.winningCondition} points` :
+                                            `Objectif : Infliger ${gameState.winningCondition} cochons`}
+                                </Text>
+                            </View>
                         </View>
 
                         {/* WINNER SPOTLIGHT - Emotional Centerpiece */}
@@ -312,9 +330,15 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                                         <Text style={styles.readyBadgeText}>PRÊT</Text>
                                                     </View>
                                                 )}
+                                                {/* COCHON BADGE - High Visibility */}
+                                                {gameState.mancheResult === 'COCHON' && p.wins === 0 && (
+                                                    <View style={styles.cochonBadge}>
+                                                        <Text style={styles.cochonBadgeText}>COCHON</Text>
+                                                    </View>
+                                                )}
                                                 <View style={styles.scoreContainer}>
                                                     <View style={styles.scoreColumn}>
-                                                        <Text style={[styles.scoreMain, isWinner && styles.winnerText]}>
+                                                        <Text style={[styles.scoreMain, isWinner && styles.winnerText, gameState.mancheResult === 'COCHON' && p.wins === 0 && styles.statWinsCochon]}>
                                                             {p.wins} {p.wins > 1 ? 'Wins' : 'Win'}
                                                         </Text>
                                                         {gameState.gameMode === 'MANCHE' && (
@@ -331,7 +355,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                                             <Text style={styles.cochonCountLabel}>{p.totalCochons} 🐷</Text>
                                                         )}
                                                         {(isMatchOver || gameState.gameMode === 'SCORE' || p.totalPoints !== 0) && (
-                                                            <Text style={[styles.points, p.totalPoints < 0 && styles.pointsNegative]}>
+                                                            <Text style={[styles.points, p.totalPoints < 0 && styles.pointsNegative, gameState.mancheResult === 'COCHON' && p.wins === 0 && styles.statPointsCochon]}>
                                                                 {p.totalPoints >= 0 ? '+' : ''}{p.totalPoints} pts
                                                             </Text>
                                                         )}
@@ -387,8 +411,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                         >
                                             <Text style={styles.replayText}>
                                                 {isSolo
-                                                    ? "Démarrer la manche suivante"
-                                                    : `Démarrer la manche suivante${countdown > 0 ? ` (${countdown}s)` : ''}`
+                                                    ? "Démarrer la Manche suivante"
+                                                    : `Manche suivante${countdown > 0 ? ` (${countdown}s)` : ''}`
                                                 }
                                             </Text>
                                         </TouchableOpacity>
@@ -409,7 +433,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                             onPress={() => onNextRound?.()}
                                         >
                                             <Text style={styles.replayText}>
-                                                {isSolo ? "Tour suivant" : "Continuer"}
+                                                Partie suivante
                                             </Text>
                                         </TouchableOpacity>
                                     )}
@@ -477,6 +501,32 @@ const styles = StyleSheet.create({
         fontSize: 18,
         lineHeight: 22,
         marginBottom: 8,
+    },
+    badgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 10,
+    },
+    badgeRowLandscape: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 8,
+    },
+    objectiveBadge: {
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.1)',
+    },
+    objectiveText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#666',
+        textTransform: 'uppercase',
     },
     resultsContainer: {
         width: '100%',
@@ -568,6 +618,28 @@ const styles = StyleSheet.create({
         backgroundColor: '#d32f2f',
         width: '100%',
         alignItems: 'center',
+    },
+    cochonBadge: {
+        backgroundColor: '#FF4500', // Vivid Red-Orange
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginLeft: 8,
+        borderWidth: 1,
+        borderColor: '#FFF',
+    },
+    cochonBadgeText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: '900',
+    },
+    statWinsCochon: {
+        color: '#FF4500',
+        fontWeight: 'bold',
+    },
+    statPointsCochon: {
+        color: '#FF4500',
+        opacity: 0.8,
     },
     readyBadge: {
         backgroundColor: '#4CAF50',
