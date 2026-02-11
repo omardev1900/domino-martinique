@@ -5,7 +5,7 @@
 
 ---
 
-## 📅 Phase 1 : Architecture & Choix Techniques
+## 📅 Phase 1 : Architecture & Choix Techniques ✅ COMPLET
 **Objectif :** Définir les fondations pour éviter la dette technique.
 **Focus :** Stabilité et compatibilité Cross-Platform (iOS/Android).
 
@@ -23,7 +23,7 @@
 
 ---
 
-## 🧩 Phase 2 : Moteur de Jeu (Logique Pure)
+## 🧩 Phase 2 : Moteur de Jeu & Logique Martiniquaise ✅ COMPLET
 **Objectif :** Coder les règles du jeu sans interface graphique (Test-Driven Development recommandé).
 **Focus :** Respect strict des règles martiniquaises.
 
@@ -46,7 +46,7 @@
 
 ---
 
-## 🎨 Phase 3 : UX/UI & Design System (Omatrice Style)
+## 🎨 Phase 3 : UX/UI & Design System (Omatrice Style) 🟦 EN COURS
 **Objectif :** Une interface lisible, "Premium 2D", avec une touche antillaise.
 **Focus :** Ergonomie sur petit écran à 3 joueurs.
 
