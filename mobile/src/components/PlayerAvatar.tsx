@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Text, Image } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import Animated, { useSharedValue, useAnimatedProps, withTiming, Easing } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedProps, useAnimatedStyle, withTiming, Easing, withRepeat, withSequence } from 'react-native-reanimated';
 import { Player } from '../core/types';
 import { getAvatarImage, AvatarId } from '../core/avatars';
+import { Ionicons } from '@expo/vector-icons';
 
 interface PlayerAvatarProps {
     player: Player;
@@ -16,6 +17,8 @@ interface PlayerAvatarProps {
     layout?: 'vertical' | 'horizontal';
     namePlacement?: 'above' | 'below'; // Where to place the name in vertical layout
     score?: string; // NEW: Current score to display (e.g. "2 wins" or "45 pts")
+    showHandSize?: boolean; // NEW: Show remaining tiles count
+    isPaused?: boolean; // NEW: Pause the timer
     onTimeout?: () => void; // Callback when timer expires
 }
 
@@ -32,6 +35,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     layout = 'vertical',
     namePlacement = 'below',
     score,
+    showHandSize = true,
+    isPaused = false,
     onTimeout
 }) => {
     const strokeWidth = 4;
@@ -39,15 +44,12 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const circumference = 2 * Math.PI * radius;
 
     const animatedProgress = useSharedValue(1);
+    const breatheValue = useSharedValue(1);
     const [secondsLeft, setSecondsLeft] = useState(timerDuration);
 
     // Timer Countdown Effect
     useEffect(() => {
-        if (showTimer && isActive) {
-            // Reset timer
-            setSecondsLeft(timerDuration);
-            animatedProgress.value = 1;
-
+        if (showTimer && isActive && !isPaused) {
             // Start countdown
             const interval = setInterval(() => {
                 setSecondsLeft(prev => {
@@ -57,18 +59,44 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                 });
             }, 1000);
 
-            // Animate ring
+            // Animate ring (approximate remaining time)
+            const remainingDuration = secondsLeft * 1000;
             animatedProgress.value = withTiming(0, {
-                duration: timerDuration * 1000,
+                duration: remainingDuration,
                 easing: Easing.linear,
             });
 
-            return () => clearInterval(interval);
+            // Breathing effect for active player
+            breatheValue.value = withRepeat(
+                withSequence(
+                    withTiming(1.1, { duration: 1000 }),
+                    withTiming(1, { duration: 1000 })
+                ),
+                -1,
+                true
+            );
+
+            return () => {
+                clearInterval(interval);
+                // We don't reset breatheValue here to allow it to stay at 1 when paused
+            };
         } else {
-            animatedProgress.value = 1;
-            setSecondsLeft(timerDuration);
+            // Paused or not active
+            if (isPaused) {
+                // Keep current progress
+                animatedProgress.value = animatedProgress.value;
+                breatheValue.value = withTiming(1);
+            } else {
+                animatedProgress.value = 1;
+                setSecondsLeft(timerDuration);
+                breatheValue.value = 1;
+            }
         }
-    }, [showTimer, isActive, timerDuration]);
+    }, [showTimer, isActive, isPaused, timerDuration]);
+
+    const animatedAvatarStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: breatheValue.value }],
+    }));
 
     // Timeout Trigger Effect
     useEffect(() => {
@@ -93,10 +121,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const avatarImage = getAvatarImage(finalAvatarId);
 
     // Image scaling factor to zoom into the face (top portion)
-    // 1.8 means the image will be 80% larger, showing only the top ~55%
     const imageScale = 1.8;
     const imageSize = size * imageScale;
-    // Offset to move image up, showing just the face
     const imageOffset = -(imageSize - size) * 0.25;
 
     return (
@@ -111,10 +137,16 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         {player.name}
                     </Text>
                     {score && <Text style={styles.playerScore}>{score}</Text>}
+                    {showHandSize && (
+                        <View style={styles.handSizeBadge}>
+                            <Ionicons name="documents-outline" size={10} color="#FFF" style={{ opacity: 0.6 }} />
+                            <Text style={styles.handSizeText}>{player.handSize}/7</Text>
+                        </View>
+                    )}
                 </View>
             )}
 
-            <View style={{ width: size + 12, height: size + 12, alignItems: 'center', justifyContent: 'center' }}>
+            <Animated.View style={[{ width: size + 12, height: size + 12, alignItems: 'center', justifyContent: 'center' }, animatedAvatarStyle]}>
                 {/* Avatar Circle */}
                 <View
                     style={[
@@ -125,7 +157,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             borderRadius: size / 2,
                             borderWidth: isActive ? 3 : 2,
                             borderColor: isActive ? '#FFD700' : 'rgba(255,255,255,0.3)',
-                            overflow: 'hidden', // Important for image cropping
+                            overflow: 'hidden',
                         },
                         isActive && styles.activeGlow,
                     ]}
@@ -181,7 +213,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         />
                     </Svg>
                 )}
-            </View>
+            </Animated.View>
 
             {/* Name below avatar in vertical layout */}
             {!isHorizontal && namePlacement === 'below' && (
@@ -193,6 +225,12 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         {player.name}
                     </Text>
                     {score && <Text style={styles.playerScore}>{score}</Text>}
+                    {showHandSize && (
+                        <View style={styles.handSizeBadge}>
+                            <Ionicons name="documents-outline" size={10} color="#FFF" style={{ opacity: 0.6 }} />
+                            <Text style={styles.handSizeText}>{player.handSize}/7</Text>
+                        </View>
+                    )}
                 </View>
             )}
 
@@ -206,6 +244,12 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         {player.name}
                     </Text>
                     {score && <Text style={[styles.playerScore, styles.scoreHorizontal]}>{score}</Text>}
+                    {showHandSize && (
+                        <View style={[styles.handSizeBadge, { justifyContent: 'flex-start', marginTop: 2 }]}>
+                            <Ionicons name="documents-outline" size={10} color="#FFF" style={{ opacity: 0.6 }} />
+                            <Text style={styles.handSizeText}>{player.handSize}/7</Text>
+                        </View>
+                    )}
                 </View>
             )}
         </View>
@@ -277,6 +321,23 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         marginTop: 1,
+    },
+    handSizeBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
+        marginTop: 2,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 8,
+    },
+    handSizeText: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: '600',
+        opacity: 0.8,
     },
     scoreHorizontal: {
         textAlign: 'left',

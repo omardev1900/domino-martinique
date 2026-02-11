@@ -206,22 +206,24 @@ export const calculateCochonPoints = (players: Player[]): { pointsMap: Map<Playe
 
     // Find winner (player with highest wins)
     const sortedByWins = [...players].sort((a, b) => b.wins - a.wins);
-    const winner = sortedByWins[0];
+    const winnerId = sortedByWins[0].id;
 
     // Count cochons (players with 0 wins)
     const cochons = players.filter(p => p.wins === 0);
     const cochonCount = cochons.length;
 
+    console.log(`[Score] Calculation: Winner=${winnerId}, Cochons=${cochonCount}`);
+
     // Calculate points
     players.forEach(p => {
-        if (p.id === winner.id) {
+        if (p.id === winnerId) {
             // Winner gets exactly 4 or 5 points for the manche
-            pointsMap.set(p.id, cochonCount === 1 ? 4 : cochonCount === 2 ? 5 : 0);
+            const pts = cochonCount === 1 ? 4 : cochonCount === 2 ? 5 : 0;
+            pointsMap.set(p.id, pts);
         } else if (p.wins === 0) {
             // Cochon gets -1
             pointsMap.set(p.id, -1);
         } else {
-            // Non-winner, non-cochon: they get 0 (PRD: points are for winner/cochons)
             pointsMap.set(p.id, 0);
         }
     });
@@ -236,60 +238,61 @@ export const handleEndOfRound = (
     gameState: GameState,
     winnerId: PlayerId | 'TIE'
 ): GameState => {
-    const newState = { ...gameState };
+    // 1. Create a deep copy (or at least map players to new objects to avoid mutations)
+    const newState = JSON.parse(JSON.stringify(gameState)) as GameState;
 
     if (winnerId === 'TIE') {
         newState.phase = 'BOUDE';
         return newState;
     }
 
-    // 1. Increment round win
-    const winnerIndex = newState.players.findIndex(p => p.id === winnerId);
-    if (winnerIndex !== -1) {
-        newState.players[winnerIndex].wins += 1;
-    }
+    // 2. Increment round win for the winner
+    newState.players = newState.players.map(p => {
+        if (p.id === winnerId) {
+            return { ...p, wins: p.wins + 1 };
+        }
+        return p;
+    });
 
-    // 3. Set starter for the next round (always the winner, unless TIE)
-    if (winnerId !== 'TIE') {
-        newState.firstPlayerOfRound = winnerId;
-    } else {
-        newState.firstPlayerOfRound = null;
-    }
+    // 3. Set starter for the next round
+    newState.firstPlayerOfRound = winnerId;
 
+    // 4. Check if Manche is over
     const isChiré = newState.players.every(p => p.wins >= 1);
-    const reachesThreshold = newState.players.some(p => p.wins >= gameState.winningCondition);
+    const reachesThreshold = newState.players.some(p => p.wins >= newState.winningCondition);
     const endOfManche = isChiré || reachesThreshold;
 
     if (endOfManche) {
         const { pointsMap, result } = calculateCochonPoints(newState.players);
         newState.mancheResult = result;
 
+        // Apply manche results to total stats
         newState.players = newState.players.map(p => {
             const manchePts = pointsMap.get(p.id) || 0;
-            const isWinnerOfManche = result === 'COCHON' && (p.id === winnerId || (p.wins === Math.max(...newState.players.map(pl => pl.wins))));
-            const isCochonNow = p.wins === 0 && result === 'COCHON';
 
-            // For Chiré, everyone gets 0. For COCHON, use the pointsMap (+4, +5, -1, 0)
-            const pointsToAdd = result === 'CHIRE' ? 0 : manchePts;
+            // A player wins the manche if they have the most wins
+            const maxWins = Math.max(...newState.players.map(pl => pl.wins));
+            const isWinnerOfManche = result === 'COCHON' && p.wins === maxWins;
+            const isCochonNow = result === 'COCHON' && p.wins === 0;
 
             return {
                 ...p,
                 isCochon: isCochonNow,
                 totalCochons: p.totalCochons + (isCochonNow ? 1 : 0),
                 mancheWins: p.mancheWins + (isWinnerOfManche ? 1 : 0),
-                totalPoints: p.totalPoints + pointsToAdd
+                totalPoints: p.totalPoints + manchePts
             };
         });
 
-        // 4. Final Match End Check
+        // 5. Check if Match is over
         let isMatchOver = false;
         if (newState.gameMode === 'MANCHE') {
             isMatchOver = newState.players.some(p => p.mancheWins >= newState.winningCondition);
         } else if (newState.gameMode === 'SCORE') {
             isMatchOver = newState.players.some(p => p.totalPoints >= newState.winningCondition);
         } else if (newState.gameMode === 'COCHON') {
-            const totalMatchCochons = newState.players.reduce((sum, p) => sum + p.totalCochons, 0);
-            isMatchOver = totalMatchCochons >= newState.winningCondition;
+            // Phase 2.2: Match ends when a SINGLE player reaches the cochon limit
+            isMatchOver = newState.players.some(p => p.totalCochons >= newState.winningCondition);
         }
 
         newState.phase = isMatchOver ? 'MATCH_END' : 'MANCHE_END';
@@ -356,22 +359,35 @@ export const handleTurn = (
     // 3. Update Table
     const playedDomino = { ...domino };
 
-    // Add to table sequence
-    newState.table.sequence.push({
-        domino: playedDomino,
-        sideAtTable: side,
-        isReversed: !!isReversed
-    });
-
-    // Update table extremities
-    if (newState.table.sequence.length === 1) {
-        // First domino played
+    // CRITICAL FIX: Maintain logical order in sequence
+    // sequence[0] is always the far left, sequence[last] is always the far right
+    if (newState.table.sequence.length === 0) {
+        // First domino
+        newState.table.sequence.push({
+            domino: playedDomino,
+            sideAtTable: 'left',
+            isReversed: false
+        });
         newState.table.leftValue = playedDomino.left;
         newState.table.rightValue = playedDomino.right;
     } else {
         if (side === 'left') {
+            // Add to BEGINNING of array
+            newState.table.sequence.unshift({
+                domino: playedDomino,
+                sideAtTable: 'left',
+                isReversed: !!isReversed
+            });
+            // The NEW left value is the side of the domino that is NOT touching the table
             newState.table.leftValue = isReversed ? playedDomino.right : playedDomino.left;
         } else {
+            // Add to END of array
+            newState.table.sequence.push({
+                domino: playedDomino,
+                sideAtTable: 'right',
+                isReversed: !!isReversed
+            });
+            // The NEW right value is the side of the domino that is NOT touching the table
             newState.table.rightValue = isReversed ? playedDomino.left : playedDomino.right;
         }
     }

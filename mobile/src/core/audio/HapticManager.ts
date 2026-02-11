@@ -16,6 +16,11 @@ const HapticManager = {
         if (!SettingsManager.getSettings().isVibrationEnabled) return;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     },
+
+    triggerLightSelection: () => {
+        if (!SettingsManager.getSettings().isVibrationEnabled) return;
+        Haptics.selectionAsync();
+    },
 };
 
 export default HapticManager;

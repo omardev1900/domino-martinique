@@ -16,6 +16,7 @@ export default function SoloScreen() {
     const [difficulty, setDifficulty] = useState<Difficulty>('medium');
     const [gameMode, setGameMode] = useState<GameMode>('MANCHE');
     const [winningCondition, setWinningCondition] = useState(3);
+    const [turnDuration, setTurnDuration] = useState(15);
 
     const startGame = () => {
         router.push({
@@ -25,7 +26,8 @@ export default function SoloScreen() {
                 mode: 'solo',
                 difficulty: difficulty,
                 gameMode: gameMode,
-                winningCondition: winningCondition
+                winningCondition: winningCondition,
+                turnDuration: turnDuration
             }
         });
     };
@@ -148,6 +150,33 @@ export default function SoloScreen() {
                                     <Ionicons name="add" size={20} color="#FFF" />
                                 </TouchableOpacity>
                             </View>
+                        </View>
+
+                        {/* Turn Duration Selection */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Durée du tour (secondes)</Text>
+                            <View style={styles.targetRow}>
+                                <TouchableOpacity
+                                    style={[styles.targetButton, isLandscape && styles.targetButtonSmall]}
+                                    onPress={() => setTurnDuration(prev => Math.max(0, prev - 5))}
+                                >
+                                    <Ionicons name="remove" size={20} color="#FFF" />
+                                </TouchableOpacity>
+                                <View style={styles.targetValueContainer}>
+                                    <Text style={[styles.targetValue, isLandscape && styles.targetValueSmall]}>
+                                        {turnDuration === 0 ? 'Off' : turnDuration}
+                                    </Text>
+                                </View>
+                                <TouchableOpacity
+                                    style={[styles.targetButton, isLandscape && styles.targetButtonSmall]}
+                                    onPress={() => setTurnDuration(prev => Math.min(60, prev + 5))}
+                                >
+                                    <Ionicons name="add" size={20} color="#FFF" />
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, textAlign: 'center', marginTop: 4 }}>
+                                {turnDuration === 0 ? 'Pas de limite de temps' : `Le tour se termine après ${turnDuration}s`}
+                            </Text>
                         </View>
 
                         <TouchableOpacity style={[styles.startButton, isLandscape && styles.startButtonLandscape]} onPress={startGame}>

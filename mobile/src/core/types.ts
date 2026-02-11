@@ -50,6 +50,7 @@ export interface GameState {
     winningCondition: number; // Seuil pour terminer (3 victoires, 100 pts, etc.)
     gameMode: GameMode; // NEW: Mode de jeu
     mancheResult?: MancheResult; // NEW: Résultat de la manche (pour affichage Chiré)
+    turnDuration: number; // NEW: Durée du tour en secondes
     lastActionTimestamp: number;
 }
 
@@ -90,4 +91,5 @@ export interface GameRoom {
     rematchVotes?: string[]; // IDs des joueurs qui veulent rejouer
     gameMode?: GameMode; // NEW: Mode de jeu choisi par l'hôte
     winningCondition?: number; // Condition de victoire
+    turnDuration?: number; // NEW: Durée du tour
 }

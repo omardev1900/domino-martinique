@@ -19,13 +19,19 @@ export const getBotMove = (
     rightValue: DominoSide | null,
     difficulty: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend' = 'medium'
 ): BotDecision | null => {
+    // SECURITY: Ensure we are passing actual values or null, not an object
+    if (typeof leftValue === 'object' && leftValue !== null) {
+        console.error("[BotEngine] ERROR: leftValue is an object! Check call site.");
+        return null;
+    }
 
     const decision = getEngineBotMove(hand, { left: leftValue, right: rightValue }, difficulty);
 
     if (!decision) return null;
 
+    // Map the internal decision to the expected return type
     return {
         tile: decision.tile,
-        side: decision.side
+        side: decision.side as 'left' | 'right' | 'start'
     };
 };

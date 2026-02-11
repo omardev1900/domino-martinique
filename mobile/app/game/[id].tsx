@@ -7,6 +7,9 @@ export default function GameRoute() {
         userId: string;
         mode?: string;
         difficulty?: string;
+        gameMode?: string;
+        winningCondition?: string;
+        turnDuration?: string;
     }>();
 
     return (
@@ -14,7 +17,10 @@ export default function GameRoute() {
             gameId={params.id}
             userId={params.userId}
             mode={params.mode as 'solo' | 'multiplayer' | undefined}
-            difficulty={params.difficulty as 'beginner' | 'intermediate' | undefined}
+            difficulty={params.difficulty as any}
+            gameMode={params.gameMode as any}
+            winningCondition={params.winningCondition ? Number(params.winningCondition) : undefined}
+            turnDuration={params.turnDuration ? Number(params.turnDuration) : undefined}
         />
     );
 }

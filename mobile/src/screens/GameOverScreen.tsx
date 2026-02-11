@@ -134,8 +134,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                         <View style={styles.leftColumn}>
                             <Text style={[styles.header, styles.headerLandscape]}>
                                 {isMatchOver
-                                    ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : "MATCH\nTERMINÉ")
-                                    : isMancheOver ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : "MANCHE\nTERMINÉE")
+                                    ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : (gameState.mancheResult === 'COCHON' ? "COCHON !" : "MATCH\nTERMINÉ"))
+                                    : isMancheOver ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : (gameState.mancheResult === 'COCHON' ? "COCHON !" : "MANCHE\nTERMINÉE"))
                                         : isBoudé ? "BOUDÉ !" : "PARTIE\nTERMINÉE"}
                             </Text>
 
@@ -223,8 +223,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                     >
                         <Text style={styles.header}>
                             {isMatchOver
-                                ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : "MATCH TERMINÉ")
-                                : isMancheOver ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : "MANCHE TERMINÉE")
+                                ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : (gameState.mancheResult === 'COCHON' ? "COCHON !" : "MATCH TERMINÉ"))
+                                : isMancheOver ? (gameState.mancheResult === 'CHIRE' ? "CHIRÉ !" : (gameState.mancheResult === 'COCHON' ? "COCHON !" : "MANCHE TERMINÉE"))
                                     : isBoudé ? "BOUDÉ !" : "PARTIE TERMINÉE"}
                         </Text>
 

@@ -13,6 +13,7 @@ const createMockPlayer = (id: string, name: string, wins: number, totalPoints: n
     mancheWins: 0,
     totalPoints,
     isCochon: false,
+    totalCochons: 0,
     isBot: false
 });
 
@@ -27,6 +28,7 @@ const createMockState = (players: Player[], winningCondition: number = 3): GameS
     history: [],
     winningCondition,
     gameMode: 'MANCHE',
+    turnDuration: 15,
     lastActionTimestamp: Date.now()
 });
 

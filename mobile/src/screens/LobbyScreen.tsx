@@ -22,21 +22,27 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
 
     const [gameMode, setGameMode] = useState<GameMode>(roomData.gameMode || 'MANCHE');
     const [winningCondition, setWinningCondition] = useState(roomData.winningCondition || 3);
+    const [turnDuration, setTurnDuration] = useState(roomData.turnDuration || 15);
 
     // Sync settings to Firebase when host changes them
     useEffect(() => {
-        if (isHost && (gameMode !== roomData.gameMode || winningCondition !== roomData.winningCondition)) {
-            updateRoomSettings(roomData.roomId, { gameMode, winningCondition });
+        if (isHost && (
+            gameMode !== roomData.gameMode ||
+            winningCondition !== roomData.winningCondition ||
+            turnDuration !== roomData.turnDuration
+        )) {
+            updateRoomSettings(roomData.roomId, { gameMode, winningCondition, turnDuration });
         }
-    }, [gameMode, winningCondition, isHost]);
+    }, [gameMode, winningCondition, turnDuration, isHost]);
 
     // Update local state when room data changes (for non-hosts)
     useEffect(() => {
         if (!isHost) {
             if (roomData.gameMode) setGameMode(roomData.gameMode);
             if (roomData.winningCondition) setWinningCondition(roomData.winningCondition);
+            if (roomData.turnDuration !== undefined) setTurnDuration(roomData.turnDuration);
         }
-    }, [roomData.gameMode, roomData.winningCondition, isHost]);
+    }, [roomData.gameMode, roomData.winningCondition, roomData.turnDuration, isHost]);
 
     // AUTO-START: Lancer automatiquement la partie dès que 3 joueurs sont présents
     // LOGIQUE DE FALLBACK:
@@ -180,7 +186,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
             <Animated.View entering={FadeIn.delay(400)} style={styles.optionsSection}>
                 <Text style={styles.sectionTitle}>CONFIGURATIONS DE LA TABLE</Text>
 
-                <View style={styles.optionsRow}>
+                <View style={[styles.optionsRow, { flexWrap: 'wrap', justifyContent: 'center' }]}>
                     <View style={styles.optionItem}>
                         <Text style={styles.optionLabel}>MODE DE JEU</Text>
                         {isHost ? (
@@ -225,6 +231,31 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                         ) : (
                             <View style={styles.readOnlyValue}>
                                 <Text style={styles.optionValue}>{winningCondition} {gameMode === 'MANCHE' ? 'Manches' : gameMode === 'SCORE' ? 'Points' : 'Cochons'}</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    <View style={[styles.optionItem, { minWidth: '100%', marginTop: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 15 }]}>
+                        <Text style={styles.optionLabel}>DURÉE DU TOUR : <Text style={styles.winningValueText}>{turnDuration === 0 ? 'Illimité' : `${turnDuration}s`}</Text></Text>
+                        {isHost ? (
+                            <View style={styles.conditionControls}>
+                                <TouchableOpacity
+                                    onPress={() => setTurnDuration(Math.max(0, turnDuration - 5))}
+                                    style={styles.adjustButton}
+                                >
+                                    <Ionicons name="remove-circle-outline" size={28} color="#FFD700" />
+                                </TouchableOpacity>
+                                <Text style={styles.conditionValueText}>{turnDuration === 0 ? 'Off' : turnDuration}</Text>
+                                <TouchableOpacity
+                                    onPress={() => setTurnDuration(Math.min(60, turnDuration + 5))}
+                                    style={styles.adjustButton}
+                                >
+                                    <Ionicons name="add-circle-outline" size={28} color="#FFD700" />
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <View style={styles.readOnlyValue}>
+                                <Text style={styles.optionValue}>{turnDuration === 0 ? 'Sans limite' : `${turnDuration} secondes`}</Text>
                             </View>
                         )}
                     </View>

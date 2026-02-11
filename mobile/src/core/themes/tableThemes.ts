@@ -1,4 +1,4 @@
-export type TableTheme = 'classic' | 'modern' | 'luxury';
+export type TableTheme = 'classic' | 'modern' | 'luxury' | 'tropical';
 
 export interface TableThemeColors {
     background: string;
@@ -21,5 +21,10 @@ export const TABLE_THEMES: Record<TableTheme, TableThemeColors> = {
         background: '#1a0f0f', // Dark burgundy background
         border: '#8B0000', // Dark red border
         felt: '#4a1a1a', // Luxury burgundy felt
+    },
+    tropical: {
+        background: '#0a1a0f', // Very dark green background
+        border: '#5d4037', // Exotic wood border (Sapele)
+        felt: '#2e7d32', // Vibrant tropical green
     },
 };

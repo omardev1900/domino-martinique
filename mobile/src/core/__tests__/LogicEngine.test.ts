@@ -89,12 +89,13 @@ describe('LogicEngine', () => {
 });
 
 describe('passTurn', () => {
-    const p1: Player = { id: 'p1', name: 'P1', hand: [{ id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 } as Domino], handSize: 1, wins: 0, isCochon: false, isBot: false };
-    const p2: Player = { id: 'p2', name: 'P2', hand: [{ id: 'd2', left: 0, right: 0, isDouble: true, sum: 0 } as Domino], handSize: 1, wins: 0, isCochon: false, isBot: false };
-    const p3: Player = { id: 'p3', name: 'P3', hand: [{ id: 'd3', left: 2, right: 2, isDouble: true, sum: 4 } as Domino], handSize: 1, wins: 0, isCochon: false, isBot: false };
+    const p1: Player = { id: 'p1', name: 'P1', hand: [{ id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 } as Domino], handSize: 1, wins: 0, mancheWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
+    const p2: Player = { id: 'p2', name: 'P2', hand: [{ id: 'd2', left: 0, right: 0, isDouble: true, sum: 0 } as Domino], handSize: 1, wins: 0, mancheWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
+    const p3: Player = { id: 'p3', name: 'P3', hand: [{ id: 'd3', left: 2, right: 2, isDouble: true, sum: 4 } as Domino], handSize: 1, wins: 0, mancheWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
 
     let state: GameState = {
         gameId: 'g1',
+        gameMode: 'MANCHE',
         players: [p1, p2, p3],
         talonMort: [],
         table: { sequence: [], leftValue: 6, rightValue: 6 }, // Table matches 6
@@ -130,33 +131,32 @@ describe('passTurn', () => {
 
         const newState = passTurn(state, 'p2');
 
-        // Should end round due to blocked game
-        expect(newState.phase).toBe('ROUND_END');
-        // Winner should be P2 (sum 0) < P3 (sum 4) < P1 (sum 12)
-        expect(newState.firstPlayerOfRound).toBe('p2');
-        expect(newState.players[1].wins).toBe(1);
+        // Should enter BOUDE phase for UI to show popup
+        expect(newState.phase).toBe('BOUDE');
     });
 });
 
 describe('handleTurn', () => {
-    let state: GameState;
-    const p1: Player = { id: 'p1', name: 'P1', hand: [], handSize: 0, wins: 0, isCochon: false, isBot: false };
+    const p1: Player = { id: 'p1', name: 'P1', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
 
+    let state: GameState = {
+        gameId: 'g1',
+        gameMode: 'MANCHE',
+        players: [p1],
+        talonMort: [],
+        table: { sequence: [], leftValue: 6, rightValue: 6 },
+        history: [],
+        currentPlayerId: 'p1',
+        phase: 'PLAYING',
+        firstPlayerOfRound: 'p1',
+        winningCondition: 3,
+        lastActionTimestamp: 0
+    };
+
+    // Re-initialize p1's hand for each test
     beforeEach(() => {
         const d1: Domino = { id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 };
         p1.hand = [d1];
-        state = {
-            gameId: 'g1',
-            players: [p1],
-            talonMort: [],
-            table: { sequence: [], leftValue: 6, rightValue: 6 },
-            history: [],
-            currentPlayerId: 'p1',
-            phase: 'PLAYING',
-            firstPlayerOfRound: 'p1',
-            winningCondition: 3,
-            lastActionTimestamp: 0
-        };
     });
 
     it('should throw if player tries to play a tile not in their hand', () => {

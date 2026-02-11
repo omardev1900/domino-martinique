@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { FadeIn, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, interpolateColor } from 'react-native-reanimated';
+import Svg, { Circle, Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { DominoSide } from '../core/types';
+import HapticManager from '../core/audio/HapticManager';
 
 interface DominoTileProps {
     left: DominoSide;
@@ -12,17 +14,18 @@ interface DominoTileProps {
     disabled?: boolean;
     entering?: any; // Reanimated entering prop
     noMargin?: boolean; // Remove margin for board tiles
-    isPlayable?: boolean; // NEW: Should the tile glow?
+    isPlayable?: boolean; // Should the tile glow?
 }
 
-const DOT_POSITIONS: Record<number, number[]> = {
+// Logic for pip positions
+const DOT_POSITIONS: Record<number, number[][]> = {
     0: [],
-    1: [4],
-    2: [0, 8],
-    3: [0, 4, 8],
-    4: [0, 2, 6, 8],
-    5: [0, 2, 4, 6, 8],
-    6: [0, 2, 3, 5, 6, 8],
+    1: [[0.5, 0.5]],
+    2: [[0.25, 0.25], [0.75, 0.75]],
+    3: [[0.25, 0.25], [0.5, 0.5], [0.75, 0.75]],
+    4: [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]],
+    5: [[0.25, 0.25], [0.75, 0.25], [0.5, 0.5], [0.25, 0.75], [0.75, 0.75]],
+    6: [[0.25, 0.25], [0.25, 0.5], [0.25, 0.75], [0.75, 0.25], [0.75, 0.5], [0.75, 0.75]],
 };
 
 export const DominoTile: React.FC<DominoTileProps> = ({
@@ -40,48 +43,15 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     const width = isVertical ? size : size * 2;
     const height = isVertical ? size * 2 : size;
 
-    // Internal padding for pips (percentage of size)
-    const padding = size * 0.15;
-    const innerSize = size - padding * 2;
-
-    // Dot size relative to inner area
-    const dotSize = innerSize / 5;
-
-    const renderHalf = (value: DominoSide) => {
-        return (
-            <View style={[styles.half, { width: size, height: size, padding: padding }]}>
-                <View style={[styles.innerHalf, { width: innerSize, height: innerSize }]}>
-                    {DOT_POSITIONS[value].map((pos) => {
-                        const row = Math.floor(pos / 3);
-                        const col = pos % 3;
-                        return (
-                            <View
-                                key={pos}
-                                style={[
-                                    styles.dot,
-                                    {
-                                        width: dotSize,
-                                        height: dotSize,
-                                        top: row * (innerSize / 3) + (innerSize / 3 - dotSize) / 2,
-                                        left: col * (innerSize / 3) + (innerSize / 3 - dotSize) / 2,
-                                    },
-                                ]}
-                            />
-                        );
-                    })}
-                </View>
-            </View>
-        );
-    };
-
     const glowValue = useSharedValue(0);
+    const pressScale = useSharedValue(1);
 
     React.useEffect(() => {
         if (isPlayable) {
             glowValue.value = withRepeat(
                 withSequence(
-                    withTiming(1, { duration: 800 }),
-                    withTiming(0, { duration: 800 })
+                    withTiming(1, { duration: 1000 }),
+                    withTiming(0.4, { duration: 1000 })
                 ),
                 -1,
                 true
@@ -92,98 +62,164 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     }, [isPlayable]);
 
     const animatedGlowStyle = useAnimatedStyle(() => {
-        if (!isPlayable) return {};
         return {
             shadowColor: '#4CAF50',
-            shadowOpacity: withTiming(isPlayable ? 0.8 : 0),
-            shadowRadius: 10 + glowValue.value * 5,
+            shadowOpacity: withTiming(isPlayable ? 0.7 * glowValue.value : 0),
+            shadowRadius: 8 + glowValue.value * 12,
             borderColor: interpolateColor(
                 glowValue.value,
                 [0, 1],
-                ['#D4D4D4', '#4CAF50']
+                ['rgba(255,255,255,0.2)', '#4CAF50']
             ),
-            borderWidth: 3,
-            transform: [{ scale: 1 + glowValue.value * 0.03 }]
+            borderWidth: isPlayable ? 3 : 1,
+            transform: [
+                { scale: withTiming(isPlayable ? 1.05 + glowValue.value * 0.02 : 1) },
+                { scale: pressScale.value }
+            ]
         };
     });
 
+    const handlePressIn = () => {
+        if (!disabled && onPress) {
+            pressScale.value = withTiming(0.92, { duration: 100 });
+            HapticManager.triggerLightSelection();
+        }
+    };
+
+    const handlePressOut = () => {
+        pressScale.value = withTiming(1, { duration: 100 });
+    };
+
+    const renderHalfSVG = (value: DominoSide, isSideHorizontal: boolean) => {
+        let pips = [...DOT_POSITIONS[value]];
+
+        // Special logic for 6: Rotate dots if horizontal
+        if (value === 6 && isSideHorizontal) {
+            pips = [
+                [0.25, 0.25], [0.5, 0.25], [0.75, 0.25],
+                [0.25, 0.75], [0.5, 0.75], [0.75, 0.75]
+            ];
+        }
+
+        const dotRadius = size * 0.09;
+        return (
+            <Svg width={size} height={size} viewBox="0 0 100 100">
+                {pips.map(([x, y], idx) => (
+                    <Circle
+                        key={idx}
+                        cx={x * 100}
+                        cy={y * 100}
+                        r={dotRadius * 2.5}
+                        fill="#1a1a1a"
+                    />
+                ))}
+            </Svg>
+        );
+    };
+
     return (
-        <Animated.View entering={entering || ZoomIn.duration(400)} style={{ opacity: disabled ? 0.8 : 1 }}>
+        <Animated.View entering={entering || ZoomIn.duration(400)} style={{ opacity: disabled ? 0.9 : 1 }}>
             <TouchableOpacity
-                activeOpacity={0.7}
+                activeOpacity={0.9}
                 onPress={onPress}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
                 disabled={disabled || !onPress}
                 style={[
-                    noMargin ? styles.containerNoMargin : styles.container,
-                    styles.container,
+                    styles.baseContainer,
+                    noMargin ? { margin: 0 } : { margin: 4 },
                     { width, height, flexDirection: isVertical ? 'column' : 'row' },
-                    isPlayable && animatedGlowStyle,
+                    animatedGlowStyle,
                 ]}
             >
-                {renderHalf(left)}
-                <View style={[styles.separator, isVertical ? { width: size - 12, height: 2 } : { width: 2, height: size - 12 }]} />
-                {renderHalf(right)}
+                {/* Visual Background with SVG Gradients */}
+                <View style={StyleSheet.absoluteFill}>
+                    <Svg width="100%" height="100%">
+                        <Defs>
+                            <LinearGradient id="ivoryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <Stop offset="0%" stopColor="#FFFFFF" />
+                                <Stop offset="50%" stopColor="#FFFFF0" />
+                                <Stop offset="100%" stopColor="#F5F5DC" />
+                            </LinearGradient>
+                        </Defs>
+                        <Rect
+                            x="0"
+                            y="0"
+                            width="100%"
+                            height="100%"
+                            rx={8}
+                            fill="url(#ivoryGradient)"
+                        />
+                    </Svg>
+                </View>
+
+                {/* Left/Top Half */}
+                <View style={styles.half}>
+                    {renderHalfSVG(left, !isVertical)}
+                </View>
+
+                {/* Center Divider */}
+                <View style={[
+                    styles.divider,
+                    isVertical
+                        ? { width: size * 0.8, height: size * 0.05 }
+                        : { width: size * 0.05, height: size * 0.8 }
+                ]}>
+                    <View style={styles.dividerLine} />
+                </View>
+
+                {/* Right/Bottom Half */}
+                <View style={styles.half}>
+                    {renderHalfSVG(right, !isVertical)}
+                </View>
+
+                {/* Bevel Overlay for 3D look */}
+                <View style={styles.bevelOverlay} pointerEvents="none" />
             </TouchableOpacity>
         </Animated.View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        backgroundColor: '#FFFFF0', // Warmer Ivory
-        borderRadius: 10,
-        borderWidth: 3,
-        // 3D Bevel Effect - Light on top/left, dark on bottom/right
-        borderTopColor: '#FFFFFF',
-        borderLeftColor: '#FFFFFF',
-        borderBottomColor: '#D4D4D4',
-        borderRightColor: '#D4D4D4',
-        alignItems: 'center',
-        justifyContent: 'center',
-        // Enhanced Shadows for depth
-        shadowColor: '#000',
-        shadowOffset: { width: 3, height: 5 },
-        shadowOpacity: 0.5,
-        shadowRadius: 5,
-        elevation: 8,
-        margin: 4, // Margin for player hand tiles
-    },
-    containerNoMargin: {
+    baseContainer: {
         backgroundColor: '#FFFFF0',
-        borderRadius: 10,
-        borderWidth: 3,
-        borderTopColor: '#FFFFFF',
-        borderLeftColor: '#FFFFFF',
-        borderBottomColor: '#D4D4D4',
-        borderRightColor: '#D4D4D4',
+        borderRadius: 8,
+        overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
+        // Shadow for depth
         shadowColor: '#000',
-        shadowOffset: { width: 3, height: 5 },
-        shadowOpacity: 0.5,
-        shadowRadius: 5,
-        elevation: 8,
-        margin: 0, // NO margin for board tiles - should touch
+        shadowOffset: { width: 4, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+        elevation: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.4)',
     },
     half: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 4,
+    },
+    divider: {
         alignItems: 'center',
         justifyContent: 'center',
     },
-    innerHalf: {
-        position: 'relative',
+    dividerLine: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.15)',
+        borderRadius: 1,
     },
-    dot: {
-        position: 'absolute',
-        backgroundColor: '#0a0a0a', // Deeper black for contrast
-        borderRadius: 50,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1.5 },
-        shadowOpacity: 0.3,
-        shadowRadius: 1.5,
-        elevation: 2,
-    },
-    separator: {
-        backgroundColor: '#B8B8B8',
-        opacity: 0.9,
+    bevelOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        borderWidth: 1.5,
+        borderRadius: 8,
+        borderColor: 'rgba(255,255,255,0.5)',
+        borderBottomColor: 'rgba(0,0,0,0.15)',
+        borderRightColor: 'rgba(0,0,0,0.15)',
     },
 });

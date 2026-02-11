@@ -17,6 +17,8 @@ const runVerification = () => {
         phase: 'PLAYING',
         firstPlayerOfRound: 'p1',
         winningCondition: 3,
+        gameMode: 'MANCHE' as const,
+        turnDuration: 15,
         lastActionTimestamp: 0
     };
 

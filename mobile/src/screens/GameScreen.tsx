@@ -14,6 +14,7 @@ import { SettingsScreen } from './SettingsScreen';
 import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude } from '../core/LogicEngine';
 import { getValidMoves } from '../core/DominoEngine';
 import { getBotMove } from '../core/BotEngine';
+import { GameAnnouncer } from '../components/GameAnnouncer';
 
 import { GameState, Domino, Player, PlayerId, GameRoom, RoomStatus, GameMode } from '../core/types';
 import { subscribeToRoom, updateGameState, leaveRoom, startGame, resetRoomToLobby, voteForRematch, clearRematchVotes } from '../core/services/firebase';
@@ -23,7 +24,7 @@ import HapticManager from '../core/audio/HapticManager';
 import { TURN_DURATION_SECONDS } from '../core/constants';
 import * as Clipboard from 'expo-clipboard';
 import SettingsManager from '../core/SettingsManager';
-import { TableTheme } from '../core/themes/tableThemes';
+import { TableTheme, TABLE_THEMES } from '../core/themes/tableThemes';
 import { authService } from '../core/services/auth.service';
 import { AVAILABLE_AVATARS, AvatarId, getAvatarImage } from '../core/avatars';
 
@@ -34,9 +35,10 @@ interface GameScreenProps {
     difficulty?: 'easy' | 'medium' | 'expert' | 'legend';
     gameMode?: GameMode;
     winningCondition?: number;
+    turnDuration?: number;
 }
 
-export default function GameScreen({ gameId, userId, mode, difficulty, gameMode, winningCondition }: GameScreenProps) {
+export default function GameScreen({ gameId, userId, mode, difficulty, gameMode, winningCondition, turnDuration }: GameScreenProps) {
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const isLandscape = width > height;
@@ -50,6 +52,14 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [isSoloMode] = useState(mode === 'solo');
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
+    const [announcement, setAnnouncement] = useState<{ message: string; subMessage?: string; type: 'COCHON' | 'CHIRE' | 'ROUND_END' | 'BOUDE' } | null>(null);
+    const [showScoreboard, setShowScoreboard] = useState(false);
+
+    // DERIVED STATE - Must be after state hooks but before handlers
+    const localPlayer = gameState?.players.find(p => p.id === localPlayerId);
+    const isMyTurn = gameState?.currentPlayerId === localPlayerId;
+    const isGameOver = gameState?.phase === 'MATCH_END' || gameState?.phase === 'MANCHE_END' || gameState?.phase === 'ROUND_END' || gameState?.phase === 'BOUDE';
+    const showScoreOverlay = isGameOver && showScoreboard;
 
     // Player profile data for solo mode
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
@@ -120,11 +130,50 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     // Timer reset on turn change
     useEffect(() => {
         if (gameState?.phase === 'PLAYING' && gameState?.currentPlayerId === localPlayerId) {
-            setTimeLeft(TURN_DURATION_SECONDS);
+            if (gameState.turnDuration > 0) {
+                setTimeLeft(gameState.turnDuration);
+            } else {
+                setTimeLeft(null);
+            }
         } else {
             setTimeLeft(null);
         }
-    }, [gameState?.currentPlayerId, gameState?.phase, localPlayerId]);
+
+        // Phase Transition Logic for Announcer
+        if (gameState?.phase && ['MANCHE_END', 'MATCH_END', 'ROUND_END', 'BOUDE'].includes(gameState.phase)) {
+            let message = "";
+            let type: any = "ROUND_END";
+            let subMessage = "";
+
+            if (gameState.phase === 'BOUDE') {
+                message = "BOUDÉ !";
+                type = "BOUDE";
+            } else if (gameState.mancheResult === 'CHIRE') {
+                message = "CHIRÉ !";
+                type = "CHIRE";
+                subMessage = "Match Nul - Pas de cochon";
+            } else if (gameState.mancheResult === 'COCHON') {
+                const winner = gameState.players.find(p => p.wins === Math.max(...gameState.players.map(pl => pl.wins)));
+                message = "COCHON !";
+                type = "COCHON";
+                subMessage = winner ? `${winner.name} l'emporte` : "";
+            } else if (gameState.phase === 'ROUND_END') {
+                const winner = gameState.players.find(p => p.hand.length === 0);
+                message = "ROUND FINI";
+                subMessage = winner ? `${winner.name} gagne` : "";
+            }
+
+            if (message) {
+                setShowScoreboard(false);
+                setAnnouncement({ message, subMessage, type });
+            } else {
+                setShowScoreboard(true);
+            }
+        } else {
+            setAnnouncement(null);
+            setShowScoreboard(false);
+        }
+    }, [gameState?.currentPlayerId, gameState?.phase, localPlayerId, gameState?.mancheResult]);
 
     // Timer countdown logic
     useEffect(() => {
@@ -306,6 +355,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             history: [],
             winningCondition: winningCondition !== undefined ? Number(winningCondition) : 3,
             gameMode: gameMode || 'MANCHE',
+            turnDuration: turnDuration !== undefined ? Number(turnDuration) : TURN_DURATION_SECONDS,
             lastActionTimestamp: Date.now()
         };
         SoundManager.playSound('shuffle');
@@ -320,7 +370,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         setGameState(fullState);
     };
 
-    const createInitialState = (playerNames: string[], gMode: GameMode = 'MANCHE', wCond: number = 3): GameState => {
+    const createInitialState = (playerNames: string[], gMode: GameMode = 'MANCHE', wCond: number = 3, tDur: number = TURN_DURATION_SECONDS): GameState => {
         const partialState = dealGame(playerNames);
         const players = partialState.players as Player[];
 
@@ -338,6 +388,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             history: [],
             winningCondition: wCond,
             gameMode: gMode,
+            turnDuration: tDur,
             lastActionTimestamp: Date.now()
         };
     };
@@ -357,7 +408,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             const initialState = createInitialState(
                 playerNames,
                 roomData.gameMode || 'MANCHE',
-                roomData.winningCondition || 3
+                roomData.winningCondition || 3,
+                roomData.turnDuration || TURN_DURATION_SECONDS
             );
             initialState.players = initialState.players.map((p, i) => {
                 if (i < realPlayers.length) {
@@ -384,8 +436,20 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     const handlePlayDomino = async (domino: Domino) => {
         // ATOMIC GUARD
-        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) return;
-        if (gameState.currentPlayerId !== localPlayerId) return;
+        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) {
+            console.log(`[handlePlayDomino] 🚫 Action bloquée :`, {
+                processing: isProcessing.current,
+                phase: gameState?.phase,
+                paused: isPaused,
+                localTurn: gameState?.currentPlayerId === localPlayerId
+            });
+            return;
+        }
+
+        if (gameState.currentPlayerId !== localPlayerId) {
+            console.log(`[handlePlayDomino] ⏳ Pas votre tour (Courant: ${gameState.currentPlayerId})`);
+            return;
+        }
 
         // Check for possible moves with the new engine
         const validMoves = getValidMoves([domino], {
@@ -393,7 +457,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             right: gameState.table.rightValue
         });
 
-        if (validMoves.length === 0) return;
+        console.log(`[handlePlayDomino] 🔍 Coup tenté: ${domino.left}-${domino.right}. Coups valides trouvés: ${validMoves.length}`);
+
+        if (validMoves.length === 0) {
+            console.log(`[handlePlayDomino] ⛔ Coup invalide pour la table [${gameState.table.leftValue}|${gameState.table.rightValue}]`);
+            return;
+        }
 
         // If multiple sides are possible, ask the user (always show if > 1 option)
         if (validMoves.length > 1) {
@@ -446,10 +515,19 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     const handlePassTurn = async () => {
         // ATOMIC GUARD
-        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) return;
-        if (gameState.currentPlayerId !== localPlayerId) return;
+        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) {
+            console.log("[handlePassTurn] Action blocked by guard");
+            return;
+        }
+        if (!isMyTurn) {
+            console.log("[handlePassTurn] Not your turn");
+            return;
+        }
 
         isProcessing.current = true;
+
+        // Safety timeout to release processing lock if something hangs
+        const lockSafety = setTimeout(() => { isProcessing.current = false; }, 5000);
 
         // Double check validation client-side to prevent "Cannot Pass" alert loop
         const currentValidMoves = getValidMoves(localPlayer?.hand || [], {
@@ -458,11 +536,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         });
 
         if (currentValidMoves.length > 0) {
-            isProcessing.current = false; // CRITICAL: Release lock before early return
+            isProcessing.current = false;
+            clearTimeout(lockSafety);
             Alert.alert("Action impossible", "Vous avez des dominos jouables. Vous ne pouvez pas passer.");
             return;
         }
-
 
         try {
             const newState = passTurn(gameState, localPlayerId);
@@ -476,6 +554,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             Alert.alert("Cannot Pass", e.message);
         } finally {
             isProcessing.current = false;
+            clearTimeout(lockSafety);
         }
     };
 
@@ -493,79 +572,60 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         setPendingDomino(null);
 
         // Verify it's actually the active player's turn
-        if (gameState.currentPlayerId !== activeId) return;
+        if (gameState.currentPlayerId !== activeId) {
+            console.log(`[Timeout] Ignore: ${activeId} is not current player (${gameState.currentPlayerId})`);
+            return;
+        }
 
         isProcessing.current = true;
 
         console.log(`[Timeout] Turn timeout for ${activeId} - Activating Auto-Play`);
 
-        // Find the player
-        const pIndex = gameState.players.findIndex(player => player.id === activeId);
-        if (pIndex === -1) return;
-        const p = gameState.players[pIndex];
-
-        // 1. Mark player as Bot (Auto-Play) locally first to modify the state used for the turn
-        // We clone the state structure slightly to inject the isBot flag before processing logic
-        // But since handleTurn/passTurn clone deep, we need to ensure the resulting state has isBot=true.
-        // Actually, we should update the original gameState object or the input to the logic.
-
-        // Let's create a temporary modified state where the player is a bot
-        // Logic change: Use current state directly, DO NOT set isBot=true
-        const stateForTurn = gameState;
-
-        // Find all valid moves
-        const validMoves = getValidMoves(p.hand, {
-            left: stateForTurn.table.leftValue,
-            right: stateForTurn.table.rightValue
-        });
-
-
-        // Find heaviest valid domino (highest sum) - Deterministic for all clients
-        let validMove = null;
-        if (validMoves.length > 0) {
-            const sortedMoves = [...validMoves].sort((a, b) => (b.tile.left + b.tile.right) - (a.tile.left + a.tile.right));
-            validMove = sortedMoves[0];
-        }
-
-
         try {
-            let newState: GameState;
+            // Find the player
+            const pIndex = gameState.players.findIndex(player => player.id === activeId);
+            if (pIndex === -1) return;
+            const p = gameState.players[pIndex];
 
+            // 1. Mark player as Bot (Auto-Play) locally first to modify the state used for the turn
+            const stateForTurn = gameState;
+
+            // Find all valid moves
+            const validMoves = getValidMoves(p.hand, {
+                left: stateForTurn.table.leftValue,
+                right: stateForTurn.table.rightValue
+            });
+
+            // Find heaviest valid domino (highest sum)
+            let validMove = null;
+            if (validMoves.length > 0) {
+                const sortedMoves = [...validMoves].sort((a, b) => (b.tile.left + b.tile.right) - (a.tile.left + a.tile.right));
+                validMove = sortedMoves[0];
+            }
+
+            let newState: GameState;
             if (validMove) {
                 console.log(`[Auto-Play] Playing heaviest domino for ${activeId}:`, validMove.tile);
                 newState = handleTurn(stateForTurn, activeId, validMove.tile, validMove.side === 'start' ? undefined : validMove.side);
-
-                // Audio effect
                 SoundManager.playClack();
             } else {
-
                 console.log(`[Auto-Play] No valid moves for ${activeId} - Passing`);
                 newState = passTurn(stateForTurn, activeId);
                 SoundManager.playSound('notify');
             }
 
-            // Ensure the isBot flag persists in the new state (LogicEngine preserves unnamed props but best to be sure)
-            // handleTurn/passTurn logic preserves the player object properties it doesn't touch.
-            // But we modified `stateForTurn`, and `handleTurn` clones THAT. So `isBot` should be true in `newState`.
-
             // Update State
             if (isSoloMode || !gameId) {
                 setGameState(newState);
             } else {
-                // In multiplayer, anyone can send this update.
-                // Firestore will handle the last-write-wins.
-                // Since logic is deterministic, all clients calculate roughly the same state.
                 await updateGameState(gameId, newState);
             }
-
         } catch (e) {
-            console.error("Auto-play execution failed:", e);
+            console.error("Auto-play processing failed:", e);
         } finally {
             isProcessing.current = false;
         }
     };
-
-
 
     const handleReplay = async () => {
         if (isSoloMode) {
@@ -578,7 +638,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             if (isHost) {
                 try {
                     await resetRoomToLobby(gameId);
-                    await clearRematchVotes(gameId); // Also clear votes when going back to lobby
+                    await clearRematchVotes(gameId);
                 } catch (e: any) {
                     Alert.alert("Erreur", "Impossible de réinitialiser la salle : " + e.message);
                 }
@@ -586,7 +646,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 Alert.alert("Attente", "Seul l'hôte peut ramener tout le monde au lobby.");
             }
         } else {
-            // Local game (not solo mode route, but no gameId)
             startNewLocalGame();
         }
     };
@@ -642,15 +701,23 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         // Deal new game
         const partialState = dealGame(playerNames);
-        const newPlayers = (partialState.players as Player[]).map((p, i) => ({
-            ...p,
-            id: gameState.players[i].id, // Preserve player IDs
-            wins: isMancheEnd ? 0 : gameState.players[i].wins, // Reset wins if new manche
-            mancheWins: previousData[i].mancheWins,
-            totalPoints: previousData[i].totalPoints,
-            totalCochons: previousData[i].totalCochons,
-            isBot: previousData[i].isBot,
-        }));
+        const newPlayers = (partialState.players as Player[]).map((p, i) => {
+            // CRITICAL FIX: Always correlate by INDEX i. 
+            // In a single Match session, the order of players in the array MUST remain stable.
+            const originalPlayer = gameState.players[i];
+
+            return {
+                ...p,
+                id: originalPlayer.id, // Preserve original unique ID (e.g. 'bot-1' or 'user-uid')
+                wins: isMancheEnd ? 0 : originalPlayer.wins,
+                isCochon: isMancheEnd ? false : originalPlayer.isCochon,
+                mancheWins: originalPlayer.mancheWins,
+                totalPoints: originalPlayer.totalPoints,
+                totalCochons: originalPlayer.totalCochons,
+                isBot: originalPlayer.isBot,
+                avatarId: originalPlayer.avatarId
+            };
+        });
 
         // If no winner (TIE), determine starter based on highest double in NEW hands
         if (!winnerId) {
@@ -761,7 +828,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 freshPlayer.hand,
                 freshState.table.leftValue,
                 freshState.table.rightValue,
-                isSoloMode ? 'expert' : 'medium' // On peut ajuster ici selon le besoin
+                isSoloMode ? 'expert' : 'medium'
             );
 
             console.log(`[Bot Decision] ${freshPlayer.name} thinking on table [${freshState.table.leftValue}|${freshState.table.rightValue}]`);
@@ -772,7 +839,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 if (decision) {
                     const { tile, side } = decision;
                     console.log(`[Bot Move] Playing ${tile.left}|${tile.right} on ${side}`);
-                    // Si side est 'start', on laisse forcedSide undefined
                     newState = handleTurn(freshState, freshPlayer.id, tile, side === 'start' ? undefined : side);
                     SoundManager.playClack();
                     HapticManager.triggerImpact();
@@ -780,8 +846,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     console.log(`[Bot Pass] ${freshPlayer.name} has no valid moves - passing`);
                     newState = passTurn(freshState, freshPlayer.id);
 
-
-                    // CRITICAL: Check if this pass triggered BOUDE
                     if (newState.phase === 'BOUDE') {
                         console.log(`[Bot Pass] Game is now BOUDE! Stopping bot loop.`);
                     }
@@ -794,20 +858,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     updateGameState(gameId, newState);
                 }
 
-                // CRITICAL: Release processing lock after bot action
                 isProcessing.current = false;
 
             } catch (e: any) {
                 console.error("[Bot Error]", e.message);
-                isProcessing.current = false; // Release on error too
+                isProcessing.current = false;
             }
-        }, 1200); // Slightly longer delay for stability
+        }, 1500);
 
-        return () => {
-            console.log(`[Bot Loop] Cleanup - clearing timer`);
-            clearTimeout(timer);
-        };
-    }, [gameState?.currentPlayerId, gameState?.phase, roomData, localPlayerId, isSoloMode, gameId, isPaused]);
+        return () => clearTimeout(timer);
+    }, [gameState?.currentPlayerId, gameState?.phase, isPaused, isSoloMode, gameId, localPlayerId, roomData]);
 
     // BOUDE Resolution Effect - Automatically resolve blocked games
     useEffect(() => {
@@ -846,6 +906,24 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     }, [gameState?.phase, isSoloMode, gameId]);
 
 
+    // Get opponents in RELATIVE ORDER for Anti-Clockwise visual flow
+    // Order: Local (Bottom) -> Next Player (Top-Right) -> Last Player (Top-Left)
+    const opponents = useMemo(() => {
+        if (!gameState) return [];
+        const numPlayers = gameState.players.length;
+        const localIdx = gameState.players.findIndex(p => p.id === localPlayerId);
+        if (localIdx === -1) return gameState.players.filter(p => p.id !== localPlayerId);
+
+        const ordered = [];
+        // First opponent (Next in turn order) -> will be placed Top-Right
+        ordered.push(gameState.players[(localIdx + 1) % numPlayers]);
+        // Second opponent (Last in turn order) -> will be placed Top-Left
+        if (numPlayers > 2) {
+            ordered.push(gameState.players[(localIdx + 2) % numPlayers]);
+        }
+        return ordered;
+    }, [gameState?.players, localPlayerId]);
+
     // RENDER LOGIC
 
     if (!gameState) {
@@ -866,10 +944,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         return <LobbyScreen key="lobby-screen" roomData={roomData} currentUserId={localPlayerId} onStartGame={handleStartGame} />;
     }
 
-    const isGameOver = gameState.phase === 'MATCH_END' || gameState.phase === 'MANCHE_END' || gameState.phase === 'ROUND_END' || gameState.phase === 'BOUDE';
-    const localPlayer = gameState.players.find(p => p.id === localPlayerId);
-    const isMyTurn = gameState.currentPlayerId === localPlayerId;
-
     const getPlayerScore = (player: Player) => {
         if (!gameState) return "";
         switch (gameState.gameMode) {
@@ -880,8 +954,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     };
 
-    // Get opponent players
-    const opponents = gameState.players.filter(p => p.id !== localPlayerId);
 
     return (
         <View style={styles.container}>
@@ -896,9 +968,13 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     </Animated.View>
                 </View>
             )}
-            {/* Purple Gradient Background */}
+            {/* Dynamic Background based on Theme */}
             <LinearGradient
-                colors={['#1a0a2e', '#2d1b4e', '#3a2560']}
+                colors={[
+                    TABLE_THEMES[tableTheme].background,
+                    TABLE_THEMES[tableTheme].felt,
+                    TABLE_THEMES[tableTheme].background
+                ]}
                 style={StyleSheet.absoluteFill}
             />
 
@@ -908,7 +984,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             {/* PAUSE BUTTON - Solo Mode Only */}
             {isSoloMode && gameState && gameState.phase === 'PLAYING' && (
                 <TouchableOpacity
-                    style={[styles.pauseBottomButton, { top: Math.max(insets.top + 10, 20), left: 20 + insets.left }]}
+                    style={[styles.pauseTopCenterButton, { top: Math.max(insets.top + 10, 20) }]}
                     onPress={() => setIsPaused(!isPaused)}
                     activeOpacity={0.7}
                 >
@@ -983,22 +1059,25 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             <View style={styles.uiLayer} pointerEvents="box-none">
 
                 {/* Opponents Display - Both Solo and Multiplayer now use same layout for 3 players */}
+                {/* Opponents Display - ANTI-CLOCKWISE REORGANIZATION */}
+                {/* Visual Order: You (Bottom) -> Next Player (Top-Right) -> Last Player (Top-Left) */}
                 {opponents[0] && (
                     <Animated.View
-                        entering={FadeInLeft.delay(200).duration(600)}
-                        style={[styles.topLeftArea, { top: Math.max(insets.top + 5, 15), left: Math.max(insets.left + 10, 10) }]}
+                        entering={FadeInRight.delay(200).duration(600)}
+                        style={[styles.topRightCorner, { top: Math.max(insets.top + 5, 15), right: Math.max(insets.right + 10, 10) }]}
                     >
                         <PlayerAvatar
                             key={`${opponents[0]?.id}-${gameState.currentPlayerId}`}
                             player={opponents[0]}
                             isActive={gameState.currentPlayerId === opponents[0]?.id}
-                            showTimer={gameState.currentPlayerId === opponents[0]?.id && !isGameOver && gameState.phase === 'PLAYING'}
-                            timerDuration={TURN_DURATION_SECONDS}
+                            showTimer={gameState.currentPlayerId === opponents[0]?.id && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
+                            isPaused={isPaused}
+                            timerDuration={gameState.turnDuration}
                             size={52}
                             layout="vertical"
                             namePlacement="below"
                             score={getPlayerScore(opponents[0])}
-                            position="top-left"
+                            position="top-right"
                             onTimeout={() => handleTimeout(opponents[0]?.id)}
                         />
                     </Animated.View>
@@ -1006,20 +1085,21 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
                 {opponents[1] && (
                     <Animated.View
-                        entering={FadeInRight.delay(400).duration(600)}
-                        style={[styles.topRightCorner, { top: Math.max(insets.top + 5, 15), right: Math.max(insets.right + 10, 10) }]}
+                        entering={FadeInLeft.delay(400).duration(600)}
+                        style={[styles.topLeftArea, { top: Math.max(insets.top + 5, 15), left: Math.max(insets.left + 10, 10) }]}
                     >
                         <PlayerAvatar
                             key={`${opponents[1]?.id}-${gameState.currentPlayerId}`}
                             player={opponents[1]}
                             isActive={gameState.currentPlayerId === opponents[1]?.id}
-                            showTimer={gameState.currentPlayerId === opponents[1]?.id && !isGameOver && gameState.phase === 'PLAYING'}
-                            timerDuration={TURN_DURATION_SECONDS}
+                            showTimer={gameState.currentPlayerId === opponents[1]?.id && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
+                            isPaused={isPaused}
+                            timerDuration={gameState.turnDuration}
                             size={52}
                             layout="vertical"
                             namePlacement="below"
                             score={getPlayerScore(opponents[1])}
-                            position="top-right"
+                            position="top-left"
                             onTimeout={() => handleTimeout(opponents[1]?.id)}
                         />
                     </Animated.View>
@@ -1043,8 +1123,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         <PlayerAvatar
                             player={localPlayer}
                             isActive={isMyTurn}
-                            showTimer={isMyTurn && !isGameOver && gameState.phase === 'PLAYING'}
-                            timerDuration={TURN_DURATION_SECONDS}
+                            showTimer={isMyTurn && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
+                            isPaused={isPaused}
+                            timerDuration={gameState.turnDuration}
                             size={60}
                             layout="horizontal"
                             score={getPlayerScore(localPlayer)}
@@ -1068,7 +1149,19 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 )}
             </View>
 
-            {isGameOver && (
+            {announcement && (
+                <GameAnnouncer
+                    message={announcement.message}
+                    subMessage={announcement.subMessage}
+                    type={announcement.type}
+                    onFinished={() => {
+                        setShowScoreboard(true);
+                        setAnnouncement(null); // Clear announcement to remove background
+                    }}
+                />
+            )}
+
+            {showScoreOverlay && (
                 <GameOverScreen
                     gameState={gameState}
                     currentUserId={localPlayerId}
@@ -1478,5 +1571,18 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 5,
         elevation: 10,
+    },
+    pauseTopCenterButton: {
+        position: 'absolute',
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        alignSelf: 'center',
+        borderWidth: 2,
+        borderColor: 'rgba(255,215,0,0.4)',
+        zIndex: 500,
     },
 });

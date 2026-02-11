@@ -173,7 +173,7 @@ export const joinRoom = async (roomId: string, playerProfile: PlayerProfile): Pr
 /**
  * Updates room settings (game mode, winning condition)
  */
-export const updateRoomSettings = async (roomId: string, settings: { gameMode?: GameMode, winningCondition?: number }): Promise<void> => {
+export const updateRoomSettings = async (roomId: string, settings: { gameMode?: GameMode, winningCondition?: number, turnDuration?: number }): Promise<void> => {
     const roomRef = doc(db, ROOMS_COLLECTION, roomId);
     try {
         await updateDoc(roomRef, {
