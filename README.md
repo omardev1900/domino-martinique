@@ -21,9 +21,5 @@ View your app in AI Studio: https://ai.studio/apps/drive/1x-80CWxS-UfDPUotMyp_il
 
 ## 📊 Suivi du Projet
 
-Retrouvez tous les documents de planification et de suivi dans le dossier `docs/` :
-
-*   [**📍 État d'avancement (PROJECT_STATUS.md)**](./docs/PROJECT_STATUS.md) : Tracking détaillé des tâches et fonctionnalités.
-*   [**🗺️ Roadmap Globale (roadmap.md)**](./docs/roadmap.md) : Vision macro par phases.
-*   [**🔄 Plan de Migration (MIGRATION-PLAN-DOMINO.md)**](./docs/MIGRATION-PLAN-DOMINO.md) : Détails techniques du portage Web ➔ Mobile.
+*   [**📍 Suivi centralisé (PROJECT_STATUS.md)**](./docs/PROJECT_STATUS.md) : Roadmap, tâches, migration et avancement — **fichier unique de référence.**
 *   [**📑 Spécifications (PRD-Domino-Martiniquais.md)**](./docs/PRD-Domino-Martiniquais.md) : Règles et vision du produit.
