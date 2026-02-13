@@ -49,7 +49,7 @@ export interface GameState {
     }[];
     winningCondition: number; // Seuil pour terminer (3 victoires, 100 pts, etc.)
     gameMode: GameMode; // NEW: Mode de jeu
-    mancheResult?: MancheResult; // NEW: Résultat de la manche (pour affichage Chiré)
+    mancheResult?: MancheResult | null; // NEW: Résultat de la manche (pour affichage Chiré)
     turnDuration: number; // NEW: Durée du tour en secondes
     lastActionTimestamp: number;
 }

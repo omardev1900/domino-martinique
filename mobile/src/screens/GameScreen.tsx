@@ -741,7 +741,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             phase: 'PLAYING',
             firstPlayerOfRound: null,
             history: [],
-            mancheResult: undefined, // RESET MANCHE RESULT
+            mancheResult: null, // RESET MANCHE RESULT
             lastActionTimestamp: Date.now()
         };
 
@@ -889,11 +889,24 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const handleBoudeFinished = async (winnerId: string | 'TIE') => {
         if (!gameState) return;
 
-        setIsCountingPoints(false);
+        // MULTIPLAYER: Only host should write to Firestore to avoid race conditions
+        // Non-host players: just dismiss the counting overlay and show scoreboard.
+        // Their gameState will update via Firebase subscription when host resolves.
+        if (!isSoloMode && gameId) {
+            const isHost = roomData?.players[0].uid === userId;
+            if (!isHost) {
+                console.log('[BOUDE] Non-host: dismissing overlay, waiting for host to resolve via Firebase');
+                setShowScoreboard(true);
+                setIsCountingPoints(false);
+                return;
+            }
+        }
+
         const { newState, isTie } = resolveBoude(gameState);
 
         if (isTie) {
             console.log(`[BOUDE] Tie detected - restarting partie`);
+            setIsCountingPoints(false);
             if (isSoloMode) {
                 // Restart same round in solo
                 const playerNames = gameState.players.map(p => p.name);
@@ -915,17 +928,43 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 };
                 setGameState(resetState as GameState);
             } else if (gameId) {
-                // Multiplayer: Host resolves
-                await updateGameState(gameId, newState);
+                // Multiplayer TIE: Deal new cards and restart, same logic as solo
+                const playerNames = gameState.players.map(p => p.name);
+                const partial = dealGame(playerNames);
+                const resetState = {
+                    ...gameState,
+                    ...partial,
+                    players: (partial.players as Player[]).map((p, i) => ({
+                        ...p,
+                        id: gameState.players[i].id,
+                        mancheWins: gameState.players[i].mancheWins,
+                        totalPoints: gameState.players[i].totalPoints,
+                        totalCochons: gameState.players[i].totalCochons,
+                        isBot: gameState.players[i].isBot,
+                        avatarId: gameState.players[i].avatarId,
+                        wins: gameState.players[i].wins
+                    })),
+                    phase: 'PLAYING' as GamePhase,
+                    history: [],
+                    mancheResult: null
+                };
+                const sanitized = JSON.parse(JSON.stringify(resetState, (k, v) => v === undefined ? null : v));
+                await updateGameState(gameId, sanitized);
             }
         } else {
             // Standard winner resolution - Go straight to scoreboard
+            // CRITICAL: Set showScoreboard BEFORE clearing isCountingPoints to avoid
+            // a render frame where the useEffect re-triggers the announcer
             if (isSoloMode || !gameId) {
                 setShowScoreboard(true);
+                setIsCountingPoints(false);
                 setGameState(newState);
             } else {
                 setShowScoreboard(true);
-                await updateGameState(gameId, newState);
+                setIsCountingPoints(false);
+                // Sanitize: Replace undefined with null before sending to Firestore
+                const sanitized = JSON.parse(JSON.stringify(newState, (k, v) => v === undefined ? null : v));
+                await updateGameState(gameId, sanitized);
             }
         }
     };
@@ -1028,7 +1067,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 </TouchableOpacity>
             )}
 
-            {/* ROOM INFO CARD - Floating card with room code */}
+            {/* ROOM INFO CARD - Floating card with room code + game objective */}
             {!isSoloMode && gameId && showRoomInfo && (
                 <>
                     {/* Backdrop - close on tap outside */}
@@ -1038,35 +1077,51 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         onPress={() => setShowRoomInfo(false)}
                     >
                         <View style={styles.infoCard}>
+                            {/* Room Code Row */}
                             <View style={styles.infoCardHeader}>
-                                <Ionicons name="game-controller-outline" size={20} color="#FFD700" />
-                                <Text style={styles.infoCardTitle}>Code de la salle</Text>
-                            </View>
-
-                            <View style={styles.infoCardCodeContainer}>
-                                <Text style={styles.infoCardCode}>{gameId}</Text>
+                                <Ionicons name="game-controller-outline" size={16} color="#FFD700" />
+                                <Text style={styles.infoCardTitle}>Salle</Text>
                             </View>
 
                             <TouchableOpacity
-                                style={styles.infoCardCopyButton}
+                                style={styles.infoCardCodeRow}
                                 onPress={() => {
                                     Clipboard.setStringAsync(gameId);
-                                    Alert.alert("✓ Copié", "Code de la table copié dans le presse-papier !");
-                                    setShowRoomInfo(false);
+                                    Alert.alert("✓ Copié", "Code copié dans le presse-papier !");
                                 }}
-                                activeOpacity={0.8}
+                                activeOpacity={0.7}
                             >
-                                <Ionicons name="copy-outline" size={18} color="#FFF" />
-                                <Text style={styles.infoCardCopyText}>Copier le code</Text>
+                                <Ionicons name="copy-outline" size={14} color="rgba(255,255,255,0.5)" />
+                                <Text style={styles.infoCardCode}>{gameId}</Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity
-                                style={styles.infoCardCloseButton}
-                                onPress={() => setShowRoomInfo(false)}
-                                activeOpacity={0.8}
-                            >
-                                <Text style={styles.infoCardCloseText}>Fermer</Text>
-                            </TouchableOpacity>
+                            {/* Divider */}
+                            <View style={styles.infoCardDivider} />
+
+                            {/* Game Objective */}
+                            <View style={styles.infoCardHeader}>
+                                <Ionicons name="trophy-outline" size={16} color="#FFD700" />
+                                <Text style={styles.infoCardTitle}>Objectif</Text>
+                            </View>
+
+                            <View style={styles.infoCardObjective}>
+                                <Text style={styles.infoCardObjectiveText}>
+                                    {gameState.gameMode === 'MANCHE'
+                                        ? `🏆  ${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
+                                        : gameState.gameMode === 'SCORE'
+                                            ? `⭐  ${gameState.winningCondition} points`
+                                            : `🐷  ${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
+                                    }
+                                </Text>
+                                <Text style={styles.infoCardModeLabel}>
+                                    {gameState.gameMode === 'MANCHE'
+                                        ? 'Mode Manche'
+                                        : gameState.gameMode === 'SCORE'
+                                            ? 'Mode Score'
+                                            : 'Mode Cochon'
+                                    }
+                                </Text>
+                            </View>
                         </View>
                     </TouchableOpacity>
                 </>
@@ -1507,82 +1562,77 @@ const styles = StyleSheet.create({
     // Info Card - Main container
     infoCard: {
         backgroundColor: 'rgba(26, 10, 46, 0.98)',
-        borderRadius: 20,
-        borderWidth: 2,
+        borderRadius: 16,
+        borderWidth: 1.5,
         borderColor: '#FFD700',
-        padding: 24,
-        width: 320,
-        maxWidth: '85%',
+        padding: 18,
+        width: 280,
+        maxWidth: '80%',
         shadowColor: '#FFD700',
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 15,
-        elevation: 20,
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 15,
     },
     // Info Card - Header
     infoCardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
-        gap: 8,
+        marginBottom: 8,
+        gap: 6,
     },
     infoCardTitle: {
         color: '#FFD700',
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: 13,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
     },
-    // Info Card - Code container
-    infoCardCodeContainer: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
+    // Info Card - Code row (tappable to copy)
+    infoCardCodeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        marginBottom: 14,
+        gap: 8,
         borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.3)',
+        borderColor: 'rgba(255,215,0,0.15)',
     },
     infoCardCode: {
         color: '#FFFFFF',
-        fontSize: 20,
+        fontSize: 14,
         fontWeight: 'bold',
-        textAlign: 'center',
-        letterSpacing: 2,
+        letterSpacing: 1.5,
     },
-    // Info Card - Copy button
-    infoCardCopyButton: {
-        backgroundColor: '#4CAF50',
-        borderRadius: 12,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        flexDirection: 'row',
+    // Info Card - Divider
+    infoCardDivider: {
+        height: 1,
+        backgroundColor: 'rgba(255,215,0,0.2)',
+        marginBottom: 14,
+    },
+    // Info Card - Objective
+    infoCardObjective: {
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        borderRadius: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        marginBottom: 12,
-        shadowColor: '#4CAF50',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.4,
-        shadowRadius: 4,
-        elevation: 4,
     },
-    infoCardCopyText: {
+    infoCardObjectiveText: {
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // Info Card - Close button
-    infoCardCloseButton: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 12,
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
-    },
-    infoCardCloseText: {
-        color: 'rgba(255,255,255,0.7)',
-        fontSize: 14,
+    infoCardModeLabel: {
+        color: 'rgba(255,215,0,0.6)',
+        fontSize: 11,
         fontWeight: '600',
+        marginTop: 3,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     choiceBanner: {
         position: 'absolute',

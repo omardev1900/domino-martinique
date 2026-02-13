@@ -308,7 +308,7 @@ export const handleEndOfRound = (
         newState.phase = isMatchOver ? 'MATCH_END' : 'MANCHE_END';
     } else {
         newState.phase = 'PARTIE_END';
-        newState.mancheResult = undefined; // IMPORTANT: Clear previous results if manche is ongoing
+        newState.mancheResult = null; // IMPORTANT: Clear previous results if manche is ongoing
     }
 
     return newState;

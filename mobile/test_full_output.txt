@@ -1,0 +1,59 @@
+﻿  console.log
+    [Score] Calculation: Winner=p1, TotalWins=3, Cochons=2
+
+      at log (src/core/LogicEngine.ts:216:13)
+
+  console.log
+    [Score] Calculation: Winner=p1, TotalWins=3, Cochons=2
+
+      at log (src/core/LogicEngine.ts:216:13)
+
+  console.log
+    [Score] Calculation: Winner=p1, TotalWins=4, Cochons=1
+
+      at log (src/core/LogicEngine.ts:216:13)
+
+  console.log
+    [Score] Calculation: Winner=p1, TotalWins=3, Cochons=2
+
+      at log (src/core/LogicEngine.ts:216:13)
+
+  console.log
+    [Score] Calculation: Winner=p1, TotalWins=4, Cochons=1
+
+      at log (src/core/LogicEngine.ts:216:13)
+
+  console.log
+    [Score] Calculation: Winner=p1, TotalWins=3, Cochons=2
+
+      at log (src/core/LogicEngine.ts:216:13)
+
+node.exe : PASS src/__tests__/MultiplayerLogic.test.ts
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/__test...erLogic.test.ts:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Multiplayer Game Logic & Rules Verification
+    Scoring & Game Modes
+      ÔêÜ Mode MANCHE: Match ends at correct winningCondition (mancheWins) (36 ms)
+      ÔêÜ Mode SCORE: Points accumulate and trigger Match End (2 ms)
+      ÔêÜ Mode COCHON: totalCochons increments and triggers Match End (3 ms)
+    Martinique Rules (Chir├®, Cochon, 3-Round Rule)
+      ÔêÜ CHIRE: Occurs when everyone has at least one win (1 ms)
+      ÔêÜ COCHON Rule: Only applies if total rounds >= 3 (2 ms)
+      ÔêÜ COCHON Rule: Does NOT apply if total rounds < 3
+      ÔêÜ Cochon Points: 1 Cochon = 4 points, 2 Cochons = 5 points (3 ms)
+    Blocking & Tie Scenarios (Boud├®)
+      ÔêÜ BOUDE: Enters phase when TIE is reported
+      ÔêÜ BOUDE Result: Winner is player with minimum points in hand (1 ms)
+      ÔêÜ BOUDE Result: TIE occurs if two players have same minimum points (1 ms)
+    Firebase Sync Readiness (No undefined fields)
+      ÔêÜ GameState should never contain undefined even after round transitions (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        0.949 s, estimated 1 s
+Ran all test suites matching /src\\__tests__\\MultiplayerLogic.test.ts/i.
