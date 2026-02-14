@@ -20,6 +20,7 @@ class SoundManager {
     };
 
     private currentMusic: Audio.Sound | null = null;
+    private currentMusicName: SoundName | null = null;
 
     // DEBOUNCE: Track last play time per sound to prevent saturation
     private lastPlayTime: Record<string, number> = {};
@@ -81,6 +82,11 @@ class SoundManager {
 
     async playMusic(name: 'bgm1' | 'bgm2' | 'bgm3', volume = 0.5) {
         try {
+            if (this.currentMusicName === name && this.currentMusic) {
+                // Already playing this track
+                return;
+            }
+
             if (this.currentMusic) {
                 await this.currentMusic.stopAsync();
             }
@@ -93,6 +99,7 @@ class SoundManager {
                 await sound.setVolumeAsync(volume);
                 await sound.playAsync();
                 this.currentMusic = sound;
+                this.currentMusicName = name;
             } else {
                 console.warn(`Music ${name} not found`);
             }
@@ -106,6 +113,7 @@ class SoundManager {
             if (this.currentMusic) {
                 await this.currentMusic.stopAsync();
                 this.currentMusic = null;
+                this.currentMusicName = null;
             }
         } catch (error) {
             console.warn('Error stopping music', error);

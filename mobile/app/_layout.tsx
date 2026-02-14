@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { AnimatedSplashScreen } from '../src/components/AnimatedSplashScreen';
 import { View } from 'react-native';
+import SoundManager from '../src/core/audio/SoundManager';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -20,11 +21,16 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [appReady, setAppReady] = useState(false);
   const [splashAnimationFinished, setSplashAnimationFinished] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     async function prepare() {
       try {
         // Pre-load fonts, make any API calls you need to do here
+        await SoundManager.preloadSounds();
+        // Start Menu Music immediately
+        SoundManager.playMusic('bgm3', 0.5);
+
         await new Promise(resolve => setTimeout(resolve, 100)); // Simulating load
       } catch (e) {
         console.warn(e);
@@ -36,6 +42,19 @@ export default function RootLayout() {
 
     prepare();
   }, []);
+
+  // Global Music Manager
+  useEffect(() => {
+    if (!appReady) return;
+
+    if (pathname.startsWith('/game')) {
+      // In Game -> BGM 1
+      SoundManager.playMusic('bgm1', 0.3);
+    } else {
+      // Menu / Lobby / Home -> BGM 3
+      SoundManager.playMusic('bgm3', 0.5);
+    }
+  }, [pathname, appReady]);
 
   const onLayoutRootView = useCallback(async () => {
     if (appReady) {

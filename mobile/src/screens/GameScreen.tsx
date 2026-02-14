@@ -307,15 +307,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         return () => clearInterval(interval);
     }, [gameState?.phase, isPaused, timeLeft === null]);
 
-    // MOVED: Timer Auto-Play/Pass Effect moved to bottom to access handlers
-    // See bottom of component function for the timer logic.
-
     // Audio & Firebase Subscription
     useEffect(() => {
         // Preload sounds
-        SoundManager.preloadSounds().then(() => {
-            SoundManager.playMusic('bgm1', 0.3);
-        });
+        SoundManager.preloadSounds();
 
         // Solo mode - wait for profile to load first
         if (isSoloMode) {
@@ -422,12 +417,65 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         setGameState(fullState);
     };
 
+    // --- BOT TIER LOGIC ---
+    // Helper to get bot configuration based on room difficulty
+    const getBotsForDifficulty = (roomDiff: string = 'medium'): { name: string, avatarId: string, difficulty: string }[] => {
+        // Default medium
+        const diff = roomDiff as 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend';
+
+        // Tiered mapping requested by User
+        switch (diff) {
+            case 'easy':
+                // Débutant: 1 Easy (bot_01) + 1 Medium (bot_02)
+                return [
+                    { name: 'Bot Débutant', avatarId: 'bot_01', difficulty: 'easy' },
+                    { name: 'Bot Moyen', avatarId: 'bot_02', difficulty: 'medium' }
+                ];
+            case 'medium':
+                // Moyen: 1 Medium (bot_02) + 1 Expert (bot_03)
+                return [
+                    { name: 'Bot Moyen', avatarId: 'bot_02', difficulty: 'medium' },
+                    { name: 'Bot Expert', avatarId: 'bot_03', difficulty: 'expert' }
+                ];
+            case 'expert':
+                // Expert: 1 Expert (bot_03) + 1 Legend (bot_04)
+                return [
+                    { name: 'Bot Expert', avatarId: 'bot_03', difficulty: 'expert' },
+                    { name: 'Bot Légende', avatarId: 'bot_04', difficulty: 'legend' }
+                ];
+            case 'legend':
+            case 'valou_legend':
+                // Légende: 1 Legend (bot_04) + 1 Valou (bot_05)
+                return [
+                    { name: 'Bot Légende', avatarId: 'bot_04', difficulty: 'legend' },
+                    { name: 'Bot Valou', avatarId: 'bot_05', difficulty: 'valou_legend' }
+                ];
+            default:
+                // Fallback Medium
+                return [
+                    { name: 'Bot Moyen', avatarId: 'bot_02', difficulty: 'medium' },
+                    { name: 'Bot Expert', avatarId: 'bot_03', difficulty: 'expert' }
+                ];
+        }
+    };
+
     const startNewLocalGame = () => {
-        const fullState = createInitialState(['Moi', 'Bot 1', 'Bot 2']);
+        // Use the difficulty prop passed to screen (from previous menu selection)
+        const botConfigs = getBotsForDifficulty(difficulty || 'medium');
+
+        // Create initial state with placeholders
+        const fullState = createInitialState(['Moi', botConfigs[0].name, botConfigs[1].name]);
+
+        // Configure Bot 1
         fullState.players[1].isBot = true;
-        fullState.players[1].avatarId = 'bot_01';
+        fullState.players[1].avatarId = botConfigs[0].avatarId;
+        fullState.players[1].difficulty = botConfigs[0].difficulty as any;
+
+        // Configure Bot 2
         fullState.players[2].isBot = true;
-        fullState.players[2].avatarId = 'bot_02';
+        fullState.players[2].avatarId = botConfigs[1].avatarId;
+        fullState.players[2].difficulty = botConfigs[1].difficulty as any;
+
         SoundManager.playSound('shuffle');
         setGameState(fullState);
     };
@@ -435,12 +483,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const createInitialState = (playerNames: string[], gMode: GameMode = 'MANCHE', wCond: number = 3, tDur: number = TURN_DURATION_SECONDS): GameState => {
         const partialState = dealGame(playerNames);
         const players = partialState.players as Player[];
-
-        // Determine who starts based on highest double (not room creator!)
         const firstPlayerId = determineFirstPlayer(players);
 
         return {
-            gameId: gameId || 'local-1',
+            gameId: 'local-' + Date.now(),
             players: players,
             talonMort: partialState.talonMort as Domino[],
             table: partialState.table!,
@@ -455,54 +501,138 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         };
     };
 
+    // Multiplayer Start Handler
     const handleStartGame = async () => {
-        if (!roomData || !gameId) return;
-
-        setIsStarting(true); // Show loading state
-        const realPlayers = roomData.players;
-        const playerNames = realPlayers.map(p => p.displayName);
-
-        while (playerNames.length < 3) {
-            playerNames.push(`Bot ${playerNames.length + 1}`);
-        }
+        if (!gameId || !roomData) return;
+        setIsStarting(true);
 
         try {
-            const initialState = createInitialState(
+            // Need to fill empty spots with bots if less than 3 players
+            const playerNames = roomData.players.map(p => p.displayName);
+
+            // Get Bot configurations based on room difficulty
+            const botConfigs = getBotsForDifficulty(roomData.difficulty || 'medium');
+            let botIndex = 0;
+
+            // Fill up to 3 players
+            while (playerNames.length < 3) {
+                if (botIndex < botConfigs.length) {
+                    playerNames.push(botConfigs[botIndex].name);
+                    botIndex++;
+                } else {
+                    playerNames.push(`Bot ${playerNames.length}`); // Fallback
+                }
+            }
+
+            const fullState = createInitialState(
                 playerNames,
                 roomData.gameMode || 'MANCHE',
                 roomData.winningCondition || 3,
-                roomData.turnDuration || TURN_DURATION_SECONDS
+                roomData.turnDuration || 15
             );
 
-            initialState.players = initialState.players.map((p, i) => {
-                if (i < realPlayers.length) {
-                    const realProfile = realPlayers[i];
+            // Re-assign IDs to actual UIDs for real players, and configure Bots
+            fullState.players = fullState.players.map((p, i) => {
+                if (i < roomData.players.length) {
                     return {
                         ...p,
-                        id: realProfile.uid,
-                        name: realProfile.displayName,
-                        avatarId: realProfile.avatarId || realProfile.avatarUrl || 'avatar_default',
-                        isBot: false,
+                        id: roomData.players[i].uid,
+                        avatarId: roomData.players[i].avatarId || 'avatar_default'
                     };
                 } else {
+                    // This is a bot
+                    // Determine which bot config corresponds to this slot
+                    // We added bots at the end of playerNames list
+                    // logic: index in playerNames starting from roomData.players.length
+                    const relativeBotIdx = i - roomData.players.length;
+                    const config = botConfigs[relativeBotIdx] || botConfigs[0]; // fallback
+
                     return {
                         ...p,
                         id: `bot-${i}`,
-                        name: `Bot ${i}`,
+                        name: config.name,
                         isBot: true,
-                        avatarId: `bot_0${Math.min(i, 3)}`
+                        avatarId: config.avatarId,
+                        difficulty: config.difficulty as any
                     };
                 }
             });
 
-            initialState.currentPlayerId = determineFirstPlayer(initialState.players);
-            await startGame(gameId, initialState);
-            // Don't set isStarting to false here - let the subscription handle it
-        } catch (e: any) {
-            Alert.alert("Error", "Failed to start game: " + e.message);
+            // Save to Firestore
+            await updateGameState(gameId, fullState);
+            // Room status update is handled by Cloud Functions or standard flow? 
+            // Ideally we should update status to PLAYING too if not done by updateGameState
+            // updateRoomStatus(gameId, 'PLAYING'); // assuming updateGameState triggers or is enough
+
+        } catch (error) {
+            console.error("Failed to start game:", error);
+            Alert.alert("Error", "Could not start game");
             setIsStarting(false);
         }
     };
+
+
+    // BOT LOGIC EFFECT
+    useEffect(() => {
+        if (!gameState || gameState.phase !== 'PLAYING' || isPaused) return;
+
+        const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
+        if (!currentPlayer || !currentPlayer.isBot) return;
+
+        // Skip if it's the solo player's turn (in solo mode, 'Moi' is not a bot)
+        // But checking isBot is enough.
+
+        if (isProcessing.current) return;
+        isProcessing.current = true;
+
+        // Calculate Delay based on game speed/difficulty if needed
+        // For now constant delay for "thinking"
+        const delay = 1500;
+
+        const timer = setTimeout(() => {
+            const tableState = {
+                left: gameState.table.leftValue,
+                right: gameState.table.rightValue
+            };
+
+            // Use specific bot difficulty if available, else fallback to room/game global difficulty
+            const botDiff = currentPlayer.difficulty || (gameState as any).difficulty || (roomData?.difficulty) || (difficulty) || 'medium';
+
+            console.log(`[Bot] ${currentPlayer.name} thinking... (Difficulty: ${botDiff})`);
+
+            const decision = getBotMove(currentPlayer.hand, tableState.left, tableState.right, botDiff);
+
+            let newState: GameState;
+
+            if (decision) {
+                console.log(`[Bot] Plays ${decision.tile.id} on ${decision.side}`);
+                const sideToPlay = decision.side === 'start' ? undefined : decision.side as 'left' | 'right';
+                newState = handleTurn(gameState, currentPlayer.id, decision.tile, sideToPlay);
+                SoundManager.playClack();
+            } else {
+                console.log(`[Bot] No move - Passing`);
+                newState = passTurn(gameState, currentPlayer.id);
+            }
+
+            // Update State
+            if (isSoloMode || !gameId) {
+                setGameState(newState);
+                isProcessing.current = false;
+            } else {
+                // Update Firestore
+                const sanitized = JSON.parse(JSON.stringify(newState, (k, v) => v === undefined ? null : v));
+                updateGameState(gameId, sanitized)
+                    .then(() => { isProcessing.current = false; })
+                    .catch(err => {
+                        console.error("Bot update failed", err);
+                        isProcessing.current = false;
+                    });
+            }
+
+        }, delay);
+
+        return () => clearTimeout(timer);
+    }, [gameState, isPaused, isProcessing, isSoloMode, gameId]);
 
     const handlePlayDomino = async (domino: Domino, startPos?: { x: number, y: number }) => {
         // ATOMIC GUARD
@@ -674,7 +804,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             } else {
                 console.log(`[Auto-Play] No valid moves for ${activeId} - Passing`);
                 newState = passTurn(stateForTurn, activeId);
-                SoundManager.playSound('notify');
             }
 
             // Update State

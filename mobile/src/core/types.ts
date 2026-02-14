@@ -25,6 +25,7 @@ export interface Player {
     isCochon: boolean;
     totalCochons: number;
     isBot: boolean;
+    difficulty?: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend'; // NEW: Niveau spécifique du bot
 }
 
 export type GamePhase = 'LOBBY' | 'DEALING' | 'PLAYING' | 'BOUDE' | 'PARTIE_END' | 'MATCH_END' | 'MANCHE_END';
@@ -92,4 +93,5 @@ export interface GameRoom {
     gameMode?: GameMode; // NEW: Mode de jeu choisi par l'hôte
     winningCondition?: number; // Condition de victoire
     turnDuration?: number; // NEW: Durée du tour
+    difficulty?: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend'; // NEW: Difficulté des bots
 }

@@ -17,6 +17,8 @@ export const AVATAR_IMAGES = {
     bot_01: require('../../assets/images/avatars/bot/bot_01.jpg'),
     bot_02: require('../../assets/images/avatars/bot/bot_02.jpg'),
     bot_03: require('../../assets/images/avatars/bot/bot_03.jpg'),
+    bot_04: require('../../assets/images/avatars/bot/bot_04.jpg'),
+    bot_05: require('../../assets/images/avatars/bot/bot_05.jpg'),
 } as const;
 
 export type AvatarId = keyof typeof AVATAR_IMAGES;
