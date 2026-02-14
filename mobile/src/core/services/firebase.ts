@@ -68,11 +68,30 @@ export const auth = authInstance;
 const ROOMS_COLLECTION = 'rooms';
 
 /**
+ * Options de jeu configurables à la création de la room
+ */
+export interface RoomOptions {
+    gameMode?: GameMode;
+    winningCondition?: number;
+    turnDuration?: number;
+}
+
+/**
  * Creates a new game room
  * @param hostProfile The profile of the user hosting the game
+ * @param isPrivate Whether the room is private (requires code to join)
+ * @param roomName Optional custom name for the room
+ * @param passcode Optional passcode for private rooms
+ * @param options Optional game options (mode, winning condition, turn duration)
  * @returns The created room ID
  */
-export const createRoom = async (hostProfile: PlayerProfile, isPrivate: boolean = false, roomName?: string, passcode?: string): Promise<string> => {
+export const createRoom = async (
+    hostProfile: PlayerProfile,
+    isPrivate: boolean = false,
+    roomName?: string,
+    passcode?: string,
+    options?: RoomOptions
+): Promise<string> => {
     try {
         const now = Date.now();
         const roomData: Omit<GameRoom, 'roomId'> = {
@@ -85,7 +104,11 @@ export const createRoom = async (hostProfile: PlayerProfile, isPrivate: boolean 
             isPrivate,
             ...(passcode && { passcode }),
             // Default room name if not provided
-            roomName: roomName || `Table #${Math.floor(Math.random() * 9000) + 1000}`
+            roomName: roomName || `Table #${Math.floor(Math.random() * 9000) + 1000}`,
+            // Game options (set at creation, defaults applied if not provided)
+            gameMode: options?.gameMode || 'MANCHE',
+            winningCondition: options?.winningCondition || 3,
+            turnDuration: options?.turnDuration ?? 15,
         };
 
         // SAFETY: Remove undefined fields which crash Firestore

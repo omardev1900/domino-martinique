@@ -7,6 +7,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authService } from '../src/core/services/auth.service';
 import SettingsManager from '../src/core/SettingsManager';
+import { TABLE_THEMES, TableTheme } from '../src/core/themes/tableThemes';
+
+const THEME_OPTIONS: { theme: TableTheme; label: string; icon: string }[] = [
+  { theme: 'classic', label: 'Classique', icon: '🟢' },
+  { theme: 'modern', label: 'Moderne', icon: '🔵' },
+  { theme: 'luxury', label: 'Luxe', icon: '🔴' },
+];
 
 export default function ModalScreen() {
   const router = useRouter();
@@ -17,6 +24,7 @@ export default function ModalScreen() {
   const settings = SettingsManager.getSettings();
   const [soundEnabled, setSoundEnabled] = useState(settings.isSoundEnabled);
   const [vibrationEnabled, setVibrationEnabled] = useState(settings.isVibrationEnabled);
+  const [selectedTheme, setSelectedTheme] = useState<TableTheme>(settings.tableTheme);
 
   const toggleSound = (val: boolean) => {
     setSoundEnabled(val);
@@ -26,6 +34,11 @@ export default function ModalScreen() {
   const toggleVibration = (val: boolean) => {
     setVibrationEnabled(val);
     SettingsManager.setVibrationEnabled(val);
+  };
+
+  const selectTheme = (theme: TableTheme) => {
+    setSelectedTheme(theme);
+    SettingsManager.setTableTheme(theme);
   };
 
   const handleLogout = async () => {
@@ -46,7 +59,7 @@ export default function ModalScreen() {
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.title}>Paramètres</Text>
-        <View style={{ width: 44 }} />
+        <SidebarSpacer />
       </View>
 
       <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) }]}>
@@ -61,6 +74,7 @@ export default function ModalScreen() {
         >
           <View style={[styles.mainBlock, isLandscape && styles.mainBlockLandscape]}>
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Gameplay</Text>
 
               <View style={styles.row}>
                 <View>
@@ -90,9 +104,38 @@ export default function ModalScreen() {
             </View>
 
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Apparence</Text>
+              <View style={styles.themeGrid}>
+                {THEME_OPTIONS.map(({ theme, label, icon }) => {
+                  const themeColors = TABLE_THEMES[theme];
+                  const isSelected = selectedTheme === theme;
+                  return (
+                    <TouchableOpacity
+                      key={theme}
+                      style={[styles.themeOption, isSelected && styles.themeOptionSelected]}
+                      onPress={() => selectTheme(theme)}
+                    >
+                      <View style={[
+                        styles.themePreview,
+                        { backgroundColor: themeColors.felt, borderColor: themeColors.border }
+                      ]}>
+                        <Text style={styles.themeIcon}>{icon}</Text>
+                      </View>
+                      <Text style={[styles.themeLabel, isSelected && styles.themeLabelSelected]}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Compte</Text>
               <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Text style={styles.logoutText}>Se déconnecter</Text>
+                <Text style={styles.logoutText}>🚪 Se déconnecter</Text>
               </TouchableOpacity>
+              <Text style={styles.versionText}>Domino Martiniquais · v1.0.0</Text>
             </View>
           </View>
         </ScrollView>
@@ -100,6 +143,8 @@ export default function ModalScreen() {
     </View>
   );
 }
+
+const SidebarSpacer = () => <View style={{ width: 44 }} />;
 
 const styles = StyleSheet.create({
   container: {
@@ -192,5 +237,54 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  // ─── Theme Selector ─────────────────────────────────────
+  themeGrid: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    padding: 14,
+    borderRadius: 12,
+  },
+  themeOption: {
+    alignItems: 'center',
+    gap: 6,
+    opacity: 0.5,
+  },
+  themeOptionSelected: {
+    opacity: 1,
+  },
+  themePreview: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    borderWidth: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  themeIcon: {
+    fontSize: 24,
+  },
+  themeLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.4)',
+    fontWeight: '500',
+  },
+  themeLabelSelected: {
+    color: '#FFD700',
+    fontWeight: 'bold',
+  },
+  versionText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.2)',
+    textAlign: 'center',
+    marginTop: 15,
   },
 });

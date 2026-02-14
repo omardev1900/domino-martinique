@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     StyleSheet,
@@ -18,16 +18,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authService } from '../src/core/services/auth.service';
+import { statsService, PlayerStats } from '../src/core/services/stats.service';
 import { PlayerProfile } from '../src/core/types';
-import SettingsManager from '../src/core/SettingsManager';
-import { TableTheme, TABLE_THEMES } from '../src/core/themes/tableThemes';
 import { AVAILABLE_AVATARS, getAvatarImage, AvatarId } from '../src/core/avatars';
-
-const THEME_OPTIONS: { theme: TableTheme; label: string; icon: string }[] = [
-    { theme: 'classic', label: 'Classique', icon: '🟢' },
-    { theme: 'modern', label: 'Moderne', icon: '🔵' },
-    { theme: 'luxury', label: 'Luxe', icon: '🔴' },
-];
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -39,12 +32,29 @@ export default function ProfileScreen() {
     const [displayName, setDisplayName] = useState('');
     const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
     const [selectedAvatar, setSelectedAvatar] = useState<string | undefined>(undefined);
-    const [selectedTheme, setSelectedTheme] = useState<TableTheme>('classic');
     const [isLoading, setIsLoading] = useState(false);
+    const [playerStats, setPlayerStats] = useState<PlayerStats>({
+        gamesPlayed: 0,
+        gamesWon: 0,
+        totalCochonsInflicted: 0,
+        totalPointsAccumulated: 0,
+    });
+
+    const nameInputRef = useRef<TextInput>(null);
+
+    const handleEditPress = () => {
+        nameInputRef.current?.focus();
+    };
 
     useEffect(() => {
         loadUserProfile();
+        loadPlayerStats();
     }, []);
+
+    const loadPlayerStats = async () => {
+        const stats = await statsService.getStats();
+        setPlayerStats(stats);
+    };
 
     const loadUserProfile = async () => {
         const currentUser = await authService.getCurrentUser();
@@ -70,10 +80,6 @@ export default function ProfileScreen() {
             // Default for new users
             setSelectedAvatar('avatar_01');
         }
-
-        // Load current theme
-        const settings = SettingsManager.getSettings();
-        setSelectedTheme(settings.tableTheme);
     };
 
     const handleSave = async () => {
@@ -89,10 +95,7 @@ export default function ProfileScreen() {
                 photoURL: selectedAvatar
             });
 
-            // Save theme
-            await SettingsManager.setTableTheme(selectedTheme);
-
-            router.back();
+            Alert.alert('Succès', 'Profil mis à jour !');
         } catch (error) {
             console.error(error);
             Alert.alert('Erreur', 'Impossible de sauvegarder le profil.');
@@ -105,21 +108,20 @@ export default function ProfileScreen() {
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>Choisir un avatar</Text>
 
-            {/* Image Avatars - Square display */}
-            <View style={styles.avatarGrid}>
+            {/* Image Avatars - Compact grid for left side */}
+            <View style={styles.avatarGridCompact}>
                 {AVAILABLE_AVATARS.map((avatarId) => (
                     <TouchableOpacity
                         key={avatarId}
                         style={[
-                            styles.avatarOption,
-                            styles.avatarImageOption,
-                            selectedAvatar === avatarId && styles.selectedAvatarOption
+                            styles.avatarOptionSmall,
+                            selectedAvatar === avatarId && styles.selectedAvatarOptionSmall
                         ]}
                         onPress={() => setSelectedAvatar(avatarId)}
                     >
                         <Image
                             source={getAvatarImage(avatarId)}
-                            style={styles.avatarImage}
+                            style={styles.avatarImageSmall}
                             resizeMode="cover"
                         />
                     </TouchableOpacity>
@@ -128,57 +130,47 @@ export default function ProfileScreen() {
         </View>
     );
 
-    const renderThemeSelector = () => (
-        <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Thème de la table</Text>
-            <View style={styles.themeGrid}>
-                {THEME_OPTIONS.map(({ theme, label, icon }) => {
-                    const themeColors = TABLE_THEMES[theme];
-                    return (
-                        <TouchableOpacity
-                            key={theme}
-                            style={[
-                                styles.themeOption,
-                                selectedTheme === theme && styles.selectedThemeOption
-                            ]}
-                            onPress={() => setSelectedTheme(theme)}
-                        >
-                            <View style={[styles.themePreview, { backgroundColor: themeColors.felt, borderColor: themeColors.border }]}>
-                                <Text style={styles.themeIcon}>{icon}</Text>
-                            </View>
-                            <Text style={styles.themeLabel}>{label}</Text>
-                        </TouchableOpacity>
-                    );
-                })}
+    const renderStatsGrid = () => {
+        const winRate = playerStats.gamesPlayed > 0
+            ? Math.round((playerStats.gamesWon / playerStats.gamesPlayed) * 100)
+            : 0;
+
+        const statCards = [
+            { icon: '🎮', value: playerStats.gamesPlayed, label: 'Parties' },
+            { icon: '🏆', value: playerStats.gamesWon, label: `Victoires (${winRate}%)` },
+            { icon: '🐷', value: playerStats.totalCochonsInflicted, label: 'Cochons' },
+            { icon: '⚡', value: playerStats.totalPointsAccumulated, label: 'Points' },
+        ];
+
+        return (
+            <View style={styles.section}>
+                <View style={styles.statsGrid}>
+                    {statCards.map((card, index) => (
+                        <View key={index} style={styles.statCard}>
+                            <Text style={styles.statIcon}>{card.icon}</Text>
+                            <Text style={styles.statValue}>{card.value}</Text>
+                            <Text style={styles.statLabel}>{card.label}</Text>
+                        </View>
+                    ))}
+                </View>
             </View>
-        </View>
-    );
+        );
+    };
 
     const renderFormControls = () => (
-        <View style={[styles.formSection, isLandscape && styles.formSectionLandscape]}>
-            <View style={styles.section}>
-                {userEmail && (
-                    <Text style={styles.emailText}>{userEmail}</Text>
-                )}
-                <TextInput
-                    style={styles.input}
-                    value={displayName}
-                    onChangeText={setDisplayName}
-                    placeholder="Votre pseudo"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    maxLength={15}
-                />
-            </View>
-
+        <View style={styles.formSection}>
             <TouchableOpacity
-                style={[styles.saveButton, isLandscape && styles.saveButtonLandscape]}
+                style={styles.saveButton}
                 onPress={handleSave}
                 disabled={isLoading}
             >
                 {isLoading ? (
                     <ActivityIndicator color="#0d1f0d" />
                 ) : (
-                    <Text style={styles.saveButtonText}>Enregistrer</Text>
+                    <View style={styles.saveButtonContent}>
+                        <Ionicons name="checkmark-circle" size={20} color="#0d1f0d" style={{ marginRight: 8 }} />
+                        <Text style={styles.saveButtonText}>ENREGISTRER</Text>
+                    </View>
                 )}
             </TouchableOpacity>
         </View>
@@ -210,20 +202,49 @@ export default function ProfileScreen() {
                     bounces={false}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Left/Top Part: Avatar Selection */}
-                    <View style={[styles.avatarSelectionContainer, isLandscape && styles.avatarSelectionContainerLandscape]}>
-                        <View style={styles.avatarCircle}>
-                            <Image
-                                source={getAvatarImage(selectedAvatar || 'avatar_01')}
-                                style={styles.avatarCircleImage}
-                                resizeMode="cover"
-                            />
+                    {/* Main Split Layout Container */}
+                    <View style={styles.splitRow}>
+                        {/* LEFT COLUMN: Avatar + Info + Selection */}
+                        <View style={styles.leftColumn}>
+                            <View style={styles.avatarCircle}>
+                                <Image
+                                    source={getAvatarImage(selectedAvatar || 'avatar_01')}
+                                    style={styles.avatarCircleImage}
+                                    resizeMode="cover"
+                                />
+                            </View>
+                            <View style={styles.headerInfo}>
+                                <TextInput
+                                    ref={nameInputRef}
+                                    style={styles.headerDisplayNameInput}
+                                    value={displayName}
+                                    onChangeText={setDisplayName}
+                                    placeholder="Pseudo"
+                                    placeholderTextColor="rgba(255,255,255,0.3)"
+                                    maxLength={15}
+                                    returnKeyType="done"
+                                />
+                                <TouchableOpacity onPress={handleEditPress}>
+                                    <Ionicons name="pencil" size={14} color="#FFD700" style={styles.editIcon} />
+                                </TouchableOpacity>
+                            </View>
+                            {userEmail && <Text style={styles.emailTextCompact}>{userEmail}</Text>}
+
+                            <View style={styles.avatarSelectionSmall}>
+                                {renderAvatarGrid()}
+                            </View>
                         </View>
-                        {renderAvatarGrid()}
-                        {renderThemeSelector()}
+
+                        {/* VERTICAL SEPARATOR */}
+                        <View style={styles.verticalSeparator} />
+
+                        {/* RIGHT COLUMN: Statistics */}
+                        <View style={styles.rightColumn}>
+                            {renderStatsGrid()}
+                        </View>
                     </View>
 
-                    {/* Right/Bottom Part: Nickname & Action */}
+                    {/* BOTTOM SECTION: Form Controls */}
                     {renderFormControls()}
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -251,42 +272,47 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     scrollContent: {
-        paddingHorizontal: 24,
-        paddingTop: 10,
+        paddingHorizontal: 20,
+        paddingTop: 5,
+        flexGrow: 1,
     },
     scrollContentLandscape: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-around',
-        gap: 30,
-        flexGrow: 1,
+        gap: 20,
     },
-    avatarSelectionContainer: {
+    // ─── Main Content Layout ───
+    splitRow: {
+        flexDirection: 'row',
+        width: '100%',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        width: '100%',
+        gap: 15,
+        marginBottom: 5,
     },
-    avatarSelectionContainerLandscape: {
-        flex: 1,
-        maxWidth: 350,
+    leftColumn: {
+        flex: 1.2,
+        alignItems: 'center',
     },
-    formSection: {
-        width: '100%',
-        marginTop: 10,
+    rightColumn: {
+        flex: 1.8,
     },
-    formSectionLandscape: {
-        flex: 1,
-        maxWidth: 300,
-        justifyContent: 'center',
+    verticalSeparator: {
+        width: 1,
+        height: '70%',
+        backgroundColor: 'rgba(255,215,0,0.25)',
     },
+    // ─── Profile Info ───
     avatarCircle: {
-        width: 90,
-        height: 90,
-        borderRadius: 45,
+        width: 86,
+        height: 86,
+        borderRadius: 43,
         backgroundColor: '#FFD700',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
-        elevation: 10,
+        marginBottom: 10,
+        elevation: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
@@ -296,117 +322,131 @@ const styles = StyleSheet.create({
         borderColor: '#FFD700',
     },
     avatarCircleImage: {
-        width: 90 * 1.6,
-        height: 90 * 1.6,
+        width: 86 * 1.6,
+        height: 86 * 1.6,
         position: 'absolute',
-        top: -(90 * 1.6 - 90) * 0.25,
+        top: -(86 * 1.6 - 86) * 0.25,
     },
-    avatarText: {
-        fontSize: 44,
-        fontWeight: 'bold',
-        color: '#0d1f0d',
-    },
-    section: {
-        width: '100%',
+    headerInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
         marginBottom: 20,
     },
-    input: {
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 12,
-        padding: 14,
+    headerDisplayNameInput: {
+        fontSize: 20,
+        fontWeight: '900',
         color: '#FFFFFF',
-        fontSize: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.15)',
         textAlign: 'center',
-        marginTop: 5,
+        letterSpacing: 1,
+        minWidth: 100,
+        paddingVertical: 4,
     },
-    emailText: {
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: 13,
+    editIcon: {
+        opacity: 0.7,
+        marginLeft: -4, // Pull closer to input
+    },
+    emailTextCompact: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.4)',
+        fontStyle: 'italic',
         textAlign: 'center',
         marginBottom: 5,
-        fontStyle: 'italic',
     },
-    avatarGrid: {
+    // ─── Avatar Selection ───
+    avatarSelectionSmall: {
+        width: '100%',
+        marginTop: 5,
+    },
+    sectionTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#FFD700',
+        marginBottom: 8,
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    avatarGridCompact: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        justifyContent: 'center',
+    },
+    avatarOptionSmall: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: 'transparent',
+    },
+    selectedAvatarOptionSmall: {
+        borderColor: '#FFD700',
+        backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    },
+    avatarImageSmall: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+    },
+    // ─── Statistics ───
+    statsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 10,
         justifyContent: 'center',
     },
-    avatarOption: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: 'transparent',
-    },
-    selectedAvatarOption: {
-        borderColor: '#FFD700',
-        backgroundColor: 'rgba(255, 215, 0, 0.15)',
-    },
-    avatarOptionText: {
-        fontSize: 24,
-    },
-    avatarImageOption: {
-        padding: 0,
-        overflow: 'hidden',
-    },
-    avatarImage: {
-        width: 56,
-        height: 56,
-        borderRadius: 8,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#FFFFFF',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    themeGrid: {
-        flexDirection: 'row',
-        gap: 12,
-        justifyContent: 'center',
-    },
-    themeOption: {
-        alignItems: 'center',
-        gap: 8,
-    },
-    selectedThemeOption: {
-        borderColor: '#FFFFFF',
-        borderWidth: 2,
-        borderRadius: 14,
-        padding: 2,
-        shadowColor: '#FFFFFF',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 10,
-        elevation: 8,
-    },
-    themePreview: {
-        width: 70,
-        height: 70,
+    statCard: {
+        width: '47%',
+        backgroundColor: 'rgba(255,255,255,0.08)',
         borderRadius: 12,
-        borderWidth: 4,
-        justifyContent: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 5,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 4,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,215,0,0.15)',
     },
-    themeIcon: {
-        fontSize: 28,
+    statIcon: {
+        fontSize: 32,
+        marginBottom: 2,
     },
-    themeLabel: {
-        fontSize: 12,
+    statValue: {
+        fontSize: 22,
+        fontWeight: '900',
         color: '#FFFFFF',
-        fontWeight: '500',
+    },
+    statLabel: {
+        fontSize: 9,
+        color: '#FFD700',
+        fontWeight: 'bold',
+        marginTop: 2,
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        opacity: 0.8,
+    },
+    // ─── Actions ───
+    formSection: {
+        width: '100%',
+        paddingHorizontal: 10,
+        marginTop: 5,
+    },
+    section: {
+        width: '100%',
+        marginBottom: 10,
+    },
+    input: {
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 12,
+        padding: 12,
+        color: '#FFFFFF',
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.2)',
+        textAlign: 'center',
     },
     saveButton: {
         backgroundColor: '#FFD700',
@@ -414,17 +454,25 @@ const styles = StyleSheet.create({
         borderRadius: 25,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 20,
-        paddingHorizontal: 30, // Button doesn't take full width
+        width: '100%',
+        maxWidth: 320,
         alignSelf: 'center',
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.4)',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
     },
-    saveButtonLandscape: {
-        marginTop: 20,
-        width: 180, // Fixed width in landscape
+    saveButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     saveButtonText: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '900',
         color: '#0d1f0d',
+        letterSpacing: 2,
     },
 });

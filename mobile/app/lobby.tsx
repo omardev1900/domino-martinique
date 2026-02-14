@@ -17,10 +17,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft, FadeIn } from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { createRoom, joinRoom, listenToPublicRooms } from '../src/core/services/firebase';
-import { PlayerProfile } from '../src/core/types';
+import { createRoom, joinRoom, listenToPublicRooms, RoomOptions } from '../src/core/services/firebase';
+import { PlayerProfile, GameMode, GameRoom } from '../src/core/types';
 import { authService } from '../src/core/services/auth.service';
 import { FlatList } from 'react-native-gesture-handler';
+import { Ionicons } from '@expo/vector-icons';
+
+type LobbyTab = 'CREATE' | 'JOIN' | 'PUBLIC';
+
+const MODE_LABELS: Record<GameMode, string> = {
+    MANCHE: 'Manche',
+    SCORE: 'Score',
+    COCHON: 'Cochon',
+};
+
+const MODE_UNIT_LABELS: Record<GameMode, string> = {
+    MANCHE: 'Manches',
+    SCORE: 'Points',
+    COCHON: 'Cochons',
+};
 
 export default function LobbyScreen() {
     const router = useRouter();
@@ -29,15 +44,23 @@ export default function LobbyScreen() {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
 
-    const [roomIdToJoin, setRoomIdToJoin] = useState('');
+    // — Shared state —
     const [loading, setLoading] = useState(false);
-    const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
-    const [copied, setCopied] = useState(false);
     const [currentUser, setCurrentUser] = useState<PlayerProfile | null>(null);
-    const [activeTab, setActiveTab] = useState<'CODE' | 'PUBLIC'>('CODE');
-    const [publicRooms, setPublicRooms] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState<LobbyTab>('CREATE');
+
+    // — JOIN tab state —
+    const [roomIdToJoin, setRoomIdToJoin] = useState('');
+
+    // — CREATE tab state —
     const [isPrivateRoom, setIsPrivateRoom] = useState(false);
     const [roomNameInput, setRoomNameInput] = useState('');
+    const [gameMode, setGameMode] = useState<GameMode>('MANCHE');
+    const [winningCondition, setWinningCondition] = useState(3);
+    const [turnDuration, setTurnDuration] = useState(15);
+
+    // — PUBLIC tab state —
+    const [publicRooms, setPublicRooms] = useState<GameRoom[]>([]);
     const [loadingPublicRooms, setLoadingPublicRooms] = useState(false);
 
     useEffect(() => {
@@ -67,51 +90,26 @@ export default function LobbyScreen() {
         }
     }, [activeTab]);
 
-    useEffect(() => {
-        if (!navigation) return;
-        const unsubscribe = navigation.addListener('beforeRemove', async (e: any) => {
-            if (createdRoomId && currentUser) {
-                e.preventDefault();
-                setLoading(true);
-                try {
-                    const { leaveRoom } = require('../src/core/services/firebase');
-                    await leaveRoom(createdRoomId, currentUser.uid);
-                    setCreatedRoomId(null);
-                    navigation.dispatch(e.data.action);
-                } catch (err) {
-                    console.error("Cleanup error", err);
-                    navigation.dispatch(e.data.action);
-                } finally {
-                    setLoading(false);
-                }
-            }
-        });
-        return unsubscribe;
-    }, [createdRoomId, currentUser, navigation]);
+    // ─── Actions ────────────────────────────────────────────────────
 
     const handleCreateRoom = async () => {
         if (!currentUser) return;
         try {
             setLoading(true);
-            const newRoomId = await createRoom(currentUser, isPrivateRoom, roomNameInput.trim());
-            setCreatedRoomId(newRoomId);
+            const options: RoomOptions = { gameMode, winningCondition, turnDuration };
+            const newRoomId = await createRoom(
+                currentUser,
+                isPrivateRoom,
+                roomNameInput.trim() || undefined,
+                undefined,
+                options
+            );
+            // Navigate directly to game lobby (no intermediate screen)
+            router.push({ pathname: '/game/[id]', params: { id: newRoomId, userId: currentUser.uid } });
         } catch (error) {
-            Alert.alert("Error", "Failed to create room.");
+            Alert.alert("Erreur", "Impossible de créer la table.");
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleCopyCode = async () => {
-        if (!createdRoomId) return;
-        await Clipboard.setStringAsync(createdRoomId);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    const handleStartGame = () => {
-        if (createdRoomId && currentUser) {
-            router.push({ pathname: '/game/[id]', params: { id: createdRoomId, userId: currentUser.uid } });
         }
     };
 
@@ -128,77 +126,251 @@ export default function LobbyScreen() {
         }
     };
 
+    const handleJoinPublicRoom = async (roomId: string) => {
+        if (!currentUser) return;
+        try {
+            setLoading(true);
+            await joinRoom(roomId, currentUser);
+            router.push({ pathname: '/game/[id]', params: { id: roomId, userId: currentUser.uid } });
+        } catch (error: any) {
+            Alert.alert("Erreur", error.message || "Impossible de rejoindre.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ─── Tabs ───────────────────────────────────────────────────────
+
+    const renderTabs = () => (
+        <View style={styles.tabWrapper}>
+            <View style={styles.tabContainer}>
+                {([
+                    { key: 'CREATE' as LobbyTab, label: '🏠 Créer', icon: 'add-circle-outline' },
+                    { key: 'JOIN' as LobbyTab, label: '🔑 Rejoindre', icon: 'enter-outline' },
+                    { key: 'PUBLIC' as LobbyTab, label: '🌍 Publiques', icon: 'globe-outline' },
+                ]).map(tab => (
+                    <TouchableOpacity
+                        key={tab.key}
+                        style={[styles.tabButton, activeTab === tab.key && styles.activeTab]}
+                        onPress={() => setActiveTab(tab.key)}
+                    >
+                        <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+                            {tab.label}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        </View>
+    );
+
+    // ─── CREATE Tab ─────────────────────────────────────────────────
+
+    const renderCreateTab = () => (
+        <Animated.View entering={FadeIn.delay(200)} style={styles.card}>
+            <Text style={styles.cardTitle}>Créer une Table</Text>
+
+            {/* Public / Private Toggle */}
+            <View style={styles.toggleRow}>
+                <TouchableOpacity
+                    style={[styles.toggleButton, !isPrivateRoom && styles.toggleButtonActive]}
+                    onPress={() => setIsPrivateRoom(false)}
+                >
+                    <Text style={styles.toggleIcon}>🌍</Text>
+                    <Text style={[styles.toggleLabel, !isPrivateRoom && styles.toggleLabelActive]}>Publique</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.toggleButton, isPrivateRoom && styles.toggleButtonActivePrivate]}
+                    onPress={() => setIsPrivateRoom(true)}
+                >
+                    <Text style={styles.toggleIcon}>🔒</Text>
+                    <Text style={[styles.toggleLabel, isPrivateRoom && styles.toggleLabelActive]}>Privée</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Room Name */}
+            <TextInput
+                style={styles.input}
+                placeholder="Nom de la table (optionnel)"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={roomNameInput}
+                onChangeText={setRoomNameInput}
+                maxLength={20}
+            />
+
+            {/* ─── Game Options ──────────────────────── */}
+            <View style={styles.optionsSection}>
+                <Text style={styles.sectionTitle}>OPTIONS DE JEU</Text>
+
+                {/* Game Mode */}
+                <View style={styles.optionItem}>
+                    <Text style={styles.optionLabel}>MODE</Text>
+                    <View style={styles.buttonGroup}>
+                        {(['MANCHE', 'SCORE', 'COCHON'] as GameMode[]).map(mode => (
+                            <TouchableOpacity
+                                key={mode}
+                                style={[styles.modeButton, gameMode === mode && styles.activeModeButton]}
+                                onPress={() => setGameMode(mode)}
+                            >
+                                <Text style={[styles.modeButtonText, gameMode === mode && styles.activeModeButtonText]}>
+                                    {MODE_LABELS[mode]}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
+                {/* Winning Condition */}
+                <View style={styles.optionItem}>
+                    <Text style={styles.optionLabel}>
+                        OBJECTIF : <Text style={styles.valueHighlight}>{winningCondition} {MODE_UNIT_LABELS[gameMode]}</Text>
+                    </Text>
+                    <View style={styles.conditionControls}>
+                        <TouchableOpacity
+                            onPress={() => setWinningCondition(Math.max(1, winningCondition - 1))}
+                            style={styles.adjustButton}
+                        >
+                            <Ionicons name="remove-circle-outline" size={28} color="#FFD700" />
+                        </TouchableOpacity>
+                        <Text style={styles.conditionValueText}>{winningCondition}</Text>
+                        <TouchableOpacity
+                            onPress={() => setWinningCondition(Math.min(100, winningCondition + 1))}
+                            style={styles.adjustButton}
+                        >
+                            <Ionicons name="add-circle-outline" size={28} color="#FFD700" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Turn Duration */}
+                <View style={styles.optionItem}>
+                    <Text style={styles.optionLabel}>
+                        DURÉE DU TOUR : <Text style={styles.valueHighlight}>{turnDuration === 0 ? 'Illimité' : `${turnDuration}s`}</Text>
+                    </Text>
+                    <View style={styles.conditionControls}>
+                        <TouchableOpacity
+                            onPress={() => setTurnDuration(Math.max(0, turnDuration - 5))}
+                            style={styles.adjustButton}
+                        >
+                            <Ionicons name="remove-circle-outline" size={28} color="#FFD700" />
+                        </TouchableOpacity>
+                        <Text style={styles.conditionValueText}>{turnDuration === 0 ? 'Off' : turnDuration}</Text>
+                        <TouchableOpacity
+                            onPress={() => setTurnDuration(Math.min(60, turnDuration + 5))}
+                            style={styles.adjustButton}
+                        >
+                            <Ionicons name="add-circle-outline" size={28} color="#FFD700" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+
+            {/* Create Button */}
+            <TouchableOpacity style={styles.primaryButton} onPress={handleCreateRoom}>
+                <LinearGradient
+                    colors={['#4CAF50', '#2E7D32']}
+                    style={styles.primaryButtonGradient}
+                >
+                    <Ionicons name="add-circle" size={22} color="#FFF" />
+                    <Text style={styles.primaryButtonText}>CRÉER LA TABLE</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+
+    // ─── JOIN Tab ───────────────────────────────────────────────────
+
+    const renderJoinTab = () => (
+        <Animated.View entering={FadeIn.delay(200)} style={styles.card}>
+            <Text style={styles.cardTitle}>Rejoindre une Table</Text>
+            <Text style={styles.cardSubtitle}>Entre le code partagé par l'hôte</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="Code de la table"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={roomIdToJoin}
+                onChangeText={setRoomIdToJoin}
+                autoCapitalize="none"
+            />
+            <TouchableOpacity style={styles.primaryButton} onPress={handleJoinRoom}>
+                <LinearGradient
+                    colors={['#2196F3', '#1565C0']}
+                    style={styles.primaryButtonGradient}
+                >
+                    <Ionicons name="enter-outline" size={22} color="#FFF" />
+                    <Text style={styles.primaryButtonText}>REJOINDRE</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+
+    // ─── PUBLIC Tab ─────────────────────────────────────────────────
+
+    const renderPublicRoom = ({ item, index }: { item: GameRoom, index: number }) => (
+        <Animated.View entering={FadeInLeft.delay(index * 80)}>
+            <TouchableOpacity
+                style={styles.roomItem}
+                onPress={() => handleJoinPublicRoom(item.roomId)}
+            >
+                <View style={styles.roomItemLeft}>
+                    <View style={styles.roomAvatar}>
+                        <Text style={styles.roomAvatarText}>
+                            {item.players[0]?.displayName?.charAt(0) || '?'}
+                        </Text>
+                    </View>
+                    <View>
+                        <Text style={styles.roomNameBold}>
+                            {item.roomName || `Table #${item.roomId.slice(0, 4)}`}
+                        </Text>
+                        <Text style={styles.roomHost}>Hôte: {item.players[0]?.displayName}</Text>
+                    </View>
+                </View>
+                <View style={styles.roomItemRight}>
+                    {/* Mode badge */}
+                    <View style={styles.modeBadge}>
+                        <Text style={styles.modeBadgeText}>
+                            {MODE_LABELS[item.gameMode || 'MANCHE']}
+                        </Text>
+                    </View>
+                    <Text style={styles.playerCount}>{item.players.length}/3 👤</Text>
+                </View>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+
+    const renderPublicTab = () => (
+        <View style={styles.listContainer}>
+            {loadingPublicRooms ? (
+                <View style={styles.emptyContainer}>
+                    <ActivityIndicator color="#FFD700" />
+                </View>
+            ) : (
+                <FlatList
+                    data={publicRooms}
+                    keyExtractor={(item) => item.roomId}
+                    renderItem={renderPublicRoom}
+                    scrollEnabled={false}
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Text style={styles.emptyIcon}>🏝️</Text>
+                            <Text style={styles.emptyText}>Aucune table publique pour le moment.</Text>
+                            <Text style={styles.emptyHint}>Crée la première !</Text>
+                        </View>
+                    }
+                />
+            )}
+        </View>
+    );
+
+    // ─── Main Render ────────────────────────────────────────────────
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#FFD700" />
+                <Text style={styles.loadingText}>Chargement...</Text>
             </View>
         );
     }
-
-    if (createdRoomId) {
-        return (
-            <View style={styles.container}>
-                <LinearGradient colors={['#0d1f0d', '#1a3d1a']} style={StyleSheet.absoluteFill} />
-                <ScrollView contentContainerStyle={[styles.createdContainer, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
-                    <Animated.View entering={FadeInUp} style={[styles.successCard, isLandscape && styles.successCardLandscape]}>
-                        <View style={[isLandscape && styles.successHeaderLandscape]}>
-                            <Text style={styles.successTitle}>Table Créée !</Text>
-                            <Text style={styles.successSubtitle}>Partage ce code avec tes amis :</Text>
-                        </View>
-
-                        <View style={[isLandscape && styles.successContentLandscape]}>
-                            <TouchableOpacity onPress={handleCopyCode} style={[styles.codeContainer, isLandscape && styles.codeContainerLandscape]}>
-                                <Text style={[styles.roomCode, isLandscape && styles.roomCodeLandscape]}>{createdRoomId}</Text>
-                                <Text style={styles.copyText}>{copied ? "Copié !" : "Appuie pour copier"}</Text>
-                            </TouchableOpacity>
-
-                            <View style={styles.waitingSection}>
-                                <ActivityIndicator color="#FFD700" size="small" />
-                                <Text style={styles.waitingText}>En attente des joueurs...</Text>
-                            </View>
-
-                            <TouchableOpacity style={[styles.primaryButton, isLandscape && styles.primaryButtonLandscape]} onPress={handleStartGame}>
-                                <Text style={styles.buttonText}>Joindre la table</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </Animated.View>
-                </ScrollView>
-            </View>
-        );
-    }
-
-    const renderPublicRoom = ({ item, index }: { item: any, index: number }) => (
-        <Animated.View entering={FadeInLeft.delay(index * 100)}>
-            <TouchableOpacity
-                style={styles.roomItem}
-                onPress={() => {
-                    if (!currentUser) return;
-                    setLoading(true);
-                    joinRoom(item.roomId, currentUser)
-                        .then(() => {
-                            setLoading(false);
-                            router.push({ pathname: '/game/[id]', params: { id: item.roomId, userId: currentUser.uid } });
-                        })
-                        .catch(err => {
-                            setLoading(false);
-                            Alert.alert("Erreur", err.message || "Impossible de rejoindre.");
-                        });
-                }}
-            >
-                <View style={styles.roomItemLeft}>
-                    <View style={styles.roomAvatar}>
-                        <Text style={styles.roomAvatarText}>{item.players[0]?.displayName?.charAt(0) || '?'}</Text>
-                    </View>
-                    <View>
-                        <Text style={styles.roomNameBold}>{item.roomName || `Table #${item.roomId.slice(0, 4)}`}</Text>
-                        <Text style={styles.roomHost}>Hôte: {item.players[0]?.displayName}</Text>
-                    </View>
-                </View>
-                <Text style={styles.playerCount}>{item.players.length}/3 👤</Text>
-            </TouchableOpacity>
-        </Animated.View>
-    );
 
     return (
         <View style={styles.container}>
@@ -206,95 +378,20 @@ export default function LobbyScreen() {
 
             <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Text style={styles.backText}>←</Text>
+                    <Ionicons name="arrow-back" size={24} color="#FFF" />
                 </TouchableOpacity>
                 <Text style={styles.title} numberOfLines={1}>Multijoueurs</Text>
             </View>
 
-            <View style={styles.tabWrapper}>
-                <View style={styles.tabContainer}>
-                    <TouchableOpacity
-                        style={[styles.tabButton, activeTab === 'CODE' && styles.activeTab]}
-                        onPress={() => setActiveTab('CODE')}
-                    >
-                        <Text style={[styles.tabText, activeTab === 'CODE' && styles.activeTabText]}>Par Code</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tabButton, activeTab === 'PUBLIC' && styles.activeTab]}
-                        onPress={() => setActiveTab('PUBLIC')}
-                    >
-                        <Text style={[styles.tabText, activeTab === 'PUBLIC' && styles.activeTabText]}>Tables Publiques</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
+            {renderTabs()}
 
             <ScrollView
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
                 showsVerticalScrollIndicator={false}
             >
-                {activeTab === 'CODE' ? (
-                    <View style={[styles.mainLayout, isLandscape && styles.mainLayoutLandscape]}>
-                        <Animated.View entering={FadeIn.delay(200)} style={styles.card}>
-                            <Text style={styles.cardTitle}>Rejoindre</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Code (ex: X7Z9)"
-                                placeholderTextColor="rgba(255,255,255,0.4)"
-                                value={roomIdToJoin}
-                                onChangeText={setRoomIdToJoin}
-                                autoCapitalize="none"
-                            />
-                            <TouchableOpacity style={styles.primaryButton} onPress={handleJoinRoom}>
-                                <Text style={styles.buttonText}>Rejoindre</Text>
-                            </TouchableOpacity>
-                        </Animated.View>
-
-                        <Animated.View entering={FadeIn.delay(400)} style={styles.card}>
-                            <View style={styles.inlineHeader}>
-                                <TouchableOpacity
-                                    style={styles.miniCheckboxContainer}
-                                    onPress={() => setIsPrivateRoom(!isPrivateRoom)}
-                                >
-                                    <View style={[styles.miniCheckbox, !isPrivateRoom && styles.miniCheckboxChecked]}>
-                                        {!isPrivateRoom && <Text style={styles.miniCheckmark}>✓</Text>}
-                                    </View>
-                                </TouchableOpacity>
-                                <Text style={styles.cardTitle}>Créer une Table {!isPrivateRoom ? '(Publique)' : '(Privée)'}</Text>
-                            </View>
-
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Nom de la table"
-                                placeholderTextColor="rgba(255,255,255,0.4)"
-                                value={roomNameInput}
-                                onChangeText={setRoomNameInput}
-                                maxLength={12}
-                            />
-
-                            <TouchableOpacity style={styles.secondaryButton} onPress={handleCreateRoom}>
-                                <Text style={styles.secondaryButtonText}>Créer la Table</Text>
-                            </TouchableOpacity>
-                        </Animated.View>
-                    </View>
-                ) : (
-                    <View style={styles.listContainer}>
-                        {loadingPublicRooms ? (
-                            <ActivityIndicator color="#FFD700" />
-                        ) : (
-                            <FlatList
-                                data={publicRooms}
-                                keyExtractor={(item) => item.roomId}
-                                renderItem={renderPublicRoom}
-                                scrollEnabled={false}
-                                ListEmptyComponent={
-                                    <View style={styles.emptyContainer}>
-                                        <Text style={styles.emptyText}>Aucune table publique pour le moment.</Text>
-                                    </View>
-                                }
-                            />
-                        )}
-                    </View>
-                )}
+                {activeTab === 'CREATE' && renderCreateTab()}
+                {activeTab === 'JOIN' && renderJoinTab()}
+                {activeTab === 'PUBLIC' && renderPublicTab()}
             </ScrollView>
         </View>
     );
@@ -309,7 +406,13 @@ const styles = StyleSheet.create({
         backgroundColor: '#0d1f0d',
         justifyContent: 'center',
         alignItems: 'center',
+        gap: 12,
     },
+    loadingText: {
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 14,
+    },
+    // ─── Header ─────────────────────────────────────────────────
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -320,17 +423,13 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingRight: 15,
     },
-    backText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '600',
-    },
     title: {
         fontSize: 22,
         fontWeight: 'bold',
         color: '#FFF',
         flex: 1,
     },
+    // ─── Tabs ───────────────────────────────────────────────────
     tabWrapper: {
         paddingHorizontal: 20,
         marginBottom: 15,
@@ -353,23 +452,18 @@ const styles = StyleSheet.create({
     tabText: {
         color: 'rgba(255,255,255,0.6)',
         fontWeight: 'bold',
+        fontSize: 13,
     },
     activeTabText: {
         color: '#0d1f0d',
     },
+    // ─── Scroll ─────────────────────────────────────────────────
     scrollContent: {
         flexGrow: 1,
         paddingHorizontal: 20,
     },
-    mainLayout: {
-        gap: 20,
-    },
-    mainLayoutLandscape: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-    },
+    // ─── Card ───────────────────────────────────────────────────
     card: {
-        flex: 1,
         backgroundColor: 'rgba(255,255,255,0.05)',
         borderRadius: 20,
         padding: 20,
@@ -377,11 +471,17 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.1)',
     },
     cardTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#FFD700',
-        marginBottom: 15,
+        marginBottom: 6,
     },
+    cardSubtitle: {
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.5)',
+        marginBottom: 18,
+    },
+    // ─── Inputs ─────────────────────────────────────────────────
     input: {
         backgroundColor: 'rgba(0,0,0,0.3)',
         borderRadius: 12,
@@ -390,147 +490,139 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
         marginBottom: 15,
+        fontSize: 15,
     },
-    primaryButton: {
-        backgroundColor: '#FFD700',
-        padding: 16,
-        borderRadius: 14,
-        alignItems: 'center',
+    // ─── Toggle Public/Private ──────────────────────────────────
+    toggleRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 18,
     },
-    buttonText: {
-        color: '#0d1f0d',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    secondaryButton: {
-        padding: 15,
-        borderRadius: 14,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#FFD700',
-    },
-    secondaryButtonText: {
-        color: '#FFD700',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    checkboxContainer: {
+    toggleButton: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
-    },
-    inlineHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 15,
-        gap: 10,
-    },
-    miniCheckboxContainer: {
-        padding: 2,
-    },
-    miniCheckbox: {
-        width: 18,
-        height: 18,
-        borderRadius: 4,
-        borderWidth: 2,
-        borderColor: '#FFD700',
         justifyContent: 'center',
-        alignItems: 'center',
-    },
-    miniCheckboxChecked: {
-        backgroundColor: '#FFD700',
-    },
-    miniCheckmark: {
-        color: '#0d1f0d',
-        fontWeight: 'bold',
-        fontSize: 10,
-    },
-    checkboxLabel: {
-        color: '#FFF',
-        fontSize: 14,
-    },
-    createdContainer: {
-        flexGrow: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-    },
-    successCard: {
-        width: '100%',
-        maxWidth: 450,
+        gap: 8,
+        paddingVertical: 14,
+        borderRadius: 14,
         backgroundColor: 'rgba(255,255,255,0.06)',
-        borderRadius: 24,
-        padding: 30,
-        alignItems: 'center',
-        borderWidth: 1,
+        borderWidth: 2,
         borderColor: 'rgba(255,255,255,0.1)',
     },
-    successCardLandscape: {
-        maxWidth: 600,
-        padding: 20,
+    toggleButtonActive: {
+        borderColor: '#4CAF50',
+        backgroundColor: 'rgba(76,175,80,0.15)',
     },
-    successHeaderLandscape: {
-        alignItems: 'center',
-        marginBottom: 10,
+    toggleButtonActivePrivate: {
+        borderColor: '#FF9800',
+        backgroundColor: 'rgba(255,152,0,0.15)',
     },
-    successContentLandscape: {
-        width: '100%',
-        alignItems: 'center',
+    toggleIcon: {
+        fontSize: 20,
     },
-    successTitle: {
-        fontSize: 24,
+    toggleLabel: {
+        color: 'rgba(255,255,255,0.5)',
+        fontWeight: 'bold',
+        fontSize: 15,
+    },
+    toggleLabelActive: {
+        color: '#FFF',
+    },
+    // ─── Game Options Section ───────────────────────────────────
+    optionsSection: {
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.15)',
+    },
+    sectionTitle: {
+        fontSize: 12,
         fontWeight: 'bold',
         color: '#FFD700',
-        marginBottom: 8,
+        marginBottom: 14,
+        textAlign: 'center',
+        letterSpacing: 2,
     },
-    successSubtitle: {
+    optionItem: {
+        marginBottom: 14,
+    },
+    optionLabel: {
+        fontSize: 12,
         color: 'rgba(255,255,255,0.6)',
-        marginBottom: 25,
-    },
-    codeContainer: {
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        paddingHorizontal: 30,
-        paddingVertical: 15,
-        borderRadius: 16,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#FFD700',
-        marginBottom: 25,
-    },
-    codeContainerLandscape: {
-        marginBottom: 15,
-        paddingVertical: 10,
-    },
-    roomCode: {
-        fontSize: 40,
+        marginBottom: 8,
         fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    valueHighlight: {
+        color: '#FFD700',
+    },
+    buttonGroup: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 10,
+        padding: 4,
+    },
+    modeButton: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 8,
+    },
+    activeModeButton: {
+        backgroundColor: '#FFD700',
+    },
+    modeButtonText: {
         color: '#FFF',
-        letterSpacing: 4,
+        fontSize: 13,
+        fontWeight: 'bold',
     },
-    roomCodeLandscape: {
-        fontSize: 32,
+    activeModeButtonText: {
+        color: '#000',
     },
-    copyText: {
-        color: 'rgba(255,255,255,0.4)',
-        marginTop: 2,
-        fontSize: 11,
-    },
-    waitingSection: {
+    conditionControls: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        marginBottom: 20,
+        justifyContent: 'center',
+        gap: 18,
     },
-    waitingText: {
-        color: 'rgba(255,255,255,0.5)',
-        fontStyle: 'italic',
-        fontSize: 13,
+    adjustButton: {
+        padding: 4,
     },
-    primaryButtonLandscape: {
-        paddingVertical: 12,
-        width: '100%',
-        maxWidth: 250,
+    conditionValueText: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#FFF',
+        minWidth: 40,
+        textAlign: 'center',
     },
+    // ─── Buttons ────────────────────────────────────────────────
+    primaryButton: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+    },
+    primaryButtonGradient: {
+        flexDirection: 'row',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+    },
+    primaryButtonText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 16,
+        letterSpacing: 1,
+    },
+    // ─── Public Rooms List ──────────────────────────────────────
     listContainer: {
         flex: 1,
     },
@@ -542,11 +634,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
     },
     roomItemLeft: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
+        flex: 1,
+    },
+    roomItemRight: {
+        alignItems: 'flex-end',
+        gap: 6,
     },
     roomAvatar: {
         width: 44,
@@ -573,6 +672,19 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 2,
     },
+    modeBadge: {
+        backgroundColor: 'rgba(255,215,0,0.15)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+    },
+    modeBadgeText: {
+        color: '#FFD700',
+        fontSize: 11,
+        fontWeight: 'bold',
+    },
     playerCount: {
         color: '#FFD700',
         fontWeight: 'bold',
@@ -581,9 +693,19 @@ const styles = StyleSheet.create({
     emptyContainer: {
         paddingTop: 50,
         alignItems: 'center',
+        gap: 8,
+    },
+    emptyIcon: {
+        fontSize: 40,
+        marginBottom: 4,
     },
     emptyText: {
         color: 'rgba(255,255,255,0.4)',
         fontStyle: 'italic',
+        fontSize: 15,
+    },
+    emptyHint: {
+        color: 'rgba(255,215,0,0.5)',
+        fontSize: 13,
     },
 });

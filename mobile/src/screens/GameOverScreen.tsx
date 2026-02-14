@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator, Image, ScrollView } from 'react-native';
 import { GameState, Player, PlayerId } from '../core/types';
 import Animated, { FadeIn, ZoomIn, SlideInDown, ZoomInEasyUp } from 'react-native-reanimated';
@@ -7,6 +7,7 @@ import { determineWinnerOnBoudé } from '../core/LogicEngine';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
+import { statsService } from '../core/services/stats.service';
 
 interface GameOverScreenProps {
     gameState: GameState;
@@ -38,6 +39,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     const { height: screenHeight, width: screenWidth } = useWindowDimensions();
     const isLandscape = screenWidth > screenHeight;
     const [countdown, setCountdown] = useState(10);
+    const hasRecordedStats = useRef(false);
 
     // Determine context
     const isMatchOver = gameState.phase === 'MATCH_END';
@@ -100,6 +102,27 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             return () => clearTimeout(timeout);
         }
     }, [countdown, isMatchOver, isBoudé, onNextRound]);
+
+    // 📊 STATS: Record match result when game ends
+    useEffect(() => {
+        if (!isMatchOver || hasRecordedStats.current) return;
+        hasRecordedStats.current = true;
+
+        const currentPlayer = gameState.players.find(p => p.id === currentUserId);
+        if (!currentPlayer) return;
+
+        const sortedByWins = [...gameState.players].sort((a, b) => b.wins - a.wins);
+        const isWinner = sortedByWins[0].id === currentUserId;
+
+        // Count cochons inflicted BY the current player (other players who are cochon)
+        const cochonsInflicted = gameState.players.filter(p => p.id !== currentUserId && p.isCochon).length;
+
+        statsService.recordMatchResult(
+            isWinner,
+            cochonsInflicted,
+            Math.max(0, currentPlayer.totalPoints)
+        );
+    }, [isMatchOver, gameState, currentUserId]);
 
     // Find winner
     // If match over, it's the one with 3 wins.
