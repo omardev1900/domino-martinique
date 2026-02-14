@@ -8,10 +8,10 @@ import { checkValidMove } from '../core/LogicEngine';
 
 interface PlayerHandProps {
     hand: Domino[];
-    onPlayDomino: (domino: Domino) => void;
+    onPlayDomino: (domino: Domino, position?: { x: number, y: number }) => void;
     disabled?: boolean;
-    leftValue?: DominoSide | null; // NEW: Table extremities
-    rightValue?: DominoSide | null; // NEW: Table extremities
+    leftValue?: DominoSide | null;
+    rightValue?: DominoSide | null;
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -21,9 +21,23 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
     leftValue = null,
     rightValue = null,
 }) => {
+    const tileRefs = React.useRef<{ [key: string]: View | null }>({});
+
+    const handleTilePress = (domino: Domino) => {
+        if (disabled) return;
+
+        const ref = tileRefs.current[domino.id];
+        if (ref) {
+            ref.measure((x, y, width, height, pageX, pageY) => {
+                onPlayDomino(domino, { x: pageX, y: pageY });
+            });
+        } else {
+            onPlayDomino(domino);
+        }
+    };
+
     return (
         <View style={styles.container}>
-            {/* Floating Dominos - No Background Container */}
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -33,6 +47,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                 {hand.map((domino, index) => (
                     <Animated.View
                         key={domino.id}
+                        ref={(el) => (tileRefs.current[domino.id] = el as any)}
                         style={styles.tileWrapper}
                         layout={LinearTransition.springify()}
                     >
@@ -41,7 +56,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                             right={domino.right}
                             size={40}
                             orientation="vertical"
-                            onPress={() => onPlayDomino(domino)}
+                            onPress={() => handleTilePress(domino)}
                             disabled={disabled}
                             isPlayable={!disabled && checkValidMove(domino, leftValue, rightValue).canPlay}
                             entering={FadeInDown.delay(index * 10).springify()}

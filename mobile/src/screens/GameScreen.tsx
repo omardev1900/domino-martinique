@@ -11,7 +11,7 @@ import { PlayerAvatar } from '../components/PlayerAvatar';
 import { LobbyScreen } from './LobbyScreen';
 import { GameOverScreen } from './GameOverScreen';
 import { SettingsScreen } from './SettingsScreen';
-import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude } from '../core/LogicEngine';
+import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude, checkValidMove } from '../core/LogicEngine';
 import { getValidMoves } from '../core/DominoEngine';
 import { getBotMove } from '../core/BotEngine';
 import { GameAnnouncer } from '../components/GameAnnouncer';
@@ -28,6 +28,10 @@ import SettingsManager from '../core/SettingsManager';
 import { TableTheme, TABLE_THEMES } from '../core/themes/tableThemes';
 import { authService } from '../core/services/auth.service';
 import { AVAILABLE_AVATARS, AvatarId, getAvatarImage } from '../core/avatars';
+import { GameTableRef } from '../components/GameTable';
+import { FlyingDomino } from '../components/FlyingDomino';
+import { FlyingDominoData } from '../core/animations/AnimationTypes';
+
 
 interface GameScreenProps {
     gameId?: string;
@@ -56,6 +60,13 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [announcement, setAnnouncement] = useState<{ message: string; subMessage?: string; type: 'COCHON' | 'CHIRE' | 'PARTIE_END' | 'BOUDE' } | null>(null);
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [isCountingPoints, setIsCountingPoints] = useState(false);
+
+    const [hiddenDominoId, setHiddenDominoId] = useState<string | null>(null);
+    const [flyingDomino, setFlyingDomino] = useState<FlyingDominoData | null>(null);
+
+    const tableRef = useRef<GameTableRef>(null);
+    const lastPlayStartPos = useRef<{ x: number, y: number } | null>(null);
+    const avatarRefs = useRef<{ [key: string]: View | null }>({});
 
     // DERIVED STATE - Must be after state hooks but before handlers
     const localPlayer = gameState?.players.find(p => p.id === localPlayerId);
@@ -371,9 +382,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     };
 
     const startNewLocalGame = () => {
-        const fullState = createInitialState(['Me', 'Bot 1', 'Bot 2']);
+        const fullState = createInitialState(['Moi', 'Bot 1', 'Bot 2']);
         fullState.players[1].isBot = true;
+        fullState.players[1].avatarId = 'bot_01';
         fullState.players[2].isBot = true;
+        fullState.players[2].avatarId = 'bot_02';
         SoundManager.playSound('shuffle');
         setGameState(fullState);
     };
@@ -442,44 +455,34 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     };
 
-    const handlePlayDomino = async (domino: Domino) => {
+    const handlePlayDomino = async (domino: Domino, startPos?: { x: number, y: number }) => {
         // ATOMIC GUARD
         if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) {
-            console.log(`[handlePlayDomino] 🚫 Action bloquée :`, {
-                processing: isProcessing.current,
-                phase: gameState?.phase,
-                paused: isPaused,
-                localTurn: gameState?.currentPlayerId === localPlayerId
-            });
             return;
         }
 
         if (gameState.currentPlayerId !== localPlayerId) {
-            console.log(`[handlePlayDomino] ⏳ Pas votre tour (Courant: ${gameState.currentPlayerId})`);
             return;
         }
 
-        // Check for possible moves with the new engine
+        // Store start position in ref for later use in executeMove
+        if (startPos) {
+            lastPlayStartPos.current = startPos;
+        }
+
         const validMoves = getValidMoves([domino], {
             left: gameState.table.leftValue,
             right: gameState.table.rightValue
         });
 
-        console.log(`[handlePlayDomino] 🔍 Coup tenté: ${domino.left}-${domino.right}. Coups valides trouvés: ${validMoves.length}`);
+        if (validMoves.length === 0) return;
 
-        if (validMoves.length === 0) {
-            console.log(`[handlePlayDomino] ⛔ Coup invalide pour la table [${gameState.table.leftValue}|${gameState.table.rightValue}]`);
-            return;
-        }
-
-        // If multiple sides are possible, ask the user (always show if > 1 option)
         if (validMoves.length > 1) {
-            SoundManager.playSound('notify'); // Feedback for selection
+            SoundManager.playSound('notify');
             setPendingDomino(domino);
             return;
         }
 
-        // Only one possible side
         const move = validMoves[0];
         executeMove(domino, move.side === 'start' ? undefined : move.side);
     };
@@ -502,7 +505,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         isProcessing.current = true;
 
         try {
-            // Updated handleTurn in LogicEngine to accept optional side
+            // Animation start: hide the tile on the board when it appears
+            setHiddenDominoId(domino.id);
+
             const newState = handleTurn(gameState, localPlayerId, domino, forcedSide);
 
             // Audio & Haptics
@@ -516,6 +521,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             }
         } catch (e) {
             console.log("Invalid move", e);
+            setHiddenDominoId(null); // Reset if error
         } finally {
             isProcessing.current = false;
         }
@@ -848,6 +854,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 if (decision) {
                     const { tile, side } = decision;
                     console.log(`[Bot Move] Playing ${tile.left}|${tile.right} on ${side}`);
+
+                    // Capture bot avatar position for animation
+                    const avatarRef = avatarRefs.current[freshPlayer.id];
+                    if (avatarRef) {
+                        avatarRef.measure((_x: number, _y: number, _width: number, _height: number, pageX: number, pageY: number) => {
+                            lastPlayStartPos.current = { x: pageX, y: pageY };
+                            setHiddenDominoId(tile.id);
+                        });
+                    }
+
                     newState = handleTurn(freshState, freshPlayer.id, tile, side === 'start' ? undefined : side);
                     SoundManager.playClack();
                     HapticManager.triggerImpact();
@@ -885,6 +901,39 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         console.log(`[BOUDE] Game is blocked! Ready for counting.`);
         isProcessing.current = false;
     }, [gameState?.phase]);
+
+    // Effect to trigger flying animation when a domino is added to the table
+    useEffect(() => {
+        if (!hiddenDominoId || !gameState) return;
+
+        // Give a tiny bit of time for GameTable to render the invisible tile in its new position
+        const timeout = setTimeout(() => {
+            const dominoOnTable = gameState.table.sequence.find(s => s.domino.id === hiddenDominoId);
+            if (!dominoOnTable) {
+                setHiddenDominoId(null);
+                return;
+            }
+
+            const startPos = lastPlayStartPos.current;
+            if (!startPos) {
+                setHiddenDominoId(null);
+                return;
+            }
+
+            tableRef.current?.measureTile(hiddenDominoId, (x, y, width, height) => {
+                setFlyingDomino({
+                    domino: dominoOnTable.domino,
+                    startPoint: startPos,
+                    endPoint: { x, y },
+                    orientation: dominoOnTable.domino.isDouble ? 'vertical' : 'horizontal',
+                    isReversed: dominoOnTable.isReversed
+                });
+                lastPlayStartPos.current = null; // Clear after use
+            });
+        }, 50);
+
+        return () => clearTimeout(timeout);
+    }, [hiddenDominoId, gameState?.table.sequence.length]);
 
     const handleBoudeFinished = async (winnerId: string | 'TIE') => {
         if (!gameState) return;
@@ -1129,11 +1178,23 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
 
             <GameTable
+                ref={tableRef}
                 gameState={gameState}
                 theme={tableTheme}
                 pendingDomino={pendingDomino}
                 onSideSelect={pendingDomino ? confirmSidePlay : undefined}
+                hiddenDominoId={hiddenDominoId}
             />
+
+            {flyingDomino && (
+                <FlyingDomino
+                    data={flyingDomino}
+                    onFinished={() => {
+                        setFlyingDomino(null);
+                        setHiddenDominoId(null);
+                    }}
+                />
+            )}
 
             {/* UI LAYER */}
             <View style={styles.uiLayer} pointerEvents="box-none">
@@ -1143,6 +1204,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 {/* Visual Order: You (Bottom) -> Next Player (Top-Right) -> Last Player (Top-Left) */}
                 {opponents[0] && (
                     <Animated.View
+                        ref={(el) => (avatarRefs.current[opponents[0].id] = el as any)}
                         entering={FadeInRight.delay(200).duration(600)}
                         style={[styles.topRightCorner, { top: Math.max(insets.top + 5, 15), right: Math.max(insets.right + 10, 10) }]}
                     >
@@ -1165,6 +1227,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
                 {opponents[1] && (
                     <Animated.View
+                        ref={(el) => (avatarRefs.current[opponents[1].id] = el as any)}
                         entering={FadeInLeft.delay(400).duration(600)}
                         style={[styles.topLeftArea, { top: Math.max(insets.top + 5, 15), left: Math.max(insets.left + 10, 10) }]}
                     >
@@ -1197,6 +1260,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 {/* BOTTOM LEFT: Local Player (Me) */}
                 {localPlayer && (
                     <Animated.View
+                        ref={(el) => (avatarRefs.current[localPlayer.id] = el as any)}
                         entering={FadeInLeft.delay(600).duration(600)}
                         style={[styles.bottomLeftArea, { bottom: 20 + insets.bottom, left: 20 + insets.left }]}
                     >

@@ -59,7 +59,7 @@ export default function HomeScreen() {
                         <Text style={styles.userName} numberOfLines={1}>{user?.displayName || 'Invité'}</Text>
                         <View style={styles.avatarCircle}>
                             <Image
-                                source={getAvatarImage((user?.avatarUrl && AVAILABLE_AVATARS.includes(user.avatarUrl as AvatarId)) ? user.avatarUrl : 'avatar_01')}
+                                source={getAvatarImage((user?.avatarUrl && (AVAILABLE_AVATARS.includes(user.avatarUrl as AvatarId) || user.avatarUrl === 'avatar_default')) ? user.avatarUrl : 'avatar_default')}
                                 style={styles.avatarImage}
                                 resizeMode="cover"
                             />

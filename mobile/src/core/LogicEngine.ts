@@ -62,6 +62,18 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
     const HAND_SIZE = 7;
     const deck = shuffleDeck();
 
+    const getBotAvatar = (diff: string) => {
+        switch (diff) {
+            case 'easy': return 'bot_01';
+            case 'medium': return 'bot_02';
+            case 'expert': return 'bot_03';
+            case 'legend': return 'bot_03';
+            default: return 'bot_01';
+        }
+    };
+
+    const botAvatar = getBotAvatar(botDifficulty);
+
     const players: Player[] = [
         {
             id: playerId,
@@ -79,6 +91,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         {
             id: 'bot-1',
             name: `Bot ${botDifficulty === 'easy' ? 'Débutant' : botDifficulty === 'medium' ? 'Moyen' : botDifficulty === 'expert' ? 'Expert' : 'Légende'}`,
+            avatarId: botAvatar,
             hand: deck.slice(HAND_SIZE, HAND_SIZE * 2),
             handSize: HAND_SIZE,
             wins: 0,
@@ -91,6 +104,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         {
             id: 'bot-2',
             name: `Bot ${botDifficulty === 'easy' ? 'Novice' : botDifficulty === 'medium' ? 'Initié' : botDifficulty === 'expert' ? 'Pro' : 'Maître'}`,
+            avatarId: botAvatar,
             hand: deck.slice(HAND_SIZE * 2, HAND_SIZE * 3),
             handSize: HAND_SIZE,
             wins: 0,

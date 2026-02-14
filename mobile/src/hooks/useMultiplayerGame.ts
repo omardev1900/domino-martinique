@@ -67,7 +67,7 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
                         isBot: false
                     };
                 } else {
-                    return { ...p, id: `bot-${i}`, name: `Bot ${i}`, isBot: true, avatarId: 'bot' };
+                    return { ...p, id: `bot-${i}`, name: `Bot ${i}`, isBot: true, avatarId: i === 1 ? 'bot_01' : i === 2 ? 'bot_02' : 'bot_03' };
                 }
             });
 
@@ -83,6 +83,8 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
                 firstPlayerOfRound: null,
                 history: [],
                 winningCondition: 3,
+                gameMode: 'MANCHE',
+                turnDuration: 30, // Default turn duration
                 lastActionTimestamp: Date.now()
             };
 
@@ -146,7 +148,8 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
                 try {
                     let newState;
                     if (move) {
-                        newState = handleTurn(gameState, currentPlayer.id, move);
+                        // Fix: getBotMove returns { tile, side }, but handleTurn expects a Domino
+                        newState = handleTurn(gameState, currentPlayer.id, move.tile, move.side === 'start' ? undefined : move.side);
                         SoundManager.playClack();
                     } else {
                         newState = passTurn(gameState, currentPlayer.id);

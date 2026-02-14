@@ -34,6 +34,19 @@ class AuthService {
             const existingProfileJson = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
             if (existingProfileJson) {
                 guestUser = JSON.parse(existingProfileJson);
+
+                // MIGRATION: Force default avatar for ANY guest account that has no avatar or the old default
+                if (guestUser) {
+                    const isDefaultName = guestUser.displayName === 'Invité';
+                    const isGuestId = guestUser.uid.startsWith('guest_');
+                    const hasInvalidAvatar = !guestUser.avatarId || guestUser.avatarId === 'avatar_01';
+
+                    if (isGuestId && hasInvalidAvatar) {
+                        console.log('[AuthService] Migrating guest avatar to avatar_default');
+                        guestUser.avatarId = 'avatar_default';
+                        await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(guestUser));
+                    }
+                }
             }
         } catch (error) {
             console.warn('Failed to load existing guest profile', error);
@@ -44,7 +57,7 @@ class AuthService {
                 uid: this.generateGuestId(),
                 displayName: 'Invité',
                 avatarUrl: undefined,
-                avatarId: undefined,
+                avatarId: 'avatar_default',
                 gamesPlayed: 0,
                 gamesWon: 0,
             };
@@ -98,7 +111,7 @@ class AuthService {
             displayName: user.displayName || user.email?.split('@')[0] || 'Joueur',
             email: user.email || undefined,
             avatarUrl: user.photoURL || undefined,
-            avatarId: user.photoURL || undefined, // Sync avatarId with photoURL (Emoji)
+            avatarId: user.photoURL || 'avatar_default', // Sync avatarId with photoURL (Emoji) or use default
             gamesPlayed: 0,
             gamesWon: 0
         };

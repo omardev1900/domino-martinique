@@ -76,12 +76,12 @@ export default function ProfileScreen() {
             if (currentAvatar && AVAILABLE_AVATARS.includes(currentAvatar as AvatarId)) {
                 setSelectedAvatar(currentAvatar);
             } else {
-                // Default to first avatar if emoji or invalid
-                setSelectedAvatar('avatar_01');
+                // Default to default avatar if emoji or invalid
+                setSelectedAvatar('avatar_default');
             }
         } else {
             // Default for new users
-            setSelectedAvatar('avatar_01');
+            setSelectedAvatar('avatar_default');
         }
     };
 
@@ -211,7 +211,7 @@ export default function ProfileScreen() {
                         <View style={styles.leftColumn}>
                             <View style={styles.avatarCircle}>
                                 <Image
-                                    source={getAvatarImage(selectedAvatar || 'avatar_01')}
+                                    source={getAvatarImage(selectedAvatar || 'avatar_default')}
                                     style={styles.avatarCircleImage}
                                     resizeMode="cover"
                                 />

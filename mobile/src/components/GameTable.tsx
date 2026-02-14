@@ -14,6 +14,7 @@ interface GameTableProps {
     theme?: TableTheme;
     pendingDomino?: Domino | null; // The domino currently being played
     onSideSelect?: (side: 'left' | 'right') => void;
+    hiddenDominoId?: string | null;
 }
 
 interface VisualTile {
@@ -21,15 +22,38 @@ interface VisualTile {
     isReversed: boolean;
 }
 
+export interface GameTableRef {
+    measureTile: (id: string, callback: (x: number, y: number, width: number, height: number) => void) => void;
+}
+
 /**
  * Composant GameTable : Gère l'affichage du plateau de jeu et des dominos posés.
  */
-export const GameTable: React.FC<GameTableProps> = ({ gameState, pendingDomino, onSideSelect, theme = 'luxury' }) => {
+export const GameTable = React.forwardRef<GameTableRef, GameTableProps>(({
+    gameState,
+    pendingDomino,
+    onSideSelect,
+    theme = 'luxury',
+    hiddenDominoId
+}, ref) => {
     const themeColors = TABLE_THEMES[theme];
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const isLandscape = screenWidth > screenHeight;
     const scale = useSharedValue(1);
     const pulse = useSharedValue(1);
+
+    const tileRefs = React.useRef<{ [key: string]: View | null }>({});
+
+    React.useImperativeHandle(ref, () => ({
+        measureTile: (id: string, callback: (x: number, y: number, width: number, height: number) => void) => {
+            const tileRef = tileRefs.current[id];
+            if (tileRef) {
+                tileRef.measure((x, y, width, height, pageX, pageY) => {
+                    callback(pageX, pageY, width, height);
+                });
+            }
+        },
+    }));
 
     // Filter which arrows should be shown based on actual validity using the new engine
     const showLeftArrow = useMemo(() => {
@@ -135,19 +159,26 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, pendingDomino, 
                                     </TouchableOpacity>
                                 )}
 
-                                {visualSequence.map((item, idx) => (
-                                    <View key={item.domino.id} style={styles.tileWrapper}>
-                                        <DominoTile
-                                            left={item.isReversed ? item.domino.right : item.domino.left}
-                                            right={item.isReversed ? item.domino.left : item.domino.right}
-                                            orientation={item.domino.isDouble ? 'vertical' : 'horizontal'}
-                                            size={isLandscape ? 30 : 34}
-                                            disabled
-                                            noMargin
-                                            entering={FadeIn.delay(idx * 50).duration(400)}
-                                        />
-                                    </View>
-                                ))}
+                                {visualSequence.map((item, idx) => {
+                                    const isHidden = item.domino.id === hiddenDominoId;
+                                    return (
+                                        <View
+                                            key={item.domino.id}
+                                            ref={(el) => (tileRefs.current[item.domino.id] = el as any)}
+                                            style={[styles.tileWrapper, isHidden && { opacity: 0 }]}
+                                        >
+                                            <DominoTile
+                                                left={item.isReversed ? item.domino.right : item.domino.left}
+                                                right={item.isReversed ? item.domino.left : item.domino.right}
+                                                orientation={item.domino.isDouble ? 'vertical' : 'horizontal'}
+                                                size={isLandscape ? 30 : 34}
+                                                disabled
+                                                noMargin
+                                                entering={FadeIn.delay(idx * 50).duration(400)}
+                                            />
+                                        </View>
+                                    );
+                                })}
 
                                 {/* RIGHT ARROW */}
                                 {showRightArrow && (
@@ -171,7 +202,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, pendingDomino, 
             </View>
         </View>
     );
-};
+});
 
 const styles = StyleSheet.create({
     container: {
