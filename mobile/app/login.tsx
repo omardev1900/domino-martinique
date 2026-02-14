@@ -11,7 +11,8 @@ import {
     ScrollView,
     KeyboardAvoidingView,
     Platform,
-    useWindowDimensions
+    useWindowDimensions,
+    Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -139,12 +140,11 @@ export default function LoginScreen() {
 
     const renderLogo = () => (
         <View style={[styles.logoSection, isLandscape && styles.logoSectionLandscape]}>
-            <Text style={[styles.logo, isLandscape && styles.logoLandscape]}>🁡</Text>
-            <View>
-                <Text style={[styles.title, isLandscape && styles.titleLandscape]}>DOMINO</Text>
-                <Text style={[styles.subtitle, isLandscape && styles.subtitleLandscape]}>MARTINIQUE</Text>
-            </View>
-            {!isLandscape && <View style={styles.divider} />}
+            <Image
+                source={require('../assets/images/logo.png')}
+                style={[styles.logoImage, isLandscape && styles.logoImageLandscape]}
+                resizeMode="contain"
+            />
         </View>
     );
 
@@ -269,41 +269,16 @@ const styles = StyleSheet.create({
     logoSectionLandscape: {
         flex: 1,
         marginBottom: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    logo: {
-        fontSize: 80,
-        marginBottom: 10,
+    logoImage: {
+        width: 180,
+        height: 180,
     },
-    logoLandscape: {
-        fontSize: 60,
-        marginBottom: 10,
-    },
-    title: {
-        fontSize: 40,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: 4,
-        textAlign: 'center',
-    },
-    titleLandscape: {
-        fontSize: 32,
-    },
-    subtitle: {
-        fontSize: 20,
-        fontWeight: '300',
-        color: '#FFD700',
-        letterSpacing: 6,
-        textAlign: 'center',
-    },
-    subtitleLandscape: {
-        fontSize: 16,
-    },
-    divider: {
-        width: 100,
-        height: 2,
-        backgroundColor: 'rgba(255,215,0,0.3)',
-        marginTop: 20,
-        borderRadius: 1,
+    logoImageLandscape: {
+        width: 250,
+        height: 250,
     },
     formContainer: {
         width: '100%',
