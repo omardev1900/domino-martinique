@@ -31,9 +31,6 @@ export const AVAILABLE_AVATARS: AvatarId[] = [
     'avatar_06',
     'avatar_07',
     'avatar_08',
-    'avatar_06',
-    'avatar_07',
-    'avatar_08',
 ];
 
 /**

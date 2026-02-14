@@ -114,7 +114,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const isHorizontal = layout === 'horizontal';
 
     // Use player's avatarId or fallback to default 'avatar_01'
-    const finalAvatarId = (player.avatarId && player.avatarId.startsWith('avatar_'))
+    // Allow 'bot_' prefix for bot avatars
+    const finalAvatarId = (player.avatarId && (player.avatarId.startsWith('avatar_') || player.avatarId.startsWith('bot_')))
         ? (player.avatarId as AvatarId)
         : 'avatar_01';
 

@@ -31,14 +31,15 @@ import {
 import { GameRoom, GameState, PlayerProfile, RoomStatus, GameMode } from '../types';
 
 // Configuration Firebase
+// Configuration Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyBJnQCPfcVz585Lp4ctKTKQdvVxycWycHo",
-    authDomain: "domino-martinique-v1.firebaseapp.com",
-    projectId: "domino-martinique-v1",
-    storageBucket: "domino-martinique-v1.firebasestorage.app",
-    messagingSenderId: "916243245615",
-    appId: "1:916243245615:web:974a0b8d9896885e5534da",
-    measurementId: "G-CRY4BNKZ9F"
+    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase

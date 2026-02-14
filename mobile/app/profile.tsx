@@ -397,13 +397,15 @@ const styles = StyleSheet.create({
     avatarGridCompact: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 6,
-        justifyContent: 'center',
+        justifyContent: 'center', // Center the grid
+        width: '100%',
+        paddingHorizontal: 10,
     },
     avatarOptionSmall: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
+        width: '22%', // Force 4 items per row (approx 22% * 4 + margins < 100%)
+        aspectRatio: 1, // Keep it square
+        margin: '1.5%', // Gap
+        borderRadius: 40, // Fully round
         backgroundColor: 'rgba(255,255,255,0.05)',
         justifyContent: 'center',
         alignItems: 'center',
@@ -415,9 +417,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 215, 0, 0.2)',
     },
     avatarImageSmall: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
+        width: '100%',
+        height: '100%',
+        borderRadius: 40,
     },
     // ─── Statistics ───
     statsGrid: {
