@@ -1,0 +1,33 @@
+name: Domino Engine CI
+
+# Déclencheurs : à chaque push ou pull request sur la branche main
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-engine:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./mobile # On cible ton dossier de jeu
+
+    steps:
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Version LTS recommandée pour la stabilité CI
+          cache: 'npm'
+          cache-dependency-path: './mobile/package-lock.json'
+
+      - name: 📦 Installation des dépendances
+        run: npm ci # "Clean Install" pour garantir un environnement reproductible
+
+      - name: 🧪 Exécution des tests unitaires
+        run: npm test -- --watchAll=false --maxWorkers=2
