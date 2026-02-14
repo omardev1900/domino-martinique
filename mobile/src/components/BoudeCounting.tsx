@@ -52,7 +52,7 @@ const PlayerScoreRow = ({ player, delay, onReady }: { player: Player, delay: num
         >
             <View style={styles.avatarMini}>
                 <Image
-                    source={getAvatarImage((player.avatarId as AvatarId) || 'avatar_01')}
+                    source={getAvatarImage((player.avatarId as AvatarId) || 'avatar_default')}
                     style={styles.avatarImage}
                     resizeMode="cover"
                 />

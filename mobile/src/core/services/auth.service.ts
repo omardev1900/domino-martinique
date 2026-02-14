@@ -35,16 +35,23 @@ class AuthService {
             if (existingProfileJson) {
                 guestUser = JSON.parse(existingProfileJson);
 
-                // MIGRATION: Force default avatar for ANY guest account that has no avatar or the old default
-                if (guestUser) {
-                    const isDefaultName = guestUser.displayName === 'Invité';
-                    const isGuestId = guestUser.uid.startsWith('guest_');
-                    const hasInvalidAvatar = !guestUser.avatarId || guestUser.avatarId === 'avatar_01';
+                // FIX: Restore avatarUrl from avatarId if missing (JSON.stringify drops undefined)
+                if (guestUser && !guestUser.avatarUrl && guestUser.avatarId) {
+                    guestUser.avatarUrl = guestUser.avatarId;
+                }
 
-                    if (isGuestId && hasInvalidAvatar) {
+                // MIGRATION: Only force default avatar for truly new/invalid accounts
+                // Don't overwrite custom avatars!
+                if (guestUser) {
+                    const isGuestId = guestUser.uid.startsWith('guest_');
+                    // Only migrate if NO avatarId at all OR it's the old 'avatar_01' default
+                    const needsMigration = !guestUser.avatarId || guestUser.avatarId === 'avatar_01';
+
+                    if (isGuestId && needsMigration) {
                         console.log('[AuthService] Migrating guest avatar to avatar_default');
                         guestUser.avatarId = 'avatar_default';
-                        await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(guestUser));
+                        guestUser.avatarUrl = 'avatar_default';
+                        await this.saveGuestProfile(guestUser);
                     }
                 }
             }
@@ -56,17 +63,43 @@ class AuthService {
             guestUser = {
                 uid: this.generateGuestId(),
                 displayName: 'Invité',
-                avatarUrl: undefined,
+                avatarUrl: 'avatar_default',
                 avatarId: 'avatar_default',
                 gamesPlayed: 0,
                 gamesWon: 0,
             };
-            await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(guestUser));
+            await this.saveGuestProfile(guestUser);
         }
 
         await this.activateSession(guestUser);
         await statsService.syncWithFirebase(guestUser.uid);
         return guestUser;
+    }
+
+    /**
+     * Save guest profile ensuring avatarUrl is always present
+     */
+    private async saveGuestProfile(profile: PlayerProfile): Promise<void> {
+        try {
+            // Ensure avatarUrl is always set to avatarId (for consistency)
+            const profileToSave = {
+                ...profile,
+                avatarUrl: profile.avatarId || profile.avatarUrl || 'avatar_default'
+            };
+            const jsonString = JSON.stringify(profileToSave);
+            await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, jsonString);
+            console.log('[AuthService] Profile saved to AsyncStorage:', profileToSave.displayName, profileToSave.avatarId);
+            
+            // Verify it was saved correctly
+            const verify = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
+            if (verify) {
+                const verified = JSON.parse(verify);
+                console.log('[AuthService] Verification - saved profile:', verified.displayName, verified.avatarId);
+            }
+        } catch (error) {
+            console.error('[AuthService] Error saving profile:', error);
+            throw error;
+        }
     }
 
     /**
@@ -111,7 +144,7 @@ class AuthService {
             displayName: user.displayName || user.email?.split('@')[0] || 'Joueur',
             email: user.email || undefined,
             avatarUrl: user.photoURL || undefined,
-            avatarId: user.photoURL || 'avatar_default', // Sync avatarId with photoURL (Emoji) or use default
+            avatarId: user.photoURL || 'avatar_default',
             gamesPlayed: 0,
             gamesWon: 0
         };
@@ -123,7 +156,8 @@ class AuthService {
     private async activateSession(user: PlayerProfile): Promise<void> {
         try {
             await AsyncStorage.setItem(STORAGE_KEY_SESSION, 'true');
-            this.currentUser = user;
+            this.currentUser = { ...user };
+            console.log(`[AuthService] Session activated for: ${user.uid} (${user.displayName})`);
         } catch (error) {
             console.error('Failed to activate session', error);
         }
@@ -131,48 +165,55 @@ class AuthService {
 
     /**
      * Get current logged in user
-     * Waits for Firebase Auth to initialize before checking
+     * Priority: 1. Memory, 2. Firebase, 3. Local Guest
      */
     async getCurrentUser(): Promise<PlayerProfile | null> {
+        // 1. Return cached user if available
         if (this.currentUser) return this.currentUser;
 
         try {
             // Check session marker
             const isSessionActive = await AsyncStorage.getItem(STORAGE_KEY_SESSION);
 
+            // 2. Try Firebase Auth (only if session active or previous firebase user)
             if (isSessionActive === 'true') {
-                // Wait for Firebase Auth to initialize (important for persistence)
-                console.log('🔄 Waiting for Firebase Auth to initialize...');
                 const firebaseUser = await new Promise<User | null>((resolve) => {
                     const unsubscribe = auth.onAuthStateChanged((user) => {
-                        unsubscribe(); // Unsubscribe immediately after first call
-                        if (user) {
-                            console.log(`🔥 Firebase Auth restored session for: ${user.uid}`);
-                        } else {
-                            console.log('🔥 Firebase Auth: No persisted session found');
-                        }
+                        unsubscribe();
                         resolve(user);
                     });
                 });
 
-                // Priority 1: Check Firebase Auth state
                 if (firebaseUser) {
                     this.currentUser = this.mapFirebaseUserToProfile(firebaseUser);
                     return this.currentUser;
                 }
+            }
 
-                // Priority 2: Fallback to Guest Profile (Local)
-                const guestProfileJson = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
-                if (guestProfileJson) {
-                    this.currentUser = JSON.parse(guestProfileJson);
-                    return this.currentUser;
+            // 3. Fallback to Guest Profile (Always try this if no Firebase user, even if session flag is missing)
+            const guestProfileJson = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
+            if (guestProfileJson) {
+                const guestUser = JSON.parse(guestProfileJson);
+                // Ensure avatarUrl is restored (JSON.stringify drops undefined)
+                if (guestUser && !guestUser.avatarUrl && guestUser.avatarId) {
+                    guestUser.avatarUrl = guestUser.avatarId;
                 }
+                this.currentUser = guestUser;
+                return this.currentUser;
             }
         } catch (error) {
-            console.error('Failed to load session/user', error);
+            console.error('[AuthService] getCurrentUser error:', error);
         }
 
         return null;
+    }
+
+    /**
+     * Refresh user data (forces reload from storage)
+     */
+    async refreshUserFromStorage(): Promise<PlayerProfile | null> {
+        this.currentUser = null;
+        return this.getCurrentUser();
     }
 
     /**
@@ -180,8 +221,8 @@ class AuthService {
      */
     async logout(): Promise<void> {
         try {
-            await signOut(auth); // Sign out from Firebase
-            await AsyncStorage.removeItem(STORAGE_KEY_SESSION); // Clear session marker
+            await signOut(auth);
+            await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
             this.currentUser = null;
         } catch (error) {
             console.error('Failed to logout', error);
@@ -192,14 +233,15 @@ class AuthService {
      * Update user stats
      */
     async updateStats(stats: Partial<PlayerProfile>): Promise<void> {
-        if (!this.currentUser) return;
+        const user = await this.getCurrentUser();
+        if (!user) return;
 
-        this.currentUser = { ...this.currentUser, ...stats };
+        this.currentUser = { ...user, ...stats };
 
         // Only persist to Guest Profile if it looks like a guest ID
         if (this.currentUser.uid.startsWith('guest_')) {
             try {
-                await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(this.currentUser));
+                await this.saveGuestProfile(this.currentUser);
             } catch (error) {
                 console.error('Failed to update guest stats', error);
             }
@@ -207,33 +249,48 @@ class AuthService {
     }
 
     /**
-     * Update User Profile (Unified: Guest & Firebase)
+     * Update User Profile (Unified)
      */
     async updateProfile(updates: { displayName?: string; photoURL?: string }): Promise<void> {
-        if (!this.currentUser) return;
+        const user = await this.getCurrentUser();
+        if (!user) {
+            console.warn('[AuthService] updateProfile: No user logged in');
+            return;
+        }
 
-        // 1. Update Local State
-        const profileUpdates: Partial<PlayerProfile> = {
-            ...(updates.displayName && { displayName: updates.displayName }),
-            ...(updates.photoURL !== undefined && { avatarUrl: updates.photoURL, avatarId: updates.photoURL })
-        };
-        this.currentUser = { ...this.currentUser, ...profileUpdates };
+        // 1. Prepare updates
+        const profileUpdates: Partial<PlayerProfile> = {};
+
+        if (updates.displayName !== undefined && updates.displayName !== null) {
+            profileUpdates.displayName = updates.displayName.trim();
+        }
+
+        if (updates.photoURL) {
+            profileUpdates.avatarUrl = updates.photoURL;
+            profileUpdates.avatarId = updates.photoURL;
+        }
+
+        // 2. Update memory state immediately
+        this.currentUser = { ...user, ...profileUpdates };
 
         try {
-            // 2. Handle Guest Persistence
+            // 3. Persist Guest Profile
             if (this.currentUser.uid.startsWith('guest_')) {
-                await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, JSON.stringify(this.currentUser));
+                await this.saveGuestProfile(this.currentUser);
+                await AsyncStorage.setItem(STORAGE_KEY_SESSION, 'true'); // Ensure session is active
+                console.log('[AuthService] Guest profile updated & saved:', this.currentUser.displayName);
             }
 
-            // 3. Handle Firebase Persistence
+            // 4. Persist Firebase Profile
             else if (auth.currentUser) {
                 await updateFirebaseProfile(auth.currentUser, {
                     displayName: updates.displayName,
                     photoURL: updates.photoURL
                 });
+                console.log('[AuthService] Firebase profile updated');
             }
         } catch (error) {
-            console.error('Failed to update profile', error);
+            console.error('[AuthService] updateProfile error:', error);
             throw error;
         }
     }

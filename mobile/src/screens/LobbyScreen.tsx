@@ -105,7 +105,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                     ) : (
                         <>
                             <View style={[styles.avatar, slot.isCurrentUser && styles.avatarHighlight, { overflow: 'hidden' }]}>
-                                {slot.player?.avatarId && AVAILABLE_AVATARS.includes(slot.player.avatarId as AvatarId) ? (
+                                {slot.player?.avatarId && (AVAILABLE_AVATARS.includes(slot.player.avatarId as AvatarId) || slot.player.avatarId === 'avatar_default') ? (
                                     <Image
                                         source={getAvatarImage(slot.player.avatarId)}
                                         style={{
@@ -118,7 +118,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                     />
                                 ) : (
                                     <Image
-                                        source={getAvatarImage('avatar_01')}
+                                        source={getAvatarImage('avatar_default')}
                                         style={{
                                             width: 80 * 1.6,
                                             height: 80 * 1.6,

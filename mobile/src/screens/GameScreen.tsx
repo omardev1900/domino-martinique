@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated';
 import { useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
@@ -67,30 +68,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const tableRef = useRef<GameTableRef>(null);
     const lastPlayStartPos = useRef<{ x: number, y: number } | null>(null);
     const avatarRefs = useRef<{ [key: string]: View | null }>({});
-
-    // DERIVED STATE - Must be after state hooks but before handlers
-    const localPlayer = gameState?.players.find(p => p.id === localPlayerId);
-    const isMyTurn = gameState?.currentPlayerId === localPlayerId;
-    const isGameOver = gameState?.phase === 'MATCH_END' || gameState?.phase === 'MANCHE_END' || gameState?.phase === 'PARTIE_END' || gameState?.phase === 'BOUDE';
-    const showScoreOverlay = isGameOver && showScoreboard;
-
-    // Player profile data for solo mode
-    const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
-    const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
-
-    // ATOMIC ACTION GUARD - Prevents race conditions
+    const prevHistoryLength = useRef(0);
     const isProcessing = useRef(false);
-
-    // Ref for fresh state access in Bot useEffect
     const gameStateRef = useRef<GameState | null>(null);
-    const [pendingDomino, setPendingDomino] = useState<Domino | null>(null);
-
     const navigation = useNavigation();
-
-    // Timer countdown state
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
-
-    // Pulsing animation for active player border
+    const [pendingDomino, setPendingDomino] = useState<Domino | null>(null);
     const pulseOpacity = useSharedValue(1);
 
     useEffect(() => {
@@ -104,37 +87,148 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         );
     }, []);
 
+    // -------------------------------------------------------------------------
+    // SMART LISTENER: Detect Opponent Moves & Trigger Effects
+    // -------------------------------------------------------------------------
+    useEffect(() => {
+        if (!gameState) {
+            prevHistoryLength.current = 0;
+            return;
+        }
+
+        const history = gameState.history;
+        // Check if history grew (new move)
+        if (history.length > prevHistoryLength.current) {
+            // Get the last action
+            const lastAction = history[history.length - 1];
+
+            // If it's NOT me, trigger effects
+            // (My own effects are triggered immediately in executeMove for zero latency)
+            if (lastAction.playerId !== localPlayerId) {
+                console.log(`📡 Opponent Action Detected: ${lastAction.action} by ${lastAction.playerId}`);
+
+                if (lastAction.action === 'PLAY') {
+                    SoundManager.playClack();
+                    // TODO: Trigger FlyingDomino animation from opponent avatar to table
+                    // We need to know who played to find their avatar position
+                    // const playerIndex = gameState.players.findIndex(p => p.id === lastAction.playerId);
+                    // ...
+                } else if (lastAction.action === 'PASS') {
+                    // Optional: Pass sound
+                }
+            }
+            // Update ref
+            prevHistoryLength.current = history.length;
+        } else if (history.length < prevHistoryLength.current) {
+            // Game reset
+            prevHistoryLength.current = history.length;
+        }
+    }, [gameState?.history, localPlayerId]);
+
+    // -------------------------------------------------------------------------
+    // TIMER EFFECT (Moved to top to prevent hook violation)
+    // -------------------------------------------------------------------------
+    useEffect(() => {
+        if (timeLeft !== 0 || isPaused) return;
+
+        // Use ref to get fresh state
+        const freshState = gameStateRef.current;
+        if (!freshState) {
+            console.log('⏰ Timer expired but no gameState available');
+            return;
+        }
+
+        if (freshState.currentPlayerId !== localPlayerId) {
+            console.log('⏰ Timer expired but not my turn anymore');
+            return;
+        }
+
+        if (freshState.phase !== 'PLAYING') {
+            console.log('⏰ Timer expired but game phase is', freshState.phase);
+            return;
+        }
+
+        console.log('⏰ Timer expired - checking for valid moves...');
+
+        // CRITICAL: Force release processing lock - timer has absolute priority
+        isProcessing.current = false;
+
+        // Find the local player in fresh state
+        const freshPlayer = freshState.players.find(p => p.id === localPlayerId);
+        if (!freshPlayer) {
+            console.error('⏰ Timer expired but player not found in state');
+            return;
+        }
+
+        // STEP A: Check for valid moves
+        const validMoves = getValidMoves(freshPlayer.hand, {
+            left: freshState.table.leftValue,
+            right: freshState.table.rightValue
+        });
+
+
+        if (validMoves.length > 0) {
+            // STEP B: Auto-play the first valid domino
+            const move = validMoves[0];
+            const dominoToPlay = move.tile;
+            console.log(`⏰ AUTO-PLAY: Playing ${dominoToPlay.left}|${dominoToPlay.right} automatically`);
+
+            // Call handlePlayDomino as if user clicked
+            handlePlayDomino(dominoToPlay);
+        } else {
+            // STEP C: No valid moves - auto-pass
+            console.log('⏰ AUTO-PASS: No valid moves, passing turn automatically');
+            handlePassTurn();
+        }
+    }, [timeLeft]);
+
+    // DERIVED STATE - Must be after state hooks but before handlers
+    const localPlayer = gameState?.players.find(p => p.id === localPlayerId);
+    const isMyTurn = gameState?.currentPlayerId === localPlayerId;
+    const isGameOver = gameState?.phase === 'MATCH_END' || gameState?.phase === 'MANCHE_END' || gameState?.phase === 'PARTIE_END' || gameState?.phase === 'BOUDE';
+    const showScoreOverlay = isGameOver && showScoreboard;
+
+    // Player profile data for solo mode
+    const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
+    const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
+
+
+
     // Load saved table theme and player profile
     // This must complete BEFORE starting the game
     const [profileLoaded, setProfileLoaded] = useState(false);
 
-    useEffect(() => {
-        const loadSettings = async () => {
-            const settings = SettingsManager.getSettings();
-            setTableTheme(settings.tableTheme);
+    useFocusEffect(
+        useCallback(() => {
+            const loadSettings = async () => {
+                const settings = SettingsManager.getSettings();
+                setTableTheme(settings.tableTheme);
 
-            // Load player profile for solo mode
-            if (isSoloMode) {
-                try {
-                    const profile = await authService.getCurrentUser();
-                    if (profile) {
-                        setPlayerDisplayName(profile.displayName || 'Moi');
-                        // Validate avatar is a valid image avatar
-                        const avatar = profile.avatarUrl;
-                        if (avatar && AVAILABLE_AVATARS.includes(avatar as AvatarId)) {
-                            setPlayerAvatarId(avatar);
-                        } else {
-                            setPlayerAvatarId('avatar_01');
+                // Load player profile for solo mode
+                if (isSoloMode) {
+                    try {
+                        // Always refresh from storage to get latest profile data
+                        const profile = await authService.refreshUserFromStorage();
+                        if (profile) {
+                            console.log('[GameScreen] Loaded profile:', profile.displayName, profile.avatarId);
+                            setPlayerDisplayName(profile.displayName || 'Moi');
+                            // Validate avatar is a valid image avatar
+                            const avatar = profile.avatarId || profile.avatarUrl;
+                            if (avatar && (AVAILABLE_AVATARS.includes(avatar as AvatarId) || avatar === 'avatar_default')) {
+                                setPlayerAvatarId(avatar);
+                            } else {
+                                setPlayerAvatarId('avatar_default');
+                            }
                         }
+                    } catch (error) {
+                        console.error('Error loading profile:', error);
                     }
-                } catch (error) {
-                    console.error('Error loading profile:', error);
                 }
-            }
-            setProfileLoaded(true);
-        };
-        loadSettings();
-    }, [isSoloMode]);
+                setProfileLoaded(true);
+            };
+            loadSettings();
+        }, [isSoloMode])
+    );
 
     const animatedBorderStyle = useAnimatedStyle(() => ({
         borderColor: `rgba(255, 215, 0, ${pulseOpacity.value})`,
@@ -213,61 +307,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         return () => clearInterval(interval);
     }, [gameState?.phase, isPaused, timeLeft === null]);
 
-    // Auto-play or auto-pass when timer expires
-    useEffect(() => {
-        if (timeLeft !== 0 || isPaused) return;
-
-        // Use ref to get fresh state
-        const freshState = gameStateRef.current;
-        if (!freshState) {
-            console.log('⏰ Timer expired but no gameState available');
-            return;
-        }
-
-        if (freshState.currentPlayerId !== localPlayerId) {
-            console.log('⏰ Timer expired but not my turn anymore');
-            return;
-        }
-
-        if (freshState.phase !== 'PLAYING') {
-            console.log('⏰ Timer expired but game phase is', freshState.phase);
-            return;
-        }
-
-        console.log('⏰ Timer expired - checking for valid moves...');
-
-        // CRITICAL: Force release processing lock - timer has absolute priority
-        isProcessing.current = false;
-
-        // Find the local player in fresh state
-        const freshPlayer = freshState.players.find(p => p.id === localPlayerId);
-        if (!freshPlayer) {
-            console.error('⏰ Timer expired but player not found in state');
-            return;
-        }
-
-        // STEP A: Check for valid moves
-        const validMoves = getValidMoves(freshPlayer.hand, {
-            left: freshState.table.leftValue,
-            right: freshState.table.rightValue
-        });
-
-
-        if (validMoves.length > 0) {
-            // STEP B: Auto-play the first valid domino
-            const move = validMoves[0];
-            const dominoToPlay = move.tile;
-            console.log(`⏰ AUTO-PLAY: Playing ${dominoToPlay.left}|${dominoToPlay.right} automatically`);
-
-            // Call handlePlayDomino as if user clicked
-            handlePlayDomino(dominoToPlay);
-        } else {
-
-            // STEP C: No valid moves - auto-pass
-            console.log('⏰ AUTO-PASS: No valid moves, passing turn automatically');
-            handlePassTurn();
-        }
-    }, [timeLeft]);
+    // MOVED: Timer Auto-Play/Pass Effect moved to bottom to access handlers
+    // See bottom of component function for the timer logic.
 
     // Audio & Firebase Subscription
     useEffect(() => {
@@ -432,26 +473,34 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 roomData.winningCondition || 3,
                 roomData.turnDuration || TURN_DURATION_SECONDS
             );
+
             initialState.players = initialState.players.map((p, i) => {
                 if (i < realPlayers.length) {
+                    const realProfile = realPlayers[i];
                     return {
                         ...p,
-                        id: realPlayers[i].uid,
-                        name: realPlayers[i].displayName,
-                        avatarId: realPlayers[i].avatarId, // Emoji or undefined
-                        isBot: false
+                        id: realProfile.uid,
+                        name: realProfile.displayName,
+                        avatarId: realProfile.avatarId || realProfile.avatarUrl || 'avatar_default',
+                        isBot: false,
                     };
                 } else {
-                    return { ...p, id: `bot-${i}`, name: `Bot ${i}`, isBot: true, avatarId: 'bot' }; // Bot avatar?
+                    return {
+                        ...p,
+                        id: `bot-${i}`,
+                        name: `Bot ${i}`,
+                        isBot: true,
+                        avatarId: `bot_0${Math.min(i, 3)}`
+                    };
                 }
             });
-            // Re-determine first player after mapping real player IDs
+
             initialState.currentPlayerId = determineFirstPlayer(initialState.players);
             await startGame(gameId, initialState);
             // Don't set isStarting to false here - let the subscription handle it
         } catch (e: any) {
             Alert.alert("Error", "Failed to start game: " + e.message);
-            setIsStarting(false); // Reset on error
+            setIsStarting(false);
         }
     };
 
@@ -1068,6 +1117,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     };
 
 
+
+
     return (
         <View style={styles.container}>
             {/* CHOICE BANNER (Overlay) */}
@@ -1359,6 +1410,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     );
 }
 
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -1582,159 +1634,163 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     quitButton: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        paddingHorizontal: 40,
-        paddingVertical: 15,
-        borderRadius: 30,
-        width: '100%',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.3)',
+        position: 'absolute',
+        top: 40,
+        right: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        padding: 8,
+        borderRadius: 20,
+        zIndex: 100,
     },
     quitButtonText: {
-        color: '#CCC',
-        fontSize: 16,
-        fontWeight: '600',
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
-    // Info Button - Discreet top-center button
+    announcementOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        zIndex: 1000,
+    },
+    announcementText: {
+        fontSize: 48,
+        fontWeight: '900',
+        color: '#FFD700',
+        textShadowColor: 'rgba(0,0,0,0.75)',
+        textShadowOffset: { width: 2, height: 2 },
+        textShadowRadius: 5,
+        textAlign: 'center',
+    },
+    subAnnouncementText: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginTop: 10,
+        textAlign: 'center',
+    },
+    choiceBanner: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        paddingVertical: 10,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: '#FFD700',
+        zIndex: 50,
+    },
+    choiceText: {
+        color: '#FFD700',
+        fontSize: 14,
+        fontWeight: 'bold',
+        letterSpacing: 2,
+        textShadowColor: 'rgba(0,0,0,0.75)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 2,
+    },
+    pauseTopCenterButton: {
+        position: 'absolute',
+        zIndex: 110,
+        alignSelf: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+    },
     infoButton: {
         position: 'absolute',
+        zIndex: 110,
         alignSelf: 'center',
-        zIndex: 100,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
         backgroundColor: 'rgba(0,0,0,0.5)',
-        borderWidth: 1,
-        borderColor: '#FFD700',
+        width: 40, // consistent size
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 5,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+        marginLeft: 60, // offset from pause button if both present, or just to the right
     },
-    // Info Card - Floating card backdrop
     infoBackdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        zIndex: 200,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        zIndex: 200, // above everything
         justifyContent: 'center',
         alignItems: 'center',
     },
-    // Info Card - Main container
     infoCard: {
-        backgroundColor: 'rgba(26, 10, 46, 0.98)',
-        borderRadius: 16,
-        borderWidth: 1.5,
-        borderColor: '#FFD700',
-        padding: 18,
         width: 280,
-        maxWidth: '80%',
-        shadowColor: '#FFD700',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 15,
+        backgroundColor: '#1E1E1E',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#333',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 10,
     },
-    // Info Card - Header
     infoCardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 8,
-        gap: 6,
     },
     infoCardTitle: {
-        color: '#FFD700',
-        fontSize: 13,
-        fontWeight: '800',
-        letterSpacing: 0.5,
-        textTransform: 'uppercase',
-    },
-    // Info Card - Code row (tappable to copy)
-    infoCardCodeRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 8,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        marginBottom: 14,
-        gap: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.15)',
-    },
-    infoCardCode: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: 'bold',
-        letterSpacing: 1.5,
-    },
-    // Info Card - Divider
-    infoCardDivider: {
-        height: 1,
-        backgroundColor: 'rgba(255,215,0,0.2)',
-        marginBottom: 14,
-    },
-    // Info Card - Objective
-    infoCardObjective: {
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        borderRadius: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        alignItems: 'center',
-    },
-    infoCardObjectiveText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    infoCardModeLabel: {
-        color: 'rgba(255,215,0,0.6)',
-        fontSize: 11,
+        color: '#888',
+        fontSize: 12,
         fontWeight: '600',
-        marginTop: 3,
+        marginLeft: 6,
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
-    choiceBanner: {
-        position: 'absolute',
-        bottom: 140, // Just above the player hand
-        left: 0,
-        right: 0,
+    infoCardCodeRow: {
+        flexDirection: 'row',
         alignItems: 'center',
-        zIndex: 200,
+        backgroundColor: '#111',
+        padding: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#333',
+        marginBottom: 16,
     },
-    choiceText: {
-        backgroundColor: 'rgba(255, 215, 0, 0.9)',
-        color: '#1a0a2e',
+    infoCardCode: {
+        color: '#FFD700',
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginLeft: 10,
+        letterSpacing: 2,
+        fontFamily: 'monospace', // ensures distinct chars
+    },
+    infoCardDivider: {
+        height: 1,
+        backgroundColor: '#333',
+        marginBottom: 16,
+    },
+    infoCardObjective: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    infoCardObjectiveText: {
+        color: '#FFF',
         fontSize: 14,
-        fontWeight: '900',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 18,
-        borderWidth: 2,
-        borderColor: '#FFF',
-        overflow: 'hidden',
-        textAlign: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        elevation: 10,
+        fontWeight: '500',
+        marginLeft: 8,
     },
-    pauseTopCenterButton: {
-        position: 'absolute',
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        alignSelf: 'center',
-        borderWidth: 2,
-        borderColor: 'rgba(255,215,0,0.4)',
-        zIndex: 500,
+    infoCardModeLabel: {
+        color: '#FFD700',
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginTop: 2,
+        marginLeft: 24, // align with text above
     },
 });
+

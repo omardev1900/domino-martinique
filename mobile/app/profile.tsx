@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     StyleSheet,
@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { authService } from '../src/core/services/auth.service';
 import { statsService, PlayerStats } from '../src/core/services/stats.service';
 import { PlayerProfile } from '../src/core/types';
@@ -49,10 +50,13 @@ export default function ProfileScreen() {
         nameInputRef.current?.focus();
     };
 
-    useEffect(() => {
-        loadUserProfile();
-        loadPlayerStats();
-    }, []);
+    // Reload profile when screen comes into focus (ensures fresh data)
+    useFocusEffect(
+        useCallback(() => {
+            loadUserProfile();
+            loadPlayerStats();
+        }, [])
+    );
 
     const loadPlayerStats = async () => {
         const stats = await statsService.getStats();
@@ -60,28 +64,39 @@ export default function ProfileScreen() {
     };
 
     const loadUserProfile = async () => {
-        const currentUser = await authService.getCurrentUser();
+        console.log('[Profile] Loading user profile...');
+        // Always refresh from storage to get latest data
+        const currentUser = await authService.refreshUserFromStorage();
         if (currentUser) {
+            console.log('[Profile] User loaded:', {
+                uid: currentUser.uid,
+                displayName: currentUser.displayName,
+                avatarId: currentUser.avatarId,
+                avatarUrl: currentUser.avatarUrl
+            });
             setUser(currentUser);
             setDisplayName(currentUser.displayName || '');
 
             // Try to get email from current user profile
-            // We'll use a safer check for email if it's available in the profile or auth
             if (currentUser.email) {
                 setUserEmail(currentUser.email);
             }
 
-            // Force avatar to image avatar if current is emoji or invalid
-            const currentAvatar = currentUser.avatarUrl;
+            // Set avatar from avatarId (which is the source of truth)
+            const currentAvatar = currentUser.avatarId || currentUser.avatarUrl;
             if (currentAvatar && AVAILABLE_AVATARS.includes(currentAvatar as AvatarId)) {
+                console.log('[Profile] Setting avatar:', currentAvatar);
                 setSelectedAvatar(currentAvatar);
             } else {
-                // Default to default avatar if emoji or invalid
+                // Default to default avatar if invalid
+                console.log('[Profile] Using default avatar, invalid:', currentAvatar);
                 setSelectedAvatar('avatar_default');
             }
         } else {
+            console.log('[Profile] No user found, using defaults');
             // Default for new users
             setSelectedAvatar('avatar_default');
+            setDisplayName('Invité');
         }
     };
 
@@ -93,23 +108,47 @@ export default function ProfileScreen() {
 
         setIsLoading(true);
         try {
+            console.log('[Profile] Saving profile with:', displayName.trim(), selectedAvatar);
+            
             await authService.updateProfile({
                 displayName: displayName.trim(),
                 photoURL: selectedAvatar
             });
 
+            // Force refresh from storage to confirm changes were persisted
+            await loadUserProfile();
+            
+            console.log('[Profile] Profile saved and refreshed successfully');
+            setLastSaved(new Date());
+
             Alert.alert('Succès', 'Profil mis à jour !');
         } catch (error) {
-            console.error(error);
+            console.error('[Profile] Error saving profile:', error);
             Alert.alert('Erreur', 'Impossible de sauvegarder le profil.');
         } finally {
             setIsLoading(false);
         }
     };
 
+    const handleAvatarSelect = async (avatarId: string) => {
+        setSelectedAvatar(avatarId);
+        // Auto-save avatar selection immediately
+        try {
+            console.log('[Profile] Auto-saving avatar:', avatarId);
+            await authService.updateProfile({
+                displayName: displayName.trim() || 'Invité',
+                photoURL: avatarId
+            });
+            console.log('[Profile] Avatar auto-saved successfully');
+            setLastSaved(new Date());
+        } catch (error) {
+            console.error('[Profile] Error auto-saving avatar:', error);
+        }
+    };
+
     const renderAvatarGrid = () => (
         <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Choisir un avatar</Text>
+            <Text style={styles.sectionTitle}>Choisir un avatar (sauvegarde auto)</Text>
 
             {/* Image Avatars - Compact grid for left side */}
             <View style={styles.avatarGridCompact}>
@@ -120,7 +159,7 @@ export default function ProfileScreen() {
                             styles.avatarOptionSmall,
                             selectedAvatar === avatarId && styles.selectedAvatarOptionSmall
                         ]}
-                        onPress={() => setSelectedAvatar(avatarId)}
+                        onPress={() => handleAvatarSelect(avatarId)}
                     >
                         <Image
                             source={getAvatarImage(avatarId)}
@@ -160,6 +199,8 @@ export default function ProfileScreen() {
         );
     };
 
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
     const renderFormControls = () => (
         <View style={styles.formSection}>
             <TouchableOpacity
@@ -176,6 +217,11 @@ export default function ProfileScreen() {
                     </View>
                 )}
             </TouchableOpacity>
+            {lastSaved && (
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', marginTop: 8 }}>
+                    Dernière sauvegarde: {lastSaved.toLocaleTimeString()}
+                </Text>
+            )}
         </View>
     );
 
@@ -200,10 +246,10 @@ export default function ProfileScreen() {
                     contentContainerStyle={[
                         styles.scrollContent,
                         isLandscape && styles.scrollContentLandscape,
-                        { paddingBottom: insets.bottom + 20 }
+                        { paddingBottom: insets.bottom + 100 } // Extra space for button
                     ]}
-                    bounces={false}
-                    showsVerticalScrollIndicator={false}
+                    bounces={true}
+                    showsVerticalScrollIndicator={true}
                 >
                     {/* Main Split Layout Container */}
                     <View style={styles.splitRow}>
@@ -222,6 +268,22 @@ export default function ProfileScreen() {
                                     style={styles.headerDisplayNameInput}
                                     value={displayName}
                                     onChangeText={setDisplayName}
+                                    onBlur={async () => {
+                                        // Auto-save name when leaving the field
+                                        if (displayName.trim()) {
+                                            try {
+                                                console.log('[Profile] Auto-saving name:', displayName.trim());
+                                                await authService.updateProfile({
+                                                    displayName: displayName.trim(),
+                                                    photoURL: selectedAvatar
+                                                });
+                                                console.log('[Profile] Name auto-saved successfully');
+                                                setLastSaved(new Date());
+                                            } catch (error) {
+                                                console.error('[Profile] Error auto-saving name:', error);
+                                            }
+                                        }
+                                    }}
                                     placeholder="Pseudo"
                                     placeholderTextColor="rgba(255,255,255,0.3)"
                                     maxLength={15}
@@ -270,8 +332,10 @@ export default function ProfileScreen() {
                         </View>
                     </View>
 
-                    {/* BOTTOM SECTION: Form Controls */}
-                    {renderFormControls()}
+                    {/* BOTTOM SECTION: Form Controls - ALWAYS VISIBLE */}
+                    <View style={{ marginTop: 20, marginBottom: 40 }}>
+                        {renderFormControls()}
+                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
         </LinearGradient>

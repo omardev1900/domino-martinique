@@ -133,7 +133,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             .filter(p => p.id !== currentUserId)
             .map(p => ({
                 name: p.name,
-                avatarId: p.avatarId || 'avatar_01'
+                avatarId: p.avatarId || 'avatar_default'
             }));
 
         statsService.recordMatchResult({
@@ -200,7 +200,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                 <View style={styles.winnerSpotlightLandscape}>
                                     <View style={styles.avatarCircleLandscape}>
                                         <Image
-                                            source={getAvatarImage((roundWinner.avatarId as AvatarId) || 'avatar_01')}
+                                            source={getAvatarImage((roundWinner.avatarId as AvatarId) || 'avatar_default')}
                                             style={styles.avatarImageLandscape}
                                             resizeMode="cover"
                                         />
@@ -307,7 +307,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                             />
                                         ) : (
                                             <Image
-                                                source={getAvatarImage('avatar_01')}
+                                                source={getAvatarImage('avatar_default')}
                                                 style={[styles.winnerAvatarImage, isLandscape && { width: 60 * 1.6, height: 60 * 1.6, top: -(60 * 1.6 - 60) * 0.25 }]}
                                                 resizeMode="cover"
                                             />

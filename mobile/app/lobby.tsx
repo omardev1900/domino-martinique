@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     StyleSheet,
@@ -13,6 +13,7 @@ import {
     Platform
 } from 'react-native';
 import { useRouter, useNavigation } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft, FadeIn } from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
@@ -63,18 +64,28 @@ export default function LobbyScreen() {
     const [publicRooms, setPublicRooms] = useState<GameRoom[]>([]);
     const [loadingPublicRooms, setLoadingPublicRooms] = useState(false);
 
-    useEffect(() => {
-        const loadUser = async () => {
-            const user = await authService.getCurrentUser();
-            if (user) {
-                setCurrentUser(user);
-            } else {
-                const guest = await authService.loginAsGuest();
-                setCurrentUser(guest);
-            }
-        };
-        loadUser();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            const loadUser = async () => {
+                try {
+                    // Always refresh from storage to get latest profile data
+                    const user = await authService.refreshUserFromStorage();
+                    if (user) {
+                        console.log('[Lobby] User loaded:', user.displayName, user.avatarId);
+                        setCurrentUser(user);
+                    } else {
+                        // Only create new guest if absolutely no user could be recovered
+                        console.log('[Lobby] No user found, logging in as guest...');
+                        const guest = await authService.loginAsGuest();
+                        setCurrentUser(guest);
+                    }
+                } catch (error) {
+                    console.error('[Lobby] Error loading user:', error);
+                }
+            };
+            loadUser();
+        }, [])
+    );
 
     useEffect(() => {
         if (activeTab === 'PUBLIC') {
