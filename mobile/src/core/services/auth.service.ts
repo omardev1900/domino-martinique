@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { auth } from './firebase';
 import { PlayerProfile } from '../types';
+import { statsService } from './stats.service';
 
 const STORAGE_KEY_SESSION = '@user_session_active';
 const STORAGE_KEY_GUEST_PROFILE = '@guest_profile_data';
@@ -51,6 +52,7 @@ class AuthService {
         }
 
         await this.activateSession(guestUser);
+        await statsService.syncWithFirebase(guestUser.uid);
         return guestUser;
     }
 
@@ -64,6 +66,7 @@ class AuthService {
 
             const profile = this.mapFirebaseUserToProfile(user);
             await this.activateSession(profile);
+            await statsService.syncWithFirebase(profile.uid);
             return profile;
         } catch (error) {
             console.error('Sign In Error:', error);
@@ -81,6 +84,7 @@ class AuthService {
 
             const profile = this.mapFirebaseUserToProfile(user);
             await this.activateSession(profile);
+            await statsService.syncWithFirebase(profile.uid);
             return profile;
         } catch (error) {
             console.error('Sign Up Error:', error);

@@ -21,6 +21,7 @@ import { authService } from '../src/core/services/auth.service';
 import { statsService, PlayerStats } from '../src/core/services/stats.service';
 import { PlayerProfile } from '../src/core/types';
 import { AVAILABLE_AVATARS, getAvatarImage, AvatarId } from '../src/core/avatars';
+import { MatchHistory } from '../src/components/MatchHistory';
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -38,7 +39,9 @@ export default function ProfileScreen() {
         gamesWon: 0,
         totalCochonsInflicted: 0,
         totalPointsAccumulated: 0,
+        matchHistory: [],
     });
+    const [activeTab, setActiveTab] = useState<'stats' | 'history'>('stats');
 
     const nameInputRef = useRef<TextInput>(null);
 
@@ -238,9 +241,32 @@ export default function ProfileScreen() {
                         {/* VERTICAL SEPARATOR */}
                         <View style={styles.verticalSeparator} />
 
-                        {/* RIGHT COLUMN: Statistics */}
+                        {/* RIGHT COLUMN: Statistics / History */}
                         <View style={styles.rightColumn}>
-                            {renderStatsGrid()}
+                            {/* Tab Switcher */}
+                            <View style={styles.tabBar}>
+                                <TouchableOpacity
+                                    style={[styles.tabItem, activeTab === 'stats' && styles.activeTabItem]}
+                                    onPress={() => setActiveTab('stats')}
+                                >
+                                    <Text style={[styles.tabText, activeTab === 'stats' && styles.activeTabText]}>STATS</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.tabItem, activeTab === 'history' && styles.activeTabItem]}
+                                    onPress={() => setActiveTab('history')}
+                                >
+                                    <View style={styles.tabWithBadge}>
+                                        <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>MATCHS</Text>
+                                        {playerStats.matchHistory.length > 0 && (
+                                            <View style={styles.tabBadge}>
+                                                <Text style={styles.tabBadgeText}>{playerStats.matchHistory.length}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                </TouchableOpacity>
+                            </View>
+
+                            {activeTab === 'stats' ? renderStatsGrid() : <MatchHistory history={playerStats.matchHistory} />}
                         </View>
                     </View>
 
@@ -474,5 +500,51 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         color: '#0d1f0d',
         letterSpacing: 2,
+    },
+    // ─── Tabs ───
+    tabBar: {
+        flexDirection: 'row',
+        marginBottom: 15,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 10,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.1)',
+    },
+    tabItem: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: 'center',
+        borderRadius: 8,
+    },
+    activeTabItem: {
+        backgroundColor: 'rgba(255,215,0,0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+    },
+    tabText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: 'rgba(255,255,255,0.5)',
+        letterSpacing: 1,
+    },
+    activeTabText: {
+        color: '#FFD700',
+    },
+    tabWithBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    tabBadge: {
+        backgroundColor: '#FFD700',
+        borderRadius: 8,
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        marginLeft: 6,
+    },
+    tabBadgeText: {
+        fontSize: 8,
+        fontWeight: '900',
+        color: '#0d1f0d',
     },
 });

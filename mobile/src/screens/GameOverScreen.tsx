@@ -103,26 +103,47 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         }
     }, [countdown, isMatchOver, isBoudé, onNextRound]);
 
-    // 📊 STATS: Record match result when game ends
+    // 📊 STATS: Record match result for every completed manche
     useEffect(() => {
-        if (!isMatchOver || hasRecordedStats.current) return;
+        if (hasRecordedStats.current) return;
+        // Only record when a manche is actually resolved
+        if (!isMancheOver && !isBoudé) return;
         hasRecordedStats.current = true;
 
         const currentPlayer = gameState.players.find(p => p.id === currentUserId);
         if (!currentPlayer) return;
 
-        const sortedByWins = [...gameState.players].sort((a, b) => b.wins - a.wins);
-        const isWinner = sortedByWins[0].id === currentUserId;
+        // Determine result for THIS manche
+        let result: 'WIN' | 'LOSS' | 'DRAW' = 'LOSS';
+        if (gameState.mancheResult === 'CHIRE') {
+            result = 'DRAW';
+        } else {
+            // The winner of the manche is the one whose win count just increased
+            const sortedByWins = [...gameState.players].sort((a, b) => b.mancheWins - a.mancheWins);
+            if (sortedByWins[0].id === currentUserId) {
+                result = 'WIN';
+            }
+        }
 
         // Count cochons inflicted BY the current player (other players who are cochon)
         const cochonsInflicted = gameState.players.filter(p => p.id !== currentUserId && p.isCochon).length;
 
-        statsService.recordMatchResult(
-            isWinner,
-            cochonsInflicted,
-            Math.max(0, currentPlayer.totalPoints)
-        );
-    }, [isMatchOver, gameState, currentUserId]);
+        // Prepare opponent list for history
+        const opponents = gameState.players
+            .filter(p => p.id !== currentUserId)
+            .map(p => ({
+                name: p.name,
+                avatarId: p.avatarId || 'avatar_01'
+            }));
+
+        statsService.recordMatchResult({
+            result,
+            cochons: cochonsInflicted,
+            points: Math.max(0, currentPlayer.totalPoints),
+            opponents,
+            mode: gameState.gameMode
+        });
+    }, [isMancheOver, isBoudé, gameState, currentUserId]);
 
     // Find winner
     // If match over, it's the one with 3 wins.

@@ -1,12 +1,25 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from './firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const STORAGE_KEY_PLAYER_STATS = '@player_stats';
+
+export interface MatchRecord {
+    id: string;
+    timestamp: number;
+    result: 'WIN' | 'LOSS' | 'DRAW';
+    score: number;
+    cochons: number;
+    opponents: { name: string; avatarId: string }[];
+    mode: string;
+}
 
 export interface PlayerStats {
     gamesPlayed: number;
     gamesWon: number;
     totalCochonsInflicted: number;
     totalPointsAccumulated: number;
+    matchHistory: MatchRecord[];
 }
 
 const DEFAULT_STATS: PlayerStats = {
@@ -14,6 +27,7 @@ const DEFAULT_STATS: PlayerStats = {
     gamesWon: 0,
     totalCochonsInflicted: 0,
     totalPointsAccumulated: 0,
+    matchHistory: [],
 };
 
 class StatsService {
@@ -34,6 +48,7 @@ class StatsService {
                     gamesWon: parsed.gamesWon ?? 0,
                     totalCochonsInflicted: parsed.totalCochonsInflicted ?? 0,
                     totalPointsAccumulated: parsed.totalPointsAccumulated ?? 0,
+                    matchHistory: parsed.matchHistory ?? [],
                 };
             } else {
                 this.cachedStats = { ...DEFAULT_STATS };
@@ -60,24 +75,128 @@ class StatsService {
 
     /**
      * Record the result of a completed match.
-     * Call this when phase === 'MATCH_END'.
-     *
-     * @param isWinner   Did the current player win the match?
-     * @param cochons    Number of cochons the player inflicted during this match
-     * @param points     Total points accumulated during this match
      */
-    async recordMatchResult(isWinner: boolean, cochons: number, points: number): Promise<void> {
+    async recordMatchResult(params: {
+        result: 'WIN' | 'LOSS' | 'DRAW';
+        cochons: number;
+        points: number;
+        opponents: { name: string; avatarId: string }[];
+        mode: string;
+        userId?: string; // Optional: sync immediately if provided
+    }): Promise<void> {
         const stats = await this.getStats();
+        const { result, cochons, points, opponents, mode, userId } = params;
 
         stats.gamesPlayed += 1;
-        if (isWinner) stats.gamesWon += 1;
+        if (result === 'WIN') stats.gamesWon += 1;
         stats.totalCochonsInflicted += cochons;
         stats.totalPointsAccumulated += points;
+
+        // Add to history (keep last 20)
+        const newRecord: MatchRecord = {
+            id: Date.now().toString(),
+            timestamp: Date.now(),
+            result,
+            score: points,
+            cochons: cochons,
+            opponents,
+            mode
+        };
+
+        stats.matchHistory = [newRecord, ...stats.matchHistory].slice(0, 20);
 
         this.cachedStats = stats;
         await this.persistStats();
 
-        console.log('📊 Stats updated:', stats);
+        console.log('📊 Stats updated with history:', stats);
+
+        // If logged in, sync to Firebase
+        if (userId && !userId.startsWith('guest_')) {
+            await this.pushStatsToFirebase(userId, stats);
+        }
+    }
+
+    /**
+     * Pushes current stats to Firestore
+     */
+    async pushStatsToFirebase(uid: string, stats: PlayerStats): Promise<void> {
+        if (uid.startsWith('guest_')) return;
+
+        try {
+            const userRef = doc(db, 'users', uid);
+            // Use setDoc with merge to handle both new and existing documents
+            await setDoc(userRef, {
+                stats: {
+                    gamesPlayed: stats.gamesPlayed,
+                    gamesWon: stats.gamesWon,
+                    totalCochonsInflicted: stats.totalCochonsInflicted,
+                    totalPointsAccumulated: stats.totalPointsAccumulated,
+                    matchHistory: stats.matchHistory,
+                    lastSync: Date.now()
+                }
+            }, { merge: true });
+            console.log('☁️ Stats synced to Firebase');
+        } catch (error) {
+            console.error('❌ Failed to push stats to Firebase:', error);
+        }
+    }
+
+    /**
+     * Syncs local stats with Firebase. 
+     * Typically called after login/signup.
+     */
+    async syncWithFirebase(uid: string): Promise<void> {
+        if (uid.startsWith('guest_')) return;
+
+        try {
+            const userRef = doc(db, 'users', uid);
+            const userSnap = await getDoc(userRef);
+            const localStats = await this.getStats();
+
+            if (userSnap.exists()) {
+                const remoteData = userSnap.data().stats;
+                if (remoteData) {
+                    // MIGRATION LOGIC: 
+                    // We sum numerical stats and merge histories
+                    const mergedStats: PlayerStats = {
+                        gamesPlayed: Math.max(localStats.gamesPlayed, remoteData.gamesPlayed || 0),
+                        gamesWon: Math.max(localStats.gamesWon, remoteData.gamesWon || 0),
+                        totalCochonsInflicted: Math.max(localStats.totalCochonsInflicted, remoteData.totalCochonsInflicted || 0),
+                        totalPointsAccumulated: Math.max(localStats.totalPointsAccumulated, remoteData.totalPointsAccumulated || 0),
+                        matchHistory: this.mergeMatchHistories(localStats.matchHistory, remoteData.matchHistory || [])
+                    };
+
+                    this.cachedStats = mergedStats;
+                    await this.persistStats();
+                    await this.pushStatsToFirebase(uid, mergedStats);
+                    console.log('🔄 Stats synchronized and merged with Firebase');
+                    return;
+                }
+            }
+
+            // If no remote data, just push local stats
+            await this.pushStatsToFirebase(uid, localStats);
+            console.log('⬆️ Initial stats pushed to Firebase');
+
+        } catch (error) {
+            console.error('❌ StatsService: Sync failed', error);
+        }
+    }
+
+    /**
+     * Helper to merge match histories and remove duplicates by ID
+     */
+    private mergeMatchHistories(local: MatchRecord[], remote: MatchRecord[]): MatchRecord[] {
+        const combined = [...local, ...remote];
+        const seen = new Set();
+        return combined
+            .filter(item => {
+                const duplicate = seen.has(item.id);
+                seen.add(item.id);
+                return !duplicate;
+            })
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 20);
     }
 
     /**
