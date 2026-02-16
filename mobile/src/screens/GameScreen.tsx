@@ -558,6 +558,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 }
             });
 
+            // CRITICAL FIX: Re-determine first player now that we have real IDs
+            fullState.currentPlayerId = determineFirstPlayer(fullState.players);
+
             // Save to Firestore
             await updateGameState(gameId, fullState);
             // Room status update is handled by Cloud Functions or standard flow? 
