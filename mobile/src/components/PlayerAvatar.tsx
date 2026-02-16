@@ -20,6 +20,7 @@ interface PlayerAvatarProps {
     showHandSize?: boolean; // NEW: Show remaining tiles count
     isPaused?: boolean; // NEW: Pause the timer
     onTimeout?: () => void; // Callback when timer expires
+    isBoude?: boolean; // NEW: Player is currently blocked
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -37,7 +38,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     score,
     showHandSize = true,
     isPaused = false,
-    onTimeout
+    onTimeout,
+    isBoude = false
 }) => {
     const strokeWidth = 4;
     const radius = (size - strokeWidth) / 2;
@@ -179,6 +181,13 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             }}
                             resizeMode="cover"
                         />
+                    )}
+
+                    {/* BOUDE OVERLAY */}
+                    {isBoude && (
+                        <View style={styles.boudeOverlay}>
+                            <Text style={styles.boudeText}>BOUDÉ</Text>
+                        </View>
                     )}
                 </View>
 
@@ -342,5 +351,17 @@ const styles = StyleSheet.create({
     },
     scoreHorizontal: {
         textAlign: 'left',
+    },
+    boudeOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(192, 57, 43, 0.8)', // Reddish overlay
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    boudeText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 12,
+        letterSpacing: 1,
     }
 });

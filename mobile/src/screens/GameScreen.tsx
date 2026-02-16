@@ -61,6 +61,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [announcement, setAnnouncement] = useState<{ message: string; subMessage?: string; type: 'COCHON' | 'CHIRE' | 'PARTIE_END' | 'BOUDE' } | null>(null);
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [isCountingPoints, setIsCountingPoints] = useState(false);
+    const [boudedPlayerId, setBoudedPlayerId] = useState<PlayerId | null>(null);
 
     const [hiddenDominoId, setHiddenDominoId] = useState<string | null>(null);
     const [flyingDomino, setFlyingDomino] = useState<FlyingDominoData | null>(null);
@@ -256,7 +257,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             let subMessage = "";
 
             if (gameState.phase === 'BOUDE') {
-                message = "BOUDÉ !";
+                message = "Partie bloquée";
                 type = "BOUDE";
             } else if (gameState.mancheResult === 'CHIRE') {
                 message = "CHIRÉ !";
@@ -754,6 +755,51 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     };
 
+    // AUTO-BOUDE LOGIC: When a player (you or bot) is blocked
+    useEffect(() => {
+        if (!gameState || gameState.phase !== 'PLAYING' || isPaused || isCountingPoints) return;
+
+        const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
+        if (!currentPlayer) return;
+
+        // Check if player has valid moves
+        const validMoves = getValidMoves(currentPlayer.hand, {
+            left: gameState.table.leftValue,
+            right: gameState.table.rightValue
+        });
+
+        const isPlayerBlocked = validMoves.length === 0;
+
+        if (isPlayerBlocked && boudedPlayerId !== currentPlayer.id) {
+            console.log(`[Auto-Boude] Player ${currentPlayer.name} (${currentPlayer.id}) is blocked!`);
+
+            // Show overlay and play sound
+            setBoudedPlayerId(currentPlayer.id);
+            SoundManager.playSound('toktok');
+
+            // Wait 3 seconds then pass automatically
+            const timer = setTimeout(() => {
+                // Only execute pass if we are still on the same player and we are the host OR it's our own turn
+                const freshState = gameStateRef.current;
+                const isHost = roomData?.players[0].uid === localPlayerId;
+                const isMyTurn = gameState.currentPlayerId === localPlayerId;
+
+                if (freshState && freshState.currentPlayerId === currentPlayer.id && freshState.phase === 'PLAYING') {
+                    if (isSoloMode || !gameId || isMyTurn || (isHost && currentPlayer.isBot)) {
+                        console.log(`[Auto-Boude] Executing pass for ${currentPlayer.name}`);
+                        handlePassTurn();
+                    }
+                }
+                setBoudedPlayerId(null);
+            }, 3000);
+
+            return () => clearTimeout(timer);
+        } else if (!isPlayerBlocked && boudedPlayerId === currentPlayer.id) {
+            // Player is no longer blocked (shouldn't happen mid-turn normally but just in case)
+            setBoudedPlayerId(null);
+        }
+    }, [gameState?.currentPlayerId, gameState?.phase, isPaused, isCountingPoints]);
+
     /**
      * Handles turn timeout for ANY player (local or remote).
      * Activates Auto-Play (Bot mode) for that player and plays their turn.
@@ -1049,12 +1095,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     SoundManager.playClack();
                     HapticManager.triggerImpact();
                 } else {
-                    console.log(`[Bot Pass] ${freshPlayer.name} has no valid moves - passing`);
-                    newState = passTurn(freshState, freshPlayer.id);
-
-                    if (newState.phase === 'BOUDE') {
-                        console.log(`[Bot Pass] Game is now BOUDE! Stopping bot loop.`);
-                    }
+                    // This case is now handled by Auto-Boude useEffect above for consistency
+                    console.log(`[Bot Loop] ${freshPlayer.name} has no valid moves - useEffect will handle pass`);
+                    isProcessing.current = false;
+                    return;
                 }
 
                 // Update state
@@ -1403,6 +1447,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                             namePlacement="below"
                             score={getPlayerScore(opponents[0])}
                             position="top-right"
+                            isBoude={boudedPlayerId === opponents[0]?.id}
                             onTimeout={() => handleTimeout(opponents[0]?.id)}
                         />
                     </Animated.View>
@@ -1426,19 +1471,13 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                             namePlacement="below"
                             score={getPlayerScore(opponents[1])}
                             position="top-left"
+                            isBoude={boudedPlayerId === opponents[1]?.id}
                             onTimeout={() => handleTimeout(opponents[1]?.id)}
                         />
                     </Animated.View>
                 )}
 
-                {/* Pass Button Area - HIGH Z-INDEX */}
-                {isMyTurn && !canPlayAny && gameState.phase === 'PLAYING' && (
-                    <View style={[styles.passContainer, { bottom: 120 + insets.bottom, zIndex: 100 }]}>
-                        <TouchableOpacity style={styles.passButton} onPress={handlePassTurn}>
-                            <Text style={styles.passButtonText}>Passer son tour</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
+                {/* Pass Button Area is now REMOVED for Auto-Boude logic */}
 
                 {/* BOTTOM LEFT: Local Player (Me) */}
                 {localPlayer && (
@@ -1457,6 +1496,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                             layout="horizontal"
                             score={getPlayerScore(localPlayer)}
                             position="bottom"
+                            isBoude={boudedPlayerId === localPlayerId}
                             onTimeout={() => handleTimeout(localPlayerId)}
                         />
                     </Animated.View>
