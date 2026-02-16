@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Linking, Platform } from 'react-native';
 import { GameRoom, GameMode } from '../core/types';
 import { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
 
 interface LobbyScreenProps {
@@ -82,6 +83,22 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
         };
     });
 
+    const shareToWhatsApp = () => {
+        const message = `Rejoins ma table de Domino Martiniquais ! Code : ${roomData.roomId}`;
+
+        let url = `whatsapp://send?text=${encodeURIComponent(message)}`;
+
+        // Web compatibility: use wa.me link
+        if (Platform.OS === 'web') {
+            url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        }
+
+        Linking.openURL(url).catch(() => {
+            // Fallback if WhatsApp is not installed or fails
+            alert('WhatsApp ne semble pas être installé');
+        });
+    };
+
     const renderPlayerCard = (slot: typeof slots[0], index: number) => {
         return (
             <Animated.View
@@ -155,6 +172,14 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                 ) : (
                     <Text style={styles.roomTypeBadge}>🌍 Publique</Text>
                 )}
+            </Animated.View>
+
+            {/* Share Button */}
+            <Animated.View entering={FadeIn.delay(150)} style={styles.shareContainer}>
+                <TouchableOpacity style={styles.shareButton} onPress={shareToWhatsApp}>
+                    <Ionicons name="logo-whatsapp" size={20} color="#FFF" />
+                    <Text style={styles.shareButtonText}>Inviter via WhatsApp</Text>
+                </TouchableOpacity>
             </Animated.View>
 
             {/* Player Cards - Center */}
@@ -250,6 +275,30 @@ const styles = StyleSheet.create({
     roomTypeBadge: {
         fontSize: 13,
         color: 'rgba(255,255,255,0.5)',
+    },
+    shareContainer: {
+        alignItems: 'center',
+        marginTop: -15, // Pull up closer to header
+        marginBottom: 20,
+    },
+    shareButton: {
+        flexDirection: 'row',
+        backgroundColor: '#25D366', // WhatsApp color
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        alignItems: 'center',
+        gap: 8,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+    },
+    shareButtonText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 14,
     },
     // ─── Player Cards ───────────────────────────────────────────
     playersContainer: {
