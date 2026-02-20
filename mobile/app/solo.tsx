@@ -159,8 +159,7 @@ export default function SoloScreen() {
                                 <TouchableOpacity
                                     style={[styles.targetButton, isLandscape && styles.targetButtonSmall]}
                                     onPress={() => setTurnDuration(prev => {
-                                        if (prev === 5) return 1;
-                                        if (prev === 1) return 0;
+                                        if (prev === 15) return 0;
                                         return Math.max(0, prev - 5);
                                     })}
                                 >
@@ -174,8 +173,7 @@ export default function SoloScreen() {
                                 <TouchableOpacity
                                     style={[styles.targetButton, isLandscape && styles.targetButtonSmall]}
                                     onPress={() => setTurnDuration(prev => {
-                                        if (prev === 0) return 1;
-                                        if (prev === 1) return 5;
+                                        if (prev === 0) return 15;
                                         return Math.min(60, prev + 5);
                                     })}
                                 >

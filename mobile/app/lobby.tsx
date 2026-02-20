@@ -260,8 +260,7 @@ export default function LobbyScreen() {
                     <View style={styles.conditionControls}>
                         <TouchableOpacity
                             onPress={() => {
-                                if (turnDuration === 5) setTurnDuration(1);
-                                else if (turnDuration === 1) setTurnDuration(0);
+                                if (turnDuration === 15) setTurnDuration(0);
                                 else setTurnDuration(Math.max(0, turnDuration - 5));
                             }}
                             style={styles.adjustButton}
@@ -271,8 +270,7 @@ export default function LobbyScreen() {
                         <Text style={styles.conditionValueText}>{turnDuration === 0 ? 'Off' : turnDuration}</Text>
                         <TouchableOpacity
                             onPress={() => {
-                                if (turnDuration === 0) setTurnDuration(1);
-                                else if (turnDuration === 1) setTurnDuration(5);
+                                if (turnDuration === 0) setTurnDuration(15);
                                 else setTurnDuration(Math.min(60, turnDuration + 5));
                             }}
                             style={styles.adjustButton}
