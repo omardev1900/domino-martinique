@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity, Image, Platform } from 'react-native';
 import Animated, {
     FadeIn,
     ZoomIn,
@@ -12,13 +12,16 @@ import { Player, Domino } from '../core/types';
 import { calculateHandPoints, determineWinnerOnBoudé } from '../core/LogicEngine';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getAvatarImage, AvatarId } from '../core/avatars';
+import { DominoTile } from './DominoTile';
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 interface BoudeCountingProps {
     players: Player[];
     onFinished: (winnerId: string | 'TIE') => void;
 }
 
-const PlayerScoreRow = ({ player, delay, onReady }: { player: Player, delay: number, onReady: (pts: number) => void }) => {
+const PlayerScoreCard = ({ player, delay, isWinner, onReady }: { player: Player, delay: number, isWinner: boolean, onReady: (pts: number) => void }) => {
     const points = calculateHandPoints(player.hand);
     const count = useSharedValue(0);
     const [displayCount, setDisplayCount] = useState(0);
@@ -47,22 +50,41 @@ const PlayerScoreRow = ({ player, delay, onReady }: { player: Player, delay: num
 
     return (
         <Animated.View
-            entering={FadeIn.delay(delay).duration(600)}
-            style={styles.playerRow}
+            entering={ZoomIn.delay(delay).duration(600)}
+            style={[styles.podiumCard, isWinner && styles.podiumCardWinner, styles.boudeCard]}
         >
-            <View style={styles.avatarMini}>
-                <Image
-                    source={getAvatarImage((player.avatarId as AvatarId) || 'avatar_default')}
-                    style={styles.avatarImage}
-                    resizeMode="cover"
-                />
+            {isWinner && (
+                <View style={styles.winnerBadge}>
+                    <Text style={styles.winnerBadgeText}>VAINQUEUR</Text>
+                </View>
+            )}
+
+            <Image
+                source={getAvatarImage((player.avatarId as AvatarId) || 'avatar_default')}
+                style={[styles.podiumAvatar, isWinner && styles.podiumAvatarWinner]}
+            />
+
+            <Text style={styles.podiumName} numberOfLines={1}>{player.name}</Text>
+
+            <View style={styles.scoreContainer}>
+                <Text style={[styles.boudePoints, isWinner ? styles.pointsWinner : styles.pointsLoser]}>
+                    {displayCount}
+                </Text>
+                <Text style={[styles.ptsLabel, isWinner ? styles.pointsWinner : styles.pointsLoser]}>pts</Text>
             </View>
-            <View style={styles.infoContainer}>
-                <Text style={styles.playerName}>{player.name}</Text>
-            </View>
-            <View style={styles.scoreBadge}>
-                <Text style={styles.scoreText}>{displayCount}</Text>
-                <Text style={styles.ptsLabel}>pts</Text>
+
+            <View style={styles.boudeHand}>
+                {player.hand.map((domino, idx) => (
+                    <View key={domino.id || idx} style={styles.miniDominoWrapper}>
+                        <DominoTile
+                            left={domino.left}
+                            right={domino.right}
+                            size={45}
+                            noMargin
+                            entering={FadeIn.delay(delay + 1600 + idx * 100)}
+                        />
+                    </View>
+                ))}
             </View>
         </Animated.View>
     );
@@ -73,8 +95,10 @@ export const BoudeCounting: React.FC<BoudeCountingProps> = ({ players, onFinishe
     const isLandscape = width > height;
     const [readyPlayers, setReadyPlayers] = useState<Record<string, number>>({});
     const [status, setStatus] = useState<'COUNTING' | 'RESULT'>('COUNTING');
+
+    // Determine winner
     const winnerId = determineWinnerOnBoudé(players);
-    const winner = players.find(p => p.id === winnerId);
+    const isTie = winnerId === 'TIE';
 
     const handlePlayerReady = (id: string, pts: number) => {
         setReadyPlayers(prev => {
@@ -86,270 +110,195 @@ export const BoudeCounting: React.FC<BoudeCountingProps> = ({ players, onFinishe
         });
     };
 
+    // Sort players for podium [P2, P1, P3]
+    let sortedPlayers = [...players];
+    if (players.length === 3) {
+        const p1 = players.find(p => p.id === winnerId) || players[0];
+        const others = players.filter(p => p.id !== p1.id);
+        sortedPlayers = [others[0], p1, others[1]];
+    }
+
     return (
         <View style={StyleSheet.absoluteFill}>
-            <LinearGradient
-                colors={['rgba(0,0,0,0.95)', 'rgba(26, 10, 46, 0.98)']}
-                style={[styles.container, isLandscape && styles.containerLandscape]}
-            >
-                {/* HEADER */}
-                <View style={isLandscape ? styles.headerLandscape : styles.headerPortrait}>
-                    <Animated.Text entering={FadeIn.duration(800)} style={[styles.title, isLandscape && styles.titleLandscape]}>Partie bloquée</Animated.Text>
+            <BlurView intensity={Platform.OS === 'ios' ? 30 : 100} tint="dark" style={StyleSheet.absoluteFill} />
 
+            <View style={styles.podiumContainer}>
+                <Animated.Text entering={FadeIn.duration(800)} style={styles.podiumHeader}>
+                    {isTie ? "ÉGALITÉ PARFAITE !" : "PARTIE BLOQUÉE !"}
+                </Animated.Text>
+
+                <View style={styles.podiumRow}>
+                    {sortedPlayers.map((p, i) => (
+                        <PlayerScoreCard
+                            key={p.id}
+                            player={p}
+                            isWinner={p.id === winnerId}
+                            delay={400 + (i * 300)}
+                            onReady={(pts) => handlePlayerReady(p.id, pts)}
+                        />
+                    ))}
                 </View>
 
-                {/* MAIN LAYOUT */}
-                <View style={[styles.mainLayout, isLandscape && styles.mainLayoutLandscape]}>
-                    {/* LEFT COLUMN/TOP AREA: LIST OF SCORES */}
-                    <View style={[styles.list, isLandscape && styles.listLandscape]}>
-                        {players.map((p, i) => (
-                            <PlayerScoreRow
-                                key={p.id}
-                                player={p}
-                                delay={1000 + (i * 400)}
-                                onReady={(pts) => handlePlayerReady(p.id, pts)}
-                            />
-                        ))}
-                    </View>
-
-                    {/* RIGHT COLUMN/BOTTOM AREA: RESULT BOX */}
-                    <View style={[styles.resultSide, isLandscape && styles.resultSideLandscape]}>
-                        {status === 'RESULT' && (
-                            <Animated.View entering={ZoomIn.springify()} style={[styles.resultBox, isLandscape && styles.resultBoxLandscape]}>
-                                {winnerId === 'TIE' ? (
-                                    <>
-                                        <Text style={[styles.tieText, isLandscape && styles.tieTextLandscape]}>ÉGALITÉ !</Text>
-                                        <Text style={styles.matchNulText}>La partie est nulle et doit être refaite.</Text>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Text style={styles.winnerLabel}>VAINQUEUR</Text>
-                                        <Text style={[styles.winnerName, isLandscape && styles.winnerNameLandscape]}>{winner?.name} 🏆</Text>
-                                    </>
-                                )}
-
-                                <Animated.View entering={FadeIn.delay(600)}>
-                                    <TouchableOpacity
-                                        style={[styles.footerButton, isLandscape && styles.footerButtonLandscape]}
-                                        onPress={() => onFinished(winnerId)}
-                                    >
-                                        <Text style={styles.buttonText}>CONTINUER</Text>
-                                    </TouchableOpacity>
-                                </Animated.View>
-                            </Animated.View>
-                        )}
-                    </View>
-                </View>
-            </LinearGradient>
+                {status === 'RESULT' && (
+                    <Animated.View entering={FadeIn.delay(200)} style={styles.buttonRow}>
+                        <TouchableOpacity
+                            style={styles.newGameButton}
+                            onPress={() => onFinished(winnerId as any)}
+                        >
+                            <Text style={styles.buttonTextDark}>CONTINUER</Text>
+                            <Ionicons name="arrow-forward" size={20} color="#064e3b" />
+                        </TouchableOpacity>
+                    </Animated.View>
+                )}
+            </View>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    podiumContainer: {
         flex: 1,
+        width: '100%',
+        padding: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 10,
-        zIndex: 10000,
     },
-    containerLandscape: {
-        paddingVertical: 5,
-        paddingHorizontal: 20,
-        justifyContent: 'flex-start',
-    },
-    headerPortrait: {
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    headerLandscape: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        paddingVertical: 10,
-        gap: 20,
-    },
-    mainLayout: {
-        width: '100%',
-        alignItems: 'center',
-    },
-    mainLayoutLandscape: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flex: 1,
-        paddingBottom: 20,
-    },
-    title: {
-        fontSize: 48,
-        fontWeight: '900',
-        color: '#FFD700',
-        letterSpacing: 4,
-        textAlign: 'center',
-        textShadowColor: 'rgba(255, 215, 0, 0.5)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 20,
-    },
-    titleLandscape: {
+    podiumHeader: {
         fontSize: 32,
-        letterSpacing: 2,
-    },
-    subtitle: {
-        color: '#AAA',
-        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginBottom: 30,
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: -1, height: 1 },
+        textShadowRadius: 10,
         textTransform: 'uppercase',
-        letterSpacing: 2,
+    },
+    podiumRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        gap: 15,
+        width: '100%',
+        marginBottom: 30,
+    },
+    podiumCard: {
+        width: 180,
+        backgroundColor: 'rgba(230, 230, 230, 0.9)', // Premium Light Gray
+        borderRadius: 16,
+        padding: 15,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        height: 220,
+    },
+    podiumCardWinner: {
+        width: 200,
+        height: 260,
+        borderColor: '#4ADE80', // Glowing green border
+        borderWidth: 2,
+        backgroundColor: 'rgba(245, 245, 245, 0.98)',
+        zIndex: 10,
+        elevation: 10,
+        shadowColor: '#4ADE80',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 15,
+    },
+    boudeCard: {
+        height: 480, // Taller for tripled dominoes
+        justifyContent: 'flex-start',
+        paddingTop: 20,
+    },
+    winnerBadge: {
+        position: 'absolute',
+        top: -15,
+        backgroundColor: '#DC2626',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 4,
+        zIndex: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    winnerBadgeText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '900',
+    },
+    podiumAvatar: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.3)',
+        marginBottom: 10,
+    },
+    podiumAvatarWinner: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderColor: '#FFD700',
+    },
+    podiumName: {
+        color: '#064e3b', // Dark green
+        fontSize: 14,
+        fontWeight: 'bold',
+        marginBottom: 5,
         textAlign: 'center',
     },
-    subtitleLandscape: {
-        fontSize: 12,
-    },
-    list: {
-        width: '100%',
-        maxWidth: 400,
-        gap: 10,
-    },
-    listLandscape: {
-        flex: 1,
-        maxWidth: '48%',
-        justifyContent: 'center',
-    },
-    playerRow: {
+    scoreContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        padding: 10,
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'baseline',
+        gap: 2,
     },
-    avatarMini: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden',
-    },
-    avatarImage: {
-        width: '100%',
-        height: '100%',
-    },
-    infoContainer: {
-        flex: 1,
-        marginLeft: 10,
-    },
-    playerName: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    handPreview: {
-        flexDirection: 'row',
-        marginTop: 4,
-        gap: 3,
-        flexWrap: 'wrap',
-    },
-    miniDomino: {
-        backgroundColor: '#EEE',
-        paddingHorizontal: 4,
-        paddingVertical: 1,
-        borderRadius: 3,
-    },
-    miniText: {
-        fontSize: 8,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    scoreBadge: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: 50,
-    },
-    scoreText: {
-        color: '#FFD700',
-        fontSize: 24,
+    boudePoints: {
+        fontSize: 28,
         fontWeight: '900',
+    },
+    pointsWinner: {
+        color: '#059669', // Darker green
+    },
+    pointsLoser: {
+        color: '#374151', // Dark UI Gray
     },
     ptsLabel: {
-        color: '#FFD700',
-        fontSize: 9,
-        fontWeight: 'bold',
-        marginTop: -4,
-    },
-    resultSide: {
-        width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 20,
-        minHeight: 120,
-    },
-    resultSideLandscape: {
-        flex: 1,
-        maxWidth: '48%',
-        marginLeft: 20,
-        marginTop: 0,
-        minHeight: 'auto',
-    },
-    resultBox: {
-        width: '100%',
-        backgroundColor: 'rgba(255, 215, 0, 0.08)',
-        padding: 25,
-        borderRadius: 20,
-        borderWidth: 1.5,
-        borderColor: '#FFD700',
-        alignItems: 'center',
-    },
-    resultBoxLandscape: {
-        padding: 20,
-    },
-    winnerLabel: {
-        color: '#FFD700',
         fontSize: 12,
-        fontWeight: '900',
-        letterSpacing: 1.5,
+        fontWeight: 'bold',
+        color: '#374151',
     },
-    winnerName: {
-        color: '#FFF',
-        fontSize: 28,
-        fontWeight: '900',
-        marginTop: 2,
-        textAlign: 'center',
+    boudeHand: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 4,
+        marginTop: 10,
+        width: '100%',
     },
-    winnerNameLandscape: {
-        fontSize: 24,
+    miniDominoWrapper: {
+        transform: [{ scale: 0.8 }],
     },
-    tieText: {
-        color: '#FF4500',
-        fontSize: 28,
-        fontWeight: '900',
+    buttonRow: {
+        flexDirection: 'row',
+        gap: 20,
+        marginTop: 10,
     },
-    tieTextLandscape: {
-        fontSize: 24,
+    newGameButton: {
+        backgroundColor: '#4ADE80',
+        paddingHorizontal: 40,
+        paddingVertical: 14,
+        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        shadowColor: '#4ADE80',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
     },
-    matchNulText: {
-        color: '#FFF',
-        fontSize: 14,
-        textAlign: 'center',
-        marginTop: 5,
-        opacity: 0.8,
+    buttonTextDark: {
+        color: '#064e3b',
+        fontWeight: '800',
+        fontSize: 18,
     },
-    footerButton: {
-        marginTop: 20,
-        backgroundColor: '#FFD700',
-        paddingHorizontal: 35,
-        paddingVertical: 12,
-        borderRadius: 25,
-    },
-    footerButtonLandscape: {
-        marginTop: 15,
-        paddingVertical: 10,
-    },
-    buttonText: {
-        color: '#1a0a2e',
-        fontWeight: '900',
-        fontSize: 14,
-    }
 });

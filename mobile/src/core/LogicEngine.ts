@@ -60,7 +60,6 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
  * Distribution pour Solo Mode : 3 joueurs (1 humain + 2 bots) x 7 dominos
  */
 export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'easy' | 'medium' | 'expert' | 'legend' = 'medium'): Partial<GameState> => {
-    const HAND_SIZE = 7;
     const deck = shuffleDeck();
 
     const getBotAvatar = (diff: string) => {

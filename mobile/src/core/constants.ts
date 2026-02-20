@@ -1,12 +1,12 @@
 import { DominoSide } from './types';
 
 export const TOTAL_DOMINOS = 28;
-export const HAND_SIZE = 7;
-export const SOLO_HAND_SIZE = 14; // For 2-player mode: 28 / 2 = 14 each
-export const TALON_MORT_SIZE = 7;
+export const HAND_SIZE = 3;
+export const SOLO_HAND_SIZE = 3;
+export const TALON_MORT_SIZE = 19; // 28 - (3 * 3)
 export const MAX_PLAYERS = 3;
 export const MIN_PLAYERS = 2; // Solo mode
-export const WINS_TO_WIN_MATCH = 3;
+export const WINS_TO_WIN_MATCH = 2;
 export const MANCHE_WIN_THRESHOLD = 3;
 export const TURN_DURATION_SECONDS = 15;
 

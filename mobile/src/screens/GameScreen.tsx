@@ -415,7 +415,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             winningCondition: winningCondition !== undefined ? Number(winningCondition) : 3,
             gameMode: gameMode || 'MANCHE',
             turnDuration: turnDuration !== undefined ? Number(turnDuration) : TURN_DURATION_SECONDS,
-            lastActionTimestamp: Date.now()
+            lastActionTimestamp: Date.now(),
+            mancheHistory: []
         };
         SoundManager.playSound('shuffle');
         setGameState(fullState);
@@ -504,7 +505,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             winningCondition: wCond,
             gameMode: gMode,
             turnDuration: tDur,
-            lastActionTimestamp: Date.now()
+            lastActionTimestamp: Date.now(),
+            mancheHistory: []
         };
     };
 
@@ -932,11 +934,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         if (gameState.phase === 'MATCH_END') {
             if (isSoloMode) {
-                // Return to home/lobby in solo
-                handleReplay();
+                // "Nouvelle partie" in solo: actually restart the game
+                handleRestartMatch();
             } else {
-                // In multiplayer, 'Continue' at Match End could mean 'Return to Lobby' or vote rematch
-                // For now, let's trigger handleReplay which handles reset for host or alert for others
+                // Multiplayer: return to lobby or handle vote
                 handleReplay();
             }
         } else {
@@ -967,13 +968,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         // Deal new game
         const partialState = dealGame(playerNames);
         const newPlayers = (partialState.players as Player[]).map((p, i) => {
-            // CRITICAL FIX: Always correlate by INDEX i. 
-            // In a single Match session, the order of players in the array MUST remain stable.
             const originalPlayer = gameState.players[i];
-
             return {
                 ...p,
-                id: originalPlayer.id, // Preserve original unique ID (e.g. 'bot-1' or 'user-uid')
+                id: originalPlayer.id,
                 currentMancheStars: isMancheEnd ? 0 : originalPlayer.currentMancheStars,
                 isCochon: isMancheEnd ? false : originalPlayer.isCochon,
                 mancheWins: originalPlayer.mancheWins,
@@ -984,7 +982,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             };
         });
 
-        // If no winner (TIE), determine starter based on highest double in NEW hands
+        // If no winner was determined (e.g. TIE or game start), use Double Rule
         if (!winnerId) {
             winnerId = determineFirstPlayer(newPlayers);
         }
