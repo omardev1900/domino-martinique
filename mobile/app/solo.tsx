@@ -38,7 +38,7 @@ export default function SoloScreen() {
 
     return (
         <LinearGradient
-            colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']}
+            colors={['#2c0b0b', '#071a07', '#0b2c1d']}
             style={styles.container}
         >
             {/* Back Button */}
@@ -158,7 +158,11 @@ export default function SoloScreen() {
                             <View style={styles.targetRow}>
                                 <TouchableOpacity
                                     style={[styles.targetButton, isLandscape && styles.targetButtonSmall]}
-                                    onPress={() => setTurnDuration(prev => Math.max(0, prev - 5))}
+                                    onPress={() => setTurnDuration(prev => {
+                                        if (prev === 5) return 1;
+                                        if (prev === 1) return 0;
+                                        return Math.max(0, prev - 5);
+                                    })}
                                 >
                                     <Ionicons name="remove" size={20} color="#FFF" />
                                 </TouchableOpacity>
@@ -169,7 +173,11 @@ export default function SoloScreen() {
                                 </View>
                                 <TouchableOpacity
                                     style={[styles.targetButton, isLandscape && styles.targetButtonSmall]}
-                                    onPress={() => setTurnDuration(prev => Math.min(60, prev + 5))}
+                                    onPress={() => setTurnDuration(prev => {
+                                        if (prev === 0) return 1;
+                                        if (prev === 1) return 5;
+                                        return Math.min(60, prev + 5);
+                                    })}
                                 >
                                     <Ionicons name="add" size={20} color="#FFF" />
                                 </TouchableOpacity>

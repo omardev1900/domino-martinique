@@ -16,10 +16,10 @@ import { SettingsScreen } from './SettingsScreen';
 import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude, checkValidMove } from '../core/LogicEngine';
 import { getValidMoves } from '../core/DominoEngine';
 import { getBotMove } from '../core/BotEngine';
-import { GameAnnouncer } from '../components/GameAnnouncer';
-import { BoudeCounting } from '../components/BoudeCounting';
+// import { GameAnnouncer } from '../components/GameAnnouncer'; // Removed as per instruction
+// import { BoudeCounting } from '../components/BoudeCounting'; // Removed as per instruction
 
-import { GameState, GamePhase, Domino, Player, PlayerId, GameRoom, RoomStatus, GameMode } from '../core/types';
+import { GameState, Player, PlayerId, MancheResult, GamePhase, Domino, GameRoom, RoomStatus, GameMode } from '@/core/types';
 import { subscribeToRoom, updateGameState, leaveRoom, startGame, resetRoomToLobby, voteForRematch, clearRematchVotes } from '../core/services/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import SoundManager from '../core/audio/SoundManager';
@@ -59,9 +59,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [isSoloMode] = useState(mode === 'solo');
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
-    const [announcement, setAnnouncement] = useState<{ message: string; subMessage?: string; type: 'COCHON' | 'CHIRE' | 'PARTIE_END' | 'BOUDE' } | null>(null);
     const [showScoreboard, setShowScoreboard] = useState(false);
-    const [isCountingPoints, setIsCountingPoints] = useState(false);
     const [boudedPlayerId, setBoudedPlayerId] = useState<PlayerId | null>(null);
     const [isSoundEnabled, setIsSoundEnabled] = useState(true);
 
@@ -238,59 +236,21 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         borderColor: `rgba(255, 215, 0, ${pulseOpacity.value})`,
     }));
 
-    // Timer reset on turn change
+    // Automatically show scoreboard when a round/manche/match ends or game is blocked
     useEffect(() => {
-        if (gameState?.phase === 'PLAYING' && gameState?.currentPlayerId === localPlayerId) {
-            if (gameState.turnDuration > 0) {
-                setTimeLeft(gameState.turnDuration);
-            } else {
-                setTimeLeft(null);
-            }
-        } else {
-            setTimeLeft(null);
-        }
+        if (!gameState) return;
 
-        // Phase Transition Logic for Announcer - SKIP IF COMING FROM BOUDE OR ALREADY SHOWING SCORE
-        if (gameState?.phase && ['MANCHE_END', 'MATCH_END', 'PARTIE_END', 'BOUDE'].includes(gameState.phase)) {
-            // If we are already showing scoreboard or counting points, don't re-announce
-            if (showScoreboard || isCountingPoints) return;
-
-            let message = "";
-            let type: any = "PARTIE_END";
-            let subMessage = "";
-
-            if (gameState.phase === 'BOUDE') {
-                message = "Partie bloquée";
-                type = "BOUDE";
-            } else if (gameState.mancheResult === 'CHIRE') {
-                message = "CHIRÉ !";
-                type = "CHIRE";
-                subMessage = "Match Nul - Pas de cochon";
-            } else if (gameState.mancheResult === 'COCHON') {
-                const winner = gameState.players.find(p => p.currentMancheStars === Math.max(...gameState.players.map(pl => pl.currentMancheStars)));
-                message = "COCHON !";
-                type = "COCHON";
-                subMessage = winner ? `${winner.name} l'emporte` : "";
-            } else if (gameState.phase === 'PARTIE_END') {
-                const winner = gameState.players.find(p => p.id === gameState.firstPlayerOfRound);
-                message = "PARTIE TERMINÉE !";
-                subMessage = winner ? `${winner.name} gagne` : "";
-            } else if (gameState.phase === 'MANCHE_END') {
-                message = "MANCHE TERMINÉE !";
-            } else if (gameState.phase === 'MATCH_END') {
-                message = "MATCH TERMINÉ !";
-            }
-            if (message) {
-                setAnnouncement({ message, subMessage, type });
-                setShowScoreboard(false);
-            } else {
+        const endPhases: GamePhase[] = ['PARTIE_END', 'MANCHE_END', 'MATCH_END', 'BOUDE'];
+        if (endPhases.includes(gameState.phase)) {
+            // Tiny delay to let the last move animation finish if needed
+            const timer = setTimeout(() => {
                 setShowScoreboard(true);
-            }
+            }, 800);
+            return () => clearTimeout(timer);
         } else {
-            setAnnouncement(null);
             setShowScoreboard(false);
         }
-    }, [gameState?.currentPlayerId, gameState?.phase, localPlayerId, gameState?.mancheResult, showScoreboard, isCountingPoints]);
+    }, [gameState?.phase]);
 
     // Timer countdown logic
     useEffect(() => {
@@ -765,7 +725,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     // AUTO-BOUDE LOGIC: When a player (you or bot) is blocked
     useEffect(() => {
-        if (!gameState || gameState.phase !== 'PLAYING' || isPaused || isCountingPoints) return;
+        if (!gameState || gameState.phase !== 'PLAYING' || isPaused) return;
 
         const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
         if (!currentPlayer) return;
@@ -806,7 +766,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             // Player is no longer blocked (shouldn't happen mid-turn normally but just in case)
             setBoudedPlayerId(null);
         }
-    }, [gameState?.currentPlayerId, gameState?.phase, isPaused, isCountingPoints]);
+    }, [gameState?.currentPlayerId, gameState?.phase, isPaused]);
 
     /**
      * Handles turn timeout for ANY player (local or remote).
@@ -1146,14 +1106,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         return () => clearTimeout(timer);
     }, [gameState?.currentPlayerId, gameState?.phase, isPaused, isSoloMode, gameId, localPlayerId, roomData]);
 
-    // PHASE 2.2: BOUDE (Game Blocked) Auto-Resolution
-    useEffect(() => {
-        if (!gameState || gameState.phase !== 'BOUDE' || isCountingPoints) return;
-
-        console.log(`[BOUDE] Game is blocked! Ready for counting.`);
-        isProcessing.current = false;
-    }, [gameState?.phase]);
-
     // Effect to trigger flying animation when a domino is added to the table
     useEffect(() => {
         if (!hiddenDominoId || !gameState) return;
@@ -1187,88 +1139,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         return () => clearTimeout(timeout);
     }, [hiddenDominoId, gameState?.table.sequence.length]);
 
-    const handleBoudeFinished = async (winnerId: string | 'TIE') => {
-        if (!gameState) return;
-
-        // MULTIPLAYER: Only host should write to Firestore to avoid race conditions
-        // Non-host players: just dismiss the counting overlay and show scoreboard.
-        // Their gameState will update via Firebase subscription when host resolves.
-        if (!isSoloMode && gameId) {
-            const isHost = roomData?.players[0].uid === userId;
-            if (!isHost) {
-                console.log('[BOUDE] Non-host: dismissing overlay, waiting for host to resolve via Firebase');
-                setShowScoreboard(true);
-                setIsCountingPoints(false);
-                return;
-            }
-        }
-
-        const { newState, isTie } = resolveBoude(gameState);
-
-        if (isTie) {
-            console.log(`[BOUDE] Tie detected - restarting partie`);
-            setIsCountingPoints(false);
-            if (isSoloMode) {
-                // Restart same round in solo
-                const playerNames = gameState.players.map(p => p.name);
-                const partial = dealGame(playerNames);
-                const resetState = {
-                    ...gameState,
-                    ...partial,
-                    players: (partial.players as Player[]).map((p, i) => ({
-                        ...p,
-                        id: gameState.players[i].id,
-                        mancheWins: gameState.players[i].mancheWins,
-                        totalPoints: gameState.players[i].totalPoints,
-                        totalCochons: gameState.players[i].totalCochons,
-                        isBot: gameState.players[i].isBot,
-                        avatarId: gameState.players[i].avatarId
-                    })),
-                    phase: 'PLAYING' as GamePhase,
-                    history: []
-                };
-                setGameState(resetState as GameState);
-            } else if (gameId) {
-                // Multiplayer TIE: Deal new cards and restart, same logic as solo
-                const playerNames = gameState.players.map(p => p.name);
-                const partial = dealGame(playerNames);
-                const resetState = {
-                    ...gameState,
-                    ...partial,
-                    players: (partial.players as Player[]).map((p, i) => ({
-                        ...p,
-                        id: gameState.players[i].id,
-                        mancheWins: gameState.players[i].mancheWins,
-                        totalPoints: gameState.players[i].totalPoints,
-                        totalCochons: gameState.players[i].totalCochons,
-                        isBot: gameState.players[i].isBot,
-                        avatarId: gameState.players[i].avatarId,
-                        currentMancheStars: gameState.players[i].currentMancheStars
-                    })),
-                    phase: 'PLAYING' as GamePhase,
-                    history: [],
-                    mancheResult: null
-                };
-                const sanitized = JSON.parse(JSON.stringify(resetState, (k, v) => v === undefined ? null : v));
-                await updateGameState(gameId, sanitized);
-            }
-        } else {
-            // Standard winner resolution - Go straight to scoreboard
-            // CRITICAL: Set showScoreboard BEFORE clearing isCountingPoints to avoid
-            // a render frame where the useEffect re-triggers the announcer
-            if (isSoloMode || !gameId) {
-                setShowScoreboard(true);
-                setIsCountingPoints(false);
-                setGameState(newState);
-            } else {
-                setShowScoreboard(true);
-                setIsCountingPoints(false);
-                // Sanitize: Replace undefined with null before sending to Firestore
-                const sanitized = JSON.parse(JSON.stringify(newState, (k, v) => v === undefined ? null : v));
-                await updateGameState(gameId, sanitized);
-            }
-        }
-    };
 
 
     // Get opponents in RELATIVE ORDER for Anti-Clockwise visual flow
@@ -1554,42 +1424,17 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             </View>
 
             {/* Player Hand - HIGH Z-INDEX */}
-            {!isCountingPoints && (
-                <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom, zIndex: 50 }}>
-                    {localPlayer && (
-                        <PlayerHand
-                            hand={localPlayer.hand}
-                            onPlayDomino={handlePlayDomino}
-                            disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING'}
-                            leftValue={gameState.table.leftValue as any}
-                            rightValue={gameState.table.rightValue as any}
-                        />
-                    )}
-                </View>
-            )}
-
-            {announcement && (
-                <GameAnnouncer
-                    message={announcement.message}
-                    subMessage={announcement.subMessage}
-                    type={announcement.type}
-                    onFinished={() => {
-                        if (announcement.type === 'BOUDE') {
-                            setIsCountingPoints(true);
-                        } else {
-                            setShowScoreboard(true);
-                        }
-                        setAnnouncement(null);
-                    }}
-                />
-            )}
-
-            {isCountingPoints && gameState && (
-                <BoudeCounting
-                    players={gameState.players}
-                    onFinished={handleBoudeFinished}
-                />
-            )}
+            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom, zIndex: 50 }}>
+                {localPlayer && (
+                    <PlayerHand
+                        hand={localPlayer.hand}
+                        onPlayDomino={handlePlayDomino}
+                        disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING'}
+                        leftValue={gameState.table.leftValue as any}
+                        rightValue={gameState.table.rightValue as any}
+                    />
+                )}
+            </View>
 
             {showScoreOverlay && gameState && (
                 <UnifiedResultOverlay

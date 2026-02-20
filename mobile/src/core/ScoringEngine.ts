@@ -149,7 +149,8 @@ export const finalizeRound = (
     // 3.3 Check Match End
     let isMatchOver = false;
     if (newState.gameMode === 'MANCHE') {
-        isMatchOver = newState.players.some(p => p.mancheWins >= newState.winningCondition);
+        // NEW RULE: Match ends ONLY when fixed number of manches played
+        isMatchOver = newState.mancheHistory && newState.mancheHistory.length >= newState.winningCondition;
     } else if (newState.gameMode === 'SCORE') {
         isMatchOver = newState.players.some(p => p.totalPoints >= newState.winningCondition);
     } else if (newState.gameMode === 'COCHON') {

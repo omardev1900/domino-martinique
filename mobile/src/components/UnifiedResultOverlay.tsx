@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Image, Platform, ScrollView } from 'react-native';
-import Animated, { FadeIn, SlideInDown, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withSpring, Easing, runOnJS } from 'react-native-reanimated';
+import Animated, { FadeIn, SlideInDown, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withSpring, Easing, runOnJS, interpolate, Extrapolate } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,8 @@ interface UnifiedResultOverlayProps {
     currentUserId: string;
     onContinue: () => void;
     onLeave?: () => void; // For match end
+    allReady?: boolean; // Signal from outside if needed, but we'll handle internally too
+    onAnimationFinished?: () => void;
 }
 
 type OverlayMode = 'SIMPLE_WIN' | 'MANCHE_END' | 'MATCH_END' | 'BOUDE';
@@ -54,11 +56,16 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
         // Match Logic
         if (isMatchOver) {
-            // Winner is the one who met condition
+            if (gameState.gameMode === 'MANCHE') {
+                // Manche mode winner determination: Le Camion (totalPoints) > Manche Wins
+                return [...gameState.players].sort((a, b) => {
+                    if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+                    return b.mancheWins - a.mancheWins;
+                })[0];
+            }
             if (gameState.gameMode === 'SCORE') return gameState.players.find(p => p.totalPoints >= gameState.winningCondition);
-            if (gameState.gameMode === 'COCHON') return gameState.players.find(p => p.totalCochons >= gameState.winningCondition); // Wait, cochon mode winner is usually the one with LEAST cochons?
-            // In standard logic: winningCondition usually implies target to reach for WIN.
-            // Let's assume standard sorting by wins/points
+            if (gameState.gameMode === 'COCHON') return gameState.players.find(p => p.totalCochons >= gameState.winningCondition);
+
             return [...gameState.players].sort((a, b) => b.mancheWins - a.mancheWins)[0];
         }
 
@@ -81,28 +88,78 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     // Animation Values
     const scaleValue = useSharedValue(0.5);
     const opacityValue = useSharedValue(0);
+    const [animationReady, setAnimationReady] = useState(!isBoude); // Boude starts false, others true
+    const [readyPlayers, setReadyPlayers] = useState<Record<string, number>>({});
+    const [countdown, setCountdown] = useState(3);
+    const countdownRef = useRef<any>(null);
 
     useEffect(() => {
         if (visible) {
             scaleValue.value = withSpring(1);
             opacityValue.value = withTiming(1, { duration: 500 });
 
+            // Trigger animation finished if not boude
+            if (!isBoude) {
+                setAnimationReady(true);
+            } else {
+                setReadyPlayers({}); // Reset counting
+                setAnimationReady(false);
+            }
+
             // Sounds
             if (isChire) {
-                SoundManager.playSound('boude'); // Re-use boude or specific sound
+                SoundManager.playSound('boude');
             } else if (isCochon) {
-                SoundManager.playSound('win'); // Assuming exists or generic
+                SoundManager.playSound('win');
             } else if (isMeWinner) {
                 SoundManager.playSound('win');
                 HapticManager.triggerSuccess();
             } else if (winner) {
                 SoundManager.playSound('lose');
             }
+
+            // Start countdown reset
+            setCountdown(3);
         } else {
             scaleValue.value = 0.5;
             opacityValue.value = 0;
+            setAnimationReady(false);
+            if (countdownRef.current) clearInterval(countdownRef.current);
         }
     }, [visible, mode, isChire, isCochon, isMeWinner]);
+
+    // AUTO-CONTINUE TIMER
+    useEffect(() => {
+        if (visible && animationReady && !isMatchOver) {
+            setCountdown(3);
+            if (countdownRef.current) clearInterval(countdownRef.current);
+
+            countdownRef.current = setInterval(() => {
+                setCountdown(prev => {
+                    if (prev <= 1) {
+                        if (countdownRef.current) clearInterval(countdownRef.current);
+                        onContinue();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+
+        return () => {
+            if (countdownRef.current) clearInterval(countdownRef.current);
+        };
+    }, [visible, animationReady, isMatchOver]);
+
+    const handlePlayerReady = (id: string, pts: number) => {
+        setReadyPlayers(prev => {
+            const next = { ...prev, [id]: pts };
+            if (Object.keys(next).length === gameState.players.length) {
+                setAnimationReady(true);
+            }
+            return next;
+        });
+    };
 
     if (!visible) return null;
 
@@ -170,6 +227,8 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                     player={p}
                                     isWinner={p.id === boudeWinner?.id}
                                     handPoints={calculateHandPoints(p.hand)}
+                                    delay={400 + (idx * 300)}
+                                    onReady={(pts) => handlePlayerReady(p.id, pts)}
                                 />
                             ) : (
                                 <PodiumCard
@@ -179,7 +238,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                     totalPoints={
                                         gameState.gameMode === 'SCORE' ? p.totalPoints :
                                             gameState.gameMode === 'COCHON' ? p.totalCochons :
-                                                p.mancheWins
+                                                p.totalPoints // Always show "Le Camion" for Manche mode
                                     }
                                 />
                             )
@@ -194,7 +253,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     )}
 
                     <View style={styles.buttonRow}>
-                        {isMatchOver && (
+                        {isMatchOver && animationReady && (
                             <TouchableOpacity
                                 style={styles.menuButton}
                                 onPress={onLeave || onContinue}
@@ -203,13 +262,17 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                             </TouchableOpacity>
                         )}
 
-                        <TouchableOpacity
-                            style={styles.newGameButton}
-                            onPress={onContinue}
-                        >
-                            <Text style={styles.buttonTextDark}>{isBoude ? "CONTINUER" : "Nouvelle partie"}</Text>
-                            <Ionicons name={isBoude ? "arrow-forward" : "play"} size={20} color="#064e3b" />
-                        </TouchableOpacity>
+                        {animationReady && (
+                            <TouchableOpacity
+                                style={styles.newGameButton}
+                                onPress={onContinue}
+                            >
+                                <Text style={styles.buttonTextDark}>
+                                    {isBoude ? "CONTINUER" : "Nouvelle partie"} ({countdown}s)
+                                </Text>
+                                <Ionicons name={isBoude ? "arrow-forward" : "play"} size={20} color="#064e3b" />
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </Animated.View>
             </View>
@@ -340,16 +403,18 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     </ScrollView>
 
                     {/* Action Button */}
-                    <TouchableOpacity
-                        style={[styles.actionButton, isMancheOver && styles.actionButtonGold]}
-                        onPress={onContinue}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={[styles.actionButtonText, isMancheOver && styles.actionButtonTextGold]}>
-                            {isMancheOver ? "MANCHE SUIVANTE" : "CONTINUER"}
-                        </Text>
-                        <Ionicons name="arrow-forward" size={24} color="white" />
-                    </TouchableOpacity>
+                    {animationReady && (
+                        <TouchableOpacity
+                            style={[styles.actionButton, isMancheOver && styles.actionButtonGold]}
+                            onPress={onContinue}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={[styles.actionButtonText, isMancheOver && styles.actionButtonTextGold]}>
+                                {isMancheOver ? "MANCHE SUIVANTE" : "CONTINUER"} ({countdown}s)
+                            </Text>
+                            <Ionicons name="arrow-forward" size={24} color="white" />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Leave Button removed from here (moved to podium) */}
@@ -359,10 +424,36 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 };
 
 // --- HELPER COMPONENT FOR BOUDE CARDS ---
-const BoudeCard = ({ player, isWinner, handPoints }: { player: Player, isWinner: boolean, handPoints: number }) => {
+const BoudeCard = ({ player, isWinner, handPoints, delay, onReady }: { player: Player, isWinner: boolean, handPoints: number, delay: number, onReady: (pts: number) => void }) => {
+    const points = handPoints;
+    const count = useSharedValue(0);
+    const [displayCount, setDisplayCount] = useState(0);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            count.value = withTiming(points, {
+                duration: 1500,
+                easing: Easing.out(Easing.quad)
+            }, (finished) => {
+                if (finished) {
+                    runOnJS(onReady)(points);
+                }
+            });
+
+            const interval = setInterval(() => {
+                setDisplayCount(Math.round(count.value));
+                if (count.value >= points) clearInterval(interval);
+            }, 50);
+
+            return () => clearInterval(interval);
+        }, delay);
+
+        return () => clearTimeout(timer);
+    }, []);
+
     return (
         <Animated.View
-            entering={ZoomIn.delay(isWinner ? 200 : 400).duration(600)}
+            entering={ZoomIn.delay(delay).duration(600)}
             style={[styles.podiumCardBoude, isWinner && styles.podiumCardWinnerBoude, styles.boudeCard]}
         >
             {isWinner && (
@@ -379,7 +470,7 @@ const BoudeCard = ({ player, isWinner, handPoints }: { player: Player, isWinner:
             <Text style={styles.podiumNameBoude} numberOfLines={1}>{player.name}</Text>
 
             <Text style={[styles.boudePoints, isWinner ? styles.pointsWinner : styles.pointsLoser]}>
-                {handPoints} pts
+                {displayCount} pts
             </Text>
 
             <View style={styles.boudeHand}>
@@ -390,7 +481,7 @@ const BoudeCard = ({ player, isWinner, handPoints }: { player: Player, isWinner:
                             right={domino.right}
                             size={45}
                             noMargin
-                            entering={FadeIn.delay(600 + idx * 100)}
+                            entering={FadeIn.delay(delay + 1600 + idx * 100)}
                         />
                     </View>
                 ))}

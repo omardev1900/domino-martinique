@@ -259,14 +259,22 @@ export default function LobbyScreen() {
                     </Text>
                     <View style={styles.conditionControls}>
                         <TouchableOpacity
-                            onPress={() => setTurnDuration(Math.max(0, turnDuration - 5))}
+                            onPress={() => {
+                                if (turnDuration === 5) setTurnDuration(1);
+                                else if (turnDuration === 1) setTurnDuration(0);
+                                else setTurnDuration(Math.max(0, turnDuration - 5));
+                            }}
                             style={styles.adjustButton}
                         >
                             <Ionicons name="remove-circle-outline" size={28} color="#FFD700" />
                         </TouchableOpacity>
                         <Text style={styles.conditionValueText}>{turnDuration === 0 ? 'Off' : turnDuration}</Text>
                         <TouchableOpacity
-                            onPress={() => setTurnDuration(Math.min(60, turnDuration + 5))}
+                            onPress={() => {
+                                if (turnDuration === 0) setTurnDuration(1);
+                                else if (turnDuration === 1) setTurnDuration(5);
+                                else setTurnDuration(Math.min(60, turnDuration + 5));
+                            }}
                             style={styles.adjustButton}
                         >
                             <Ionicons name="add-circle-outline" size={28} color="#FFD700" />
@@ -385,25 +393,28 @@ export default function LobbyScreen() {
 
     return (
         <View style={styles.container}>
-            <LinearGradient colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']} style={StyleSheet.absoluteFill} />
-
-            <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#FFF" />
-                </TouchableOpacity>
-                <Text style={styles.title} numberOfLines={1}>Multijoueurs</Text>
-            </View>
-
-            {renderTabs()}
-
-            <ScrollView
-                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
-                showsVerticalScrollIndicator={false}
+            <LinearGradient
+                colors={['#2c0b0b', '#071a07', '#0b2c1d']}
+                style={styles.container}
             >
-                {activeTab === 'CREATE' && renderCreateTab()}
-                {activeTab === 'JOIN' && renderJoinTab()}
-                {activeTab === 'PUBLIC' && renderPublicTab()}
-            </ScrollView>
+
+                <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color="#FFF" />
+                    </TouchableOpacity>
+                    <Text style={styles.title} numberOfLines={1}>Multijoueurs</Text>
+                </View>
+
+                {renderTabs()}
+                <ScrollView
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {activeTab === 'CREATE' && renderCreateTab()}
+                    {activeTab === 'JOIN' && renderJoinTab()}
+                    {activeTab === 'PUBLIC' && renderPublicTab()}
+                </ScrollView>
+            </LinearGradient>
         </View>
     );
 }
@@ -414,7 +425,7 @@ const styles = StyleSheet.create({
     },
     loadingContainer: {
         flex: 1,
-        backgroundColor: '#0d1f0d',
+        backgroundColor: '#1a0505',
         justifyContent: 'center',
         alignItems: 'center',
         gap: 12,

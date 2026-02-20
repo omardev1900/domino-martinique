@@ -18,7 +18,7 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
 
     // Ref to prevent stale closures
     const gameStateRef = useRef<GameState | null>(null);
-    const botTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const botTimerRef = useRef<any>(null);
 
     // Update ref whenever state changes
     const updateGameState = useCallback((newState: GameState) => {
@@ -49,8 +49,11 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
                     phase: 'PLAYING',
                     firstPlayerOfRound: null,
                     history: [],
-                    winningCondition: 1,
-                    lastActionTimestamp: Date.now()
+                    winningCondition: 3,
+                    gameMode: 'MANCHE',
+                    turnDuration: 15,
+                    lastActionTimestamp: Date.now(),
+                    mancheHistory: []
                 };
                 updateGameState(restartState);
 
@@ -62,7 +65,7 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
             } else {
                 updateGameState(newState);
             }
-        }, 500); // Accelerated from 4000
+        }, 4000); // Reverted from 500
     }, [localPlayerId, difficulty, updateGameState]);
 
     // Imperative Bot Turn Trigger
@@ -94,7 +97,7 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
                 let newState: GameState;
 
                 if (move) {
-                    newState = handleTurn(currentState, currentPlayer.id, move);
+                    newState = handleTurn(currentState, currentPlayer.id, move.tile);
                     SoundManager.playClack();
                 } else {
                     newState = passTurn(currentState, currentPlayer.id);
@@ -118,7 +121,7 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
             } catch (error) {
                 console.error("Bot Error", error);
             }
-        }, 500); // Accelerated from 1000
+        }, 1500); // Reverted from 500
     }, [updateGameState, triggerBoude]);
 
     // Initialize Solo Game
@@ -136,9 +139,9 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
             phase: 'PLAYING',
             firstPlayerOfRound: null,
             history: [],
-            winningCondition: 2, // Speed Match
+            winningCondition: 3,
             gameMode: 'MANCHE',
-            turnDuration: 1, // SPEED TEST
+            turnDuration: 15,
             lastActionTimestamp: Date.now(),
             mancheHistory: []
         };
@@ -248,7 +251,7 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
             table: partialState.table!,
             currentPlayerId: firstPlayerId,
             phase: 'PLAYING',
-            turnDuration: 1, // SPEED TEST
+            turnDuration: 15,
             firstPlayerOfRound: null,
             history: [],
             lastActionTimestamp: Date.now()

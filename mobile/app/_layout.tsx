@@ -23,7 +23,7 @@ if (Platform.OS === 'web' && typeof window !== 'undefined') {
       width: 100%;
       display: flex;
       flex-direction: column;
-      background-color: #0d1f0d; /* Prevent white flash */
+      background-color: #1a0505; /* Prevent white flash */
     }
   `;
   document.head.appendChild(style);
@@ -85,10 +85,10 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%', backgroundColor: '#0d1f0d' }} onLayout={onLayoutRootView}>
+    <GestureHandlerRootView style={{ flex: 1, minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%', backgroundColor: '#1a0505' }} onLayout={onLayoutRootView}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <LinearGradient
-          colors={['rgba(0, 0, 0, 0.95)', 'rgba(26, 10, 46, 0.98)']}
+          colors={['#2c0b0b', '#0b2c1d']}
           style={{ flex: 1 }}
         >
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>

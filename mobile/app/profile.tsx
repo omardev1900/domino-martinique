@@ -109,7 +109,7 @@ export default function ProfileScreen() {
         setIsLoading(true);
         try {
             console.log('[Profile] Saving profile with:', displayName.trim(), selectedAvatar);
-            
+
             await authService.updateProfile({
                 displayName: displayName.trim(),
                 photoURL: selectedAvatar
@@ -117,7 +117,7 @@ export default function ProfileScreen() {
 
             // Force refresh from storage to confirm changes were persisted
             await loadUserProfile();
-            
+
             console.log('[Profile] Profile saved and refreshed successfully');
             setLastSaved(new Date());
 
@@ -224,20 +224,11 @@ export default function ProfileScreen() {
             )}
         </View>
     );
-
     return (
         <LinearGradient
-            colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']}
+            colors={['#2c0b0b', '#071a07', '#0b2c1d']}
             style={styles.container}
         >
-            <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#FFF" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Mon Profil</Text>
-                <View style={{ width: 44 }} />
-            </View>
-
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
@@ -564,7 +555,7 @@ const styles = StyleSheet.create({
     saveButtonText: {
         fontSize: 16,
         fontWeight: '900',
-        color: '#0d1f0d',
+        color: '#1a0505',
         letterSpacing: 2,
     },
     // ─── Tabs ───
@@ -611,6 +602,6 @@ const styles = StyleSheet.create({
     tabBadgeText: {
         fontSize: 8,
         fontWeight: '900',
-        color: '#0d1f0d',
+        color: '#1a0505',
     },
 });
