@@ -1,11 +1,11 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, AudioPlayer, setAudioModeAsync, AudioSource } from 'expo-audio';
 import SettingsManager from '../SettingsManager';
 
 type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'boude' | 'toktok';
 
 class SoundManager {
     private static instance: SoundManager;
-    private sounds: Record<SoundName, Audio.Sound | null> = {
+    private sounds: Record<SoundName, AudioPlayer | null> = {
         clack1: null,
         clack2: null,
         clack3: null,
@@ -20,7 +20,7 @@ class SoundManager {
         toktok: null,
     };
 
-    private currentMusic: Audio.Sound | null = null;
+    private currentMusic: AudioPlayer | null = null;
     private currentMusicName: SoundName | null = null;
 
     // DEBOUNCE: Track last play time per sound to prevent saturation
@@ -38,14 +38,14 @@ class SoundManager {
 
     async preloadSounds() {
         try {
-            // Configure Audio behavior (crucial for iOS silent mode)
-            await Audio.setAudioModeAsync({
-                allowsRecordingIOS: false,
-                playsInSilentModeIOS: true,
+            // Configure Audio behavior (crucial for silent mode)
+            await setAudioModeAsync({
+                allowsRecording: false,
+                playsInSilentMode: true,
             });
 
             // Load sounds
-            const soundMap: Record<SoundName, any> = {
+            const soundMap: Record<SoundName, AudioSource> = {
                 clack1: require('@/assets/sounds/clack1.mp3'),
                 clack2: require('@/assets/sounds/clack2.mp3'),
                 clack3: require('@/assets/sounds/clack3.mp3'),
@@ -62,8 +62,9 @@ class SoundManager {
 
             for (const [key, source] of Object.entries(soundMap)) {
                 try {
-                    const { sound } = await Audio.Sound.createAsync(source);
-                    this.sounds[key as SoundName] = sound;
+                    // createAudioPlayer is synchronous in factory but handles loading internally
+                    const player = createAudioPlayer(source);
+                    this.sounds[key as SoundName] = player;
                     // console.log(`Loaded ${key}`);
                 } catch (e) {
                     console.error(`Error loading ${key}:`, e);
@@ -86,21 +87,25 @@ class SoundManager {
         try {
             if (this.currentMusicName === name && this.currentMusic) {
                 // Already playing this track
+                if (!this.currentMusic.playing) {
+                     this.currentMusic.play();
+                }
                 return;
             }
 
             if (this.currentMusic) {
-                await this.currentMusic.stopAsync();
+                this.currentMusic.pause();
+                this.currentMusic.seekTo(0);
             }
 
             if (!SettingsManager.getSettings().isSoundEnabled) return;
 
-            const sound = this.sounds[name];
-            if (sound) {
-                await sound.setIsLoopingAsync(true);
-                await sound.setVolumeAsync(volume);
-                await sound.playAsync();
-                this.currentMusic = sound;
+            const player = this.sounds[name];
+            if (player) {
+                player.loop = true;
+                player.volume = volume;
+                player.play();
+                this.currentMusic = player;
                 this.currentMusicName = name;
             } else {
                 console.warn(`Music ${name} not found`);
@@ -113,7 +118,8 @@ class SoundManager {
     async stopMusic() {
         try {
             if (this.currentMusic) {
-                await this.currentMusic.stopAsync();
+                this.currentMusic.pause();
+                this.currentMusic.seekTo(0);
                 this.currentMusic = null;
                 this.currentMusicName = null;
             }
@@ -124,7 +130,7 @@ class SoundManager {
 
     async setMusicVolume(volume: number) {
         if (this.currentMusic) {
-            await this.currentMusic.setVolumeAsync(volume);
+            this.currentMusic.volume = volume;
         }
     }
 
@@ -139,10 +145,11 @@ class SoundManager {
             }
             this.lastPlayTime[name] = now;
 
-            const soundObject = this.sounds[name];
-            if (soundObject) {
+            const player = this.sounds[name];
+            if (player) {
                 // Reset to start just in case
-                await soundObject.replayAsync();
+                player.seekTo(0);
+                player.play();
             }
             // Silently ignore if sound not loaded yet
         } catch (error) {
@@ -151,9 +158,10 @@ class SoundManager {
     }
 
     async unloadSounds() {
-        for (const sound of Object.values(this.sounds)) {
-            if (sound) {
-                await sound.unloadAsync();
+        for (const player of Object.values(this.sounds)) {
+            if (player) {
+                // Remove player from memory
+                player.remove();
             }
         }
     }

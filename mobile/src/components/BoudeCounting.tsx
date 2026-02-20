@@ -95,7 +95,7 @@ export const BoudeCounting: React.FC<BoudeCountingProps> = ({ players, onFinishe
                 {/* HEADER */}
                 <View style={isLandscape ? styles.headerLandscape : styles.headerPortrait}>
                     <Animated.Text entering={FadeIn.duration(800)} style={[styles.title, isLandscape && styles.titleLandscape]}>Partie bloquée</Animated.Text>
-                    <Text style={[styles.subtitle, isLandscape && styles.subtitleLandscape]}>Comptage des points...</Text>
+
                 </View>
 
                 {/* MAIN LAYOUT */}
@@ -123,7 +123,7 @@ export const BoudeCounting: React.FC<BoudeCountingProps> = ({ players, onFinishe
                                     </>
                                 ) : (
                                     <>
-                                        <Text style={styles.winnerLabel}>VAINQUEUR AU POINTS</Text>
+                                        <Text style={styles.winnerLabel}>VAINQUEUR</Text>
                                         <Text style={[styles.winnerName, isLandscape && styles.winnerNameLandscape]}>{winner?.name} 🏆</Text>
                                     </>
                                 )}

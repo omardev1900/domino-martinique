@@ -30,17 +30,26 @@ export function AnimatedSplashScreen({
     }, [isAppReady, animation, onAnimationFinish]);
 
     useEffect(() => {
+        const controller = new AbortController();
+
         async function prepare() {
             try {
+                if (controller.signal.aborted) return;
                 // You can load resources here if needed, or rely on parent
                 await Promise.all([]);
             } catch (e) {
-                console.warn(e);
+                if (!controller.signal.aborted) {
+                    console.warn(e);
+                }
             } finally {
-                setAppReady(true);
+                if (!controller.signal.aborted) {
+                    setAppReady(true);
+                }
             }
         }
         prepare();
+
+        return () => controller.abort();
     }, []);
 
     if (isSplashAnimationComplete) return null;

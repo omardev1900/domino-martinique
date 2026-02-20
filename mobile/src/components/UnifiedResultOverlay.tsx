@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Image, Platform } from 'react-native';
 import Animated, { FadeIn, SlideInDown, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withSpring, Easing, runOnJS } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -105,13 +105,15 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
     // --- RENDER CONTENT BASED ON MODE ---
 
+    // --- RENDER CONTENT BASED ON MODE ---
+
     const renderHeader = () => {
-        if (isMatchOver) return { title: "VICTOIRE FINALE !", subtitle: "Le Match est terminé" };
-        if (isChire) return { title: "CHIRÉ !", subtitle: "Tout le monde redescend !" };
-        if (isCochon) return { title: "COCHON !", subtitle: `${winner?.name} l'emporte avec panache` };
-        if (isMancheOver) return { title: "MANCHE TERMINÉE", subtitle: `${winner?.name} remporte la manche` };
-        if (isBoude) return { title: "BOUDÉ", subtitle: "Partie bloquée" };
-        return { title: "PARTIE TERMINÉE", subtitle: `${winner?.name} gagne !` };
+        if (isMatchOver) return { title: "MÈT PIÈS !", subtitle: "Ou ganyé fwa-tala !" };
+        if (isChire) return { title: "CHIRÉ !!", subtitle: "Tout moun a zéro !" };
+        if (isCochon) return { title: "COCHON !", subtitle: `Ou pran an koshon ! 🐷` };
+        if (isMancheOver) return { title: "MANCHE TERMINÉE", subtitle: `An lòt zetwal !` };
+        if (isBoude) return { title: "BOUDÉ !", subtitle: "Pèsonn pa ganyé." };
+        return { title: "VICTOIRE !", subtitle: `An lòt zetwal !` };
     };
 
     const headerInfo = renderHeader();
@@ -165,7 +167,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
                         {isChire && (
                             <Text style={styles.explanation}>
-                                Tous les scores de la manche retombent à 0 !
+                                Tout moun a zéro !
                             </Text>
                         )}
 
@@ -199,9 +201,9 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                         activeOpacity={0.8}
                     >
                         <Text style={[styles.actionButtonText, isMatchOver && styles.actionButtonTextGold]}>
-                            {isMatchOver ? "VOIR LES RÉSULTATS" : "CONTINUER"}
+                            {isMatchOver ? "VOIR RÉSULTATS" : "CONTINUER"}
                         </Text>
-                        <Ionicons name="arrow-forward" size={20} color={isMatchOver ? "#8F6900" : "white"} />
+                        <Ionicons name="arrow-forward" size={24} color={isMatchOver ? "#8F6900" : "white"} />
                     </TouchableOpacity>
 
                     {/* Secondary Action Button - Leave (Match End Only) */}
@@ -229,36 +231,49 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 9999,
+        zIndex: 99999, // Ensure it's on top of everything
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: 80, // Leave space for HUD
+        padding: 20,
     },
     backdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(0,0,0,0.7)', // Slightly darker for better focus
     },
     card: {
-        width: '85%',
-        maxWidth: 400,
+        width: '90%',
+        maxWidth: 420,
+        minHeight: 350, // Ensure height consistency
         backgroundColor: 'white',
         borderRadius: 24,
         overflow: 'hidden',
-        elevation: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
+        // Modern shadow for Web & Native (if supported)
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 10px 30px rgba(0,0,0,0.3)',
+            },
+            default: {
+                elevation: 20,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.3,
+                shadowRadius: 20,
+            }
+        }),
+        // Ensure flex layout for inner content
+        display: 'flex',
+        flexDirection: 'column',
     },
     cardLandscape: {
         flexDirection: 'row',
-        width: '70%',
-        maxWidth: 600,
-        height: 280,
+        width: '85%',
+        maxWidth: 550,
+        height: 320,
+        minHeight: 320,
     },
     visualSection: {
-        width: '100%',
-        height: 180,
+        width: '50%',
+        height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
@@ -270,7 +285,7 @@ const styles = StyleSheet.create({
         // Red handled by gradient
     },
     cardLandscapeVisual: {
-        width: '40%',
+        width: '60%',
         height: '100%',
     },
     avatarContainer: {
@@ -295,7 +310,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     title: {
-        fontSize: 24,
+        fontSize: 28, // Slightly larger
         fontWeight: '900',
         color: 'white',
         textAlign: 'center',
@@ -303,96 +318,127 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(0,0,0,0.3)',
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 4,
+        marginBottom: 4,
     },
     subtitle: {
-        fontSize: 16,
-        color: 'rgba(255,255,255,0.9)',
+        fontSize: 18,
+        color: 'rgba(255, 255, 255, 0.95)',
         textAlign: 'center',
-        marginTop: 4,
-        fontWeight: '600',
+        fontWeight: '700',
+        fontStyle: 'italic',
     },
     infoSection: {
-        padding: 20,
+        padding: 24,
         alignItems: 'center',
         justifyContent: 'space-between',
         flex: 1, // Fill remaining space
         backgroundColor: '#fff',
+        width: '100%',
     },
     dynamicContent: {
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 20,
         width: '100%',
+        flex: 1, // Take available space
     },
     explanation: {
-        fontSize: 16,
-        color: '#555',
+        fontSize: 18,
+        color: '#444',
         textAlign: 'center',
-        lineHeight: 22,
+        fontWeight: '500',
+        lineHeight: 24,
     },
     miniScoreboard: {
         width: '100%',
         marginTop: 5,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#f8f9fa',
         borderRadius: 12,
-        padding: 10,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: '#eee',
     },
     miniScoreRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingVertical: 4,
+        paddingVertical: 6,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
     miniScoreName: {
-        fontSize: 14,
+        fontSize: 15,
         color: '#333',
     },
     miniScoreValue: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: 'bold',
         color: '#333',
     },
     bold: {
         fontWeight: 'bold',
+        color: '#000',
     },
     actionButton: {
         flexDirection: 'row',
-        backgroundColor: '#333',
-        paddingVertical: 14,
-        paddingHorizontal: 30,
-        borderRadius: 30,
+        backgroundColor: '#222', // Darker black
+        paddingVertical: 16,
+        paddingHorizontal: 32,
+        borderRadius: 40,
         alignItems: 'center',
-        gap: 8,
+        gap: 10,
         width: '100%',
         justifyContent: 'center',
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 4px 8px rgba(0,0,0,0.2)',
+            },
+            default: {
+                elevation: 4,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+            }
+        }),
     },
     actionButtonGold: {
         backgroundColor: '#FFD700',
-        shadowColor: '#FFD700',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 4px 10px rgba(255, 215, 0, 0.5)',
+            },
+            default: {
+                shadowColor: '#FFD700',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.5,
+                shadowRadius: 10,
+            }
+        }),
     },
     actionButtonText: {
         color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 18, // Larger text
+        fontWeight: '800', // Bolder
         textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     actionButtonTextGold: {
         color: '#8F6900',
     },
     secondaryButton: {
         backgroundColor: 'transparent',
-        marginTop: 10,
-        borderWidth: 1,
+        marginTop: 12,
+        borderWidth: 1.5,
         borderColor: '#ddd',
-        paddingVertical: 10,
+        paddingVertical: 12,
+        elevation: 0,
+        shadowOpacity: 0,
     },
     secondaryButtonText: {
         color: '#666',
-        fontSize: 14,
-        fontWeight: 'bold',
+        fontSize: 15,
+        fontWeight: '700',
+        textTransform: 'uppercase',
     }
 });
+
