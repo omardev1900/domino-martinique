@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
 import { View, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import SoundManager from '@/core/audio/SoundManager';
 
 // Keep the splash screen visible while we fetch resources
@@ -86,31 +87,36 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%', backgroundColor: '#0d1f0d' }} onLayout={onLayoutRootView}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="login" />
-          <Stack.Screen name="home" />
-          <Stack.Screen name="solo" />
-          <Stack.Screen name="lobby" />
-          <Stack.Screen name="game/[id]" />
-          <Stack.Screen name="profile" />
-          <Stack.Screen
-            name="modal"
-            options={{
-              presentation: 'modal',
-              animation: 'slide_from_bottom'
-            }}
-          />
-        </Stack>
+        <LinearGradient
+          colors={['rgba(0, 0, 0, 0.95)', 'rgba(26, 10, 46, 0.98)']}
+          style={{ flex: 1 }}
+        >
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="login" />
+            <Stack.Screen name="home" />
+            <Stack.Screen name="solo" />
+            <Stack.Screen name="lobby" />
+            <Stack.Screen name="game/[id]" />
+            <Stack.Screen name="profile" />
+            <Stack.Screen
+              name="modal"
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_bottom'
+              }}
+            />
+          </Stack>
 
-        {/* Animated Splash Screen Overlay */}
-        {!splashAnimationFinished && (
-          <AnimatedSplashScreen
-            onAnimationFinish={() => setSplashAnimationFinished(true)}
-          />
-        )}
+          {/* Animated Splash Screen Overlay */}
+          {!splashAnimationFinished && (
+            <AnimatedSplashScreen
+              onAnimationFinish={() => setSplashAnimationFinished(true)}
+            />
+          )}
 
-        <StatusBar style="light" />
+          <StatusBar style="light" />
+        </LinearGradient>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

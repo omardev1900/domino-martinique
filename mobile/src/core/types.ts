@@ -13,6 +13,14 @@ export type PlayerId = string;
 export type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
 export type MancheResult = 'NORMAL' | 'CHIRE' | 'COCHON';
 
+export interface MancheHistoryRecord {
+    mancheNumber: number;
+    points: { [playerId: string]: number }; // Points scored in THIS manche
+    winnerId: PlayerId | 'TIE';
+    resultType: MancheResult;
+    cochonCount?: number;
+}
+
 export interface Player {
     id: PlayerId;
     name: string;
@@ -54,6 +62,7 @@ export interface GameState {
     mancheResult?: MancheResult | null; // NEW: Résultat de la manche (pour affichage Chiré)
     turnDuration: number; // NEW: Durée du tour en secondes
     lastActionTimestamp: number;
+    mancheHistory: MancheHistoryRecord[];
 }
 
 

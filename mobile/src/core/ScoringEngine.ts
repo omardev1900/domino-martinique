@@ -41,15 +41,18 @@ export const finalizeRound = (
 
     // --- ETAPE 1 : ATTRIBUTION ---
     // Le gagnant reçoit +1 Étoile (currentMancheStars) et +1 Point de Round (totalRoundWins)
+    const pointsGainedInRound: { [playerId: string]: number } = {};
     newState.players = newState.players.map(p => {
         if (p.id === winnerId) {
+            pointsGainedInRound[p.id] = 1;
             return {
                 ...p,
                 currentMancheStars: p.currentMancheStars + 1, // Étoile (+1 currentMancheStars)
                 totalRoundWins: (p.totalRoundWins || 0) + 1, // Point de Round permanent
-                totalPoints: (p.totalPoints || 0) + 1 // Le Camion (totalMatchPoints) avance aussi de 1 par victoire de round (selon lexique "Point de Round = +1 score général")
+                totalPoints: (p.totalPoints || 0) + 1 // Le Camion (totalMatchPoints) avance aussi de 1 par victoire de round
             };
         }
+        pointsGainedInRound[p.id] = 0;
         return p;
     });
 
@@ -68,26 +71,16 @@ export const finalizeRound = (
         newState.mancheResult = 'CHIRE';
         newState.phase = 'PARTIE_END'; // La manche continue (repart à zéro), mais le round est fini.
         newState.firstPlayerOfRound = winnerId; // Le gagnant de la "chirée" relance
+
+        // Record as a "special" history entry if needed, but usually Chiré just continues the manche
         return newState;
     }
 
     // --- ETAPE 3 : DÉTECTION VICTOIRE MANCHE (PRIORITÉ 2) ---
-    // Si un joueur atteint 3 Étoiles.
-    // Note : Comme la Chirée est checkée AVANT, on est sûr qu'il y a des zéros si on arrive ici avec 3 étoiles.
     const mancheWinner = newState.players.find(p => p.currentMancheStars >= MANCHE_WIN_THRESHOLD);
 
     if (mancheWinner) {
         console.log(`MANCHE WINNER: ${mancheWinner.id}`);
-        // C'est une fin de manche.
-
-        // 3.1 Incrémenter Victoire de Manche
-        newState.players = newState.players.map(p => {
-            if (p.id === mancheWinner.id) {
-                return { ...p, mancheWins: p.mancheWins + 1 };
-            }
-            return p;
-        });
-
         // 3.2 Calcul Bonus/Malus Cochon
         const losersAtZero = newState.players.filter(p => p.currentMancheStars === 0);
         const cochonCount = losersAtZero.length;
@@ -95,41 +88,65 @@ export const finalizeRound = (
         if (cochonCount > 0) {
             console.log(`COCHON DETECTED! Count: ${cochonCount}`);
             newState.mancheResult = 'COCHON';
-
-            newState.players = newState.players.map(p => {
-                if (p.id === mancheWinner.id) {
-                    // Winner : +1 Trophée/Cochon, +1 Point Camion/Cochon
-                    return {
-                        ...p,
-                        totalCochons: p.totalCochons + cochonCount,
-                        totalPoints: p.totalPoints + cochonCount
-                    };
-                } else if (p.currentMancheStars === 0) {
-                    // Loser (Cochon) : -1 Point Camion
-                    // Attention : totalPoints peut être négatif ? "Subit -1" -> Oui.
-                    return {
-                        ...p,
-                        isCochon: true, // Marqueur pour l'UI de fin
-                        totalPoints: p.totalPoints - 1
-                    };
-                }
-                return p;
-            });
         } else {
             console.log("Manche finished normally.");
             newState.mancheResult = 'NORMAL';
         }
 
-    } else {
+        // --- CALCULATION OF FINAL MANCHE POINTS (Rule of +5) ---
+        // Winner gets 3 + opponents at zero stars.
+        // Losers with stars > 0 get their stars as points.
+        // Losers at 0 stars get -1.
+        newState.players = newState.players.map(p => {
+            let finalManchePoints = 0;
+            let updatedPlayer = { ...p };
+
+            if (p.id === mancheWinner.id) {
+                finalManchePoints = 3 + cochonCount;
+                updatedPlayer = {
+                    ...p,
+                    mancheWins: p.mancheWins + 1,
+                    totalPoints: p.totalPoints + cochonCount, // Bonus cochons (+1 round point already added previously)
+                    totalCochons: p.totalCochons + cochonCount
+                };
+            } else if (p.currentMancheStars === 0) {
+                finalManchePoints = -1;
+                updatedPlayer = {
+                    ...p,
+                    isCochon: true,
+                    totalPoints: p.totalPoints - 1
+                };
+            } else {
+                finalManchePoints = p.currentMancheStars;
+            }
+
+            // Update the points record used for History and Overlay
+            pointsGainedInRound[p.id] = finalManchePoints;
+            return updatedPlayer;
+        });
+
+        // Record Manche History
+        if (!newState.mancheHistory) newState.mancheHistory = [];
+        newState.mancheHistory.push({
+            mancheNumber: newState.mancheHistory.length + 1,
+            points: pointsGainedInRound,
+            winnerId: mancheWinner.id,
+            resultType: newState.mancheResult || 'NORMAL',
+            cochonCount: cochonCount
+        });
+    }
+
+    // Ensure firstPlayerOfRound is ALWAYS updated to the round winner
+    // This is used for animations and avatar display in overlays
+    newState.firstPlayerOfRound = winnerId;
+
+    if (!isChire && !mancheWinner) {
         // Pas de Chirée, pas de Victoire Manche -> Juste fin de round
         newState.phase = 'PARTIE_END';
         newState.mancheResult = null;
-        newState.firstPlayerOfRound = winnerId;
     }
 
-    // 3.3 Check Match End (GLOBAL CHECK - Must run even if no manche winner yet)
-    // Au DOMINO Martiniquais, on peut gagner le MATCH sur un simple score (mode SCORE)
-    // ou sur Cochon, sans forcément gagner la manche actuelle.
+    // 3.3 Check Match End
     let isMatchOver = false;
     if (newState.gameMode === 'MANCHE') {
         isMatchOver = newState.players.some(p => p.mancheWins >= newState.winningCondition);
@@ -142,11 +159,9 @@ export const finalizeRound = (
     if (isMatchOver) {
         newState.phase = 'MATCH_END';
     } else if (mancheWinner) {
-        // Si pas de Match End mais Manche Winner -> Fin de manche
         newState.phase = 'MANCHE_END';
         newState.firstPlayerOfRound = mancheWinner.id;
     }
-    // Sinon, on garde le phase défini plus haut (PARTIE_END ou CHIRE qui est aussi PARTIE_END de fait)
 
     return newState;
 };

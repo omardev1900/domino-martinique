@@ -144,6 +144,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                 style={styles.avatar}
                             />
                             {isMatchOver && <Text style={styles.crown}>👑</Text>}
+                            <Text style={styles.winnerAvatarName}>{winner.name}</Text>
                         </Animated.View>
                     )}
 
@@ -160,9 +161,84 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     {/* Dynamic Content based on event */}
                     <View style={styles.dynamicContent}>
                         {mode === 'SIMPLE_WIN' && (
-                            <Text style={styles.explanation}>
-                                +1 Étoile pour {winner?.name}
-                            </Text>
+                            <View style={styles.resultsTable}>
+                                <View style={styles.tableHeader}>
+                                    <Text style={[styles.columnHeader, { flex: 2.5, textAlign: 'left' }]}>JOUEUR</Text>
+                                    <Text style={[styles.columnHeader, { flex: 1.5 }]}>⭐</Text>
+                                </View>
+                                {gameState.players.map(p => (
+                                    <View key={p.id} style={styles.tableRow}>
+                                        <Text style={[styles.cell, { flex: 2.5, textAlign: 'left' }]} numberOfLines={1}>{p.name}</Text>
+                                        <Text style={[styles.cell, { flex: 1.5 }]}>{p.currentMancheStars} ⭐</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        )}
+
+                        {mode === 'MANCHE_END' && (
+                            <View style={styles.resultsTable}>
+                                <View style={styles.tableHeader}>
+                                    <Text style={[styles.columnHeader, { flex: 2.5, textAlign: 'left' }]}>Joueur</Text>
+                                    <Text style={[styles.columnHeader, { flex: 1.5 }]}>Pts</Text>
+                                    <Text style={[styles.columnHeader, { flex: 0.8 }]}>🐷</Text>
+                                    <Text style={[styles.columnHeader, { flex: 1.5 }]}>⭐</Text>
+                                </View>
+                                {gameState.players.map(p => {
+                                    const latestManche = gameState.mancheHistory?.[gameState.mancheHistory.length - 1];
+                                    const points = latestManche?.points[p.id] || 0;
+                                    const isMancheWinner = p.id === latestManche?.winnerId;
+                                    const pigsGiven = isMancheWinner ? (latestManche?.cochonCount || 0) : 0;
+
+                                    return (
+                                        <View key={p.id} style={styles.tableRow}>
+                                            <Text style={[styles.cell, { flex: 2.5, textAlign: 'left' }]} numberOfLines={1}>{p.name}</Text>
+                                            <Text style={[styles.cell, { flex: 1.5, fontWeight: '900', color: points > 0 ? '#4CAF50' : points < 0 ? '#d32f2f' : '#333' }]}>
+                                                {points > 0 ? `+${points}` : points}
+                                            </Text>
+                                            <Text style={[styles.cell, { flex: 0.8 }]}>{pigsGiven > 0 ? `${pigsGiven} 🐷` : '-'}</Text>
+                                            <Text style={[styles.cell, { flex: 1.5 }]}>{p.currentMancheStars} ⭐</Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        )}
+
+                        {mode === 'MATCH_END' && (
+                            <View style={styles.resultsTable}>
+                                <View style={styles.tableHeader}>
+                                    <Text style={[styles.columnHeader, { flex: 2.5, textAlign: 'left' }]}>JOUEUR</Text>
+                                    {gameState.mancheHistory?.map((m, i) => (
+                                        <Text key={i} style={[styles.columnHeader, { flex: 0.8 }]}>M{i + 1}</Text>
+                                    ))}
+                                    <Text style={[styles.columnHeader, { flex: 1.2 }]}>TOTAL</Text>
+                                    <Text style={[styles.columnHeader, { flex: 1.2 }]}>⭐ ZETWAL</Text>
+                                </View>
+                                {gameState.players.map(p => (
+                                    <View key={p.id} style={styles.tableRow}>
+                                        <Text style={[styles.cell, { flex: 2.5, textAlign: 'left' }]} numberOfLines={1}>{p.name}</Text>
+                                        {gameState.mancheHistory?.map((m, i) => (
+                                            <Text key={i} style={[styles.cell, { flex: 0.8 }]}>{m.points[p.id] || 0}</Text>
+                                        ))}
+                                        <Text style={[styles.cell, { flex: 1.2, fontWeight: '900' }]}>{p.totalPoints}</Text>
+                                        <Text style={[styles.cell, { flex: 1.2 }]}>{p.currentMancheStars} ⭐</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        )}
+
+                        {isBoude && (
+                            <View style={styles.resultsTable}>
+                                <View style={styles.tableHeader}>
+                                    <Text style={[styles.columnHeader, { flex: 2.5, textAlign: 'left' }]}>JOUEUR</Text>
+                                    <Text style={[styles.columnHeader, { flex: 1.5 }]}>⭐ ZETWAL</Text>
+                                </View>
+                                {gameState.players.map(p => (
+                                    <View key={p.id} style={styles.tableRow}>
+                                        <Text style={[styles.cell, { flex: 2.5, textAlign: 'left' }]} numberOfLines={1}>{p.name}</Text>
+                                        <Text style={[styles.cell, { flex: 1.5 }]}>{p.currentMancheStars} ⭐</Text>
+                                    </View>
+                                ))}
+                            </View>
                         )}
 
                         {isChire && (
@@ -201,7 +277,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                         activeOpacity={0.8}
                     >
                         <Text style={[styles.actionButtonText, isMatchOver && styles.actionButtonTextGold]}>
-                            {isMatchOver ? "VOIR RÉSULTATS" : "CONTINUER"}
+                            {isMatchOver ? "RETOUR MENU" : isMancheOver ? "MANCHE SUIVANTE" : "CONTINUER"}
                         </Text>
                         <Ionicons name="arrow-forward" size={24} color={isMatchOver ? "#8F6900" : "white"} />
                     </TouchableOpacity>
@@ -244,7 +320,7 @@ const styles = StyleSheet.create({
         width: '90%',
         maxWidth: 420,
         minHeight: 350, // Ensure height consistency
-        backgroundColor: 'white',
+        backgroundColor: '#FDF5E6', // OPAQUE Premium Light (Old Lace)
         borderRadius: 24,
         overflow: 'hidden',
         // Modern shadow for Web & Native (if supported)
@@ -266,13 +342,13 @@ const styles = StyleSheet.create({
     },
     cardLandscape: {
         flexDirection: 'row',
-        width: '85%',
-        maxWidth: 550,
+        width: '90%',
+        maxWidth: 640,
         height: 320,
         minHeight: 320,
     },
     visualSection: {
-        width: '50%',
+        width: '35%',
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
@@ -305,6 +381,15 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: -20,
     },
+    winnerAvatarName: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: '900',
+        marginTop: 8,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
     bigEmoji: {
         fontSize: 60,
         marginBottom: 10,
@@ -312,7 +397,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28, // Slightly larger
         fontWeight: '900',
-        color: 'white',
+        color: '#FFFFFF', // Keep White on colored gradient background
         textAlign: 'center',
         textTransform: 'uppercase',
         textShadowColor: 'rgba(0,0,0,0.3)',
@@ -332,7 +417,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         flex: 1, // Fill remaining space
-        backgroundColor: '#fff',
+        backgroundColor: '#FDF5E6', // Match Card BG
         width: '100%',
     },
     dynamicContent: {
@@ -343,27 +428,27 @@ const styles = StyleSheet.create({
         flex: 1, // Take available space
     },
     explanation: {
-        fontSize: 18,
-        color: '#444',
+        fontSize: 20,
+        color: '#1a1a1a', // Dark text for easy reading
         textAlign: 'center',
-        fontWeight: '500',
-        lineHeight: 24,
+        fontWeight: '600',
+        lineHeight: 26,
     },
     miniScoreboard: {
         width: '100%',
         marginTop: 5,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: 'rgba(0,0,0,0.05)',
         borderRadius: 12,
         padding: 12,
         borderWidth: 1,
-        borderColor: '#eee',
+        borderColor: 'rgba(0,0,0,0.1)',
     },
     miniScoreRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingVertical: 6,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: 'rgba(0,0,0,0.1)',
     },
     miniScoreName: {
         fontSize: 15,
@@ -372,21 +457,56 @@ const styles = StyleSheet.create({
     miniScoreValue: {
         fontSize: 15,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#000',
     },
     bold: {
         fontWeight: 'bold',
         color: '#000',
     },
+    resultsTable: {
+        width: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        borderRadius: 16,
+        padding: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+    },
+    tableHeader: {
+        flexDirection: 'row',
+        paddingVertical: 8,
+        borderBottomWidth: 2,
+        borderBottomColor: 'rgba(0,0,0,0.1)',
+        marginBottom: 4,
+    },
+    columnHeader: {
+        fontSize: 12,
+        fontWeight: '900',
+        color: '#888',
+        textAlign: 'center',
+    },
+    tableRow: {
+        flexDirection: 'row',
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.05)',
+        alignItems: 'center',
+    },
+    cell: {
+        fontSize: 14,
+        color: '#333',
+        textAlign: 'center',
+        fontWeight: '600',
+    },
     actionButton: {
         flexDirection: 'row',
-        backgroundColor: '#222', // Darker black
-        paddingVertical: 16,
-        paddingHorizontal: 32,
+        backgroundColor: '#000000', // Pitch black for contrast
+        paddingVertical: 10,
+        paddingHorizontal: 24,
         borderRadius: 40,
         alignItems: 'center',
         gap: 10,
-        width: '100%',
+        minWidth: 200,
+        alignSelf: 'center',
         justifyContent: 'center',
         ...Platform.select({
             web: {
@@ -417,7 +537,7 @@ const styles = StyleSheet.create({
     },
     actionButtonText: {
         color: 'white',
-        fontSize: 18, // Larger text
+        fontSize: 16, // Smaller text
         fontWeight: '800', // Bolder
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -429,14 +549,14 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
         marginTop: 12,
         borderWidth: 1.5,
-        borderColor: '#ddd',
+        borderColor: '#aaa',
         paddingVertical: 12,
         elevation: 0,
         shadowOpacity: 0,
     },
     secondaryButtonText: {
-        color: '#666',
-        fontSize: 15,
+        color: '#444',
+        fontSize: 15, // Visible
         fontWeight: '700',
         textTransform: 'uppercase',
     }

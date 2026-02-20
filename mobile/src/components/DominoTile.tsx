@@ -63,17 +63,18 @@ export const DominoTile: React.FC<DominoTileProps> = ({
 
     const animatedGlowStyle = useAnimatedStyle(() => {
         return {
-            shadowColor: '#4CAF50',
-            shadowOpacity: withTiming(isPlayable ? 0.7 * glowValue.value : 0),
-            shadowRadius: 8 + glowValue.value * 12,
+            shadowColor: '#FFD700',
+            shadowOpacity: withTiming(isPlayable ? 1 : 0), // Max opacity
+            shadowRadius: 15 + glowValue.value * 25, // Massive glow radius
+            elevation: isPlayable ? 20 : 5, // Android elevation boost
             borderColor: interpolateColor(
                 glowValue.value,
                 [0, 1],
-                ['rgba(255,255,255,0.2)', '#4CAF50']
+                ['rgba(255,255,255,0.4)', '#FFD700']
             ),
-            borderWidth: isPlayable ? 3 : 1,
+            borderWidth: isPlayable ? 4 : 1, // Thicker border
             transform: [
-                { scale: withTiming(isPlayable ? 1.05 + glowValue.value * 0.02 : 1) },
+                { scale: withTiming(isPlayable ? 1.15 + glowValue.value * 0.05 : 1) },
                 { scale: pressScale.value }
             ]
         };
@@ -110,7 +111,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                         cx={x * 100}
                         cy={y * 100}
                         r={dotRadius * 2.5}
-                        fill="#1a1a1a"
+                        fill="#000000" // Deep Black Pips
                     />
                 ))}
             </Svg>
@@ -137,9 +138,9 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                     <Svg width="100%" height="100%">
                         <Defs>
                             <LinearGradient id="ivoryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <Stop offset="0%" stopColor="#FFFFFF" />
-                                <Stop offset="50%" stopColor="#FFFFF0" />
-                                <Stop offset="100%" stopColor="#F5F5DC" />
+                                <Stop offset="0%" stopColor="#f0e68c" />
+                                <Stop offset="50%" stopColor="#eee8aa" />
+                                <Stop offset="100%" stopColor="#bdb76b" />
                             </LinearGradient>
                         </Defs>
                         <Rect

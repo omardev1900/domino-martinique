@@ -51,7 +51,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         // Don't play win/lose sounds during BOUDE - wait for resolution
         if (isBoudé) return;
 
-        const sortedPlayers = [...gameState.players].sort((a, b) => b.wins - a.wins);
+        const sortedPlayers = [...gameState.players].sort((a, b) => b.currentMancheStars - a.currentMancheStars);
         const isWinner = sortedPlayers[0].id === currentUserId;
 
         if (isWinner) {
@@ -165,7 +165,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     };
 
     const roundWinner = getRoundWinner();
-    const sortedPlayers = [...gameState.players].sort((a, b) => b.wins - a.wins);
+    const sortedPlayers = [...gameState.players].sort((a, b) => b.currentMancheStars - a.currentMancheStars);
 
     return (
         <View style={styles.container}>
@@ -226,11 +226,16 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                         return (
                                             <View key={p.id} style={[styles.playerRow, index === 0 && styles.winnerRow, { paddingVertical: 6 }]}>
                                                 <Text style={styles.rank}>#{index + 1}</Text>
-                                                <Text style={styles.name} numberOfLines={1}>
-                                                    {p.name} {isCochon ? '🐷' : ''}
-                                                </Text>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.name} numberOfLines={1}>
+                                                        {p.name} {isCochon ? '🐷' : ''}
+                                                    </Text>
+                                                    <Text style={styles.starsSub}>
+                                                        {p.currentMancheStars} {p.currentMancheStars > 1 ? 'Étoiles' : 'Étoile'}
+                                                    </Text>
+                                                </View>
                                                 <View style={styles.scoreColumnEnd}>
-                                                    <Text style={styles.scoreMain}>{p.wins} {p.wins > 1 ? 'Wins' : 'Win'}</Text>
+                                                    <Text style={styles.scoreMain}>{p.currentMancheStars} {p.currentMancheStars > 1 ? 'Wins' : 'Win'}</Text>
                                                     <Text style={[styles.points, isCochon && { color: '#ffb300' }]}>
                                                         {sign}{points} pts
                                                     </Text>
@@ -366,24 +371,29 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                                 style={[styles.playerRow, isWinner && styles.winnerRow]}
                                             >
                                                 <Text style={[styles.rank, isWinner && styles.winnerText]}>#{index + 1}</Text>
-                                                <Text style={[styles.name, isWinner && styles.winnerText]}>
-                                                    {p.name} {p.id === currentUserId ? "(Moi)" : ""}
-                                                </Text>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={[styles.name, isWinner && styles.winnerText]}>
+                                                        {p.name} {p.id === currentUserId ? "(Moi)" : ""}
+                                                    </Text>
+                                                    <Text style={styles.starsSub}>
+                                                        {p.currentMancheStars} {p.currentMancheStars > 1 ? 'Étoiles' : 'Étoile'}
+                                                    </Text>
+                                                </View>
                                                 {!isSolo && rematchVotes.includes(p.id) && (
                                                     <View style={styles.readyBadge}>
                                                         <Text style={styles.readyBadgeText}>PRÊT</Text>
                                                     </View>
                                                 )}
                                                 {/* COCHON BADGE - High Visibility */}
-                                                {gameState.mancheResult === 'COCHON' && p.wins === 0 && (
+                                                {gameState.mancheResult === 'COCHON' && p.currentMancheStars === 0 && (
                                                     <View style={styles.cochonBadge}>
                                                         <Text style={styles.cochonBadgeText}>COCHON</Text>
                                                     </View>
                                                 )}
                                                 <View style={styles.scoreContainer}>
                                                     <View style={styles.scoreColumn}>
-                                                        <Text style={[styles.scoreMain, isWinner && styles.winnerText, gameState.mancheResult === 'COCHON' && p.wins === 0 && styles.statWinsCochon]}>
-                                                            {p.wins} {p.wins > 1 ? 'Wins' : 'Win'}
+                                                        <Text style={[styles.scoreMain, isWinner && styles.winnerText, gameState.mancheResult === 'COCHON' && p.currentMancheStars === 0 && styles.statWinsCochon]}>
+                                                            {p.currentMancheStars} {p.currentMancheStars > 1 ? 'Wins' : 'Win'}
                                                         </Text>
                                                         {gameState.gameMode === 'MANCHE' && (
                                                             <Text style={styles.scoreSub}>
@@ -399,7 +409,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                                             <Text style={styles.cochonCountLabel}>{p.totalCochons} 🐷</Text>
                                                         )}
                                                         {(isMatchOver || gameState.gameMode === 'SCORE' || p.totalPoints !== 0) && (
-                                                            <Text style={[styles.points, p.totalPoints < 0 && styles.pointsNegative, gameState.mancheResult === 'COCHON' && p.wins === 0 && styles.statPointsCochon]}>
+                                                            <Text style={[styles.points, p.totalPoints < 0 && styles.pointsNegative, gameState.mancheResult === 'COCHON' && p.currentMancheStars === 0 && styles.statPointsCochon]}>
                                                                 {p.totalPoints >= 0 ? '+' : ''}{p.totalPoints} pts
                                                             </Text>
                                                         )}
@@ -600,7 +610,12 @@ const styles = StyleSheet.create({
     name: {
         fontSize: 16,
         color: '#333',
-        flex: 1,
+        fontWeight: '600',
+    },
+    starsSub: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 2,
     },
     scoreContainer: {
         flexDirection: 'row',

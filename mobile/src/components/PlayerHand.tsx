@@ -44,25 +44,32 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                 contentContainerStyle={styles.scrollContent}
                 style={styles.scrollView}
             >
-                {hand.map((domino, index) => (
-                    <Animated.View
-                        key={domino.id}
-                        ref={(el) => (tileRefs.current[domino.id] = el as any)}
-                        style={styles.tileWrapper}
-                        layout={LinearTransition.springify()}
-                    >
-                        <DominoTile
-                            left={domino.left}
-                            right={domino.right}
-                            size={40}
-                            orientation="vertical"
-                            onPress={() => handleTilePress(domino)}
-                            disabled={disabled}
-                            isPlayable={!disabled && checkValidMove(domino, leftValue, rightValue).canPlay}
-                            entering={FadeInDown.delay(index * 10).springify()}
-                        />
-                    </Animated.View>
-                ))}
+                {hand.map((domino, index) => {
+                    const canPlay = !disabled && checkValidMove(domino, leftValue, rightValue).canPlay;
+                    return (
+                        <Animated.View
+                            key={domino.id}
+                            ref={(el) => (tileRefs.current[domino.id] = el as any)}
+                            style={[
+                                styles.tileWrapper,
+                                canPlay && { transform: [{ translateY: -20 }], zIndex: 10 }, // Strong Lift for Playable
+                                !disabled && !canPlay ? { opacity: 0.6, transform: [{ scale: 0.95 }] } : {} // Dim for Non-Playable
+                            ]}
+                            layout={LinearTransition.springify()}
+                        >
+                            <DominoTile
+                                left={domino.left}
+                                right={domino.right}
+                                size={40}
+                                orientation="vertical"
+                                onPress={() => handleTilePress(domino)}
+                                disabled={disabled}
+                                isPlayable={canPlay}
+                                entering={FadeInDown.delay(index * 10).springify()}
+                            />
+                        </Animated.View>
+                    );
+                })}
             </ScrollView>
         </View>
     );

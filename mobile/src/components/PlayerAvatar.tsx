@@ -139,6 +139,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     >
                         {player.name}
                     </Text>
+                    <Text style={styles.mancheZetwal}>{player.currentMancheStars || 0} ⭐</Text>
                     {score && <Text style={styles.playerScore}>{score}</Text>}
                     {showHandSize && (
                         <View style={styles.handSizeBadge}>
@@ -234,6 +235,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     >
                         {player.name}
                     </Text>
+                    <Text style={styles.mancheZetwal}>{player.currentMancheStars || 0} ⭐</Text>
                     {score && <Text style={styles.playerScore}>{score}</Text>}
                     {showHandSize && (
                         <View style={styles.handSizeBadge}>
@@ -252,6 +254,9 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         numberOfLines={1}
                     >
                         {player.name}
+                    </Text>
+                    <Text style={[styles.mancheZetwal, styles.zetwalHorizontal]}>
+                        {player.currentMancheStars || 0} ⭐
                     </Text>
                     {score && <Text style={[styles.playerScore, styles.scoreHorizontal]}>{score}</Text>}
                     {showHandSize && (
@@ -331,6 +336,19 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         marginTop: 1,
+    },
+    mancheZetwal: {
+        color: '#FFD700',
+        fontSize: 11,
+        fontWeight: '900',
+        textAlign: 'center',
+        marginTop: 2,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+    },
+    zetwalHorizontal: {
+        textAlign: 'left',
     },
     handSizeBadge: {
         flexDirection: 'row',

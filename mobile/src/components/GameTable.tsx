@@ -70,16 +70,10 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>(({
 
 
     // Dynamic Zoom Logic
+    // Dynamic Zoom Logic - DISABLED for Premium Feel (User Request)
     useEffect(() => {
-        const tileCount = gameState.table.sequence.length;
-        let newScale = 1;
-        if (tileCount > 15) newScale = isLandscape ? 0.45 : 0.55;
-        else if (tileCount > 12) newScale = isLandscape ? 0.55 : 0.65;
-        else if (tileCount > 9) newScale = isLandscape ? 0.65 : 0.75;
-        else if (tileCount > 6) newScale = isLandscape ? 0.75 : 0.85;
-
-        scale.value = withSpring(newScale, { damping: 15, stiffness: 100 });
-    }, [gameState.table.sequence.length, isLandscape]);
+        scale.value = withSpring(1, { damping: 15, stiffness: 100 });
+    }, []);
 
     // Pulsing Animation for selection arrows
     useEffect(() => {
@@ -119,26 +113,13 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>(({
 
     return (
         <View style={[styles.container, isLandscape && styles.containerLandscape]}>
-            <View style={[
-                styles.tableOuter,
-                { backgroundColor: themeColors.border, borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1 },
-                isLandscape && { aspectRatio: 2.2, width: '90%', maxWidth: 700 }
-            ]}>
-                {/* 3D Border Effect */}
-                <View style={styles.tableBorderInner} />
-
-                <View style={[styles.tableInner, { backgroundColor: themeColors.felt }]}>
-                    {/* Felt Texture Gradient */}
-                    <LinearGradient
-                        colors={['rgba(255,255,255,0.1)', 'transparent', 'rgba(0,0,0,0.2)']}
-                        style={StyleSheet.absoluteFill}
-                    />
-
+            <View style={[styles.tableOuter, { width: '100%', height: '100%', maxWidth: undefined, aspectRatio: undefined, backgroundColor: 'transparent', padding: 0, shadowOpacity: 0, borderWidth: 0 }]}>
+                <View style={[styles.tableInner, { borderWidth: 0, borderRadius: 0 }]}>
                     <ScrollView
                         horizontal
                         contentContainerStyle={styles.scrollContent}
-                        showsHorizontalScrollIndicator={false}
-                        centerContent={true}
+                        showsHorizontalScrollIndicator={true}
+                        persistentScrollbar={true}
                     >
                         <Animated.View style={[styles.dominosArea, animatedStyle]}>
                             <View style={styles.tileSequence}>
@@ -171,7 +152,7 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>(({
                                                 left={item.isReversed ? item.domino.right : item.domino.left}
                                                 right={item.isReversed ? item.domino.left : item.domino.right}
                                                 orientation={item.domino.isDouble ? 'vertical' : 'horizontal'}
-                                                size={isLandscape ? 30 : 34}
+                                                size={isLandscape ? 38 : 42} // Slightly larger by default
                                                 disabled
                                                 noMargin
                                                 entering={FadeIn.delay(idx * 50).duration(400)}
@@ -218,39 +199,24 @@ const styles = StyleSheet.create({
         paddingBottom: 80,
     },
     tableOuter: {
-        width: '95%',
-        maxWidth: 850,
-        aspectRatio: 1.8,
-        borderRadius: 50,
-        padding: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 15 },
-        shadowOpacity: 0.7,
-        shadowRadius: 30,
-        elevation: 25,
-        position: 'relative',
+        width: '100%', // Full Screen Width
+        height: '100%', // Full Screen Height
+        backgroundColor: 'transparent',
+        padding: 0,
+        margin: 0,
     },
     tableBorderInner: {
-        ...StyleSheet.absoluteFillObject,
-        borderRadius: 50,
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.1)',
-        margin: 2,
+        display: 'none', // Remove visual artifacts
     },
     tableInner: {
         flex: 1,
-        borderRadius: 40,
-        overflow: 'hidden',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: 'rgba(0,0,0,0.3)',
+        backgroundColor: 'transparent',
     },
     scrollContent: {
         alignItems: 'center',
         justifyContent: 'center',
         flexGrow: 1,
-        paddingHorizontal: 60,
+        paddingHorizontal: 100, // Large padding to ensure ends are visible
     },
     dominosArea: {
         justifyContent: 'center',

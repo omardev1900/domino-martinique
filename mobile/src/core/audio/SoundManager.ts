@@ -88,7 +88,7 @@ class SoundManager {
             if (this.currentMusicName === name && this.currentMusic) {
                 // Already playing this track
                 if (!this.currentMusic.playing) {
-                     this.currentMusic.play();
+                    this.currentMusic.play();
                 }
                 return;
             }
@@ -164,6 +164,22 @@ class SoundManager {
                 player.remove();
             }
         }
+    }
+    async toggleMute(): Promise<boolean> {
+        const current = SettingsManager.getSettings().isSoundEnabled;
+        const newState = !current;
+        await SettingsManager.setSoundEnabled(newState);
+
+        if (newState) {
+            // Resume music if we were playing something
+            if (this.currentMusicName && (this.currentMusicName === 'bgm1' || this.currentMusicName === 'bgm2' || this.currentMusicName === 'bgm3')) {
+                this.playMusic(this.currentMusicName);
+            }
+        } else {
+            this.stopMusic();
+        }
+
+        return newState;
     }
 }
 

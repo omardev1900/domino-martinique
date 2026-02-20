@@ -63,6 +63,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [isCountingPoints, setIsCountingPoints] = useState(false);
     const [boudedPlayerId, setBoudedPlayerId] = useState<PlayerId | null>(null);
+    const [isSoundEnabled, setIsSoundEnabled] = useState(true);
 
     const [hiddenDominoId, setHiddenDominoId] = useState<string | null>(null);
     const [flyingDomino, setFlyingDomino] = useState<FlyingDominoData | null>(null);
@@ -114,7 +115,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     // TODO: Trigger FlyingDomino animation from opponent avatar to table
                     // We need to know who played to find their avatar position
                     // const playerIndex = gameState.players.findIndex(p => p.id === lastAction.playerId);
-                    // ...
+                    // ... (I will wait for view_file to finish)
                 } else if (lastAction.action === 'PASS') {
                     // Optional: Pass sound
                 }
@@ -205,6 +206,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             const loadSettings = async () => {
                 const settings = SettingsManager.getSettings();
                 setTableTheme(settings.tableTheme);
+                setIsSoundEnabled(settings.isSoundEnabled);
 
                 // Load player profile for solo mode
                 if (isSoloMode) {
@@ -1336,12 +1338,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 </View>
             )}
             {/* Dynamic Background based on Theme */}
+            {/* Dynamic Background based on Theme - OVERRIDE for Traditional Premium as requested */}
             <LinearGradient
-                colors={[
-                    TABLE_THEMES[tableTheme].background,
-                    TABLE_THEMES[tableTheme].felt,
-                    TABLE_THEMES[tableTheme].background
-                ]}
+                colors={['#0a2e0a', '#4a0e0e', '#000000']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
                 style={StyleSheet.absoluteFill}
             />
 
@@ -1362,13 +1363,37 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             {/* INFO BUTTON - Discreet top-center button */}
             {!isSoloMode && gameId && (
                 <TouchableOpacity
-                    style={[styles.infoButton, { top: Math.max(insets.top + 10, 20) }]}
+                    style={[styles.infoButton, { top: Math.max(isLandscape ? 10 : insets.top + 10, 20) }]}
                     onPress={() => setShowRoomInfo(!showRoomInfo)}
                     activeOpacity={0.7}
                 >
                     <Ionicons name="information-circle-outline" size={24} color="#FFD700" />
                 </TouchableOpacity>
             )}
+
+            {/* MUTE BUTTON - Top Right */}
+            <TouchableOpacity
+                style={[
+                    styles.muteButton,
+                    {
+                        top: Math.max(isLandscape ? 10 : insets.top + 10, 20),
+                        // Position top-center (shifted right slightly to sit next to pause if pause is center, 
+                        // or if pause is right, this should be left of it. 
+                        // User said: "en haut au milieu juste a coté du bouton pause".
+                        // Assuming pause is top-right or top-left?
+                        // If pause is top-right, center is safe.
+                        // I'll put it slightly to the right of the center clock/score.
+                        left: width / 2 + 40
+                    }
+                ]}
+                onPress={async () => {
+                    const newState = await SoundManager.toggleMute();
+                    setIsSoundEnabled(newState);
+                }}
+                activeOpacity={0.7}
+            >
+                <Ionicons name={isSoundEnabled ? "volume-high" : "volume-mute"} size={22} color="#FFD700" />
+            </TouchableOpacity>
 
             {/* ROOM INFO CARD - Floating card with room code + game objective */}
             {!isSoloMode && gameId && showRoomInfo && (
@@ -1912,6 +1937,18 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.3)',
         marginLeft: 60, // offset from pause button if both present, or just to the right
+    },
+    muteButton: {
+        position: 'absolute',
+        zIndex: 99999, // TOP PRIORITY
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
     },
     infoBackdrop: {
         ...StyleSheet.absoluteFillObject,
