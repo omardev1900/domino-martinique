@@ -141,7 +141,7 @@ export default function LoginScreen() {
     const renderLogo = () => (
         <View style={[styles.logoSection, isLandscape && styles.logoSectionLandscape]}>
             <Image
-                source={require('../assets/images/logo.png')}
+                source={require('@/assets/images/logo.png')}
                 style={[styles.logoImage, isLandscape && styles.logoImageLandscape]}
                 resizeMode="contain"
             />
@@ -220,7 +220,7 @@ export default function LoginScreen() {
     return (
         <LinearGradient
             colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']}
-            style={styles.container}
+            style={[styles.container, { minHeight: height }]}
         >
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

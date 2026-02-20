@@ -34,7 +34,7 @@ export default function HomeScreen() {
     return (
         <LinearGradient
             colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']}
-            style={styles.container}
+            style={[styles.container, { minHeight: height }]}
         >
             {/* Header Area */}
             <View style={[styles.header, { paddingTop: insets.top || 20 }]}>

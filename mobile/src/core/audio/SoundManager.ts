@@ -46,18 +46,18 @@ class SoundManager {
 
             // Load sounds
             const soundMap: Record<SoundName, any> = {
-                clack1: require('../../../assets/sounds/clack1.mp3'),
-                clack2: require('../../../assets/sounds/clack2.mp3'),
-                clack3: require('../../../assets/sounds/clack3.mp3'),
-                notify: require('../../../assets/sounds/notify.mp3'),
-                win: require('../../../assets/sounds/win.mp3'),
-                lose: require('../../../assets/sounds/lose.mp3'),
-                shuffle: require('../../../assets/sounds/distribute.mp3'),
-                bgm1: require('../../../assets/sounds/bgm1.mp3'),
-                bgm2: require('../../../assets/sounds/bgm2.mp3'),
-                bgm3: require('../../../assets/sounds/bgm3.mp3'),
-                boude: require('../../../assets/sounds/boude.mp3'),
-                toktok: require('../../../assets/sounds/toktok.mp3'),
+                clack1: require('@/assets/sounds/clack1.mp3'),
+                clack2: require('@/assets/sounds/clack2.mp3'),
+                clack3: require('@/assets/sounds/clack3.mp3'),
+                notify: require('@/assets/sounds/notify.mp3'),
+                win: require('@/assets/sounds/win.mp3'),
+                lose: require('@/assets/sounds/lose.mp3'),
+                shuffle: require('@/assets/sounds/distribute.mp3'),
+                bgm1: require('@/assets/sounds/bgm1.mp3'),
+                bgm2: require('@/assets/sounds/bgm2.mp3'),
+                bgm3: require('@/assets/sounds/bgm3.mp3'),
+                boude: require('@/assets/sounds/boude.mp3'),
+                toktok: require('@/assets/sounds/toktok.mp3'),
             };
 
             for (const [key, source] of Object.entries(soundMap)) {

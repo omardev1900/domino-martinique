@@ -10,7 +10,8 @@ import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
 import { LobbyScreen } from './LobbyScreen';
-import { GameOverScreen } from './GameOverScreen';
+import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
+// import { GameOverScreen } from './GameOverScreen'; // Legacy replaced by UnifiedResultOverlay
 import { SettingsScreen } from './SettingsScreen';
 import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude, checkValidMove } from '../core/LogicEngine';
 import { getValidMoves } from '../core/DominoEngine';
@@ -264,7 +265,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 type = "CHIRE";
                 subMessage = "Match Nul - Pas de cochon";
             } else if (gameState.mancheResult === 'COCHON') {
-                const winner = gameState.players.find(p => p.wins === Math.max(...gameState.players.map(pl => pl.wins)));
+                const winner = gameState.players.find(p => p.currentMancheStars === Math.max(...gameState.players.map(pl => pl.currentMancheStars)));
                 message = "COCHON !";
                 type = "COCHON";
                 subMessage = winner ? `${winner.name} l'emporte` : "";
@@ -471,11 +472,14 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         fullState.players[1].isBot = true;
         fullState.players[1].avatarId = botConfigs[0].avatarId;
         fullState.players[1].difficulty = botConfigs[0].difficulty as any;
+        // Bot wins initialized to 0
+        fullState.players[1].currentMancheStars = 0;
 
         // Configure Bot 2
         fullState.players[2].isBot = true;
         fullState.players[2].avatarId = botConfigs[1].avatarId;
         fullState.players[2].difficulty = botConfigs[1].difficulty as any;
+        fullState.players[2].currentMancheStars = 0;
 
         SoundManager.playSound('shuffle');
         setGameState(fullState);
@@ -921,6 +925,24 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     };
 
+    const handleOverlayContinue = () => {
+        if (!gameState) return;
+
+        if (gameState.phase === 'MATCH_END') {
+            if (isSoloMode) {
+                // Return to home/lobby in solo
+                handleReplay();
+            } else {
+                // In multiplayer, 'Continue' at Match End could mean 'Return to Lobby' or vote rematch
+                // For now, let's trigger handleReplay which handles reset for host or alert for others
+                handleReplay();
+            }
+        } else {
+            // Round / Manche / Boude End -> Go to next round/manche
+            handleNextRound();
+        }
+    };
+
     const handleNextRound = () => {
         if (!gameState) return;
 
@@ -950,7 +972,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             return {
                 ...p,
                 id: originalPlayer.id, // Preserve original unique ID (e.g. 'bot-1' or 'user-uid')
-                wins: isMancheEnd ? 0 : originalPlayer.wins,
+                currentMancheStars: isMancheEnd ? 0 : originalPlayer.currentMancheStars,
                 isCochon: isMancheEnd ? false : originalPlayer.isCochon,
                 mancheWins: originalPlayer.mancheWins,
                 totalPoints: originalPlayer.totalPoints,
@@ -963,6 +985,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         // If no winner (TIE), determine starter based on highest double in NEW hands
         if (!winnerId) {
             winnerId = determineFirstPlayer(newPlayers);
+        }
+
+        if (!winnerId) {
+            console.error("Could not determine winner ID");
+            return;
         }
 
         const newState: GameState = {
@@ -1216,7 +1243,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         totalCochons: gameState.players[i].totalCochons,
                         isBot: gameState.players[i].isBot,
                         avatarId: gameState.players[i].avatarId,
-                        wins: gameState.players[i].wins
+                        currentMancheStars: gameState.players[i].currentMancheStars
                     })),
                     phase: 'PLAYING' as GamePhase,
                     history: [],
@@ -1541,17 +1568,13 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 />
             )}
 
-            {showScoreOverlay && (
-                <GameOverScreen
+            {showScoreOverlay && gameState && (
+                <UnifiedResultOverlay
                     gameState={gameState}
+                    visible={showScoreOverlay}
                     currentUserId={localPlayerId}
-                    onReplay={handleReplay}
-                    onNextRound={handleNextRound}
-                    onRestartMatch={handleRestartMatch}
-                    onVoteRematch={handleVoteRematch}
-                    onLeaveRoom={handleLeaveRoom}
-                    rematchVotes={roomData?.rematchVotes}
-                    isSolo={isSoloMode}
+                    onContinue={handleOverlayContinue}
+                    onLeave={handleLeaveRoom}
                 />
             )}
 

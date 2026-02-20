@@ -1,5 +1,5 @@
 import { Domino, DominoSide, Player, PlayerId, GameState, GamePhase, GameMode, MancheResult } from './types';
-import { ALL_DOMINOS, HAND_SIZE, TALON_MORT_SIZE, WINS_TO_WIN_MATCH, MAX_PLAYERS } from './constants';
+import { ALL_DOMINOS, HAND_SIZE, TALON_MORT_SIZE, WINS_TO_WIN_MATCH, MAX_PLAYERS, MANCHE_WIN_THRESHOLD } from './constants';
 
 /**
  * Mélange des dominos avec l'algorithme de Fisher-Yates
@@ -30,8 +30,9 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
         name,
         hand: deck.slice(i * HAND_SIZE, (i + 1) * HAND_SIZE),
         handSize: HAND_SIZE,
-        wins: 0,
+        currentMancheStars: 0,
         mancheWins: 0,
+        totalRoundWins: 0,
         totalPoints: 0,
         isCochon: false,
         totalCochons: 0,
@@ -81,8 +82,9 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             avatarId: avatarId,
             hand: deck.slice(0, HAND_SIZE),
             handSize: HAND_SIZE,
-            wins: 0,
+            currentMancheStars: 0,
             mancheWins: 0,
+            totalRoundWins: 0,
             totalPoints: 0,
             isCochon: false,
             totalCochons: 0,
@@ -94,12 +96,14 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             avatarId: botAvatar,
             hand: deck.slice(HAND_SIZE, HAND_SIZE * 2),
             handSize: HAND_SIZE,
-            wins: 0,
+            currentMancheStars: 0,
             mancheWins: 0,
+            totalRoundWins: 0,
             totalPoints: 0,
             isCochon: false,
             totalCochons: 0,
             isBot: true,
+            difficulty: botDifficulty
         },
         {
             id: 'bot-2',
@@ -107,12 +111,14 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             avatarId: botAvatar,
             hand: deck.slice(HAND_SIZE * 2, HAND_SIZE * 3),
             handSize: HAND_SIZE,
-            wins: 0,
+            currentMancheStars: 0,
             mancheWins: 0,
+            totalRoundWins: 0,
             totalPoints: 0,
             isCochon: false,
             totalCochons: 0,
             isBot: true,
+            difficulty: botDifficulty
         },
     ];
 
@@ -138,203 +144,34 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
  */
 export const checkValidMove = (
     domino: Domino,
-    leftValue: DominoSide | null,
-    rightValue: DominoSide | null
-): { canPlay: boolean; side?: 'left' | 'right'; isReversed?: boolean } => {
-    // Premier coup de la partie
-    if (leftValue === null && rightValue === null) {
-        return { canPlay: true, side: 'left', isReversed: false };
+    leftValue: number | null,
+    rightValue: number | null
+): { canPlay: boolean; side?: 'left' | 'right' | 'start'; isReversed?: boolean } => {
+    // 1. First move
+    if (leftValue === null || rightValue === null) {
+        return { canPlay: true, side: 'start', isReversed: false };
     }
 
-    // Vérification à gauche (uniquement si leftValue est défini)
-    if (leftValue !== null) {
-        if (domino.left === leftValue) return { canPlay: true, side: 'left', isReversed: true };
-        if (domino.right === leftValue) return { canPlay: true, side: 'left', isReversed: false };
-    }
+    // 2. Try Left
+    if (domino.right === leftValue) return { canPlay: true, side: 'left', isReversed: false };
+    if (domino.left === leftValue) return { canPlay: true, side: 'left', isReversed: true };
 
-    // Vérification à droite (uniquement si rightValue est défini)
-    if (rightValue !== null) {
-        if (domino.left === rightValue) return { canPlay: true, side: 'right', isReversed: false };
-        if (domino.right === rightValue) return { canPlay: true, side: 'right', isReversed: true };
-    }
+    // 3. Try Right
+    if (domino.left === rightValue) return { canPlay: true, side: 'right', isReversed: false };
+    if (domino.right === rightValue) return { canPlay: true, side: 'right', isReversed: true };
 
     return { canPlay: false };
 };
 
-/**
- * calculateHandPoints : Somme des points d'une main
- */
-export const calculateHandPoints = (hand: Domino[]): number => {
-    return hand.reduce((sum, d) => sum + d.left + d.right, 0);
-};
-
-export const determineWinnerOnBoudé = (players: Player[]): PlayerId | 'TIE' => {
-    const scores = players.map(p => ({ id: p.id, score: calculateHandPoints(p.hand), hand: p.hand }));
-    const minScore = Math.min(...scores.map(s => s.score));
-    const candidates = scores.filter(s => s.score === minScore);
-
-    if (candidates.length === 1) return candidates[0].id;
-
-    // RULE: If more than one player has the same minimum score, it's a TIE. 
-    // No tie-breaker. The round is ignored and restarted.
-    return 'TIE';
-};
-
-/**
- * determineFirstPlayer : Trouve qui doit commencer la manche
- * Règle : Plus gros double, ou plus grosse somme si aucun double.
- */
-export const determineFirstPlayer = (players: Player[]): PlayerId => {
-    let bestPlayerId = players[0].id;
-    let maxDouble = -1;
-    let maxSum = -1;
-
-    players.forEach(p => {
-        p.hand.forEach(d => {
-            if (d.isDouble) {
-                if (d.left > maxDouble) {
-                    maxDouble = d.left;
-                    bestPlayerId = p.id;
-                }
-            } else if (maxDouble === -1) {
-                if (d.sum > maxSum) {
-                    maxSum = d.sum;
-                    bestPlayerId = p.id;
-                }
-            }
-        });
-    });
-
-    return bestPlayerId;
-};
-
-export const calculateCochonPoints = (players: Player[]): { pointsMap: Map<PlayerId, number>; result: MancheResult } => {
-    const pointsMap = new Map<PlayerId, number>();
-
-    // Check for Chiré (everyone has at least one win)
-    const isChiré = players.every(p => p.wins >= 1);
-    if (isChiré) {
-        players.forEach(p => pointsMap.set(p.id, 0));
-        return { pointsMap, result: 'CHIRE' };
-    }
-
-    // Find winner (player with highest wins)
-    const sortedByWins = [...players].sort((a, b) => b.wins - a.wins);
-    const winnerId = sortedByWins[0].id;
-    const totalWinsOnTable = players.reduce((sum, p) => sum + p.wins, 0);
-
-    // Count cochons (players with 0 wins)
-    const cochons = players.filter(p => p.wins === 0);
-    const cochonCount = cochons.length;
-
-    console.log(`[Score] Calculation: Winner=${winnerId}, TotalWins=${totalWinsOnTable}, Cochons=${cochonCount}`);
-
-    // Phase 2.2: Enforcement of "3 Rounds Minimum" for Cochon declaration
-    // As per user request: "Cochon s'affiche au min de 3 parties jouées"
-    if (cochonCount > 0 && totalWinsOnTable < 3) {
-        console.log(`[Score] Not enough rounds for Cochon (${totalWinsOnTable} < 3). Normal end.`);
-        return { pointsMap: new Map(), result: 'NORMAL' };
-    }
-
-    // Calculate points
-    players.forEach(p => {
-        if (p.id === winnerId) {
-            // Winner gets exactly 4 or 5 points for the manche
-            const pts = cochonCount === 1 ? 4 : cochonCount === 2 ? 5 : 0;
-            pointsMap.set(p.id, pts);
-        } else if (p.wins === 0) {
-            // Cochon gets -1
-            pointsMap.set(p.id, -1);
-        } else {
-            pointsMap.set(p.id, 0);
-        }
-    });
-
-    return { pointsMap, result: 'COCHON' };
-};
-
-const MANCHE_WIN_THRESHOLD = 3;
-
-/**
- * handleEndOfRound : Met à jour les scores et vérifie la fin de la MANCHE ou du MATCH
- */
-export const handleEndOfRound = (
-    gameState: GameState,
-    winnerId: PlayerId | 'TIE'
-): GameState => {
-    // 1. Create a deep copy (or at least map players to new objects to avoid mutations)
-    const newState = JSON.parse(JSON.stringify(gameState)) as GameState;
-
-    if (winnerId === 'TIE') {
-        newState.phase = 'BOUDE';
-        return newState;
-    }
-
-    // 2. Increment round win for the winner
-    newState.players = newState.players.map(p => {
-        if (p.id === winnerId) {
-            return { ...p, wins: p.wins + 1 };
-        }
-        return p;
-    });
-
-    // 3. Set starter for the next partie
-    newState.firstPlayerOfRound = winnerId;
-
-    // 4. Check if Manche is over
-    const isChiré = newState.players.every(p => p.wins >= 1);
-    const reachesThreshold = newState.players.some(p => p.wins >= MANCHE_WIN_THRESHOLD);
-    const endOfManche = isChiré || reachesThreshold;
-
-    if (endOfManche) {
-        const { pointsMap, result } = calculateCochonPoints(newState.players);
-        newState.mancheResult = result;
-
-        // Apply manche results to total stats
-        newState.players = newState.players.map(p => {
-            const manchePts = pointsMap.get(p.id) || 0;
-
-            // A player wins the manche if they have the most wins
-            const maxWins = Math.max(...newState.players.map(pl => pl.wins));
-            const isWinnerOfManche = result === 'COCHON' && p.wins === maxWins;
-            const isCochonNow = result === 'COCHON' && p.wins === 0;
-
-            return {
-                ...p,
-                isCochon: isCochonNow,
-                totalCochons: p.totalCochons + (isCochonNow ? 1 : 0),
-                mancheWins: p.mancheWins + (isWinnerOfManche ? 1 : 0),
-                totalPoints: p.totalPoints + manchePts
-            };
-        });
-
-        // 5. Check if Match is over
-        let isMatchOver = false;
-        if (newState.gameMode === 'MANCHE') {
-            isMatchOver = newState.players.some(p => p.mancheWins >= newState.winningCondition);
-        } else if (newState.gameMode === 'SCORE') {
-            isMatchOver = newState.players.some(p => p.totalPoints >= newState.winningCondition);
-        } else if (newState.gameMode === 'COCHON') {
-            // Phase 2.2: Match ends when a SINGLE player reaches the cochon limit
-            isMatchOver = newState.players.some(p => p.totalCochons >= newState.winningCondition);
-        }
-
-        newState.phase = isMatchOver ? 'MATCH_END' : 'MANCHE_END';
-    } else {
-        newState.phase = 'PARTIE_END';
-        newState.mancheResult = null; // IMPORTANT: Clear previous results if manche is ongoing
-    }
-
-    return newState;
-};
-
-/**
- * handleTurn : Gère le coup d'un joueur (humain ou bot)
- * Met à jour le plateau, la main du joueur, et passe au suivant.
- */
 import { getValidMoves } from './DominoEngine';
+import { finalizeRound } from './ScoringEngine'; // NEW IMPORTS
+
+// Re-export specific helpers if needed by UI, or prefer direct import from ScoringEngine
+export { calculateHandPoints, finalizeRound, determineWinnerOnBoudé } from './ScoringEngine';
+export const handleEndOfRound = finalizeRound; // Alias for backward compatibility
 
 /**
+ * handleTurn : Gère le tour d'un joueur (humain ou bot)
  * Met à jour le plateau, la main du joueur, et passe au suivant.
  */
 export const handleTurn = (
@@ -428,7 +265,7 @@ export const handleTurn = (
 
     // 5. Check Win Condition
     if (player.hand.length === 0) {
-        return handleEndOfRound(newState, playerId);
+        return finalizeRound(newState, playerId); // USE FINALIZE ROUND
     }
 
     // 6. Pass Turn
@@ -504,6 +341,8 @@ export const passTurn = (
 /**
  * resolveBoude : Résout la partie bloquée après l'animation
  */
+import { determineWinnerOnBoudé } from './ScoringEngine';
+
 export const resolveBoude = (gameState: GameState): { newState: GameState; isTie: boolean } => {
     const winnerId = determineWinnerOnBoudé(gameState.players);
 
@@ -511,6 +350,36 @@ export const resolveBoude = (gameState: GameState): { newState: GameState; isTie
         return { newState: gameState, isTie: true };
     }
 
-    const newState = handleEndOfRound(gameState, winnerId);
+    const newState = finalizeRound(gameState, winnerId); // USE FINALIZE ROUND
     return { newState, isTie: false };
+};
+
+/**
+ * determineFirstPlayer : Détermine qui commence (Plus gros double ou plus gros domino)
+ */
+export const determineFirstPlayer = (players: Player[]): string => {
+    // Explicit type to avoid 'never' inference relative to null initialization
+    type BestDomino = { sum: number; isDouble: boolean; playerId: string };
+    let bestDomino: BestDomino | null = null;
+
+    players.forEach(p => {
+        p.hand.forEach(d => {
+            const isDouble = d.left === d.right;
+            const sum = d.left + d.right;
+
+            if (!bestDomino) {
+                bestDomino = { sum, isDouble, playerId: p.id };
+            } else {
+                if (isDouble && !bestDomino.isDouble) {
+                    bestDomino = { sum, isDouble, playerId: p.id };
+                } else if (isDouble === bestDomino.isDouble) {
+                    if (sum > bestDomino.sum) {
+                        bestDomino = { sum, isDouble, playerId: p.id };
+                    }
+                }
+            }
+        });
+    });
+
+    return bestDomino ? bestDomino.playerId : players[0].id;
 };

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { authService } from '../src/core/services/auth.service';
-import SettingsManager from '../src/core/SettingsManager';
+import { authService } from '@/core/services/auth.service';
+import SettingsManager from '@/core/SettingsManager';
 
 export default function SplashScreen() {
     const router = useRouter();
@@ -37,7 +37,7 @@ export default function SplashScreen() {
 
                 // Check active room
                 try {
-                    const { findActiveRoomForUser } = require('../src/core/services/firebase');
+                    const { findActiveRoomForUser } = require('@/core/services/firebase');
                     const activeRoomId = await findActiveRoomForUser(user.uid);
 
                     if (!isMounted) return;

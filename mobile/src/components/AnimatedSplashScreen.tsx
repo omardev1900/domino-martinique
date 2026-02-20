@@ -1,79 +1,94 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Image, Dimensions } from 'react-native';
-import Animated, {
-    useSharedValue,
-    useAnimatedStyle,
-    withTiming,
-    withDelay,
-    runOnJS,
-    withSequence,
-    Easing
-} from 'react-native-reanimated';
+import { Asset } from 'expo-asset';
+import Constants from 'expo-constants';
+import * as SplashScreen from 'expo-splash-screen';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Animated, StyleSheet, View } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+// Maintain the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
-interface Props {
+export function AnimatedSplashScreen({
+    onAnimationFinish,
+}: {
     onAnimationFinish: () => void;
-}
-
-export const AnimatedSplashScreen = ({ onAnimationFinish }: Props) => {
-    const opacity = useSharedValue(1);
-    const scale = useSharedValue(0.8);
-
-    const animatedStyle = useAnimatedStyle(() => {
-        return {
-            opacity: opacity.value,
-            transform: [{ scale: scale.value }]
-        };
-    });
-
-    const containerStyle = useAnimatedStyle(() => {
-        return {
-            opacity: opacity.value,
-        };
-    });
+}) {
+    const animation = useMemo(() => new Animated.Value(1), []);
+    const [isAppReady, setAppReady] = useState(false);
+    const [isSplashAnimationComplete, setAnimationComplete] = useState(false);
 
     useEffect(() => {
-        // 1. Scale Up Effect (Breathing)
-        scale.value = withTiming(1, {
-            duration: 1500, // 1.5s zoom
-            easing: Easing.out(Easing.exp),
-        });
+        if (isAppReady) {
+            Animated.timing(animation, {
+                toValue: 0,
+                duration: 1000,
+                useNativeDriver: true,
+            }).start(() => {
+                setAnimationComplete(true);
+                onAnimationFinish();
+            });
+        }
+    }, [isAppReady, animation, onAnimationFinish]);
 
-        // 2. Fade Out after delay
-        opacity.value = withDelay(
-            1500, // Wait for zoom to finish
-            withTiming(0, {
-                duration: 500, // 0.5s fade out
-            }, (finished) => {
-                if (finished) {
-                    runOnJS(onAnimationFinish)();
-                }
-            })
-        );
+    useEffect(() => {
+        async function prepare() {
+            try {
+                // You can load resources here if needed, or rely on parent
+                await Promise.all([]);
+            } catch (e) {
+                console.warn(e);
+            } finally {
+                setAppReady(true);
+            }
+        }
+        prepare();
     }, []);
 
+    if (isSplashAnimationComplete) return null;
+
     return (
-        <Animated.View style={[styles.container, containerStyle]}>
-            <Animated.Image
-                source={require('../../assets/images/splash-icon.png')}
-                style={[styles.image, animatedStyle]}
-                resizeMode="contain"
-            />
-        </Animated.View>
+        <View style={styles.container} pointerEvents="none">
+            <Animated.View
+                style={[
+                    StyleSheet.absoluteFill,
+                    {
+                        backgroundColor: Constants.expoConfig?.splash?.backgroundColor || '#0d1f0d',
+                        opacity: animation,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    },
+                ]}
+            >
+                <Animated.Image
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        resizeMode: Constants.expoConfig?.splash?.resizeMode || 'contain',
+                        transform: [
+                            {
+                                scale: animation,
+                            },
+                        ],
+                    }}
+                    source={require('@/assets/images/splash-icon.png')}
+                    onLoadEnd={async () => {
+                        // Image loaded, waiting for app ready
+                        await SplashScreen.hideAsync();
+                    }}
+                    fadeDuration={0}
+                />
+            </Animated.View>
+        </View>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: '#0d1f0d', // Match native splash background
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999, // Ensure it's on top
-    },
-    image: {
-        width: 250,
-        height: 250,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 99999, // Ensure it's on top of EVERYTHING
+        elevation: 100, // Android
     },
 });

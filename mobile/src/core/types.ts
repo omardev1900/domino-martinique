@@ -19,9 +19,10 @@ export interface Player {
     avatarId?: string;
     hand: Domino[];
     handSize: number;
-    wins: number; // Nombre de PARTIES gagnées dans la MANCHE en cours
-    mancheWins: number; // Nombre de MANCHES gagnées dans le MATCH
-    totalPoints: number; // Score cumulé (pour le Mode Score)
+    currentMancheStars: number; // ÉTOILES (currentMancheStars) : Victoires dans la manche en cours (0-3)
+    mancheWins: number; // COURONNES (mancheWins) : Manches gagnées dans le match
+    totalRoundWins: number; // POINTS DE ROUND (totalRoundWins) : Total des parties gagnées (persistant)
+    totalPoints: number; // LE CAMION (totalMatchPoints) : Score cumulé (RoundWins + Bonus/Malus Cochon)
     isCochon: boolean;
     totalCochons: number;
     isBot: boolean;

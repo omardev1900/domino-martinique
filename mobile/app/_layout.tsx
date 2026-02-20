@@ -6,12 +6,27 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState, useCallback } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-import { AnimatedSplashScreen } from '../src/components/AnimatedSplashScreen';
-import { View } from 'react-native';
-import SoundManager from '../src/core/audio/SoundManager';
+import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
+import { View, Platform } from 'react-native';
+import SoundManager from '@/core/audio/SoundManager';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
+
+// WEB FIX: Inject global styles to ensure full height
+if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    html, body, #root {
+      height: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      background-color: #0d1f0d; /* Prevent white flash */
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -69,7 +84,7 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+    <GestureHandlerRootView style={{ flex: 1, minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%' }} onLayout={onLayoutRootView}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
