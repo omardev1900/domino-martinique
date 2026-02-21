@@ -6,12 +6,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState, useCallback } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
-import { View, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import SoundManager from '@/core/audio/SoundManager';
 
-// Keep the splash screen visible while we fetch resources
+
+// Keep the native splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 // WEB FIX: Inject global styles to ensure full height
@@ -23,7 +23,7 @@ if (Platform.OS === 'web' && typeof window !== 'undefined') {
       width: 100%;
       display: flex;
       flex-direction: column;
-      background-color: #1a0505; /* Prevent white flash */
+      background-color: #1a0a00;
     }
   `;
   document.head.appendChild(style);
@@ -36,46 +36,38 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [appReady, setAppReady] = useState(false);
-  const [splashAnimationFinished, setSplashAnimationFinished] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
     async function prepare() {
       try {
-        // Pre-load fonts, make any API calls you need to do here
+        // Preload audio assets
         await SoundManager.preloadSounds();
-        // Start Menu Music immediately
+        // Start menu music immediately (also started by PremiumSplashScreen but safe to call here)
         SoundManager.playMusic('bgm3', 0.5);
-
-        await new Promise(resolve => setTimeout(resolve, 100)); // Simulating load
       } catch (e) {
         console.warn(e);
       } finally {
-        // Tell the application to render
         setAppReady(true);
       }
     }
-
     prepare();
   }, []);
 
-  // Global Music Manager
+  // Global Music Manager — switch BGM based on route
   useEffect(() => {
     if (!appReady) return;
 
     if (pathname.startsWith('/game')) {
-      // In Game -> BGM 1
       SoundManager.playMusic('bgm1', 0.3);
     } else {
-      // Menu / Lobby / Home -> BGM 3
       SoundManager.playMusic('bgm3', 0.5);
     }
   }, [pathname, appReady]);
 
   const onLayoutRootView = useCallback(async () => {
     if (appReady) {
-      // This tells the native splash screen to hide immediately!
-      // We do this as soon as the app is ready, to show our AnimatedSplashScreen
+      // Hide native splash so our premium index.tsx screen takes over
       await SplashScreen.hideAsync();
     }
   }, [appReady]);
@@ -85,10 +77,14 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%', backgroundColor: '#1a0505' }} onLayout={onLayoutRootView}>
+    <GestureHandlerRootView
+      style={{ flex: 1, minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%', backgroundColor: '#1a0a00' }}
+      onLayout={onLayoutRootView}
+    >
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <LinearGradient
-          colors={['#2c0b0b', '#0b2c1d']}
+          colors={['#1a0a00', '#0d1f0d', '#0b1a2c']}
+          locations={[0, 0.5, 1]}
           style={{ flex: 1 }}
         >
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
@@ -103,17 +99,10 @@ export default function RootLayout() {
               name="modal"
               options={{
                 presentation: 'modal',
-                animation: 'slide_from_bottom'
+                animation: 'slide_from_bottom',
               }}
             />
           </Stack>
-
-          {/* Animated Splash Screen Overlay */}
-          {!splashAnimationFinished && (
-            <AnimatedSplashScreen
-              onAnimationFinish={() => setSplashAnimationFinished(true)}
-            />
-          )}
 
           <StatusBar style="light" />
         </LinearGradient>
