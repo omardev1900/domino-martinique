@@ -1,190 +1,374 @@
 import React, { useMemo, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions, TouchableOpacity, Text } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, FadeIn, ZoomIn, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, StyleSheet, ScrollView, useWindowDimensions, TouchableOpacity } from 'react-native';
+import Animated, {
+    useAnimatedStyle, useSharedValue,
+    FadeIn, ZoomIn, withRepeat, withTiming, withSequence
+} from 'react-native-reanimated';
 import { GameState, Domino } from '../core/types';
 import { DominoTile } from './DominoTile';
 import { Ionicons } from '@expo/vector-icons';
-import { TABLE_THEMES, TableTheme } from '../core/themes/tableThemes';
+import { TableTheme } from '../core/themes/tableThemes';
 import { getValidMoves, ValidMove } from '../core/DominoEngine';
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  GRID CONSTANTS — Never change with screen size. Only 'scale' adapts.
+// ═══════════════════════════════════════════════════════════════════════════
+const TILES_PER_ROW = 10;
+const T = 42;                 // base unit (half-tile)
+const H_W = T * 2;            // horizontal tile width (84)
+const H_H = T;                // horizontal tile height (42)
+const V_W = T;                // vertical tile width (42)
+const V_H = T * 2;            // vertical tile height (84)
+const GAP = 4;                // gap between tiles
+const ROW_GAP = 14;           // vertical gap between rows
+const CELL = H_W + GAP;       // one grid cell advance (88)
+const ROW_STEP = V_H + ROW_GAP; // vertical step between rows (98)
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  TYPES
+// ═══════════════════════════════════════════════════════════════════════════
+interface PlacedTile {
+    domino: Domino;
+    isReversed: boolean;
+    x: number;   // left edge in natural coords (anchor = 0,0)
+    y: number;   // top edge in natural coords
+    orientation: 'horizontal' | 'vertical';
+    width: number;
+    height: number;
+}
+
+export interface GameTableRef {
+    measureTile: (id: string, cb: (x: number, y: number, w: number, h: number) => void) => void;
+}
 
 interface GameTableProps {
     gameState: GameState;
     theme?: TableTheme;
-    pendingDomino?: Domino | null; // The domino currently being played
+    pendingDomino?: Domino | null;
     onSideSelect?: (side: 'left' | 'right') => void;
     hiddenDominoId?: string | null;
 }
 
-interface VisualTile {
-    domino: Domino;
-    isReversed: boolean;
+// ═══════════════════════════════════════════════════════════════════════════
+//  BIDIRECTIONAL LAYOUT — Anchor-centered, ZiMAD style
+//
+//  The first domino is the ANCHOR at (0, 0).
+//
+//  RIGHT side: tiles grow to +X.  At row limit → corner DOWN → new row ←
+//  LEFT side:  tiles grow to -X.  At row limit → corner UP   → new row →
+//
+//  Positions are in a coordinate system centered on the anchor.
+//  We then compute the bounding box and translate everything to positive
+//  coordinates for rendering.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
+    tiles: PlacedTile[];
+    bounds: { minX: number; minY: number; maxX: number; maxY: number };
+} {
+    if (sequence.length === 0) {
+        return { tiles: [], bounds: { minX: 0, minY: 0, maxX: 0, maxY: 0 } };
+    }
+
+    const allTiles: PlacedTile[] = [];
+
+    // ── FIND THE ANCHOR ──────────────────────────────────────────────────
+    // The sequence is: [leftN, ..., left1, ANCHOR(sideAtTable='left'), right1, ..., rightM]
+    // Left plays are unshifted (prepended), so sequence[0] is the MOST RECENT left play.
+    // The anchor is the LAST item with sideAtTable='left' (right before the first 'right' item).
+    let anchorIndex = sequence.length - 1; // default: all 'left', anchor is last
+    for (let i = 0; i < sequence.length; i++) {
+        if (sequence[i].sideAtTable === 'right') {
+            anchorIndex = i - 1;
+            break;
+        }
+    }
+
+    const anchorItem = sequence[anchorIndex];
+
+    // ── ANCHOR TILE ──────────────────────────────────────────────────────
+    const anchorIsDouble = anchorItem.domino.isDouble;
+    const anchorW = anchorIsDouble ? V_W : H_W;
+    const anchorH = anchorIsDouble ? V_H : H_H;
+    const anchorX = -anchorW / 2;
+    const anchorY = -anchorH / 2;
+
+    allTiles.push({
+        domino: anchorItem.domino,
+        isReversed: anchorItem.isReversed,
+        x: anchorX,
+        y: anchorY,
+        orientation: anchorIsDouble ? 'vertical' : 'horizontal',
+        width: anchorW,
+        height: anchorH,
+    });
+
+    // ── Build left & right chains ────────────────────────────────────────
+    // Left chain: sequence[0..anchorIndex-1], REVERSED so closest-to-anchor is first
+    const leftChain: typeof sequence = [];
+    for (let i = anchorIndex - 1; i >= 0; i--) {
+        leftChain.push(sequence[i]);
+    }
+    // Right chain: sequence[anchorIndex+1..end], already in correct order
+    const rightChain: typeof sequence = [];
+    for (let i = anchorIndex + 1; i < sequence.length; i++) {
+        rightChain.push(sequence[i]);
+    }
+
+    // ── Helper: lay tiles in one direction ───────────────────────────────
+    // dir: initial horizontal direction (1 = right, -1 = left)
+    // verticalGrowth: 1 = DOWN (for right side), -1 = UP (for left side)
+    function layChain(
+        chain: typeof sequence,
+        dir: 1 | -1,
+        verticalGrowth: 1 | -1,
+        startCursorX: number,
+        rowCenterY: number,
+    ): PlacedTile[] {
+        const tiles: PlacedTile[] = [];
+        let cursor = startCursorX;   // left-edge (dir=1) or right-edge (dir=-1)
+        let curY = rowCenterY;       // center Y of current row
+        let rowCount = 0;
+        let currentDir = dir;
+
+        for (let i = 0; i < chain.length; i++) {
+            const item = chain[i];
+            const isDouble = item.domino.isDouble;
+
+            if (rowCount >= TILES_PER_ROW) {
+                // ── CORNER TILE ──────────────────────────────────────────
+                const cW = V_W;
+                const cH = V_H;
+                const cLeft = currentDir === 1 ? cursor : cursor - cW;
+                const cTop = verticalGrowth === 1
+                    ? curY - H_H / 2
+                    : curY - V_H + H_H / 2;
+
+                tiles.push({
+                    domino: item.domino,
+                    isReversed: item.isReversed,
+                    x: cLeft,
+                    y: cTop,
+                    orientation: 'vertical',
+                    width: cW,
+                    height: cH,
+                });
+
+                // Move to next row
+                curY += ROW_STEP * verticalGrowth;
+                currentDir = currentDir === 1 ? -1 : 1;
+                cursor = currentDir === 1 ? cLeft + cW + GAP : cLeft - GAP;
+                rowCount = 0;
+                continue;
+            }
+
+            // ── NORMAL TILE ──────────────────────────────────────────────
+            const tW = isDouble ? V_W : H_W;
+            const tH = isDouble ? V_H : H_H;
+            const tLeft = currentDir === 1 ? cursor : cursor - tW;
+            const tTop = curY - tH / 2;
+
+            // DO NOT flip isReversed — the engine already computes it correctly
+            // for the visual left-to-right sequence layout.
+            tiles.push({
+                domino: item.domino,
+                isReversed: item.isReversed,
+                x: tLeft,
+                y: tTop,
+                orientation: isDouble ? 'vertical' : 'horizontal',
+                width: tW,
+                height: tH,
+            });
+
+            cursor = currentDir === 1 ? tLeft + tW + GAP : tLeft - GAP;
+            rowCount++;
+        }
+        return tiles;
+    }
+
+    // ── RIGHT CHAIN: starts right of anchor, wraps DOWN ──────────────────
+    const rightStart = anchorX + anchorW + GAP;
+    const rightTiles = layChain(rightChain, 1, 1, rightStart, 0);
+
+    // ── LEFT CHAIN: starts left of anchor, wraps UP ──────────────────────
+    const leftStart = anchorX - GAP;
+    const leftTiles = layChain(leftChain, -1, -1, leftStart, 0);
+
+
+    allTiles.push(...rightTiles, ...leftTiles);
+
+    // ── Compute bounding box ─────────────────────────────────────────────
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const t of allTiles) {
+        minX = Math.min(minX, t.x);
+        minY = Math.min(minY, t.y);
+        maxX = Math.max(maxX, t.x + t.width);
+        maxY = Math.max(maxY, t.y + t.height);
+    }
+
+    return { tiles: allTiles, bounds: { minX, minY, maxX, maxY } };
 }
 
-export interface GameTableRef {
-    measureTile: (id: string, callback: (x: number, y: number, width: number, height: number) => void) => void;
-}
-
-/**
- * Composant GameTable : Gère l'affichage du plateau de jeu et des dominos posés.
- */
-export const GameTable = React.forwardRef<GameTableRef, GameTableProps>(({
-    gameState,
-    pendingDomino,
-    onSideSelect,
-    theme = 'luxury',
-    hiddenDominoId
-}, ref) => {
-    const themeColors = TABLE_THEMES[theme];
+// ═══════════════════════════════════════════════════════════════════════════
+//  COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
+    { gameState, pendingDomino, onSideSelect, hiddenDominoId },
+    ref
+) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const isLandscape = screenWidth > screenHeight;
-    const scale = useSharedValue(1);
     const pulse = useSharedValue(1);
-
     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
 
     React.useImperativeHandle(ref, () => ({
-        measureTile: (id: string, callback: (x: number, y: number, width: number, height: number) => void) => {
-            const tileRef = tileRefs.current[id];
-            if (tileRef) {
-                tileRef.measure((x, y, width, height, pageX, pageY) => {
-                    callback(pageX, pageY, width, height);
-                });
-            }
+        measureTile: (id, cb) => {
+            tileRefs.current[id]?.measure((x, y, w, h, pageX, pageY) => cb(pageX, pageY, w, h));
         },
     }));
 
-    // Filter which arrows should be shown based on actual validity using the new engine
+    // Valid-move arrows
     const showLeftArrow = useMemo(() => {
         if (!pendingDomino || !onSideSelect) return false;
-        const validMoves = getValidMoves([pendingDomino], { left: gameState.table.leftValue, right: null });
-        return validMoves.some((m: ValidMove) => m.side === 'left' || m.side === 'start');
+        return getValidMoves([pendingDomino], { left: gameState.table.leftValue, right: null })
+            .some((m: ValidMove) => m.side === 'left' || m.side === 'start');
     }, [pendingDomino, gameState.table.leftValue, onSideSelect]);
 
     const showRightArrow = useMemo(() => {
         if (!pendingDomino || !onSideSelect) return false;
-        const validMoves = getValidMoves([pendingDomino], { left: null, right: gameState.table.rightValue });
-        return validMoves.some((m: ValidMove) => m.side === 'right' || m.side === 'start');
+        return getValidMoves([pendingDomino], { left: null, right: gameState.table.rightValue })
+            .some((m: ValidMove) => m.side === 'right' || m.side === 'start');
     }, [pendingDomino, gameState.table.rightValue, onSideSelect]);
 
-
-    // Dynamic Zoom Logic
-    // Dynamic Zoom Logic - DISABLED for Premium Feel (User Request)
-    useEffect(() => {
-        scale.value = withSpring(1, { damping: 15, stiffness: 100 });
-    }, []);
-
-    // Pulsing Animation for selection arrows
+    // Pulse animation for arrows
     useEffect(() => {
         if (pendingDomino) {
             pulse.value = withRepeat(
-                withSequence(
-                    withTiming(1.3, { duration: 800 }),
-                    withTiming(1, { duration: 800 })
-                ),
-                -1,
-                true
+                withSequence(withTiming(1.3, { duration: 800 }), withTiming(1, { duration: 800 })),
+                -1, true
             );
-        } else {
-            pulse.value = 1;
-        }
+        } else { pulse.value = 1; }
     }, [pendingDomino]);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }]
-    }));
 
     const animatedPulseStyle = useAnimatedStyle(() => ({
         transform: [{ scale: pulse.value }],
-        opacity: withTiming(pendingDomino ? 0.6 / pulse.value : 0)
+        opacity: withTiming(pendingDomino ? 0.6 / pulse.value : 0),
     }));
 
-    const visualSequence = useMemo(() => {
-        const list: VisualTile[] = [];
-        gameState.table.sequence.forEach((item) => {
-            list.push({
-                domino: item.domino,
-                isReversed: item.isReversed
-            });
-        });
-        return list;
+    // ── Compute layout ───────────────────────────────────────────────────
+    const { placedTiles, canvasW, canvasH, offsetX, offsetY } = useMemo(() => {
+        const { tiles, bounds } = computeBidirectionalLayout(gameState.table.sequence);
+        const w = bounds.maxX - bounds.minX;
+        const h = bounds.maxY - bounds.minY;
+        // Translate all tiles so that top-left = (0,0) in the canvas
+        const ox = -bounds.minX;
+        const oy = -bounds.minY;
+        return { placedTiles: tiles, canvasW: Math.max(w, 1), canvasH: Math.max(h, 1), offsetX: ox, offsetY: oy };
     }, [gameState.table.sequence]);
+
+    // ── Scale to fit screen ──────────────────────────────────────────────
+    const availW = screenWidth * 0.94;
+    const availH = screenHeight * (isLandscape ? 0.5 : 0.35);
+    const boardScale = Math.min(1, availW / canvasW, availH / canvasH);
+    const scaledW = canvasW * boardScale;
+    const scaledH = canvasH * boardScale;
+
+    // Find spatially leftmost & rightmost tiles for arrow positioning
+    const leftmostTile = useMemo(() => {
+        if (placedTiles.length === 0) return null;
+        return placedTiles.reduce((best, t) => t.x < best.x ? t : best, placedTiles[0]);
+    }, [placedTiles]);
+
+    const rightmostTile = useMemo(() => {
+        if (placedTiles.length === 0) return null;
+        return placedTiles.reduce((best, t) =>
+            (t.x + t.width) > (best.x + best.width) ? t : best, placedTiles[0]);
+    }, [placedTiles]);
 
     return (
         <View style={[styles.container, isLandscape && styles.containerLandscape]}>
-            <View style={[styles.tableOuter, { width: '100%', height: '100%', maxWidth: undefined, aspectRatio: undefined, backgroundColor: 'transparent', padding: 0, shadowOpacity: 0, borderWidth: 0 }]}>
-                <View style={[styles.tableInner, { borderWidth: 0, borderRadius: 0 }]}>
-                    <ScrollView
-                        horizontal
-                        contentContainerStyle={styles.scrollContent}
-                        showsHorizontalScrollIndicator={true}
-                        persistentScrollbar={true}
-                    >
-                        <Animated.View style={[styles.dominosArea, animatedStyle]}>
-                            <View style={styles.tileSequence}>
-                                {/* LEFT ARROW */}
-                                {showLeftArrow && (
-                                    <TouchableOpacity
-                                        style={[styles.sideSelector, { left: -60 }]}
-                                        onPress={() => onSideSelect?.('left')}
-                                    >
-                                        <Animated.View
-                                            entering={ZoomIn.duration(300)}
-                                            style={styles.sideSelectorInner}
-                                        >
-                                            <Ionicons name="chevron-back" size={32} color="#FFD700" />
-                                            {/* Pulsing Ring */}
-                                            <Animated.View style={[styles.pulseRing, animatedPulseStyle]} />
-                                        </Animated.View>
-                                    </TouchableOpacity>
-                                )}
-
-                                {visualSequence.map((item, idx) => {
-                                    const isHidden = item.domino.id === hiddenDominoId;
-                                    return (
-                                        <View
-                                            key={item.domino.id}
-                                            ref={(el) => (tileRefs.current[item.domino.id] = el as any)}
-                                            style={[styles.tileWrapper, isHidden && { opacity: 0 }]}
-                                        >
-                                            <DominoTile
-                                                left={item.isReversed ? item.domino.right : item.domino.left}
-                                                right={item.isReversed ? item.domino.left : item.domino.right}
-                                                orientation={item.domino.isDouble ? 'vertical' : 'horizontal'}
-                                                size={isLandscape ? 38 : 42} // Slightly larger by default
-                                                disabled
-                                                noMargin
-                                                entering={FadeIn.delay(idx * 50).duration(400)}
-                                            />
-                                        </View>
-                                    );
-                                })}
-
-                                {/* RIGHT ARROW */}
-                                {showRightArrow && (
-                                    <TouchableOpacity
-                                        style={[styles.sideSelector, styles.sideSelectorRight]}
-                                        onPress={() => onSideSelect?.('right')}
-                                    >
-                                        <Animated.View
-                                            entering={ZoomIn.duration(300)}
-                                            style={styles.sideSelectorInner}
-                                        >
-                                            <Ionicons name="chevron-forward" size={32} color="#FFD700" />
-                                            <Animated.View style={[styles.pulseRing, animatedPulseStyle]} />
-                                        </Animated.View>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        </Animated.View>
-                    </ScrollView>
+            <ScrollView
+                contentContainerStyle={[styles.scrollContent, { minHeight: Math.max(200, scaledH + 40) }]}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Outer wrapper at SCALED size */}
+                <View style={{ width: scaledW, height: scaledH, overflow: 'visible' }}>
+                    {/* Inner canvas at NATURAL size, scaled down via transform */}
+                    <View style={[
+                        styles.snakeCanvas,
+                        {
+                            width: canvasW,
+                            height: canvasH,
+                            transformOrigin: 'top left',
+                            transform: [{ scale: boardScale }],
+                        }
+                    ]}>
+                        {/* DOMINO TILES */}
+                        {placedTiles.map((item, idx) => {
+                            const isHidden = item.domino.id === hiddenDominoId;
+                            return (
+                                <View
+                                    key={item.domino.id}
+                                    ref={(el) => (tileRefs.current[item.domino.id] = el as any)}
+                                    style={[
+                                        styles.tileAbsolute,
+                                        {
+                                            left: item.x + offsetX,
+                                            top: item.y + offsetY,
+                                            width: item.width,
+                                            height: item.height,
+                                        },
+                                        isHidden && { opacity: 0 },
+                                    ]}
+                                >
+                                    <DominoTile
+                                        left={item.isReversed ? item.domino.right : item.domino.left}
+                                        right={item.isReversed ? item.domino.left : item.domino.right}
+                                        orientation={item.orientation}
+                                        size={T}
+                                        disabled
+                                        noMargin
+                                        entering={FadeIn.delay(idx * 30).duration(300)}
+                                    />
+                                </View>
+                            );
+                        })}
+                    </View>
                 </View>
-            </View>
+            </ScrollView>
+
+            {/* SIDE SELECTION ARROWS — Rendered OUTSIDE the scaled canvas at full size */}
+            {showLeftArrow && (
+                <TouchableOpacity
+                    style={[styles.sideArrow, styles.sideArrowLeft]}
+                    onPress={() => onSideSelect?.('left')}
+                    activeOpacity={0.7}
+                >
+                    <Animated.View entering={ZoomIn.duration(300)} style={styles.sideArrowInner}>
+                        <Animated.View style={[styles.sideArrowPulse, animatedPulseStyle]} />
+                        <Ionicons name="arrow-back" size={30} color="#FFF" />
+                        <Animated.Text style={styles.sideArrowLabel}>◀ GAUCHE</Animated.Text>
+                    </Animated.View>
+                </TouchableOpacity>
+            )}
+            {showRightArrow && (
+                <TouchableOpacity
+                    style={[styles.sideArrow, styles.sideArrowRight]}
+                    onPress={() => onSideSelect?.('right')}
+                    activeOpacity={0.7}
+                >
+                    <Animated.View entering={ZoomIn.duration(300)} style={styles.sideArrowInner}>
+                        <Animated.View style={[styles.sideArrowPulse, animatedPulseStyle]} />
+                        <Ionicons name="arrow-forward" size={30} color="#FFF" />
+                        <Animated.Text style={styles.sideArrowLabel}>DROITE ▶</Animated.Text>
+                    </Animated.View>
+                </TouchableOpacity>
+            )}
         </View>
     );
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -198,95 +382,61 @@ const styles = StyleSheet.create({
         paddingTop: 40,
         paddingBottom: 80,
     },
-    tableOuter: {
-        width: '100%', // Full Screen Width
-        height: '100%', // Full Screen Height
-        backgroundColor: 'transparent',
-        padding: 0,
-        margin: 0,
-    },
-    tableBorderInner: {
-        display: 'none', // Remove visual artifacts
-    },
-    tableInner: {
-        flex: 1,
-        backgroundColor: 'transparent',
-    },
     scrollContent: {
         alignItems: 'center',
         justifyContent: 'center',
         flexGrow: 1,
-        paddingHorizontal: 100, // Large padding to ensure ends are visible
+        paddingVertical: 10,
     },
-    dominosArea: {
-        justifyContent: 'center',
-        alignItems: 'center',
+    snakeCanvas: {
+        position: 'relative',
     },
-    tileSequence: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    tileWrapper: {
+    tileAbsolute: {
+        position: 'absolute',
         shadowColor: '#000',
         shadowOffset: { width: 2, height: 2 },
         shadowOpacity: 0.5,
         shadowRadius: 3,
         elevation: 5,
     },
-    sideSelector: {
+    sideArrow: {
         position: 'absolute',
-        top: '50%',
-        marginTop: -30,
-        zIndex: 500,
-        padding: 20, // Increased hit area
+        zIndex: 600,
+        top: '40%',
     },
-    sideSelectorRight: {
-        right: -60,
+    sideArrowLeft: {
+        left: 4,
     },
-    sideSelectorInner: {
-        width: 70, // Slightly larger
-        height: 70,
-        borderRadius: 35,
-        backgroundColor: 'rgba(0,0,0,0.85)',
-        borderWidth: 3,
+    sideArrowRight: {
+        right: 4,
+    },
+    sideArrowInner: {
+        width: 64,
+        height: 80,
+        borderRadius: 16,
+        backgroundColor: 'rgba(0, 0, 0, 0.88)',
+        borderWidth: 2.5,
         borderColor: '#FFD700',
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#FFD700',
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 15,
-        elevation: 15,
+        shadowOpacity: 0.9,
+        shadowRadius: 18,
+        elevation: 20,
     },
-    pulseRing: {
+    sideArrowPulse: {
         ...StyleSheet.absoluteFillObject,
-        borderRadius: 35,
-        borderWidth: 4,
+        borderRadius: 16,
+        borderWidth: 3,
         borderColor: '#FFD700',
     },
-    talonMortContainer: {
-        position: 'absolute',
-        top: 20,
-        right: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-        gap: 6,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    talonMortLandscape: {
-        top: 15,
-        right: 25,
-    },
-    talonMortText: {
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 10,
-        fontWeight: 'bold',
+    sideArrowLabel: {
+        color: '#FFD700',
+        fontSize: 9,
+        fontWeight: '800',
+        marginTop: 4,
         letterSpacing: 1,
-    }
+        textTransform: 'uppercase',
+    },
 });

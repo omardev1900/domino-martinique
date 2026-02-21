@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
-import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image } from 'react-native';
+import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated';
 import { useNavigation } from 'expo-router';
@@ -62,6 +62,28 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [boudedPlayerId, setBoudedPlayerId] = useState<PlayerId | null>(null);
     const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Fullscreen API (web only)
+    useEffect(() => {
+        if (Platform.OS !== 'web') return;
+        const handleChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleChange);
+        return () => document.removeEventListener('fullscreenchange', handleChange);
+    }, []);
+
+    const toggleFullscreen = useCallback(() => {
+        if (Platform.OS !== 'web') return;
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.warn('Fullscreen request failed:', err);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }, []);
 
     const [hiddenDominoId, setHiddenDominoId] = useState<string | null>(null);
     const [flyingDomino, setFlyingDomino] = useState<FlyingDominoData | null>(null);
@@ -900,8 +922,37 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 // Multiplayer: return to lobby or handle vote
                 handleReplay();
             }
+        } else if (gameState.phase === 'BOUDE') {
+            // CRITICAL FIX: Résoudre le boudé AVANT de passer au round suivant
+            // resolveBoude() détermine le gagnant (plus petit score en main) et
+            // appelle finalizeRound() qui attribue +1 étoile, +1 roundWin, etc.
+            const { newState: resolvedState, isTie } = resolveBoude(gameState);
+
+            if (isTie) {
+                // Égalité parfaite → on relance simplement sans attribution
+                console.log('[Boude] TIE detected — restarting round without scoring');
+                // Update state to resolved (still BOUDE but we need to restart)
+                if (isSoloMode || !gameId) {
+                    setGameState(resolvedState);
+                } else {
+                    updateGameState(gameId, resolvedState);
+                }
+                // Then deal a new round
+                setTimeout(() => handleNextRound(), 100);
+            } else {
+                // Gagnant identifié → state est maintenant PARTIE_END, MANCHE_END ou MATCH_END
+                console.log(`[Boude] Winner resolved, new phase: ${resolvedState.phase}`);
+                if (isSoloMode || !gameId) {
+                    setGameState(resolvedState);
+                } else {
+                    updateGameState(gameId, resolvedState);
+                }
+                // If the resolved state ends the match, the overlay will reappear with MATCH_END
+                // Otherwise, the overlay will reappear with PARTIE_END/MANCHE_END and
+                // clicking continue will call handleNextRound() as expected.
+            }
         } else {
-            // Round / Manche / Boude End -> Go to next round/manche
+            // Round / Manche End -> Go to next round/manche
             handleNextRound();
         }
     };
@@ -1262,6 +1313,23 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             >
                 <Ionicons name={isSoundEnabled ? "volume-high" : "volume-mute"} size={22} color="#FFD700" />
             </TouchableOpacity>
+
+            {/* FULLSCREEN BUTTON - Web/Mobile Browser Only */}
+            {Platform.OS === 'web' && (
+                <TouchableOpacity
+                    style={[
+                        styles.muteButton,
+                        {
+                            top: Math.max(isLandscape ? 10 : insets.top + 10, 20),
+                            left: width / 2 + 80,
+                        }
+                    ]}
+                    onPress={toggleFullscreen}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name={isFullscreen ? "contract-outline" : "expand-outline"} size={22} color="#FFD700" />
+                </TouchableOpacity>
+            )}
 
             {/* ROOM INFO CARD - Floating card with room code + game objective */}
             {!isSoloMode && gameId && showRoomInfo && (

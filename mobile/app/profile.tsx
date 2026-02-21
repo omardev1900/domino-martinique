@@ -148,7 +148,7 @@ export default function ProfileScreen() {
 
     const renderAvatarGrid = () => (
         <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Choisir un avatar (sauvegarde auto)</Text>
+            <Text style={styles.sectionTitle}>Votre avatar</Text>
 
             {/* Image Avatars - Compact grid for left side */}
             <View style={styles.avatarGridCompact}>
@@ -233,6 +233,19 @@ export default function ProfileScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
             >
+                {/* Header with Back Button */}
+                <View style={[styles.header, { paddingTop: insets.top || 10 }]}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => router.back()}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="chevron-back" size={28} color="#FFD700" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>PROFIL</Text>
+                    <View style={{ width: 48 }} /> {/* Spacer for centering the title */}
+                </View>
+
                 <ScrollView
                     contentContainerStyle={[
                         styles.scrollContent,
