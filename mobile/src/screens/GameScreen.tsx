@@ -546,6 +546,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     // Multiplayer Start Handler
     const handleStartGame = async () => {
+        SoundManager.unlockAudio();
         if (!gameId || !roomData) return;
         setIsStarting(true);
 
@@ -681,6 +682,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     }, [gameState, isPaused, isProcessing, isSoloMode, gameId, showRoundBanner]);
 
     const handlePlayDomino = async (domino: Domino, startPos?: { x: number, y: number }) => {
+        SoundManager.unlockAudio();
         // ATOMIC GUARD
         if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused || showRoundBanner) {
             return;
@@ -753,6 +755,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     };
 
     const handlePassTurn = async () => {
+        SoundManager.unlockAudio();
         // ATOMIC GUARD
         if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) {
             console.log("[handlePassTurn] Action blocked by guard");
@@ -940,6 +943,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     };
 
     const handleVoteRematch = async () => {
+        SoundManager.unlockAudio();
         if (!gameId) return;
         try {
             await voteForRematch(gameId, localPlayerId);

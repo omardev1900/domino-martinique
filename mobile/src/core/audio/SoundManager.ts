@@ -1,4 +1,5 @@
 import { createAudioPlayer, AudioPlayer, setAudioModeAsync, AudioSource } from 'expo-audio';
+import { Platform } from 'react-native';
 import SettingsManager from '../SettingsManager';
 
 type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'boude' | 'toktok';
@@ -27,6 +28,12 @@ class SoundManager {
     private lastPlayTime: Record<string, number> = {};
     private readonly DEBOUNCE_MS = 100;
 
+    // WEB AUTOPLAY GUARD: Browsers require a user gesture before calling .play()
+    // On mobile (native), audio can always play. On Web, we wait for unlockAudio().
+    private userInteracted = Platform.OS !== 'web'; // true immediately on native, false on web
+    private pendingMusicName: ('bgm1' | 'bgm2' | 'bgm3') | null = null;
+    private pendingMusicVolume = 0.5;
+
     private constructor() { }
 
     static getInstance(): SoundManager {
@@ -36,13 +43,34 @@ class SoundManager {
         return SoundManager.instance;
     }
 
+    /**
+     * Call this on the FIRST user interaction (tap, click) to unlock Web audio.
+     * This follows the browser autoplay policy — audio can only play after a gesture.
+     */
+    unlockAudio() {
+        if (this.userInteracted) return; // Already unlocked
+        this.userInteracted = true;
+        console.log('[SoundManager] Audio unlocked by user interaction.');
+
+        // Resume any pending background music that was requested before the gesture
+        if (this.pendingMusicName) {
+            this.playMusic(this.pendingMusicName, this.pendingMusicVolume);
+            this.pendingMusicName = null;
+        }
+    }
+
     async preloadSounds() {
         try {
-            // Configure Audio behavior (crucial for silent mode)
-            await setAudioModeAsync({
-                allowsRecording: false,
-                playsInSilentMode: true,
-            });
+            // Configure Audio behavior (crucial for silent mode on native)
+            // On Web, setAudioModeAsync may not exist — guard with try/catch
+            try {
+                await setAudioModeAsync({
+                    allowsRecording: false,
+                    playsInSilentMode: true,
+                });
+            } catch (e) {
+                console.warn('[SoundManager] setAudioModeAsync not supported on this platform:', e);
+            }
 
             // Load sounds
             const soundMap: Record<SoundName, AudioSource> = {
@@ -62,10 +90,8 @@ class SoundManager {
 
             for (const [key, source] of Object.entries(soundMap)) {
                 try {
-                    // createAudioPlayer is synchronous in factory but handles loading internally
                     const player = createAudioPlayer(source);
                     this.sounds[key as SoundName] = player;
-                    // console.log(`Loaded ${key}`);
                 } catch (e) {
                     console.error(`Error loading ${key}:`, e);
                 }
@@ -81,9 +107,17 @@ class SoundManager {
         await this.playSound(randomClack);
     }
 
-    // Background Music Methods
+    // ─── Background Music ─────────────────────────────────────────────────────
 
     async playMusic(name: 'bgm1' | 'bgm2' | 'bgm3', volume = 0.5) {
+        // On Web, defer until user has interacted (browser autoplay policy)
+        if (!this.userInteracted) {
+            console.warn(`[SoundManager] Audio blocked on Web (no gesture yet). Music "${name}" queued.`);
+            this.pendingMusicName = name;
+            this.pendingMusicVolume = volume;
+            return;
+        }
+
         try {
             if (this.currentMusicName === name && this.currentMusic) {
                 // Already playing this track
@@ -111,7 +145,7 @@ class SoundManager {
                 console.warn(`Music ${name} not found`);
             }
         } catch (error) {
-            console.warn(`Error playing music ${name}`, error);
+            console.warn(`[SoundManager] Error playing music "${name}" — browser may have blocked autoplay:`, error);
         }
     }
 
@@ -123,6 +157,8 @@ class SoundManager {
                 this.currentMusic = null;
                 this.currentMusicName = null;
             }
+            // Also clear any pending music
+            this.pendingMusicName = null;
         } catch (error) {
             console.warn('Error stopping music', error);
         }
@@ -135,8 +171,15 @@ class SoundManager {
     }
 
     async playSound(name: SoundName) {
+        // On Web, block all sound until user has interacted
+        if (!this.userInteracted) {
+            console.warn(`[SoundManager] Sound "${name}" blocked — waiting for user gesture.`);
+            return;
+        }
+
         try {
             if (!SettingsManager.getSettings().isSoundEnabled) return;
+
             // DEBOUNCE: Prevent same sound playing within 100ms
             const now = Date.now();
             const lastTime = this.lastPlayTime[name] || 0;
@@ -147,24 +190,23 @@ class SoundManager {
 
             const player = this.sounds[name];
             if (player) {
-                // Reset to start just in case
                 player.seekTo(0);
                 player.play();
             }
             // Silently ignore if sound not loaded yet
         } catch (error) {
-            console.warn(`Error playing sound ${name}`, error);
+            console.warn(`[SoundManager] Error playing sound "${name}":`, error);
         }
     }
 
     async unloadSounds() {
         for (const player of Object.values(this.sounds)) {
             if (player) {
-                // Remove player from memory
                 player.remove();
             }
         }
     }
+
     async toggleMute(): Promise<boolean> {
         const current = SettingsManager.getSettings().isSoundEnabled;
         const newState = !current;

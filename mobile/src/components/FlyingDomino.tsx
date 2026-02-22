@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -16,22 +15,51 @@ interface FlyingDominoProps {
     onFinished: () => void;
 }
 
+// Animation duration in ms — fast and snappy
+const ANIMATION_DURATION = 400;
+
 export const FlyingDomino: React.FC<FlyingDominoProps> = ({ data, onFinished }) => {
     const progress = useSharedValue(0);
 
     useEffect(() => {
+        // If endPoint is not available (layout measurement failed, common on Web),
+        // run a quick scale-in "pop" at the origin and finish immediately.
+        if (!data.endPoint) {
+            progress.value = withTiming(1, {
+                duration: ANIMATION_DURATION,
+                easing: Easing.out(Easing.back(1.5)),
+            }, (finished) => {
+                if (finished) runOnJS(onFinished)();
+            });
+            return;
+        }
+
         progress.value = withTiming(1, {
-            duration: 2500,
-            easing: Easing.bezier(0.25, 0.1, 0.25, 1) // Smooth & majestic
+            duration: ANIMATION_DURATION,
+            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
         }, (finished) => {
-            if (finished) {
-                runOnJS(onFinished)();
-            }
+            if (finished) runOnJS(onFinished)();
         });
     }, []);
 
     const animatedStyle = useAnimatedStyle(() => {
-        if (!data.endPoint) return { opacity: 0 };
+        // Fallback: no endPoint — show a scale-in pop at the startPoint position
+        if (!data.endPoint) {
+            const scale = interpolate(progress.value, [0, 0.6, 1], [0, 1.2, 1]);
+            const opacity = interpolate(progress.value, [0, 0.1, 0.9, 1], [0, 1, 1, 0]);
+            return {
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                transform: [
+                    { translateX: data.startPoint.x },
+                    { translateY: data.startPoint.y },
+                    { scale },
+                ],
+                opacity,
+                zIndex: 1000,
+            };
+        }
 
         const translateX = interpolate(
             progress.value,
@@ -44,12 +72,11 @@ export const FlyingDomino: React.FC<FlyingDominoProps> = ({ data, onFinished }) 
             [data.startPoint.y, data.endPoint.y]
         );
 
-        // Effet "Slam" : On part gros (1.5) et on atterrit taille normale (1)
-        // On garde un léger pic à 0.6 pour l'effet de "levée"
+        // Slam effect: starts big (1.4), lands at normal size (1)
         const scale = interpolate(
             progress.value,
-            [0, 0.6, 1],
-            [1.5, 1.1, 1]
+            [0, 0.5, 1],
+            [1.4, 1.15, 1]
         );
 
         const rotate = interpolate(
@@ -75,10 +102,9 @@ export const FlyingDomino: React.FC<FlyingDominoProps> = ({ data, onFinished }) 
     return (
         <Animated.View style={animatedStyle} pointerEvents="none">
             <DominoTile
-                id={data.domino.id}
                 left={data.domino.left}
                 right={data.domino.right}
-                size={34} // Target size on board
+                size={34}
                 noMargin
             />
         </Animated.View>
