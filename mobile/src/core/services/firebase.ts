@@ -75,6 +75,7 @@ export interface RoomOptions {
     gameMode?: GameMode;
     winningCondition?: number;
     turnDuration?: number;
+    startingHandSize?: number;
 }
 
 /**
@@ -108,8 +109,9 @@ export const createRoom = async (
             roomName: roomName || `Table #${Math.floor(Math.random() * 9000) + 1000}`,
             // Game options (set at creation, defaults applied if not provided)
             gameMode: options?.gameMode || 'MANCHE',
-            winningCondition: options?.winningCondition || 3,
-            turnDuration: options?.turnDuration ?? 15,
+            winningCondition: options?.winningCondition || 6,
+            turnDuration: options?.turnDuration ?? 1,
+            startingHandSize: options?.startingHandSize || 3,
         };
 
         // SAFETY: Remove undefined fields which crash Firestore
@@ -215,6 +217,7 @@ export const updateRoomSettings = async (roomId: string, settings: { gameMode?: 
  * Leaving a room
  */
 export const leaveRoom = async (roomId: string, userId: string): Promise<void> => {
+    if (!roomId) return;
     const roomRef = doc(db, ROOMS_COLLECTION, roomId);
     try {
         const roomSnap = await getDoc(roomRef);
@@ -249,8 +252,9 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
         });
         console.log(`Player ${userId} left room ${roomId}`);
     } catch (e) {
-        console.error("Error leaving room: ", e);
-        throw e;
+        console.error("Error leaving room (swallowed for safety):", e);
+        // We swallow the error here because the UI should still proceed to home
+        // even if Firestore update fails (e.g. room already deleted by host)
     }
 };
 

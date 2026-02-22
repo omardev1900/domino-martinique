@@ -57,8 +57,9 @@ export default function LobbyScreen() {
     const [isPrivateRoom, setIsPrivateRoom] = useState(false);
     const [roomNameInput, setRoomNameInput] = useState('');
     const [gameMode, setGameMode] = useState<GameMode>('SCORE');
-    const [winningCondition, setWinningCondition] = useState(15);
-    const [turnDuration, setTurnDuration] = useState(15);
+    const [winningCondition, setWinningCondition] = useState(6);
+    const [turnDuration, setTurnDuration] = useState(1);
+    const [startingHandSize, setStartingHandSize] = useState(3);
 
     // — PUBLIC tab state —
     const [publicRooms, setPublicRooms] = useState<GameRoom[]>([]);
@@ -107,7 +108,7 @@ export default function LobbyScreen() {
         if (!currentUser) return;
         try {
             setLoading(true);
-            const options: RoomOptions = { gameMode, winningCondition, turnDuration };
+            const options: RoomOptions = { gameMode, winningCondition, turnDuration, startingHandSize };
             const newRoomId = await createRoom(
                 currentUser,
                 isPrivateRoom,
@@ -249,6 +250,26 @@ export default function LobbyScreen() {
                         >
                             <Ionicons name="add-circle-outline" size={28} color="#FFD700" />
                         </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Starting Hand Size */}
+                <View style={styles.optionItem}>
+                    <Text style={styles.optionLabel}>
+                        DOMINOS DE DÉPART : <Text style={styles.valueHighlight}>{startingHandSize}</Text>
+                    </Text>
+                    <View style={styles.buttonGroup}>
+                        {([3, 5, 7] as number[]).map(size => (
+                            <TouchableOpacity
+                                key={size}
+                                style={[styles.modeButton, startingHandSize === size && styles.activeModeButton]}
+                                onPress={() => setStartingHandSize(size)}
+                            >
+                                <Text style={[styles.modeButtonText, startingHandSize === size && styles.activeModeButtonText]}>
+                                    {size}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
                     </View>
                 </View>
 

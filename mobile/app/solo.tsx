@@ -15,8 +15,9 @@ export default function SoloScreen() {
 
     const [difficulty, setDifficulty] = useState<Difficulty>('medium');
     const [gameMode, setGameMode] = useState<GameMode>('SCORE');
-    const [winningCondition, setWinningCondition] = useState(15);
-    const [turnDuration, setTurnDuration] = useState(15);
+    const [winningCondition, setWinningCondition] = useState(6);
+    const [turnDuration, setTurnDuration] = useState(1);
+    const [startingHandSize, setStartingHandSize] = useState(3);
 
     const startGame = () => {
         router.push({
@@ -27,7 +28,8 @@ export default function SoloScreen() {
                 difficulty: difficulty,
                 gameMode: gameMode,
                 winningCondition: winningCondition,
-                turnDuration: turnDuration
+                turnDuration: turnDuration,
+                startingHandSize: startingHandSize
             }
         });
     };
@@ -110,7 +112,7 @@ export default function SoloScreen() {
                             <View style={styles.row}>
                                 <TouchableOpacity
                                     style={[styles.choiceButton, gameMode === 'SCORE' && styles.activeChoice]}
-                                    onPress={() => { setGameMode('SCORE'); setWinningCondition(15); }}
+                                    onPress={() => { setGameMode('SCORE'); setWinningCondition(6); }}
                                 >
                                     <Text style={styles.choiceIcon}>🎯</Text>
                                     <Text style={styles.choiceText}>Score</Text>
@@ -185,6 +187,22 @@ export default function SoloScreen() {
                             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, textAlign: 'center', marginTop: 4 }}>
                                 {turnDuration === 0 ? 'Pas de limite de temps' : `Le tour se termine après ${turnDuration}s`}
                             </Text>
+                        </View>
+
+                        {/* Starting Hand Size */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Dominos de départ</Text>
+                            <View style={styles.row}>
+                                {[3, 5, 7].map(size => (
+                                    <TouchableOpacity
+                                        key={size}
+                                        style={[styles.choiceButton, startingHandSize === size && styles.activeChoice]}
+                                        onPress={() => setStartingHandSize(size)}
+                                    >
+                                        <Text style={styles.choiceText}>{size}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         </View>
 
                         <TouchableOpacity style={[styles.startButton, isLandscape && styles.startButtonLandscape]} onPress={startGame}>

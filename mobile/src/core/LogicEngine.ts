@@ -23,13 +23,13 @@ export const shuffleDeck = (): Domino[] => {
 /**
  * Distribution initiale : 3 joueurs x 7 dominos + 7 talon mort
  */
-export const dealGame = (playerNames: string[]): Partial<GameState> => {
+export const dealGame = (playerNames: string[], handSize: number = HAND_SIZE): Partial<GameState> => {
     const deck = shuffleDeck();
     const players: Player[] = playerNames.map((name, i) => ({
         id: `p${i + 1}`,
         name,
-        hand: deck.slice(i * HAND_SIZE, (i + 1) * HAND_SIZE),
-        handSize: HAND_SIZE,
+        hand: deck.slice(i * handSize, (i + 1) * handSize),
+        handSize: handSize,
         currentMancheStars: 0,
         mancheWins: 0,
         totalRoundWins: 0,
@@ -37,9 +37,10 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
         isCochon: false,
         totalCochons: 0,
         isBot: false,
+        wins: 0,
     }));
 
-    const talonMort = deck.slice(players.length * HAND_SIZE);
+    const talonMort = deck.slice(players.length * handSize);
 
     return {
         players,
@@ -59,7 +60,7 @@ export const dealGame = (playerNames: string[]): Partial<GameState> => {
 /**
  * Distribution pour Solo Mode : 3 joueurs (1 humain + 2 bots) x 7 dominos
  */
-export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'easy' | 'medium' | 'expert' | 'legend' = 'medium'): Partial<GameState> => {
+export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'easy' | 'medium' | 'expert' | 'legend' = 'medium', handSize: number = HAND_SIZE): Partial<GameState> => {
     const deck = shuffleDeck();
 
     const getBotAvatar = (diff: string) => {
@@ -79,8 +80,8 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             id: playerId,
             name: playerName,
             avatarId: avatarId,
-            hand: deck.slice(0, HAND_SIZE),
-            handSize: HAND_SIZE,
+            hand: deck.slice(0, handSize),
+            handSize: handSize,
             currentMancheStars: 0,
             mancheWins: 0,
             totalRoundWins: 0,
@@ -88,13 +89,14 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             isCochon: false,
             totalCochons: 0,
             isBot: false,
+            wins: 0,
         },
         {
             id: 'bot-1',
             name: `Bot ${botDifficulty === 'easy' ? 'Débutant' : botDifficulty === 'medium' ? 'Moyen' : botDifficulty === 'expert' ? 'Expert' : 'Légende'}`,
             avatarId: botAvatar,
-            hand: deck.slice(HAND_SIZE, HAND_SIZE * 2),
-            handSize: HAND_SIZE,
+            hand: deck.slice(handSize, handSize * 2),
+            handSize: handSize,
             currentMancheStars: 0,
             mancheWins: 0,
             totalRoundWins: 0,
@@ -102,14 +104,15 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             isCochon: false,
             totalCochons: 0,
             isBot: true,
-            difficulty: botDifficulty
+            difficulty: botDifficulty,
+            wins: 0,
         },
         {
             id: 'bot-2',
             name: `Bot ${botDifficulty === 'easy' ? 'Novice' : botDifficulty === 'medium' ? 'Initié' : botDifficulty === 'expert' ? 'Pro' : 'Maître'}`,
             avatarId: botAvatar,
-            hand: deck.slice(HAND_SIZE * 2, HAND_SIZE * 3),
-            handSize: HAND_SIZE,
+            hand: deck.slice(handSize * 2, handSize * 3),
+            handSize: handSize,
             currentMancheStars: 0,
             mancheWins: 0,
             totalRoundWins: 0,
@@ -117,11 +120,12 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             isCochon: false,
             totalCochons: 0,
             isBot: true,
-            difficulty: botDifficulty
+            difficulty: botDifficulty,
+            wins: 0,
         },
     ];
 
-    const talonMort = deck.slice(HAND_SIZE * 3);
+    const talonMort = deck.slice(handSize * 3);
 
     return {
         players,
@@ -369,10 +373,11 @@ export const determineFirstPlayer = (players: Player[]): string => {
             if (!bestDomino) {
                 bestDomino = { sum, isDouble, playerId: p.id };
             } else {
-                if (isDouble && !bestDomino.isDouble) {
+                const best = bestDomino as BestDomino;
+                if (isDouble && (!best || !best.isDouble)) {
                     bestDomino = { sum, isDouble, playerId: p.id };
-                } else if (isDouble === bestDomino.isDouble) {
-                    if (sum > bestDomino.sum) {
+                } else if (best && isDouble === best.isDouble) {
+                    if (sum > best.sum) {
                         bestDomino = { sum, isDouble, playerId: p.id };
                     }
                 }

@@ -92,6 +92,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     const [readyPlayers, setReadyPlayers] = useState<Record<string, number>>({});
     const [countdown, setCountdown] = useState(3);
     const countdownRef = useRef<any>(null);
+    const shouldContinueRef = useRef(false);
 
     useEffect(() => {
         if (visible) {
@@ -118,8 +119,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 SoundManager.playSound('lose');
             }
 
-            // Start countdown reset
-            setCountdown(3);
+            // Countdown is managed by the auto-continue timer useEffect below
         } else {
             scaleValue.value = 0.5;
             opacityValue.value = 0;
@@ -131,6 +131,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     // AUTO-CONTINUE TIMER
     useEffect(() => {
         if (visible && animationReady && !isMatchOver) {
+            shouldContinueRef.current = false;
             setCountdown(3);
             if (countdownRef.current) clearInterval(countdownRef.current);
 
@@ -138,7 +139,9 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 setCountdown(prev => {
                     if (prev <= 1) {
                         if (countdownRef.current) clearInterval(countdownRef.current);
-                        onContinue();
+                        // Don't call onContinue here (inside setState = during render)
+                        // Mark flag instead, useEffect below will fire it safely
+                        shouldContinueRef.current = true;
                         return 0;
                     }
                     return prev - 1;
@@ -149,7 +152,15 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         return () => {
             if (countdownRef.current) clearInterval(countdownRef.current);
         };
-    }, [visible, animationReady, isMatchOver]);
+    }, [visible, animationReady, isMatchOver, mode]);
+
+    // Safe trigger: fires onContinue AFTER render, when countdown hits 0
+    useEffect(() => {
+        if (countdown === 0 && shouldContinueRef.current) {
+            shouldContinueRef.current = false;
+            onContinue();
+        }
+    }, [countdown]);
 
     const handlePlayerReady = (id: string, pts: number) => {
         setReadyPlayers(prev => {

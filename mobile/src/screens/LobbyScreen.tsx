@@ -35,6 +35,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
     const gameMode = roomData.gameMode || 'MANCHE';
     const winningCondition = roomData.winningCondition || 3;
     const turnDuration = roomData.turnDuration ?? 15;
+    const startingHandSize = roomData.startingHandSize || 7;
 
     // AUTO-START: Lancer automatiquement la partie dès que 3 joueurs sont présents
     useEffect(() => {
@@ -202,6 +203,10 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                     <View style={styles.optionChip}>
                         <Text style={styles.optionChipLabel}>Tour</Text>
                         <Text style={styles.optionChipValue}>{turnDuration === 0 ? 'Illimité' : `${turnDuration}s`}</Text>
+                    </View>
+                    <View style={styles.optionChip}>
+                        <Text style={styles.optionChipLabel}>Dominos</Text>
+                        <Text style={styles.optionChipValue}>{startingHandSize}</Text>
                     </View>
                 </View>
             </Animated.View>

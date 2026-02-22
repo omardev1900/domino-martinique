@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn, ZoomIn, FadeOut } from 'react-native-reanimated';
 import { useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -24,7 +24,7 @@ import { subscribeToRoom, updateGameState, leaveRoom, startGame, resetRoomToLobb
 import { Ionicons } from '@expo/vector-icons';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
-import { TURN_DURATION_SECONDS } from '../core/constants';
+import { TURN_DURATION_SECONDS, HAND_SIZE } from '../core/constants';
 import * as Clipboard from 'expo-clipboard';
 import SettingsManager from '../core/SettingsManager';
 import { TableTheme, TABLE_THEMES } from '../core/themes/tableThemes';
@@ -43,9 +43,10 @@ interface GameScreenProps {
     gameMode?: GameMode;
     winningCondition?: number;
     turnDuration?: number;
+    startingHandSize?: number;
 }
 
-export default function GameScreen({ gameId, userId, mode, difficulty, gameMode, winningCondition, turnDuration }: GameScreenProps) {
+export default function GameScreen({ gameId, userId, mode, difficulty, gameMode, winningCondition, turnDuration, startingHandSize: propStartingHandSize }: GameScreenProps) {
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const isLandscape = width > height;
@@ -57,12 +58,14 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [showRoomInfo, setShowRoomInfo] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [isSoloMode] = useState(mode === 'solo');
+    const [startingHandSize] = useState(propStartingHandSize || 3);
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [boudedPlayerId, setBoudedPlayerId] = useState<PlayerId | null>(null);
     const [isSoundEnabled, setIsSoundEnabled] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [showRoundBanner, setShowRoundBanner] = useState(false);
 
     // Fullscreen API (web only)
     useEffect(() => {
@@ -72,6 +75,19 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         };
         document.addEventListener('fullscreenchange', handleChange);
         return () => document.removeEventListener('fullscreenchange', handleChange);
+    }, []);
+
+    // -------------------------------------------------------------------------
+    // GLOBAL CLEANUP: Stop all audio when the game screen is unmounted
+    // This prevents music/sounds from leaking after navigating away
+    // -------------------------------------------------------------------------
+    useEffect(() => {
+        return () => {
+            console.log('[GameScreen] Unmounting — stopping all audio.');
+            SoundManager.stopMusic();
+            // Individual timers (bot, boude, timer interval) are cleaned up
+            // by their own effect cleanup functions already.
+        };
     }, []);
 
     const toggleFullscreen = useCallback(() => {
@@ -274,6 +290,17 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     }, [gameState?.phase]);
 
+    // Show Round Banner when a new round starts
+    useEffect(() => {
+        if (!gameState || gameState.phase !== 'PLAYING') return;
+        // Show the banner only when roundNumber changes (new round dealt)
+        setShowRoundBanner(true);
+        const timer = setTimeout(() => {
+            setShowRoundBanner(false);
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, [gameState?.roundNumber]);
+
     // Timer countdown logic
     useEffect(() => {
         if (!gameState || gameState.phase !== 'PLAYING' || isPaused || timeLeft === null) {
@@ -380,8 +407,27 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         return unsubscribe;
     }, [gameState, isStarting, gameId, userId, navigation]);
 
+    // -------------------------------------------------------------------------
+    // SAFE FIREBASE UPDATE: Silently swallow offline errors in Solo mode.
+    // In solo mode, the game state is local-first; Firebase sync is best-effort.
+    // In multiplayer, errors are re-thrown so they can be handled normally.
+    // -------------------------------------------------------------------------
+    const safeUpdateGameState = async (id: string, state: GameState) => {
+        try {
+            await updateGameState(id, state);
+        } catch (err: any) {
+            if (isSoloMode) {
+                // Offline / unavailable — game stays alive locally, no redirect
+                console.warn('[Solo] Firestore sync failed (offline?), continuing locally:', err?.message || err);
+                return;
+            }
+            throw err; // Re-throw for multiplayer so callers handle it
+        }
+    };
+
     const startSoloGame = () => {
-        const partialState = dealGameSolo(localPlayerId, playerDisplayName, playerAvatarId, difficulty || 'easy');
+        const hSize = startingHandSize !== undefined ? Number(startingHandSize) : 3;
+        const partialState = dealGameSolo(localPlayerId, playerDisplayName, playerAvatarId, difficulty || 'easy', hSize);
         const players = partialState.players as Player[];
         const firstPlayerId = determineFirstPlayer(players);
 
@@ -398,7 +444,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             gameMode: gameMode || 'MANCHE',
             turnDuration: turnDuration !== undefined ? Number(turnDuration) : TURN_DURATION_SECONDS,
             lastActionTimestamp: Date.now(),
-            mancheHistory: []
+            mancheHistory: [],
+            roundNumber: 1,
+            mancheNumber: 1,
+            startingHandSize: hSize
         };
         SoundManager.playSound('shuffle');
         setGameState(fullState);
@@ -488,7 +537,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             gameMode: gMode,
             turnDuration: tDur,
             lastActionTimestamp: Date.now(),
-            mancheHistory: []
+            mancheHistory: [],
+            roundNumber: 1,
+            mancheNumber: 1,
+            startingHandSize: HAND_SIZE
         };
     };
 
@@ -568,7 +620,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     // BOT LOGIC EFFECT
     useEffect(() => {
-        if (!gameState || gameState.phase !== 'PLAYING' || isPaused) return;
+        if (!gameState || gameState.phase !== 'PLAYING' || isPaused || showRoundBanner) return;
 
         const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
         if (!currentPlayer || !currentPlayer.isBot) return;
@@ -613,9 +665,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 setGameState(newState);
                 isProcessing.current = false;
             } else {
-                // Update Firestore
+                // Update Firestore (multiplayer)
                 const sanitized = JSON.parse(JSON.stringify(newState, (k, v) => v === undefined ? null : v));
-                updateGameState(gameId, sanitized)
+                safeUpdateGameState(gameId, sanitized)
                     .then(() => { isProcessing.current = false; })
                     .catch(err => {
                         console.error("Bot update failed", err);
@@ -626,11 +678,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }, delay);
 
         return () => clearTimeout(timer);
-    }, [gameState, isPaused, isProcessing, isSoloMode, gameId]);
+    }, [gameState, isPaused, isProcessing, isSoloMode, gameId, showRoundBanner]);
 
     const handlePlayDomino = async (domino: Domino, startPos?: { x: number, y: number }) => {
         // ATOMIC GUARD
-        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) {
+        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused || showRoundBanner) {
             return;
         }
 
@@ -690,7 +742,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             if (isSoloMode || !gameId) {
                 setGameState(newState);
             } else {
-                await updateGameState(gameId, newState);
+                await safeUpdateGameState(gameId, newState);
             }
         } catch (e) {
             console.log("Invalid move", e);
@@ -734,7 +786,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             if (isSoloMode || !gameId) {
                 setGameState(newState);
             } else {
-                await updateGameState(gameId, newState);
+                await safeUpdateGameState(gameId, newState);
             }
         } catch (e: any) {
             console.error("Pass Error", e);
@@ -849,7 +901,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             if (isSoloMode || !gameId) {
                 setGameState(newState);
             } else {
-                await updateGameState(gameId, newState);
+                await safeUpdateGameState(gameId, newState);
             }
         } catch (e) {
             console.error("Auto-play processing failed:", e);
@@ -935,7 +987,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 if (isSoloMode || !gameId) {
                     setGameState(resolvedState);
                 } else {
-                    updateGameState(gameId, resolvedState);
+                    safeUpdateGameState(gameId, resolvedState);
                 }
                 // Then deal a new round
                 setTimeout(() => handleNextRound(), 100);
@@ -945,7 +997,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 if (isSoloMode || !gameId) {
                     setGameState(resolvedState);
                 } else {
-                    updateGameState(gameId, resolvedState);
+                    safeUpdateGameState(gameId, resolvedState);
                 }
                 // If the resolved state ends the match, the overlay will reappear with MATCH_END
                 // Otherwise, the overlay will reappear with PARTIE_END/MANCHE_END and
@@ -1013,7 +1065,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             firstPlayerOfRound: null,
             history: [],
             mancheResult: null, // RESET MANCHE RESULT
-            lastActionTimestamp: Date.now()
+            lastActionTimestamp: Date.now(),
+            roundNumber: isMancheEnd ? 1 : (gameState.roundNumber || 0) + 1,
+            mancheNumber: isMancheEnd ? (gameState.mancheNumber || 1) + 1 : (gameState.mancheNumber || 1)
         };
 
         if (isSoloMode || !gameId) {
@@ -1028,7 +1082,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             }
 
             SoundManager.playSound('shuffle');
-            updateGameState(gameId, newState).catch(err => console.error("Failed to update game state", err));
+            safeUpdateGameState(gameId, newState).catch(err => console.error("Failed to update game state", err));
         }
     };
 
@@ -1268,67 +1322,72 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             <StatusBar barStyle="light-content" translucent />
 
 
-            {/* PAUSE BUTTON - Solo Mode Only */}
-            {isSoloMode && gameState && gameState.phase === 'PLAYING' && (
-                <TouchableOpacity
-                    style={[styles.pauseTopCenterButton, { top: Math.max(insets.top + 10, 20) }]}
-                    onPress={() => setIsPaused(!isPaused)}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name={isPaused ? "play" : "pause"} size={28} color="#FFD700" />
-                </TouchableOpacity>
-            )}
+            {/* UNIFIED HEADER BAR - Regrouped and centered */}
+            {gameState && gameState.phase === 'PLAYING' && (
+                <View style={[styles.unifiedHeader, { top: Math.max(insets.top, 10) }]}>
+                    {/* Block 1: Game Mode + Objective */}
+                    <View style={styles.headerBadge}>
+                        <Text style={styles.headerText}>
+                            {gameState.gameMode === 'MANCHE' ? '🏆 Manche' : gameState.gameMode === 'SCORE' ? '🎯 Score' : '🐷 Cochon'}
+                            {' · Obj: '}
+                            {gameState.gameMode === 'MANCHE'
+                                ? `${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
+                                : gameState.gameMode === 'SCORE'
+                                    ? `${gameState.winningCondition} pts`
+                                    : `${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
+                            }
+                        </Text>
+                    </View>
 
-            {/* INFO BUTTON - Discreet top-center button */}
-            {!isSoloMode && gameId && (
-                <TouchableOpacity
-                    style={[styles.infoButton, { top: Math.max(isLandscape ? 10 : insets.top + 10, 20) }]}
-                    onPress={() => setShowRoomInfo(!showRoomInfo)}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name="information-circle-outline" size={24} color="#FFD700" />
-                </TouchableOpacity>
-            )}
+                    {/* Block 2: Manche + Round */}
+                    <View style={styles.headerBadge}>
+                        <Text style={styles.headerText}>
+                            M{gameState.mancheNumber || 1} / R{gameState.roundNumber || 1}
+                        </Text>
+                    </View>
 
-            {/* MUTE BUTTON - Top Right */}
-            <TouchableOpacity
-                style={[
-                    styles.muteButton,
-                    {
-                        top: Math.max(isLandscape ? 10 : insets.top + 10, 20),
-                        // Position top-center (shifted right slightly to sit next to pause if pause is center, 
-                        // or if pause is right, this should be left of it. 
-                        // User said: "en haut au milieu juste a coté du bouton pause".
-                        // Assuming pause is top-right or top-left?
-                        // If pause is top-right, center is safe.
-                        // I'll put it slightly to the right of the center clock/score.
-                        left: width / 2 + 40
-                    }
-                ]}
-                onPress={async () => {
-                    const newState = await SoundManager.toggleMute();
-                    setIsSoundEnabled(newState);
-                }}
-                activeOpacity={0.7}
-            >
-                <Ionicons name={isSoundEnabled ? "volume-high" : "volume-mute"} size={22} color="#FFD700" />
-            </TouchableOpacity>
+                    {/* Block 3: Controls Icons */}
+                    <View style={styles.headerControls}>
+                        {isSoloMode ? (
+                            <TouchableOpacity
+                                onPress={() => setIsPaused(!isPaused)}
+                                activeOpacity={0.7}
+                                style={styles.controlBtn}
+                            >
+                                <Ionicons name={isPaused ? "play" : "pause"} size={24} color="#FFD700" />
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity
+                                onPress={() => setShowRoomInfo(!showRoomInfo)}
+                                activeOpacity={0.7}
+                                style={styles.controlBtn}
+                            >
+                                <Ionicons name="information-circle-outline" size={24} color="#FFD700" />
+                            </TouchableOpacity>
+                        )}
 
-            {/* FULLSCREEN BUTTON - Web/Mobile Browser Only */}
-            {Platform.OS === 'web' && (
-                <TouchableOpacity
-                    style={[
-                        styles.muteButton,
-                        {
-                            top: Math.max(isLandscape ? 10 : insets.top + 10, 20),
-                            left: width / 2 + 80,
-                        }
-                    ]}
-                    onPress={toggleFullscreen}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name={isFullscreen ? "contract-outline" : "expand-outline"} size={22} color="#FFD700" />
-                </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={async () => {
+                                const newState = await SoundManager.toggleMute();
+                                setIsSoundEnabled(newState);
+                            }}
+                            activeOpacity={0.7}
+                            style={styles.controlBtn}
+                        >
+                            <Ionicons name={isSoundEnabled ? "volume-high" : "volume-mute"} size={20} color="#FFD700" />
+                        </TouchableOpacity>
+
+                        {Platform.OS === 'web' && (
+                            <TouchableOpacity
+                                onPress={toggleFullscreen}
+                                activeOpacity={0.7}
+                                style={styles.controlBtn}
+                            >
+                                <Ionicons name={isFullscreen ? "contract-outline" : "expand-outline"} size={20} color="#FFD700" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
             )}
 
             {/* ROOM INFO CARD - Floating card with room code + game objective */}
@@ -1497,7 +1556,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     <PlayerHand
                         hand={localPlayer.hand}
                         onPlayDomino={handlePlayDomino}
-                        disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING'}
+                        disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING' || showRoundBanner}
                         leftValue={gameState.table.leftValue as any}
                         rightValue={gameState.table.rightValue as any}
                     />
@@ -1512,6 +1571,20 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     onContinue={handleOverlayContinue}
                     onLeave={handleLeaveRoom}
                 />
+            )}
+
+            {/* ROUND BANNER */}
+            {showRoundBanner && gameState && (
+                <Animated.View
+                    entering={ZoomIn.duration(400)}
+                    exiting={FadeOut.duration(500)}
+                    style={styles.roundBannerContainer}
+                    pointerEvents="none"
+                >
+                    <View style={styles.roundBanner}>
+                        <Text style={styles.roundBannerText}>Round {gameState.roundNumber || 1}</Text>
+                    </View>
+                </Animated.View>
             )}
 
             {/* PAUSE OVERLAY */}
@@ -1822,49 +1895,49 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 2,
     },
-    pauseTopCenterButton: {
+    unifiedHeader: {
         position: 'absolute',
-        zIndex: 110,
         alignSelf: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
+        flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.3)',
+        gap: 8,
+        zIndex: 100,
     },
-    infoButton: {
-        position: 'absolute',
-        zIndex: 110,
-        alignSelf: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        width: 40, // consistent size
-        height: 40,
+    headerBadge: {
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.3)',
-        marginLeft: 60, // offset from pause button if both present, or just to the right
+        borderColor: 'rgba(255,215,0,0.4)',
     },
-    muteButton: {
-        position: 'absolute',
-        zIndex: 99999, // TOP PRIORITY
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        width: 40,
-        height: 40,
+    headerControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        paddingHorizontal: 8,
+        paddingVertical: 5,
         borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.4)',
+        gap: 10,
+    },
+    headerText: {
+        color: '#FFD700',
+        fontSize: 12,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+    },
+    controlBtn: {
+        width: 32,
+        height: 32,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.3)',
     },
     infoBackdrop: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.4)',
-        zIndex: 200, // above everything
+        zIndex: 200,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -1910,7 +1983,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginLeft: 10,
         letterSpacing: 2,
-        fontFamily: 'monospace', // ensures distinct chars
+        fontFamily: 'monospace',
     },
     infoCardDivider: {
         height: 1,
@@ -1933,7 +2006,42 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
         marginTop: 2,
-        marginLeft: 24, // align with text above
+        marginLeft: 24,
+    },
+    roundBannerContainer: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    roundBanner: {
+        backgroundColor: '#2e7d32',
+        paddingHorizontal: 40,
+        paddingVertical: 14,
+        borderRadius: 16,
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 6px 20px rgba(0,0,0,0.5)',
+            },
+            default: {
+                elevation: 10,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.4,
+                shadowRadius: 10,
+            }
+        }),
+    },
+    roundBannerText: {
+        color: '#FFFFFF',
+        fontSize: 28,
+        fontWeight: '900',
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
 });
 

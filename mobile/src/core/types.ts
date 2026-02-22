@@ -28,6 +28,7 @@ export interface Player {
     hand: Domino[];
     handSize: number;
     currentMancheStars: number; // ÉTOILES (currentMancheStars) : Victoires dans la manche en cours (0-3)
+    wins: number;
     mancheWins: number; // COURONNES (mancheWins) : Manches gagnées dans le match
     totalRoundWins: number; // POINTS DE ROUND (totalRoundWins) : Total des parties gagnées (persistant)
     totalPoints: number; // LE CAMION (totalMatchPoints) : Score cumulé (RoundWins + Bonus/Malus Cochon)
@@ -63,6 +64,9 @@ export interface GameState {
     turnDuration: number; // NEW: Durée du tour en secondes
     lastActionTimestamp: number;
     mancheHistory: MancheHistoryRecord[];
+    roundNumber: number; // NEW: Numéro du round/partie en cours dans la manche
+    mancheNumber: number; // NEW: Numéro de la manche en cours
+    startingHandSize: number;
 }
 
 
@@ -104,4 +108,5 @@ export interface GameRoom {
     winningCondition?: number; // Condition de victoire
     turnDuration?: number; // NEW: Durée du tour
     difficulty?: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend'; // NEW: Difficulté des bots
+    startingHandSize?: number;
 }

@@ -32,7 +32,9 @@ const createMockState = (playersData: { id: string, stars: number, totalPoints: 
         currentPlayerId: playersData[0].id,
         mancheResult: null,
         firstPlayerOfRound: null,
-        mancheHistory: []
+        mancheHistory: [],
+        roundNumber: 1,
+        mancheNumber: 1
     };
 };
 
@@ -146,20 +148,22 @@ describe('Scoring Verification', () => {
 
         // CRITICAL CHECK: Phase must be MATCH_END, not MANCHE_END
         expect(newState.phase).toBe('MATCH_END');
-        test('6. Test Manche History Recording', () => {
-            const state = createMockState([
-                { id: 'A', stars: 2, totalPoints: 10 },
-                { id: 'B', stars: 0, totalPoints: 5 },
-                { id: 'C', stars: 0, totalPoints: 5 }
-            ], 'SCORE', 100);
-
-            const newState = finalizeRound(state, 'A');
-
-            expect(newState.mancheHistory).toBeDefined();
-            expect(newState.mancheHistory.length).toBe(1);
-            expect(newState.mancheHistory[0].winnerId).toBe('A');
-            expect(newState.mancheHistory[0].points['A']).toBe(3); // 1 (round) + 2 (cochons)
-            expect(newState.mancheHistory[0].points['B']).toBe(-1);
-            expect(newState.mancheHistory[0].points['C']).toBe(-1);
-        });
     });
+
+    test('6. Test Manche History Recording', () => {
+        const state = createMockState([
+            { id: 'A', stars: 2, totalPoints: 10 },
+            { id: 'B', stars: 0, totalPoints: 5 },
+            { id: 'C', stars: 0, totalPoints: 5 }
+        ], 'SCORE', 100);
+
+        const newState = finalizeRound(state, 'A');
+
+        expect(newState.mancheHistory).toBeDefined();
+        expect(newState.mancheHistory.length).toBe(1);
+        expect(newState.mancheHistory[0].winnerId).toBe('A');
+        expect(newState.mancheHistory[0].points['A']).toBe(3); // 1 (round) + 2 (cochons)
+        expect(newState.mancheHistory[0].points['B']).toBe(-1);
+        expect(newState.mancheHistory[0].points['C']).toBe(-1);
+    });
+});

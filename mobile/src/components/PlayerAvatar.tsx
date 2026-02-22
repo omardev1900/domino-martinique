@@ -218,9 +218,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             strokeDashoffset={circumference}
                             strokeLinecap="round"
                             animatedProps={animatedProps}
-                            rotation="-90"
-                            originX={(size + 12) / 2}
-                            originY={(size + 12) / 2}
+                            transform={`rotate(-90, ${(size + 12) / 2}, ${(size + 12) / 2})`}
                         />
                     </Svg>
                 )}

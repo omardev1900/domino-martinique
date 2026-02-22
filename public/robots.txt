@@ -1,0 +1,6 @@
+# Autorise tous les robots à explorer tout le site
+User-agent: *
+Allow: /
+
+# Lien vers votre sitemap si vous en créez un plus tard
+# Sitemap: https://votre-domaine.com/sitemap.xml

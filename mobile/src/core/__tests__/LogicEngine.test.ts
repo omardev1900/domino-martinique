@@ -89,9 +89,9 @@ describe('LogicEngine', () => {
 });
 
 describe('passTurn', () => {
-    const p1: Player = { id: 'p1', name: 'P1', hand: [{ id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 } as Domino], handSize: 1, wins: 0, mancheWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
-    const p2: Player = { id: 'p2', name: 'P2', hand: [{ id: 'd2', left: 0, right: 0, isDouble: true, sum: 0 } as Domino], handSize: 1, wins: 0, mancheWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
-    const p3: Player = { id: 'p3', name: 'P3', hand: [{ id: 'd3', left: 2, right: 2, isDouble: true, sum: 4 } as Domino], handSize: 1, wins: 0, mancheWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
+    const p1: Player = { id: 'p1', name: 'P1', hand: [{ id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
+    const p2: Player = { id: 'p2', name: 'P2', hand: [{ id: 'd2', left: 0, right: 0, isDouble: true, sum: 0 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
+    const p3: Player = { id: 'p3', name: 'P3', hand: [{ id: 'd3', left: 2, right: 2, isDouble: true, sum: 4 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
 
     let state: GameState = {
         gameId: 'g1',
@@ -104,7 +104,11 @@ describe('passTurn', () => {
         phase: 'PLAYING',
         firstPlayerOfRound: 'p1',
         winningCondition: 3,
-        lastActionTimestamp: 0
+        lastActionTimestamp: 0,
+        roundNumber: 1,
+        mancheNumber: 1,
+        turnDuration: 15,
+        mancheHistory: []
     };
 
     it('should throw if player has a valid move', () => {
@@ -137,7 +141,7 @@ describe('passTurn', () => {
 });
 
 describe('handleTurn', () => {
-    const p1: Player = { id: 'p1', name: 'P1', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
+    const p1: Player = { id: 'p1', name: 'P1', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
 
     let state: GameState = {
         gameId: 'g1',
@@ -150,7 +154,11 @@ describe('handleTurn', () => {
         phase: 'PLAYING',
         firstPlayerOfRound: 'p1',
         winningCondition: 3,
-        lastActionTimestamp: 0
+        lastActionTimestamp: 0,
+        roundNumber: 1,
+        mancheNumber: 1,
+        turnDuration: 15,
+        mancheHistory: []
     };
 
     // Re-initialize p1's hand for each test
