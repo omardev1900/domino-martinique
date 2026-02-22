@@ -53,7 +53,7 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
         }
 
         try {
-            const partialState = dealGame(playerNames);
+            const partialState = dealGame(playerNames, roomData.startingHandSize || 7);
             const players = partialState.players as Player[];
 
             // Map real players to slots
@@ -82,10 +82,14 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
                 phase: 'PLAYING',
                 firstPlayerOfRound: null,
                 history: [],
-                winningCondition: 3,
-                gameMode: 'MANCHE',
-                turnDuration: 30, // Default turn duration
-                lastActionTimestamp: Date.now()
+                winningCondition: roomData.winningCondition || 3,
+                gameMode: roomData.gameMode || 'MANCHE',
+                turnDuration: roomData.turnDuration || 15,
+                startingHandSize: roomData.startingHandSize || 7,
+                lastActionTimestamp: Date.now(),
+                mancheHistory: [],
+                roundNumber: 1,
+                mancheNumber: 1,
             };
 
             // Sanitize undefined
@@ -216,7 +220,7 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
         if (roomData.players[0].uid !== localPlayerId) return;
 
         const playerNames = gameState.players.map(p => p.name);
-        const partialState = dealGame(playerNames);
+        const partialState = dealGame(playerNames, gameState.startingHandSize);
 
         const nextPlayers = gameState.players.map((p, i) => {
             const newP = partialState.players![i];

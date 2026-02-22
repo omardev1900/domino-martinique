@@ -533,7 +533,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         const botConfigs = getBotsForDifficulty(difficulty || 'medium');
 
         // Create initial state with placeholders
-        const fullState = createInitialState(['Moi', botConfigs[0].name, botConfigs[1].name]);
+        const fullState = createInitialState(['Moi', botConfigs[0].name, botConfigs[1].name], 'SCORE', 6, 15, startingHandSize);
 
         // Configure Bot 1
         fullState.players[1].isBot = true;
@@ -552,8 +552,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         setGameState(fullState);
     };
 
-    const createInitialState = (playerNames: string[], gMode: GameMode = 'MANCHE', wCond: number = 3, tDur: number = TURN_DURATION_SECONDS): GameState => {
-        const partialState = dealGame(playerNames);
+    const createInitialState = (playerNames: string[], gMode: GameMode = 'MANCHE', wCond: number = 3, tDur: number = TURN_DURATION_SECONDS, hSize: number = HAND_SIZE): GameState => {
+        const partialState = dealGame(playerNames, hSize);
         const players = partialState.players as Player[];
         const firstPlayerId = determineFirstPlayer(players);
 
@@ -573,7 +573,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             mancheHistory: [],
             roundNumber: 1,
             mancheNumber: 1,
-            startingHandSize: HAND_SIZE
+            startingHandSize: hSize
         };
     };
 
@@ -605,7 +605,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 playerNames,
                 roomData.gameMode || 'MANCHE',
                 roomData.winningCondition || 3,
-                roomData.turnDuration || 15
+                roomData.turnDuration || 15,
+                roomData.startingHandSize || 7
             );
 
             // Re-assign IDs to actual UIDs for real players, and configure Bots

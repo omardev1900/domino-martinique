@@ -10,6 +10,7 @@ export default function GameRoute() {
         gameMode?: string;
         winningCondition?: string;
         turnDuration?: string;
+        startingHandSize?: string;
     }>();
 
     return (
@@ -21,6 +22,7 @@ export default function GameRoute() {
             gameMode={params.gameMode as any}
             winningCondition={params.winningCondition ? Number(params.winningCondition) : undefined}
             turnDuration={params.turnDuration ? Number(params.turnDuration) : undefined}
+            startingHandSize={params.startingHandSize ? Number(params.startingHandSize) : undefined}
         />
     );
 }
