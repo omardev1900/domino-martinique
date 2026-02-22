@@ -266,14 +266,18 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     <View style={styles.buttonRow}>
                         {isMatchOver && animationReady && (
                             <TouchableOpacity
-                                style={styles.menuButton}
-                                onPress={onLeave || onContinue}
+                                style={[styles.menuButton, { paddingHorizontal: 40, backgroundColor: '#000' }]}
+                                onPress={() => {
+                                    console.log('[UnifiedResultOverlay] Menu button pressed. Phase:', gameState.phase);
+                                    if (onLeave) onLeave();
+                                    else onContinue();
+                                }}
                             >
                                 <Text style={styles.buttonTextLight}>Menu principal</Text>
                             </TouchableOpacity>
                         )}
 
-                        {animationReady && (
+                        {!isMatchOver && animationReady && (
                             <TouchableOpacity
                                 style={styles.newGameButton}
                                 onPress={onContinue}

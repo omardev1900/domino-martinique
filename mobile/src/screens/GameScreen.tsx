@@ -3,9 +3,9 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn, ZoomIn, FadeOut } from 'react-native-reanimated';
-import { useNavigation } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
@@ -111,9 +111,15 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const isProcessing = useRef(false);
     const gameStateRef = useRef<GameState | null>(null);
     const navigation = useNavigation();
+    const router = useRouter();
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [pendingDomino, setPendingDomino] = useState<Domino | null>(null);
     const pulseOpacity = useSharedValue(1);
+
+    // Sync ref for listeners
+    useEffect(() => {
+        gameStateRef.current = gameState;
+    }, [gameState]);
 
     useEffect(() => {
         pulseOpacity.value = withRepeat(
@@ -375,6 +381,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         if (!gameState && !isStarting) return; // Only protect if in game or starting
 
         const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+            // If the match is over, we don't need to protect the screen
+            if (gameStateRef.current?.phase === 'MATCH_END') {
+                return;
+            }
             // Prevent default behavior of leaving the screen
             e.preventDefault();
 
@@ -754,15 +764,27 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     };
 
-    const handlePassTurn = async () => {
+    const handlePassTurn = async (forcedPlayerId?: PlayerId) => {
         SoundManager.unlockAudio();
         // ATOMIC GUARD
         if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) {
             console.log("[handlePassTurn] Action blocked by guard");
             return;
         }
-        if (!isMyTurn) {
-            console.log("[handlePassTurn] Not your turn");
+
+        const targetId = forcedPlayerId || localPlayerId;
+        const isHost = roomData?.players[0].uid === localPlayerId;
+        const isTargetMe = targetId === localPlayerId;
+
+        // Validation: Only let a player pass for themselves OR allow host to pass for others
+        if (!isTargetMe && !isHost) {
+            console.log("[handlePassTurn] Not authorized to pass for this player");
+            return;
+        }
+
+        // Must be the target's turn
+        if (gameState.currentPlayerId !== targetId) {
+            console.log("[handlePassTurn] Not the target player's turn:", targetId);
             return;
         }
 
@@ -772,7 +794,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         const lockSafety = setTimeout(() => { isProcessing.current = false; }, 5000);
 
         // Double check validation client-side to prevent "Cannot Pass" alert loop
-        const currentValidMoves = getValidMoves(localPlayer?.hand || [], {
+        const targetPlayer = gameState.players.find(p => p.id === targetId);
+        const currentValidMoves = getValidMoves(targetPlayer?.hand || [], {
             left: gameState.table.leftValue,
             right: gameState.table.rightValue
         });
@@ -785,7 +808,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
 
         try {
-            const newState = passTurn(gameState, localPlayerId);
+            const newState = passTurn(gameState, targetId);
             if (isSoloMode || !gameId) {
                 setGameState(newState);
             } else {
@@ -822,21 +845,23 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             setBoudedPlayerId(currentPlayer.id);
             SoundManager.playSound('toktok');
 
-            // Wait 3 seconds then pass automatically
+            // Wait 2-3 seconds then pass automatically
             const timer = setTimeout(() => {
-                // Only execute pass if we are still on the same player and we are the host OR it's our own turn
+                // Only execute pass if we are still on the same player
                 const freshState = gameStateRef.current;
                 const isHost = roomData?.players[0].uid === localPlayerId;
-                const isMyTurn = gameState.currentPlayerId === localPlayerId;
+                const isTargetMe = currentPlayer.id === localPlayerId;
 
                 if (freshState && freshState.currentPlayerId === currentPlayer.id && freshState.phase === 'PLAYING') {
-                    if (isSoloMode || !gameId || isMyTurn || (isHost && currentPlayer.isBot)) {
-                        console.log(`[Auto-Boude] Executing pass for ${currentPlayer.name}`);
-                        handlePassTurn();
+                    // Solo mode: simple
+                    // Multiplayer: I can pass for myself, OR if I'm Host I can pass for anyone (Fallback)
+                    if (isSoloMode || !gameId || isTargetMe || isHost) {
+                        console.log(`[Auto-Boude] Executing pass for ${currentPlayer.name} (By ${isTargetMe ? 'Self' : 'Host'})`);
+                        handlePassTurn(currentPlayer.id);
                     }
                 }
                 setBoudedPlayerId(null);
-            }, 1000);
+            }, isTargetMe ? 1500 : 3000); // Host waits longer (3s) to let the player pass themselves (1.5s)
 
             return () => clearTimeout(timer);
         } else if (!isPlayerBlocked && boudedPlayerId === currentPlayer.id) {
@@ -914,8 +939,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     };
 
     const handleReplay = async () => {
+        console.log('[GameScreen] handleReplay called, isSoloMode:', isSoloMode);
         if (isSoloMode) {
-            navigation.navigate('home' as never);
+            console.log('[GameScreen] Solo: Navigating to home');
+            router.replace('/home');
             return;
         }
 
@@ -953,17 +980,22 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     };
 
     const handleLeaveRoom = async () => {
-        if (!gameId) {
-            navigation.navigate('home' as never);
+        console.log('[GameScreen] handleLeaveRoom called, gameId:', gameId, 'isSolo:', isSoloMode);
+
+        // Immediate exit for solo or no gameId
+        if (isSoloMode || !gameId) {
+            console.log('[GameScreen] Leaving immediate (Solo/NoID)');
+            router.replace('/home');
             return;
         }
 
         try {
+            console.log('[GameScreen] Leaving multiplayer room...');
             await leaveRoom(gameId, localPlayerId);
-            navigation.navigate('home' as never);
+            router.replace('/home');
         } catch (e: any) {
             console.error("Error leaving room", e);
-            navigation.navigate('home' as never); // Fallback exit
+            router.replace('/home'); // Fallback exit
         }
     };
 

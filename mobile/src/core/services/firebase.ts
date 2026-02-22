@@ -10,6 +10,9 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     getFirestore,
+    initializeFirestore,
+    persistentLocalCache,
+    persistentMultipleTabManager,
     collection,
     addDoc,
     doc,
@@ -44,7 +47,13 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// Initialize Firestore with Persistence
+export const db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+    })
+});
 
 // Initialize Auth with cross-platform persistence
 let authInstance;
@@ -247,11 +256,18 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
         }
 
         // Force update of players list
+        // Note: Persistence ensures this will sync even if currently offline
         await updateDoc(roomRef, {
             players: updatedPlayers
         });
         console.log(`Player ${userId} left room ${roomId}`);
-    } catch (e) {
+    } catch (e: any) {
+        // Specifically check for offline error to log a cleaner message
+        if (e.code === 'unavailable' || (e.message && e.message.includes('offline'))) {
+            console.warn(`[Firebase] User leaving room while offline. Move queued for sync.`, roomId);
+            return;
+        }
+
         console.error("Error leaving room (swallowed for safety):", e);
         // We swallow the error here because the UI should still proceed to home
         // even if Firestore update fails (e.g. room already deleted by host)
