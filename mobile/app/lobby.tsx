@@ -23,6 +23,7 @@ import { PlayerProfile, GameMode, GameRoom } from '../src/core/types';
 import { authService } from '../src/core/services/auth.service';
 import { FlatList } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
+import { HAND_SIZE, TURN_DURATION_SECONDS } from '../src/core/constants';
 
 type LobbyTab = 'CREATE' | 'JOIN' | 'PUBLIC';
 
@@ -58,8 +59,8 @@ export default function LobbyScreen() {
     const [roomNameInput, setRoomNameInput] = useState('');
     const [gameMode, setGameMode] = useState<GameMode>('SCORE');
     const [winningCondition, setWinningCondition] = useState(6);
-    const [turnDuration, setTurnDuration] = useState(1);
-    const [startingHandSize, setStartingHandSize] = useState(3);
+    const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
+    const [startingHandSize, setStartingHandSize] = useState(HAND_SIZE);
 
     // — PUBLIC tab state —
     const [publicRooms, setPublicRooms] = useState<GameRoom[]>([]);

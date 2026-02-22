@@ -6,6 +6,8 @@ import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, w
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import * as NavigationBar from 'expo-navigation-bar';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
@@ -58,7 +60,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [showRoomInfo, setShowRoomInfo] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [isSoloMode] = useState(mode === 'solo');
-    const [startingHandSize] = useState(propStartingHandSize || 3);
+    const [startingHandSize] = useState(propStartingHandSize || HAND_SIZE);
     const [isStarting, setIsStarting] = useState(false); // Loading state during game start
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
     const [showScoreboard, setShowScoreboard] = useState(false);
@@ -77,7 +79,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         return () => document.removeEventListener('fullscreenchange', handleChange);
     }, []);
 
-    // -------------------------------------------------------------------------
     // GLOBAL CLEANUP: Stop all audio when the game screen is unmounted
     // This prevents music/sounds from leaking after navigating away
     // -------------------------------------------------------------------------
@@ -85,10 +86,32 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         return () => {
             console.log('[GameScreen] Unmounting — stopping all audio.');
             SoundManager.stopMusic();
-            // Individual timers (bot, boude, timer interval) are cleaned up
-            // by their own effect cleanup functions already.
         };
     }, []);
+
+    // -------------------------------------------------------------------------
+    // MOBILE LANDSCAPE LOCK: Force landscape + fullscreen on mobile devices
+    // -------------------------------------------------------------------------
+    useFocusEffect(
+        useCallback(() => {
+            if (Platform.OS !== 'web') {
+                ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+                if (Platform.OS === 'android') {
+                    NavigationBar.setVisibilityAsync('hidden');
+                    NavigationBar.setBehaviorAsync('overlay-swipe');
+                }
+            }
+            return () => {
+                // Restore portrait when leaving game screen
+                if (Platform.OS !== 'web') {
+                    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+                    if (Platform.OS === 'android') {
+                        NavigationBar.setVisibilityAsync('visible');
+                    }
+                }
+            };
+        }, [])
+    );
 
     const toggleFullscreen = useCallback(() => {
         if (Platform.OS !== 'web') return;
@@ -436,7 +459,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     };
 
     const startSoloGame = () => {
-        const hSize = startingHandSize !== undefined ? Number(startingHandSize) : 3;
+        const hSize = startingHandSize !== undefined ? Number(startingHandSize) : HAND_SIZE;
         const partialState = dealGameSolo(localPlayerId, playerDisplayName, playerAvatarId, difficulty || 'easy', hSize);
         const players = partialState.players as Player[];
         const firstPlayerId = determineFirstPlayer(players);
@@ -1065,7 +1088,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         let winnerId = isMancheEnd ? null : gameState.firstPlayerOfRound;
 
         // Deal new game
-        const partialState = dealGame(playerNames);
+        const partialState = dealGame(playerNames, startingHandSize);
         const newPlayers = (partialState.players as Player[]).map((p, i) => {
             const originalPlayer = gameState.players[i];
             return {

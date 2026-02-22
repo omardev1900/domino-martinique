@@ -230,69 +230,76 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
                     <Text style={styles.podiumHeader}>{isBoude ? "PARTIE BLOQUÉE !" : "FIN DE MATCH"}</Text>
 
-                    <View style={styles.podiumRow}>
-                        {sortedPlayers.map((p, idx) => (
-                            isBoude ? (
-                                <BoudeCard
-                                    key={p.id}
-                                    player={p}
-                                    isWinner={p.id === boudeWinner?.id}
-                                    handPoints={calculateHandPoints(p.hand)}
-                                    delay={400 + (idx * 300)}
-                                    onReady={(pts) => handlePlayerReady(p.id, pts)}
-                                />
-                            ) : (
-                                <PodiumCard
-                                    key={p.id}
-                                    player={p}
-                                    isWinner={finalWinner ? p.id === finalWinner.id : false}
-                                    totalPoints={
-                                        gameState.gameMode === 'SCORE' ? p.totalPoints :
-                                            gameState.gameMode === 'COCHON' ? p.totalCochons :
-                                                p.totalPoints // Always show "Le Camion" for Manche mode
-                                    }
-                                />
-                            )
-                        ))}
-                    </View>
-
-                    {isMatchOver && (
-                        <View style={styles.gainsContainer}>
-                            <Text style={styles.gainsText}>Vos gains :</Text>
-                            <Text style={styles.gainsValue}>+180 🟡</Text>
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        bounces={false}
+                        contentContainerStyle={{ flexGrow: 1, alignItems: 'center', paddingBottom: 20 }}
+                    >
+                        <View style={styles.podiumRow}>
+                            {sortedPlayers.map((p, idx) => (
+                                isBoude ? (
+                                    <BoudeCard
+                                        key={p.id}
+                                        player={p}
+                                        isWinner={p.id === boudeWinner?.id}
+                                        handPoints={calculateHandPoints(p.hand)}
+                                        delay={400 + (idx * 300)}
+                                        onReady={(pts) => handlePlayerReady(p.id, pts)}
+                                    />
+                                ) : (
+                                    <PodiumCard
+                                        key={p.id}
+                                        player={p}
+                                        isWinner={finalWinner ? p.id === finalWinner.id : false}
+                                        totalPoints={
+                                            gameState.gameMode === 'SCORE' ? p.totalPoints :
+                                                gameState.gameMode === 'COCHON' ? p.totalCochons :
+                                                    p.totalPoints
+                                        }
+                                    />
+                                )
+                            ))}
                         </View>
-                    )}
 
-                    <View style={styles.buttonRow}>
-                        {isMatchOver && animationReady && (
-                            <TouchableOpacity
-                                style={[styles.menuButton, { paddingHorizontal: 40, backgroundColor: '#000' }]}
-                                onPress={() => {
-                                    console.log('[UnifiedResultOverlay] Menu button pressed. Phase:', gameState.phase);
-                                    if (onLeave) onLeave();
-                                    else onContinue();
-                                }}
-                            >
-                                <Text style={styles.buttonTextLight}>Menu principal</Text>
-                            </TouchableOpacity>
+                        {isMatchOver && (
+                            <View style={styles.gainsContainer}>
+                                <Text style={styles.gainsText}>Vos gains :</Text>
+                                <Text style={styles.gainsValue}>+180 🟡</Text>
+                            </View>
                         )}
 
-                        {!isMatchOver && animationReady && (
-                            <TouchableOpacity
-                                style={styles.newGameButton}
-                                onPress={onContinue}
-                            >
-                                <Text style={styles.buttonTextDark}>
-                                    {isBoude ? "CONTINUER" : "Nouvelle partie"} ({countdown}s)
-                                </Text>
-                                <Ionicons name={isBoude ? "arrow-forward" : "play"} size={20} color="#064e3b" />
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                        <View style={styles.buttonRow}>
+                            {isMatchOver && animationReady && (
+                                <TouchableOpacity
+                                    style={[styles.menuButton, { paddingHorizontal: 40, backgroundColor: '#000' }]}
+                                    onPress={() => {
+                                        console.log('[UnifiedResultOverlay] Menu button pressed. Phase:', gameState.phase);
+                                        if (onLeave) onLeave();
+                                        else onContinue();
+                                    }}
+                                >
+                                    <Text style={styles.buttonTextLight}>Menu principal</Text>
+                                </TouchableOpacity>
+                            )}
+
+                            {!isMatchOver && animationReady && (
+                                <TouchableOpacity
+                                    style={styles.newGameButton}
+                                    onPress={onContinue}
+                                >
+                                    <Text style={styles.buttonTextDark}>
+                                        {isBoude ? "CONTINUER" : "Nouvelle partie"} ({countdown}s)
+                                    </Text>
+                                    <Ionicons name={isBoude ? "arrow-forward" : "play"} size={20} color="#064e3b" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </ScrollView>
                 </Animated.View>
             </View>
         );
     }
+
 
     return (
         <View style={styles.container} pointerEvents="box-none">

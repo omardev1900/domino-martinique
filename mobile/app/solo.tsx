@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { HAND_SIZE, TURN_DURATION_SECONDS } from '../src/core/constants';
 
 type Difficulty = 'easy' | 'medium' | 'expert' | 'legend';
 type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
@@ -16,8 +17,8 @@ export default function SoloScreen() {
     const [difficulty, setDifficulty] = useState<Difficulty>('medium');
     const [gameMode, setGameMode] = useState<GameMode>('SCORE');
     const [winningCondition, setWinningCondition] = useState(6);
-    const [turnDuration, setTurnDuration] = useState(1);
-    const [startingHandSize, setStartingHandSize] = useState(3);
+    const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
+    const [startingHandSize, setStartingHandSize] = useState(HAND_SIZE);
 
     const startGame = () => {
         router.push({
