@@ -846,11 +846,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             SoundManager.playSound('toktok');
 
             // Wait 2-3 seconds then pass automatically
+            const isTargetMe = currentPlayer.id === localPlayerId;
             const timer = setTimeout(() => {
                 // Only execute pass if we are still on the same player
                 const freshState = gameStateRef.current;
                 const isHost = roomData?.players[0].uid === localPlayerId;
-                const isTargetMe = currentPlayer.id === localPlayerId;
 
                 if (freshState && freshState.currentPlayerId === currentPlayer.id && freshState.phase === 'PLAYING') {
                     // Solo mode: simple
@@ -1324,7 +1324,14 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         if (!gameState) return "";
         switch (gameState.gameMode) {
             case 'MANCHE': return `${player.mancheWins} ${player.mancheWins > 1 ? 'Manches' : 'Manche'}`;
-            case 'SCORE': return `${player.totalPoints} pts`;
+            case 'SCORE': {
+                // Points from previous manches only:
+                // totalPoints = all cumulative points since game start
+                // currentMancheStars = rounds won in current manche (each = +1 to totalPoints)
+                // So: totalPoints - currentMancheStars = points from completed manches only
+                const prevPoints = (player.totalPoints || 0) - (player.currentMancheStars || 0);
+                return `${Math.max(0, prevPoints)} pts`;
+            }
             case 'COCHON': return `${player.totalCochons} 🐷`;
             default: return "";
         }

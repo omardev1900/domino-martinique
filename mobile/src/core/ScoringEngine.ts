@@ -61,18 +61,31 @@ export const finalizeRound = (
     const isChire = newState.players.every(p => p.currentMancheStars >= 1);
 
     if (isChire) {
-        console.log("CHIRÉE DETECTED! Resetting stars.");
-        // ACTION : Reset immédiat de TOUTES les Étoiles à 0.
+        console.log("CHIRÉE DETECTED! Manche ends, stars reset, manche increments.");
+
+        // Reset all stars to 0 - new manche starts clean
         newState.players = newState.players.map(p => ({
             ...p,
-            currentMancheStars: 0 // Reset Étoiles
+            currentMancheStars: 0,
+            isCochon: false, // Reset cochon flag for new manche
         }));
 
         newState.mancheResult = 'CHIRE';
-        newState.phase = 'PARTIE_END'; // La manche continue (repart à zéro), mais le round est fini.
-        newState.firstPlayerOfRound = winnerId; // Le gagnant de la "chirée" relance
+        newState.firstPlayerOfRound = winnerId; // Round winner restarts
 
-        // Record as a "special" history entry if needed, but usually Chiré just continues the manche
+        // ✅ FIX 1: Create mancheHistory entry so cumulative points are tracked
+        if (!newState.mancheHistory) newState.mancheHistory = [];
+        newState.mancheHistory.push({
+            mancheNumber: newState.mancheHistory.length + 1,
+            points: pointsGainedInRound,
+            winnerId: winnerId as string,
+            resultType: 'CHIRE',
+            cochonCount: 0
+        });
+
+        // ✅ FIX 2: Use MANCHE_END so handleNextRound increments mancheNumber
+        newState.phase = 'MANCHE_END';
+
         return newState;
     }
 

@@ -90,7 +90,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     const opacityValue = useSharedValue(0);
     const [animationReady, setAnimationReady] = useState(!isBoude); // Boude starts false, others true
     const [readyPlayers, setReadyPlayers] = useState<Record<string, number>>({});
-    const [countdown, setCountdown] = useState(3);
+    const [countdown, setCountdown] = useState(5);
     const countdownRef = useRef<any>(null);
     const shouldContinueRef = useRef(false);
 
@@ -132,7 +132,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     useEffect(() => {
         if (visible && animationReady && !isMatchOver) {
             shouldContinueRef.current = false;
-            setCountdown(3);
+            setCountdown(5);
             if (countdownRef.current) clearInterval(countdownRef.current);
 
             countdownRef.current = setInterval(() => {
