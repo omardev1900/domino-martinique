@@ -52,8 +52,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                             ref={(el) => (tileRefs.current[domino.id] = el as any)}
                             style={[
                                 styles.tileWrapper,
-                                canPlay && { transform: [{ translateY: -20 }], zIndex: 10 }, // Strong Lift for Playable
-                                !disabled && !canPlay ? { opacity: 0.6, transform: [{ scale: 0.95 }] } : {} // Dim for Non-Playable
+                                canPlay ? { transform: [{ translateY: -20 }], zIndex: 10 } : { opacity: 0.6, transform: [{ scale: 0.95 }] },
                             ]}
                             layout={LinearTransition.springify()}
                         >

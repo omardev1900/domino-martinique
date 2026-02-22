@@ -56,8 +56,8 @@ export default function LobbyScreen() {
     // — CREATE tab state —
     const [isPrivateRoom, setIsPrivateRoom] = useState(false);
     const [roomNameInput, setRoomNameInput] = useState('');
-    const [gameMode, setGameMode] = useState<GameMode>('MANCHE');
-    const [winningCondition, setWinningCondition] = useState(3);
+    const [gameMode, setGameMode] = useState<GameMode>('SCORE');
+    const [winningCondition, setWinningCondition] = useState(15);
     const [turnDuration, setTurnDuration] = useState(15);
 
     // — PUBLIC tab state —
@@ -216,7 +216,7 @@ export default function LobbyScreen() {
                 <View style={styles.optionItem}>
                     <Text style={styles.optionLabel}>MODE</Text>
                     <View style={styles.buttonGroup}>
-                        {(['MANCHE', 'SCORE', 'COCHON'] as GameMode[]).map(mode => (
+                        {(['SCORE', 'COCHON', 'MANCHE'] as GameMode[]).map(mode => (
                             <TouchableOpacity
                                 key={mode}
                                 style={[styles.modeButton, gameMode === mode && styles.activeModeButton]}
@@ -260,8 +260,9 @@ export default function LobbyScreen() {
                     <View style={styles.conditionControls}>
                         <TouchableOpacity
                             onPress={() => {
-                                if (turnDuration === 15) setTurnDuration(0);
-                                else setTurnDuration(Math.max(0, turnDuration - 5));
+                                const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+                                const idx = steps.indexOf(turnDuration);
+                                if (idx > 0) setTurnDuration(steps[idx - 1]);
                             }}
                             style={styles.adjustButton}
                         >
@@ -270,8 +271,9 @@ export default function LobbyScreen() {
                         <Text style={styles.conditionValueText}>{turnDuration === 0 ? 'Off' : turnDuration}</Text>
                         <TouchableOpacity
                             onPress={() => {
-                                if (turnDuration === 0) setTurnDuration(15);
-                                else setTurnDuration(Math.min(60, turnDuration + 5));
+                                const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+                                const idx = steps.indexOf(turnDuration);
+                                if (idx < steps.length - 1) setTurnDuration(steps[idx + 1]);
                             }}
                             style={styles.adjustButton}
                         >
@@ -392,7 +394,7 @@ export default function LobbyScreen() {
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#2c0b0b', '#071a07', '#0b2c1d']}
+                colors={['#2D1B4E', '#1A0E2E']}
                 style={styles.container}
             >
 
@@ -423,7 +425,7 @@ const styles = StyleSheet.create({
     },
     loadingContainer: {
         flex: 1,
-        backgroundColor: '#1a0505',
+        backgroundColor: '#1A0E2E',
         justifyContent: 'center',
         alignItems: 'center',
         gap: 12,
@@ -475,7 +477,7 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
     activeTabText: {
-        color: '#0d1f0d',
+        color: '#1A0E2E',
     },
     // ─── Scroll ─────────────────────────────────────────────────
     scrollContent: {

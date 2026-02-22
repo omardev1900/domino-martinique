@@ -33,7 +33,7 @@ export default function HomeScreen() {
 
     return (
         <LinearGradient
-            colors={['#2c0b0b', '#071a07', '#0b2c1d']}
+            colors={['#2D1B4E', '#1A0E2E']}
             style={[styles.container, { minHeight: height }]}
         >
             {/* Header Area */}
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
         top: -(32 * 1.6 - 32) * 0.25,
     },
     avatarText: {
-        color: '#0d1f0d',
+        color: '#1A0E2E',
         fontWeight: 'bold',
         fontSize: 18,
     },

@@ -14,8 +14,8 @@ export default function SoloScreen() {
     const isLandscape = width > height;
 
     const [difficulty, setDifficulty] = useState<Difficulty>('medium');
-    const [gameMode, setGameMode] = useState<GameMode>('MANCHE');
-    const [winningCondition, setWinningCondition] = useState(3);
+    const [gameMode, setGameMode] = useState<GameMode>('SCORE');
+    const [winningCondition, setWinningCondition] = useState(15);
     const [turnDuration, setTurnDuration] = useState(15);
 
     const startGame = () => {
@@ -38,7 +38,7 @@ export default function SoloScreen() {
 
     return (
         <LinearGradient
-            colors={['#2c0b0b', '#071a07', '#0b2c1d']}
+            colors={['#2D1B4E', '#1A0E2E']}
             style={styles.container}
         >
             {/* Back Button */}
@@ -109,13 +109,6 @@ export default function SoloScreen() {
                             <Text style={styles.sectionTitle}>Type de Jeu</Text>
                             <View style={styles.row}>
                                 <TouchableOpacity
-                                    style={[styles.choiceButton, gameMode === 'MANCHE' && styles.activeChoice]}
-                                    onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); }}
-                                >
-                                    <Text style={styles.choiceIcon}>🏆</Text>
-                                    <Text style={styles.choiceText}>Manche</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
                                     style={[styles.choiceButton, gameMode === 'SCORE' && styles.activeChoice]}
                                     onPress={() => { setGameMode('SCORE'); setWinningCondition(15); }}
                                 >
@@ -128,6 +121,13 @@ export default function SoloScreen() {
                                 >
                                     <Text style={styles.choiceIcon}>🐷</Text>
                                     <Text style={styles.choiceText}>Cochon</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.choiceButton, gameMode === 'MANCHE' && styles.activeChoice]}
+                                    onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); }}
+                                >
+                                    <Text style={styles.choiceIcon}>🏆</Text>
+                                    <Text style={styles.choiceText}>Manche</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -159,8 +159,9 @@ export default function SoloScreen() {
                                 <TouchableOpacity
                                     style={[styles.targetButton, isLandscape && styles.targetButtonSmall]}
                                     onPress={() => setTurnDuration(prev => {
-                                        if (prev === 15) return 0;
-                                        return Math.max(0, prev - 5);
+                                        const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+                                        const idx = steps.indexOf(prev);
+                                        return idx > 0 ? steps[idx - 1] : steps[0];
                                     })}
                                 >
                                     <Ionicons name="remove" size={20} color="#FFF" />
@@ -173,8 +174,9 @@ export default function SoloScreen() {
                                 <TouchableOpacity
                                     style={[styles.targetButton, isLandscape && styles.targetButtonSmall]}
                                     onPress={() => setTurnDuration(prev => {
-                                        if (prev === 0) return 15;
-                                        return Math.min(60, prev + 5);
+                                        const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+                                        const idx = steps.indexOf(prev);
+                                        return idx < steps.length - 1 ? steps[idx + 1] : steps[steps.length - 1];
                                     })}
                                 >
                                     <Ionicons name="add" size={20} color="#FFF" />

@@ -209,10 +209,10 @@ export default function ProfileScreen() {
                 disabled={isLoading}
             >
                 {isLoading ? (
-                    <ActivityIndicator color="#0d1f0d" />
+                    <ActivityIndicator color="#1A0E2E" />
                 ) : (
                     <View style={styles.saveButtonContent}>
-                        <Ionicons name="checkmark-circle" size={20} color="#0d1f0d" style={{ marginRight: 8 }} />
+                        <Ionicons name="checkmark-circle" size={20} color="#1A0E2E" style={{ marginRight: 8 }} />
                         <Text style={styles.saveButtonText}>ENREGISTRER</Text>
                     </View>
                 )}
@@ -226,7 +226,7 @@ export default function ProfileScreen() {
     );
     return (
         <LinearGradient
-            colors={['#2c0b0b', '#071a07', '#0b2c1d']}
+            colors={['#2D1B4E', '#1A0E2E']}
             style={styles.container}
         >
             <KeyboardAvoidingView

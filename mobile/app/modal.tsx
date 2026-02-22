@@ -50,7 +50,7 @@ export default function ModalScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#2c0b0b', '#071a07', '#0b2c1d']}
+        colors={['#2D1B4E', '#1A0E2E']}
         style={StyleSheet.absoluteFill}
       />
 

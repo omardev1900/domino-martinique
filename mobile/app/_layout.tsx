@@ -23,7 +23,7 @@ if (Platform.OS === 'web' && typeof window !== 'undefined') {
       width: 100%;
       display: flex;
       flex-direction: column;
-      background-color: #1a0a00;
+      background-color: #1A0E2E;
     }
   `;
   document.head.appendChild(style);
@@ -78,13 +78,12 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView
-      style={{ flex: 1, minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%', backgroundColor: '#1a0a00' }}
+      style={{ flex: 1, minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%', backgroundColor: '#1A0E2E' }}
       onLayout={onLayoutRootView}
     >
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <LinearGradient
-          colors={['#1a0a00', '#0d1f0d', '#0b1a2c']}
-          locations={[0, 0.5, 1]}
+          colors={['#2D1B4E', '#1A0E2E']}
           style={{ flex: 1 }}
         >
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>

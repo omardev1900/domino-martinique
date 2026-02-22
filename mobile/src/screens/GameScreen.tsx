@@ -781,7 +781,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     }
                 }
                 setBoudedPlayerId(null);
-            }, 3000);
+            }, 1000);
 
             return () => clearTimeout(timer);
         } else if (!isPlayerBlocked && boudedPlayerId === currentPlayer.id) {

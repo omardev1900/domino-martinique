@@ -161,7 +161,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
 
     return (
         <LinearGradient
-            colors={['#0d1f0d', '#1a3d1a', '#2d5f2e']}
+            colors={['#2D1B4E', '#1A0E2E']}
             style={styles.container}
         >
             {/* Room Code - Top */}

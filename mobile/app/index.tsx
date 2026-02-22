@@ -157,8 +157,7 @@ export default function PremiumSplashScreen() {
     // ── Render ────────────────────────────────────────────────────
     return (
         <LinearGradient
-            colors={['#1a0a00', '#0d1f0d', '#0b1a2c']}
-            locations={[0, 0.5, 1]}
+            colors={['#2D1B4E', '#1A0E2E']}
             style={[styles.container, { minHeight: height }]}
         >
             {/* Logo */}
