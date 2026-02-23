@@ -13,16 +13,16 @@ import { getValidMoves, ValidMove } from '../core/DominoEngine';
 // ═══════════════════════════════════════════════════════════════════════════
 //  GRID CONSTANTS — Never change with screen size. Only 'scale' adapts.
 // ═══════════════════════════════════════════════════════════════════════════
-const TILES_PER_ROW = 10;
+const TILES_PER_ROW = 6;
 const T = 42;                 // base unit (half-tile)
 const H_W = T * 2;            // horizontal tile width (84)
 const H_H = T;                // horizontal tile height (42)
 const V_W = T;                // vertical tile width (42)
 const V_H = T * 2;            // vertical tile height (84)
 const GAP = 4;                // gap between tiles
-const ROW_GAP = 14;           // vertical gap between rows
+const ROW_GAP = 50;           // ++ Increased gap for better aération
 const CELL = H_W + GAP;       // one grid cell advance (88)
-const ROW_STEP = V_H + ROW_GAP; // vertical step between rows (98)
+const ROW_STEP = V_H + ROW_GAP; // vertical step between rows (134)
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  TYPES
@@ -30,6 +30,7 @@ const ROW_STEP = V_H + ROW_GAP; // vertical step between rows (98)
 interface PlacedTile {
     domino: Domino;
     isReversed: boolean;
+    visualFlip?: boolean;
     x: number;   // left edge in natural coords (anchor = 0,0)
     y: number;   // top edge in natural coords
     orientation: 'horizontal' | 'vertical';
@@ -124,6 +125,7 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
         verticalGrowth: 1 | -1,
         startCursorX: number,
         rowCenterY: number,
+        isLeftChain: boolean
     ): PlacedTile[] {
         const tiles: PlacedTile[] = [];
         let cursor = startCursorX;   // left-edge (dir=1) or right-edge (dir=-1)
@@ -168,11 +170,14 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
             const tLeft = currentDir === 1 ? cursor : cursor - tW;
             const tTop = curY - tH / 2;
 
-            // DO NOT flip isReversed — the engine already computes it correctly
-            // for the visual left-to-right sequence layout.
+            const visualFlip = isLeftChain ? currentDir === 1 : currentDir === -1;
+
+            // DO NOT flip isReversed logiquement — the engine already computes it correctly
+            // for the logic sequence. We use visualFlip to twist the tile display only.
             tiles.push({
                 domino: item.domino,
                 isReversed: item.isReversed,
+                visualFlip: !isDouble ? visualFlip : false,
                 x: tLeft,
                 y: tTop,
                 orientation: isDouble ? 'vertical' : 'horizontal',
@@ -188,11 +193,11 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
 
     // ── RIGHT CHAIN: starts right of anchor, wraps DOWN ──────────────────
     const rightStart = anchorX + anchorW + GAP;
-    const rightTiles = layChain(rightChain, 1, 1, rightStart, 0);
+    const rightTiles = layChain(rightChain, 1, 1, rightStart, 0, false);
 
     // ── LEFT CHAIN: starts left of anchor, wraps UP ──────────────────────
     const leftStart = anchorX - GAP;
-    const leftTiles = layChain(leftChain, -1, -1, leftStart, 0);
+    const leftTiles = layChain(leftChain, -1, -1, leftStart, 0, true);
 
 
     allTiles.push(...rightTiles, ...leftTiles);
@@ -266,10 +271,17 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
         return { placedTiles: tiles, canvasW: Math.max(w, 1), canvasH: Math.max(h, 1), offsetX: ox, offsetY: oy };
     }, [gameState.table.sequence]);
 
-    // ── Scale to fit screen ──────────────────────────────────────────────
-    const availW = screenWidth * 0.94;
-    const availH = screenHeight * (isLandscape ? 0.5 : 0.35);
-    const boardScale = Math.min(1, availW / canvasW, availH / canvasH);
+    // ── Scale constraints to fit safe zone ─────────────────────────
+    const safeXPadd = 40; // 20px padding left/right
+    const safeYPadd = 40; // 20px padding top/bottom
+    const availW = screenWidth - safeXPadd;
+
+    // Approximating safe area height by removing typical HUD dimensions (header + bottom bar)
+    const hudOffset = isLandscape ? 120 : 210;
+    const availH = screenHeight - hudOffset - safeYPadd;
+
+    // Scale down to fit available space. Cap at 1.0 to ensure tiles start large but never exceed safe area.
+    const boardScale = Math.min(1, availW / Math.max(canvasW, 1), availH / Math.max(canvasH, 1));
     const scaledW = canvasW * boardScale;
     const scaledH = canvasH * boardScale;
 
@@ -287,55 +299,51 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
 
     return (
         <View style={[styles.container, isLandscape && styles.containerLandscape]}>
-            <ScrollView
-                contentContainerStyle={[styles.scrollContent, { minHeight: Math.max(200, scaledH + 40) }]}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Outer wrapper at SCALED size */}
-                <View style={{ width: scaledW, height: scaledH, overflow: 'visible' }}>
-                    {/* Inner canvas at NATURAL size, scaled down via transform */}
-                    <View style={[
-                        styles.snakeCanvas,
-                        {
-                            width: canvasW,
-                            height: canvasH,
-                            transformOrigin: 'top left',
-                            transform: [{ scale: boardScale }],
-                        }
-                    ]}>
-                        {/* DOMINO TILES */}
-                        {placedTiles.map((item, idx) => {
-                            const isHidden = item.domino.id === hiddenDominoId;
-                            return (
-                                <View
-                                    key={item.domino.id}
-                                    ref={(el) => (tileRefs.current[item.domino.id] = el as any)}
-                                    style={[
-                                        styles.tileAbsolute,
-                                        {
-                                            left: item.x + offsetX,
-                                            top: item.y + offsetY,
-                                            width: item.width,
-                                            height: item.height,
-                                        },
-                                        isHidden && { opacity: 0 },
-                                    ]}
-                                >
-                                    <DominoTile
-                                        left={item.isReversed ? item.domino.right : item.domino.left}
-                                        right={item.isReversed ? item.domino.left : item.domino.right}
-                                        orientation={item.orientation}
-                                        size={T}
-                                        disabled
-                                        noMargin
-                                        entering={FadeIn.delay(idx * 30).duration(300)}
-                                    />
-                                </View>
-                            );
-                        })}
-                    </View>
+            {/* Outer wrapper at SCALED size to preserve document flow & auto-centering */}
+            <View style={{ width: scaledW, height: scaledH, justifyContent: 'center', alignItems: 'center' }}>
+                {/* Inner canvas at NATURAL size but scaled via transform */}
+                <View style={[
+                    styles.snakeCanvas,
+                    {
+                        width: canvasW,
+                        height: canvasH,
+                        transform: [{ scale: boardScale }],
+                    }
+                ]}>
+                    {/* DOMINO TILES */}
+                    {placedTiles.map((item, idx) => {
+                        const isHidden = item.domino.id === hiddenDominoId;
+                        const logicalLeft = item.isReversed ? item.domino.right : item.domino.left;
+                        const logicalRight = item.isReversed ? item.domino.left : item.domino.right;
+                        return (
+                            <View
+                                key={item.domino.id}
+                                ref={(el) => (tileRefs.current[item.domino.id] = el as any)}
+                                style={[
+                                    styles.tileAbsolute,
+                                    {
+                                        left: item.x + offsetX,
+                                        top: item.y + offsetY,
+                                        width: item.width,
+                                        height: item.height,
+                                    },
+                                    isHidden && { opacity: 0 },
+                                ]}
+                            >
+                                <DominoTile
+                                    left={item.visualFlip ? logicalRight : logicalLeft}
+                                    right={item.visualFlip ? logicalLeft : logicalRight}
+                                    orientation={item.orientation}
+                                    size={T}
+                                    disabled
+                                    noMargin
+                                    entering={FadeIn.delay(idx * 30).duration(300)}
+                                />
+                            </View>
+                        );
+                    })}
                 </View>
-            </ScrollView>
+            </View>
 
             {/* SIDE SELECTION ARROWS — Rendered OUTSIDE the scaled canvas at full size */}
             {showLeftArrow && (
