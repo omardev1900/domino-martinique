@@ -30,6 +30,16 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
     const canStart = roomData.players.length === 3;
     const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(null);
     const hasAutoStarted = useRef(false);
+    const rootRef = useRef<View>(null);
+
+    // Give focus to root on mount (useful returning from game overlays)
+    useEffect(() => {
+        if (Platform.OS === 'web') {
+            setTimeout(() => {
+                (rootRef.current as any)?.focus?.();
+            }, 100);
+        }
+    }, []);
 
     // Read options directly from room data (set at creation time)
     const gameMode = roomData.gameMode || 'MANCHE';
@@ -164,6 +174,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
         <LinearGradient
             colors={['#2D1B4E', '#1A0E2E']}
             style={styles.container}
+            {...({ ref: rootRef, tabIndex: -1 } as any)}
         >
             {/* Room Code - Top */}
             <Animated.View entering={FadeIn.delay(100)} style={styles.header}>

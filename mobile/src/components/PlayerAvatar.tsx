@@ -114,6 +114,10 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     }));
 
     const isHorizontal = layout === 'horizontal';
+    const isTopLeft = position === 'top-left';
+    const isTopRight = position === 'top-right';
+    const isTopOpponent = isTopLeft || isTopRight;
+    const isLocalPlayer = position === 'bottom';
 
     // Use player's avatarId or fallback to default 'avatar_default'
     // Allow 'bot_' prefix for bot avatars
@@ -129,16 +133,15 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const imageOffset = -(imageSize - size) * 0.25;
 
     return (
-        <View style={[styles.container, isHorizontal && styles.containerHorizontal]}>
+        <View style={[
+            styles.container,
+            isHorizontal && position !== 'top-right' && styles.containerRow,
+            isHorizontal && position === 'top-right' && styles.containerRowReverse
+        ]}>
             {/* Name above avatar in vertical layout */}
             {!isHorizontal && namePlacement === 'above' && (
                 <View style={styles.nameContainerVertical}>
-                    <Text
-                        style={[styles.playerName, styles.nameVertical]}
-                        numberOfLines={1}
-                    >
-                        {player.name}
-                    </Text>
+                    <Text style={[styles.playerName, styles.nameVertical]} numberOfLines={1}>{player.name}</Text>
                     <Text style={styles.mancheZetwal}>{player.currentMancheStars || 0} ⭐</Text>
                     {score && <Text style={styles.playerScore}>{score}</Text>}
                     {showHandSize && (
@@ -222,17 +225,22 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         />
                     </Svg>
                 )}
+
+                {/* Overlaid Hand Size Badge for Horizontal Layout */}
+                {showHandSize && isHorizontal && (
+                    <View style={[
+                        styles.handBadgeOverlaid,
+                        position === 'top-right' ? styles.handBadgeBottomRight : styles.handBadgeBottomLeft
+                    ]}>
+                        <Text style={styles.handBadgeText}>{player.handSize}</Text>
+                    </View>
+                )}
             </Animated.View>
 
             {/* Name below avatar in vertical layout */}
             {!isHorizontal && namePlacement === 'below' && (
                 <View style={styles.nameContainerVerticalBelow}>
-                    <Text
-                        style={[styles.playerName, styles.nameVertical]}
-                        numberOfLines={1}
-                    >
-                        {player.name}
-                    </Text>
+                    <Text style={[styles.playerName, styles.nameVertical]} numberOfLines={1}>{player.name}</Text>
                     <Text style={styles.mancheZetwal}>{player.currentMancheStars || 0} ⭐</Text>
                     {score && <Text style={styles.playerScore}>{score}</Text>}
                     {showHandSize && (
@@ -244,25 +252,23 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                 </View>
             )}
 
-            {/* Name beside avatar in horizontal layout */}
+            {/* Info Block for Horizontal Layout */}
             {isHorizontal && (
-                <View style={styles.nameContainerHorizontal}>
-                    <Text
-                        style={[styles.playerName, styles.nameHorizontal]}
-                        numberOfLines={1}
-                    >
-                        {player.name}
-                    </Text>
-                    <Text style={[styles.mancheZetwal, styles.zetwalHorizontal]}>
-                        {player.currentMancheStars || 0} ⭐
-                    </Text>
-                    {score && <Text style={[styles.playerScore, styles.scoreHorizontal]}>{score}</Text>}
-                    {showHandSize && (
-                        <View style={[styles.handSizeBadge, { justifyContent: 'flex-start', marginTop: 2 }]}>
-                            <Ionicons name="documents-outline" size={10} color="#FFF" style={{ opacity: 0.6 }} />
-                            <Text style={styles.handSizeText}>{player.handSize}/7</Text>
+                <View style={[
+                    styles.opponentInfoBlock,
+                    position === 'top-right' ? styles.opponentInfoBlockRight : styles.opponentInfoBlockLeft
+                ]}>
+                    <Text style={styles.opponentNameText} numberOfLines={1}>{player.name}</Text>
+                    <View style={styles.opponentStatsRow}>
+                        <View style={styles.opponentStatCol}>
+                            <Text style={styles.statLabelV}>V</Text>
+                            <Text style={styles.statValueV}>{player.currentMancheStars || 0}</Text>
                         </View>
-                    )}
+                        <View style={styles.opponentStatCol}>
+                            <Text style={styles.statLabelPTS}>PTS</Text>
+                            <Text style={styles.statValuePTS}>{typeof score === 'string' ? score.replace(/[^0-9-]/g, '') : (score || 0)}</Text>
+                        </View>
+                    </View>
                 </View>
             )}
         </View>
@@ -274,12 +280,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    containerHorizontal: {
+    containerRow: {
         flexDirection: 'row',
-        backgroundColor: 'transparent',
-        paddingRight: 0,
-        borderRadius: 40,
-        height: 70,
+        alignItems: 'center',
+    },
+    containerRowReverse: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
     },
     avatar: {
         backgroundColor: 'rgba(50,50,50,0.9)',
@@ -311,19 +318,11 @@ const styles = StyleSheet.create({
     nameContainerVerticalBelow: {
         marginTop: 6,
     },
-    nameContainerHorizontal: {
-        marginLeft: 4,
-    },
     playerName: {
         color: '#FFFFFF',
         fontSize: 12,
         fontWeight: 'bold',
         textAlign: 'center',
-    },
-    nameHorizontal: {
-        fontSize: 14,
-        textAlign: 'left',
-        minWidth: 80,
     },
     nameVertical: {
         maxWidth: 80,
@@ -345,9 +344,6 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,
     },
-    zetwalHorizontal: {
-        textAlign: 'left',
-    },
     handSizeBadge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -365,9 +361,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         opacity: 0.8,
     },
-    scoreHorizontal: {
-        textAlign: 'left',
-    },
     boudeOverlay: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(192, 57, 43, 0.8)', // Reddish overlay
@@ -379,5 +372,84 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 12,
         letterSpacing: 1,
+    },
+    handBadgeOverlaid: {
+        position: 'absolute',
+        backgroundColor: '#FFF',
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#000',
+        zIndex: 10,
+    },
+    handBadgeBottomLeft: {
+        bottom: 2,
+        left: -2,
+    },
+    handBadgeBottomRight: {
+        bottom: 2,
+        right: -2,
+    },
+    handBadgeText: {
+        color: '#000',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    opponentInfoBlock: {
+        backgroundColor: 'rgba(40, 30, 30, 0.95)',
+        borderRadius: 8,
+        padding: 6,
+        paddingVertical: 8,
+        minWidth: 80,
+    },
+    opponentInfoBlockLeft: {
+        marginLeft: 8,
+    },
+    opponentInfoBlockRight: {
+        marginRight: 8,
+    },
+    opponentNameText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        marginBottom: 6,
+        textAlign: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.1)',
+        paddingBottom: 4,
+    },
+    opponentStatsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        paddingHorizontal: 4,
+    },
+    opponentStatCol: {
+        alignItems: 'center',
+    },
+    statLabelV: {
+        color: '#4CAF50',
+        fontSize: 9,
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    statValueV: {
+        color: '#4CAF50',
+        fontSize: 14,
+        fontWeight: '900',
+    },
+    statLabelPTS: {
+        color: '#FFD700',
+        fontSize: 9,
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    statValuePTS: {
+        color: '#FFD700',
+        fontSize: 14,
+        fontWeight: '900',
     }
 });

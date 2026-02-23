@@ -128,6 +128,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [flyingDomino, setFlyingDomino] = useState<FlyingDominoData | null>(null);
 
     const tableRef = useRef<GameTableRef>(null);
+    const rootRef = useRef<View>(null);
     const lastPlayStartPos = useRef<{ x: number, y: number } | null>(null);
     const avatarRefs = useRef<{ [key: string]: View | null }>({});
     const prevHistoryLength = useRef(0);
@@ -258,6 +259,13 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     // Player profile data for solo mode
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
+
+    useEffect(() => {
+        if (Platform.OS === 'web' && !showSettings && !showScoreOverlay && !showRoomInfo && !isPaused) {
+            // Restore focus to root element when overlays are closed
+            (rootRef.current as any)?.focus?.();
+        }
+    }, [showSettings, showScoreOverlay, showRoomInfo, isPaused]);
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
 
 
@@ -1362,269 +1370,273 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
 
     return (
-        <View style={styles.container}>
-            {/* CHOICE BANNER (Overlay) */}
-            {pendingDomino && (
-                <View style={[
-                    styles.choiceBanner,
-                    isLandscape ? { top: 15, bottom: undefined } : { bottom: 160 }
-                ]} pointerEvents="none">
-                    <Animated.View entering={FadeIn.duration(300)}>
-                        <Text style={styles.choiceText}>CHOISISSEZ UN CÔTÉ</Text>
-                    </Animated.View>
-                </View>
-            )}
-            {/* Dynamic Background based on Theme */}
-            {/* Dynamic Background based on Theme - OVERRIDE for Traditional Premium as requested */}
-            <LinearGradient
-                colors={['#0a2e0a', '#4a0e0e', '#000000']}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={StyleSheet.absoluteFill}
-            />
-
-            <StatusBar barStyle="light-content" translucent />
-
-
-            {/* UNIFIED HEADER BAR - Regrouped and centered */}
-            {gameState && gameState.phase === 'PLAYING' && (
-                <View style={[styles.unifiedHeader, { top: Math.max(insets.top, 10) }]}>
-                    {/* Block 1: Game Mode + Objective */}
-                    <View style={styles.headerBadge}>
-                        <Text style={styles.headerText}>
-                            {gameState.gameMode === 'MANCHE' ? '🏆 Manche' : gameState.gameMode === 'SCORE' ? '🎯 Score' : '🐷 Cochon'}
-                            {' · Obj: '}
-                            {gameState.gameMode === 'MANCHE'
-                                ? `${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
-                                : gameState.gameMode === 'SCORE'
-                                    ? `${gameState.winningCondition} pts`
-                                    : `${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
-                            }
-                        </Text>
+        <View style={styles.container} ref={rootRef as any} tabIndex={-1}>
+            {/* Wrapper for inert when overlays are open */}
+            <View
+                style={{ flex: 1 }}
+                {...({ inert: (Platform.OS === 'web' && (showSettings || showScoreOverlay || isPaused || showRoomInfo)) ? true : undefined } as any)}
+            >
+                {/* CHOICE BANNER (Overlay) */}
+                {pendingDomino && (
+                    <View style={[
+                        styles.choiceBanner,
+                        isLandscape ? { top: 15, bottom: undefined } : { bottom: 160 }
+                    ]} pointerEvents="none">
+                        <Animated.View entering={FadeIn.duration(300)}>
+                            <Text style={styles.choiceText}>CHOISISSEZ UN CÔTÉ</Text>
+                        </Animated.View>
                     </View>
+                )}
+                {/* Dynamic Background based on Theme */}
+                {/* Dynamic Background based on Theme - OVERRIDE for Traditional Premium as requested */}
+                <LinearGradient
+                    colors={['#0a2e0a', '#4a0e0e', '#000000']}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                />
 
-                    {/* Block 2: Manche + Round */}
-                    <View style={styles.headerBadge}>
-                        <Text style={styles.headerText}>
-                            M{gameState.mancheNumber || 1} / R{gameState.roundNumber || 1}
-                        </Text>
-                    </View>
+                <StatusBar barStyle="light-content" translucent />
 
-                    {/* Block 3: Controls Icons */}
-                    <View style={styles.headerControls}>
-                        {isSoloMode ? (
-                            <TouchableOpacity
-                                onPress={() => setIsPaused(!isPaused)}
-                                activeOpacity={0.7}
-                                style={styles.controlBtn}
-                            >
-                                <Ionicons name={isPaused ? "play" : "pause"} size={24} color="#FFD700" />
-                            </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity
-                                onPress={() => setShowRoomInfo(!showRoomInfo)}
-                                activeOpacity={0.7}
-                                style={styles.controlBtn}
-                            >
-                                <Ionicons name="information-circle-outline" size={24} color="#FFD700" />
-                            </TouchableOpacity>
-                        )}
 
-                        <TouchableOpacity
-                            onPress={async () => {
-                                const newState = await SoundManager.toggleMute();
-                                setIsSoundEnabled(newState);
-                            }}
-                            activeOpacity={0.7}
-                            style={styles.controlBtn}
-                        >
-                            <Ionicons name={isSoundEnabled ? "volume-high" : "volume-mute"} size={20} color="#FFD700" />
-                        </TouchableOpacity>
+                {/* UNIFIED HEADER BAR - Regrouped and centered */}
+                {gameState && gameState.phase === 'PLAYING' && (
+                    <View style={[styles.unifiedHeader, { top: Math.max(insets.top, 10) }]}>
+                        {/* Block 1: Game Mode + Objective */}
+                        <View style={styles.headerBadge}>
+                            <Text style={styles.headerText}>
+                                {gameState.gameMode === 'MANCHE' ? '🏆 Manche' : gameState.gameMode === 'SCORE' ? '🎯 Score' : '🐷 Cochon'}
+                                {' · Obj: '}
+                                {gameState.gameMode === 'MANCHE'
+                                    ? `${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
+                                    : gameState.gameMode === 'SCORE'
+                                        ? `${gameState.winningCondition} pts`
+                                        : `${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
+                                }
+                            </Text>
+                        </View>
 
-                        {Platform.OS === 'web' && (
-                            <TouchableOpacity
-                                onPress={toggleFullscreen}
-                                activeOpacity={0.7}
-                                style={styles.controlBtn}
-                            >
-                                <Ionicons name={isFullscreen ? "contract-outline" : "expand-outline"} size={20} color="#FFD700" />
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                </View>
-            )}
+                        {/* Block 2: Manche + Round */}
+                        <View style={styles.headerBadge}>
+                            <Text style={styles.headerText}>
+                                M{gameState.mancheNumber || 1} / R{gameState.roundNumber || 1}
+                            </Text>
+                        </View>
 
-            {/* ROOM INFO CARD - Floating card with room code + game objective */}
-            {!isSoloMode && gameId && showRoomInfo && (
-                <>
-                    {/* Backdrop - close on tap outside */}
-                    <TouchableOpacity
-                        style={styles.infoBackdrop}
-                        activeOpacity={1}
-                        onPress={() => setShowRoomInfo(false)}
-                    >
-                        <View style={styles.infoCard}>
-                            {/* Room Code Row */}
-                            <View style={styles.infoCardHeader}>
-                                <Ionicons name="game-controller-outline" size={16} color="#FFD700" />
-                                <Text style={styles.infoCardTitle}>Salle</Text>
-                            </View>
+                        {/* Block 3: Controls Icons */}
+                        <View style={styles.headerControls}>
+                            {isSoloMode ? (
+                                <TouchableOpacity
+                                    onPress={() => setIsPaused(!isPaused)}
+                                    activeOpacity={0.7}
+                                    style={styles.controlBtn}
+                                >
+                                    <Ionicons name={isPaused ? "play" : "pause"} size={24} color="#FFD700" />
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity
+                                    onPress={() => setShowRoomInfo(!showRoomInfo)}
+                                    activeOpacity={0.7}
+                                    style={styles.controlBtn}
+                                >
+                                    <Ionicons name="information-circle-outline" size={24} color="#FFD700" />
+                                </TouchableOpacity>
+                            )}
 
                             <TouchableOpacity
-                                style={styles.infoCardCodeRow}
-                                onPress={() => {
-                                    Clipboard.setStringAsync(gameId);
-                                    Alert.alert("✓ Copié", "Code copié dans le presse-papier !");
+                                onPress={async () => {
+                                    const newState = await SoundManager.toggleMute();
+                                    setIsSoundEnabled(newState);
                                 }}
                                 activeOpacity={0.7}
+                                style={styles.controlBtn}
                             >
-                                <Ionicons name="copy-outline" size={14} color="rgba(255,255,255,0.5)" />
-                                <Text style={styles.infoCardCode}>{gameId}</Text>
+                                <Ionicons name={isSoundEnabled ? "volume-high" : "volume-mute"} size={20} color="#FFD700" />
                             </TouchableOpacity>
 
-                            {/* Divider */}
-                            <View style={styles.infoCardDivider} />
-
-                            {/* Game Objective */}
-                            <View style={styles.infoCardHeader}>
-                                <Ionicons name="trophy-outline" size={16} color="#FFD700" />
-                                <Text style={styles.infoCardTitle}>Objectif</Text>
-                            </View>
-
-                            <View style={styles.infoCardObjective}>
-                                <Text style={styles.infoCardObjectiveText}>
-                                    {gameState.gameMode === 'MANCHE'
-                                        ? `🏆  ${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
-                                        : gameState.gameMode === 'SCORE'
-                                            ? `⭐  ${gameState.winningCondition} points`
-                                            : `🐷  ${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
-                                    }
-                                </Text>
-                                <Text style={styles.infoCardModeLabel}>
-                                    {gameState.gameMode === 'MANCHE'
-                                        ? 'Mode Manche'
-                                        : gameState.gameMode === 'SCORE'
-                                            ? 'Mode Score'
-                                            : 'Mode Cochon'
-                                    }
-                                </Text>
-                            </View>
+                            {Platform.OS === 'web' && (
+                                <TouchableOpacity
+                                    onPress={toggleFullscreen}
+                                    activeOpacity={0.7}
+                                    style={styles.controlBtn}
+                                >
+                                    <Ionicons name={isFullscreen ? "contract-outline" : "expand-outline"} size={20} color="#FFD700" />
+                                </TouchableOpacity>
+                            )}
                         </View>
-                    </TouchableOpacity>
-                </>
-            )}
+                    </View>
+                )}
+
+                {/* ROOM INFO CARD - Floating card with room code + game objective */}
+                {!isSoloMode && gameId && showRoomInfo && (
+                    <>
+                        {/* Backdrop - close on tap outside */}
+                        <TouchableOpacity
+                            style={styles.infoBackdrop}
+                            activeOpacity={1}
+                            onPress={() => setShowRoomInfo(false)}
+                        >
+                            <View style={styles.infoCard}>
+                                {/* Room Code Row */}
+                                <View style={styles.infoCardHeader}>
+                                    <Ionicons name="game-controller-outline" size={16} color="#FFD700" />
+                                    <Text style={styles.infoCardTitle}>Salle</Text>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.infoCardCodeRow}
+                                    onPress={() => {
+                                        Clipboard.setStringAsync(gameId);
+                                        Alert.alert("✓ Copié", "Code copié dans le presse-papier !");
+                                    }}
+                                    activeOpacity={0.7}
+                                >
+                                    <Ionicons name="copy-outline" size={14} color="rgba(255,255,255,0.5)" />
+                                    <Text style={styles.infoCardCode}>{gameId}</Text>
+                                </TouchableOpacity>
+
+                                {/* Divider */}
+                                <View style={styles.infoCardDivider} />
+
+                                {/* Game Objective */}
+                                <View style={styles.infoCardHeader}>
+                                    <Ionicons name="trophy-outline" size={16} color="#FFD700" />
+                                    <Text style={styles.infoCardTitle}>Objectif</Text>
+                                </View>
+
+                                <View style={styles.infoCardObjective}>
+                                    <Text style={styles.infoCardObjectiveText}>
+                                        {gameState.gameMode === 'MANCHE'
+                                            ? `🏆  ${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
+                                            : gameState.gameMode === 'SCORE'
+                                                ? `⭐  ${gameState.winningCondition} points`
+                                                : `🐷  ${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
+                                        }
+                                    </Text>
+                                    <Text style={styles.infoCardModeLabel}>
+                                        {gameState.gameMode === 'MANCHE'
+                                            ? 'Mode Manche'
+                                            : gameState.gameMode === 'SCORE'
+                                                ? 'Mode Score'
+                                                : 'Mode Cochon'
+                                        }
+                                    </Text>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    </>
+                )}
 
 
-            <GameTable
-                ref={tableRef}
-                gameState={gameState}
-                theme={tableTheme}
-                pendingDomino={pendingDomino}
-                onSideSelect={pendingDomino ? confirmSidePlay : undefined}
-                hiddenDominoId={hiddenDominoId}
-            />
-
-            {flyingDomino && (
-                <FlyingDomino
-                    data={flyingDomino}
-                    onFinished={() => {
-                        setFlyingDomino(null);
-                        setHiddenDominoId(null);
-                    }}
+                <GameTable
+                    ref={tableRef}
+                    gameState={gameState}
+                    theme={tableTheme}
+                    pendingDomino={pendingDomino}
+                    onSideSelect={pendingDomino ? confirmSidePlay : undefined}
+                    hiddenDominoId={hiddenDominoId}
                 />
-            )}
 
-            {/* UI LAYER */}
-            <View style={styles.uiLayer} pointerEvents="box-none">
-
-                {/* Opponents Display - Both Solo and Multiplayer now use same layout for 3 players */}
-                {/* Opponents Display - ANTI-CLOCKWISE REORGANIZATION */}
-                {/* Visual Order: You (Bottom) -> Next Player (Top-Right) -> Last Player (Top-Left) */}
-                {opponents[0] && (
-                    <Animated.View
-                        ref={(el) => (avatarRefs.current[opponents[0].id] = el as any)}
-                        entering={FadeInRight.delay(200).duration(600)}
-                        style={[styles.topRightCorner, { top: Math.max(insets.top + 5, 15), right: Math.max(insets.right + 10, 10) }]}
-                    >
-                        <PlayerAvatar
-                            key={`${opponents[0]?.id}-${gameState.currentPlayerId}`}
-                            player={opponents[0]}
-                            isActive={gameState.currentPlayerId === opponents[0]?.id}
-                            showTimer={gameState.currentPlayerId === opponents[0]?.id && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
-                            isPaused={isPaused}
-                            timerDuration={gameState.turnDuration}
-                            size={52}
-                            layout="vertical"
-                            namePlacement="below"
-                            score={getPlayerScore(opponents[0])}
-                            position="top-right"
-                            isBoude={boudedPlayerId === opponents[0]?.id}
-                            onTimeout={() => handleTimeout(opponents[0]?.id)}
-                        />
-                    </Animated.View>
-                )}
-
-                {opponents[1] && (
-                    <Animated.View
-                        ref={(el) => (avatarRefs.current[opponents[1].id] = el as any)}
-                        entering={FadeInLeft.delay(400).duration(600)}
-                        style={[styles.topLeftArea, { top: Math.max(insets.top + 5, 15), left: Math.max(insets.left + 10, 10) }]}
-                    >
-                        <PlayerAvatar
-                            key={`${opponents[1]?.id}-${gameState.currentPlayerId}`}
-                            player={opponents[1]}
-                            isActive={gameState.currentPlayerId === opponents[1]?.id}
-                            showTimer={gameState.currentPlayerId === opponents[1]?.id && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
-                            isPaused={isPaused}
-                            timerDuration={gameState.turnDuration}
-                            size={52}
-                            layout="vertical"
-                            namePlacement="below"
-                            score={getPlayerScore(opponents[1])}
-                            position="top-left"
-                            isBoude={boudedPlayerId === opponents[1]?.id}
-                            onTimeout={() => handleTimeout(opponents[1]?.id)}
-                        />
-                    </Animated.View>
-                )}
-
-                {/* Pass Button Area is now REMOVED for Auto-Boude logic */}
-
-                {/* BOTTOM LEFT: Local Player (Me) */}
-                {localPlayer && (
-                    <Animated.View
-                        ref={(el) => (avatarRefs.current[localPlayer.id] = el as any)}
-                        entering={FadeInLeft.delay(600).duration(600)}
-                        style={[styles.bottomLeftArea, { bottom: 20 + insets.bottom, left: 20 + insets.left }]}
-                    >
-                        <PlayerAvatar
-                            player={localPlayer}
-                            isActive={isMyTurn}
-                            showTimer={isMyTurn && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
-                            isPaused={isPaused}
-                            timerDuration={gameState.turnDuration}
-                            size={60}
-                            layout="horizontal"
-                            score={getPlayerScore(localPlayer)}
-                            position="bottom"
-                            isBoude={boudedPlayerId === localPlayerId}
-                            onTimeout={() => handleTimeout(localPlayerId)}
-                        />
-                    </Animated.View>
-                )}
-            </View>
-
-            {/* Player Hand - HIGH Z-INDEX */}
-            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom, zIndex: 50 }}>
-                {localPlayer && (
-                    <PlayerHand
-                        hand={localPlayer.hand}
-                        onPlayDomino={handlePlayDomino}
-                        disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING' || showRoundBanner}
-                        leftValue={gameState.table.leftValue as any}
-                        rightValue={gameState.table.rightValue as any}
+                {flyingDomino && (
+                    <FlyingDomino
+                        data={flyingDomino}
+                        onFinished={() => {
+                            setFlyingDomino(null);
+                            setHiddenDominoId(null);
+                        }}
                     />
                 )}
+
+                {/* UI LAYER */}
+                <View style={styles.uiLayer} pointerEvents="box-none">
+
+                    {/* Opponents Display - Both Solo and Multiplayer now use same layout for 3 players */}
+                    {/* Opponents Display - ANTI-CLOCKWISE REORGANIZATION */}
+                    {/* Visual Order: You (Bottom) -> Next Player (Top-Right) -> Last Player (Top-Left) */}
+                    {opponents[0] && (
+                        <Animated.View
+                            ref={(el) => (avatarRefs.current[opponents[0].id] = el as any)}
+                            entering={FadeInRight.delay(200).duration(600)}
+                            style={[styles.topRightCorner, { top: Math.max(insets.top + 5, 15), right: Math.max(insets.right + 10, 10) }]}
+                        >
+                            <PlayerAvatar
+                                key={`${opponents[0]?.id}-${gameState.currentPlayerId}`}
+                                player={opponents[0]}
+                                isActive={gameState.currentPlayerId === opponents[0]?.id}
+                                showTimer={gameState.currentPlayerId === opponents[0]?.id && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
+                                isPaused={isPaused}
+                                timerDuration={gameState.turnDuration}
+                                size={52}
+                                layout="horizontal"
+                                score={getPlayerScore(opponents[0])}
+                                position="top-right"
+                                isBoude={boudedPlayerId === opponents[0]?.id}
+                                onTimeout={() => handleTimeout(opponents[0]?.id)}
+                            />
+                        </Animated.View>
+                    )}
+
+                    {opponents[1] && (
+                        <Animated.View
+                            ref={(el) => (avatarRefs.current[opponents[1].id] = el as any)}
+                            entering={FadeInLeft.delay(400).duration(600)}
+                            style={[styles.topLeftArea, { top: Math.max(insets.top + 5, 15), left: Math.max(insets.left + 10, 10) }]}
+                        >
+                            <PlayerAvatar
+                                key={`${opponents[1]?.id}-${gameState.currentPlayerId}`}
+                                player={opponents[1]}
+                                isActive={gameState.currentPlayerId === opponents[1]?.id}
+                                showTimer={gameState.currentPlayerId === opponents[1]?.id && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
+                                isPaused={isPaused}
+                                timerDuration={gameState.turnDuration}
+                                size={52}
+                                layout="horizontal"
+                                score={getPlayerScore(opponents[1])}
+                                position="top-left"
+                                isBoude={boudedPlayerId === opponents[1]?.id}
+                                onTimeout={() => handleTimeout(opponents[1]?.id)}
+                            />
+                        </Animated.View>
+                    )}
+
+                    {/* Pass Button Area is now REMOVED for Auto-Boude logic */}
+
+                    {/* BOTTOM LEFT: Local Player (Me) */}
+                    {localPlayer && (
+                        <Animated.View
+                            ref={(el) => (avatarRefs.current[localPlayer.id] = el as any)}
+                            entering={FadeInLeft.delay(600).duration(600)}
+                            style={[styles.bottomLeftArea, { bottom: 20 + insets.bottom, left: 20 + insets.left }]}
+                        >
+                            <PlayerAvatar
+                                player={localPlayer}
+                                isActive={isMyTurn}
+                                showTimer={isMyTurn && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
+                                isPaused={isPaused}
+                                timerDuration={gameState.turnDuration}
+                                size={60}
+                                layout="horizontal"
+                                score={getPlayerScore(localPlayer)}
+                                position="bottom"
+                                isBoude={boudedPlayerId === localPlayerId}
+                                onTimeout={() => handleTimeout(localPlayerId)}
+                            />
+                        </Animated.View>
+                    )}
+                </View>
+
+                {/* Player Hand - HIGH Z-INDEX */}
+                <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom, zIndex: 50 }}>
+                    {localPlayer && (
+                        <PlayerHand
+                            hand={localPlayer.hand}
+                            onPlayDomino={handlePlayDomino}
+                            disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING' || showRoundBanner}
+                            leftValue={gameState.table.leftValue as any}
+                            rightValue={gameState.table.rightValue as any}
+                        />
+                    )}
+                </View>
             </View>
 
             {showScoreOverlay && gameState && (

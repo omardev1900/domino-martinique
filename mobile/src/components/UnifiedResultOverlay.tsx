@@ -220,7 +220,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         }
 
         return (
-            <View style={styles.container} pointerEvents="box-none">
+            <View style={styles.container} pointerEvents="box-none" aria-modal={true}>
                 <Animated.View style={[styles.backdrop, { opacity: opacityValue }]} />
                 <Animated.View style={[
                     styles.podiumContainer,
@@ -302,7 +302,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
 
     return (
-        <View style={styles.container} pointerEvents="box-none">
+        <View style={styles.container} pointerEvents="box-none" aria-modal={true}>
             {/* Backdrop - Semi transparent to see HUD behind if needed, but mostly dark to focus */}
             <Animated.View style={[styles.backdrop, { opacity: opacityValue }]} />
 

@@ -48,7 +48,7 @@ export default function ModalScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} aria-modal={true}>
       <LinearGradient
         colors={['#2D1B4E', '#1A0E2E']}
         style={StyleSheet.absoluteFill}

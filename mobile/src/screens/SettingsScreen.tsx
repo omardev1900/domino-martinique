@@ -67,7 +67,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
     };
 
     return (
-        <View style={[styles.container, isLandscape && styles.containerLandscape]}>
+        <View style={[styles.container, isLandscape && styles.containerLandscape]} aria-modal={true}>
             <TouchableOpacity
                 activeOpacity={1}
                 style={styles.backdrop}
