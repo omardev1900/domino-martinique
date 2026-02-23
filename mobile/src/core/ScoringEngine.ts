@@ -61,24 +61,26 @@ export const finalizeRound = (
     const isChire = newState.players.every(p => p.currentMancheStars >= 1);
 
     if (isChire) {
-        console.log("CHIRÉE DETECTED! Manche ends, stars reset, manche increments.");
+        console.log("CHIRÉE DETECTED! Manche ends, manche increments.");
 
-        // Reset all stars to 0 - new manche starts clean
-        newState.players = newState.players.map(p => ({
-            ...p,
-            currentMancheStars: 0,
-            isCochon: false, // Reset cochon flag for new manche
-        }));
+        // On ne remet PAS les étoiles à 0 ici.
+        // L'écran de résultat (GameOverScreen / UnifiedResultOverlay) a besoin de lire les 'currentMancheStars' pour les afficher.
+        // L'effacement des étoiles se fera via `handleNextRound` dans GameScreen.tsx lors du clic sur 'Manche suivante'.
 
         newState.mancheResult = 'CHIRE';
         newState.firstPlayerOfRound = winnerId; // Round winner restarts
 
-        // ✅ FIX 1: Create mancheHistory entry so cumulative points are tracked
+        // ✅ FIX 1: Prendre un cliché des étoiles acquises pendant la manche chirée avant la remise à zéro
+        const chirePointsGained: { [playerId: string]: number } = {};
+        newState.players.forEach(p => {
+            chirePointsGained[p.id] = p.currentMancheStars;
+        });
+
         if (!newState.mancheHistory) newState.mancheHistory = [];
         newState.mancheHistory.push({
             mancheNumber: newState.mancheHistory.length + 1,
-            points: pointsGainedInRound,
-            winnerId: winnerId as string,
+            points: chirePointsGained, // Affiche les étoiles collectées avant l'annulation
+            winnerId: 'TIE', // Aucun vainqueur officiel sur une chirée
             resultType: 'CHIRE',
             cochonCount: 0
         });
@@ -111,15 +113,16 @@ export const finalizeRound = (
         // Losers with stars > 0 get their stars as points.
         // Losers at 0 stars get -1.
         newState.players = newState.players.map(p => {
-            let finalManchePoints = 0;
+            let historyPointsForManche = 0;
             let updatedPlayer = { ...p };
 
             if (p.id === mancheWinner.id) {
-                // The winner already received +1 point in Step 1 (round win).
-                // They now receive the 'bonus' cochons to reach the total of (3 + cochonCount).
-                // Example: Double Cochon = 3 (stars) + 2 (losers at zero) = 5 total pts.
-                // Since they already have 3 pts (from 3 round wins), we add 2 more.
-                finalManchePoints = 3 + cochonCount;
+                // Le vainqueur a accumulé des étoiles (qui ont déjà ajouté +1 totalPoints à chaque round).
+                // Il reçoit maintenant le BONUS de fin de manche (les cochons).
+                // Pour l'HISTORIQUE, on doit enregistrer la somme : (Etoiles courantes) + (Bonus cochon)
+                // Comme le Vainqueur a atteint MANCHE_WIN_THRESHOLD (ex: 3), historyPointsForManche = 3 + cochonCount.
+                historyPointsForManche = p.currentMancheStars + cochonCount;
+
                 updatedPlayer = {
                     ...p,
                     mancheWins: p.mancheWins + 1,
@@ -127,18 +130,22 @@ export const finalizeRound = (
                     totalCochons: p.totalCochons + cochonCount
                 };
             } else if (p.currentMancheStars === 0) {
-                finalManchePoints = -1;
+                // Joueur 'bredouille', il perd -1 pt dans le match.
+                // Son snapshot Historique de Manche est bien -1.
+                historyPointsForManche = -1;
                 updatedPlayer = {
                     ...p,
                     isCochon: true,
                     totalPoints: p.totalPoints - 1
                 };
             } else {
-                finalManchePoints = p.currentMancheStars;
+                // Joueurs ayant gagné quelques manches (1 ou 2 ⭐).
+                // Leurs points sont exactement le nombre de leurs victoires.
+                historyPointsForManche = p.currentMancheStars;
             }
 
-            // Update the points record used for History and Overlay
-            pointsGainedInRound[p.id] = finalManchePoints;
+            // Mettre à jour `pointsGainedInRound` QUI SERT en fait d'Historique complet de la Manche
+            pointsGainedInRound[p.id] = historyPointsForManche;
             return updatedPlayer;
         });
 

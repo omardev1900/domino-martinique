@@ -272,19 +272,18 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
                                 return (
                                     <View key={p.id} style={[styles.boudePlayerItem, isMin && styles.boudePlayerItemWinner]}>
-                                        <View style={styles.boudePlayerInfoRow}>
-                                            <View style={styles.boudeAvatarBlock}>
-                                                <Image source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')} style={[styles.boudeMiniAvatar, isMin && styles.boudeAvatarWinner]} />
-                                                {isMin && <Text style={styles.boudeCrown}>👑</Text>}
-                                            </View>
-                                            <View style={styles.boudePlayerTextCol}>
-                                                <Text style={[styles.boudePlayerName, isMin && styles.boudePlayerNameWinner]} numberOfLines={1}>{p.name}</Text>
-                                                <View style={styles.boudePlayerScoresRow}>
-                                                    <Text style={[styles.boudePlayerScore, isMin && styles.boudePlayerScoreWinner]}>{pts} pts</Text>
-                                                    <Text style={styles.boudePlayerTotalScore}>(Total: {totalPts})</Text>
-                                                </View>
-                                            </View>
+                                        {/* 1. HEADER: Nom + Etoiles */}
+                                        <View style={styles.boudePlayerHeader}>
+                                            <Image source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')} style={[styles.boudeMicroAvatar, isMin && styles.boudeAvatarWinner]} />
+                                            <Text style={[styles.boudePlayerName, isMin && styles.boudePlayerNameWinner]} numberOfLines={1}>{p.name}</Text>
+                                            <Text style={styles.boudePlayerStars}>{p.currentMancheStars || 0}⭐</Text>
+                                            {isMin && <Text style={styles.boudeCrownSmall}>👑</Text>}
                                         </View>
+
+                                        {/* 2. PROGRESSION: Score Total (Bleu) */}
+                                        <Text style={styles.boudePlayerTotalScoreMatch}>Total: {totalPts}{gameState.winningCondition ? `/${gameState.winningCondition}` : ''}</Text>
+
+                                        {/* 3. VISUAL: Dominos */}
                                         <View style={styles.boudeMiniHand}>
                                             {p.hand.length === 0 ? (
                                                 <Text style={styles.boudeEmptyHand}>0 domino</Text>
@@ -295,6 +294,11 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                                     </View>
                                                 ))
                                             )}
+                                        </View>
+
+                                        {/* 4. FOOTER: Poids de la main */}
+                                        <View style={styles.boudePlayerFooter}>
+                                            <Text style={[styles.boudePlayerScore, isMin && styles.boudePlayerScoreWinner]}>{pts} ⚫</Text>
                                         </View>
                                     </View>
                                 );
@@ -438,17 +442,20 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                 return (
                                     <View key={p.id} style={[styles.podiumRoyalCard, isWin ? styles.podiumRoyalWinner : styles.podiumRoyalLoser]}>
 
-                                        {/* Avatar & Identité */}
-                                        <View style={[styles.boudeAvatarBlock, { alignItems: 'center', marginBottom: 6 }]}>
-                                            <Image source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')} style={[styles.boudeMiniAvatar, isWin ? styles.podiumRoyalAvatarWinner : styles.podiumRoyalAvatarLoser]} />
+                                        {/* Avatar & Identité avec Flex Shrink */}
+                                        <View style={[styles.podiumRoyalAvatarBlock, { alignItems: 'center', marginBottom: 6 }]}>
+                                            <Image source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')} style={[styles.podiumRoyalAvatar, isWin ? styles.podiumRoyalAvatarWinner : styles.podiumRoyalAvatarLoser]} />
                                             {isWin && <Text style={styles.podiumCrownWinner}>👑</Text>}
                                         </View>
 
-                                        <Text style={[styles.boudePlayerName, isWin ? styles.podiumNameWinner : styles.podiumNameLoser]} numberOfLines={1}>{p.name}</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <Text style={[styles.podiumRoyalPlayerName, isWin ? styles.podiumNameWinner : styles.podiumNameLoser]} numberOfLines={1}>{p.name}</Text>
+                                            <Text style={styles.boudePlayerStars}>{p.currentMancheStars || 0}⭐</Text>
+                                        </View>
 
                                         {/* Statistiques de Gloire */}
-                                        <View style={{ alignItems: 'center', marginTop: 5 }}>
-                                            <Text style={[styles.boudePlayerScore, isWin ? styles.podiumScoreWinner : styles.podiumScoreLoser]}>
+                                        <View style={{ alignItems: 'center', marginTop: 2 }}>
+                                            <Text style={[styles.podiumRoyalScore, isWin ? styles.podiumScoreWinner : styles.podiumScoreLoser]}>
                                                 {totalPts} <Text style={{ fontSize: 14 }}>pts</Text>
                                             </Text>
                                         </View>
@@ -525,49 +532,24 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                         {gameState.players.map(p => {
                             const isWin = p.id === winner?.id;
                             const latestManche = gameState.mancheHistory?.[gameState.mancheHistory.length - 1];
-                            let roundPts = 0;
-
-                            if (latestManche && latestManche.points[p.id] !== undefined) {
-                                roundPts = latestManche.points[p.id];
-                            } else {
-                                // Fallback
-                                if (isWin) {
-                                    roundPts = gameState.players.reduce((acc, curr) => curr.id !== p.id ? acc + calculateHandPoints(curr.hand) : acc, 0);
-                                    if (isChire) roundPts += 50;
-                                } else {
-                                    roundPts = -calculateHandPoints(p.hand);
-                                    if (isChire) roundPts -= 50;
-                                }
-                            }
+                            const handPips = calculateHandPoints(p.hand);
 
                             const totalPts = gameState.gameMode === 'SCORE' ? p.totalPoints : gameState.gameMode === 'COCHON' ? p.totalCochons : p.totalPoints;
 
                             return (
                                 <View key={p.id} style={[styles.boudePlayerItem, isWin && styles.boudePlayerItemWinner]}>
-                                    <View style={styles.boudePlayerInfoRow}>
-                                        <View style={styles.boudeAvatarBlock}>
-                                            <Image source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')} style={[styles.boudeMiniAvatar, isWin && styles.boudeAvatarWinner]} />
-                                            {isWin && <Text style={styles.boudeCrown}>👑</Text>}
-                                        </View>
-                                        <View style={styles.boudePlayerTextCol}>
-                                            <Text style={[styles.boudePlayerName, isWin && styles.boudePlayerNameWinner]} numberOfLines={1}>{p.name}</Text>
-                                            <View style={styles.boudePlayerScoresRow}>
-                                                <Text style={[styles.boudePlayerScore, isWin && styles.boudePlayerScoreWinner]}>
-                                                    {roundPts > 0 ? `+${roundPts}` : roundPts} pts
-                                                </Text>
-                                                <Text style={styles.boudePlayerTotalScore}>
-                                                    (Total: {totalPts}{gameState.winningCondition ? `/${gameState.winningCondition}` : ''})
-                                                </Text>
-                                            </View>
-                                        </View>
-                                        {/* MANCHE WINS STAR */}
-                                        <View style={{ alignItems: 'center', marginLeft: 4 }}>
-                                            <Text style={{ fontSize: 13, fontWeight: '900', color: '#B8860B' }}>
-                                                {p.currentMancheStars}⭐
-                                            </Text>
-                                        </View>
+                                    {/* 1. HEADER: Nom + Etoiles */}
+                                    <View style={styles.boudePlayerHeader}>
+                                        <Image source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')} style={[styles.boudeMicroAvatar, isWin && styles.boudeAvatarWinner]} />
+                                        <Text style={[styles.boudePlayerName, isWin && styles.boudePlayerNameWinner]} numberOfLines={1}>{p.name}</Text>
+                                        <Text style={styles.boudePlayerStars}>{p.currentMancheStars || 0}⭐</Text>
+                                        {isWin && <Text style={styles.boudeCrownSmall}>👑</Text>}
                                     </View>
 
+                                    {/* 2. PROGRESSION: Score Total (Bleu) */}
+                                    <Text style={styles.boudePlayerTotalScoreMatch}>Total: {totalPts}{gameState.winningCondition ? `/${gameState.winningCondition}` : ''}</Text>
+
+                                    {/* 3. VISUAL: Dominos */}
                                     <View style={styles.boudeMiniHand}>
                                         {p.hand.length === 0 ? (
                                             <Text style={styles.boudeEmptyHand}>A terminé !</Text>
@@ -579,6 +561,19 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                             ))
                                         )}
                                     </View>
+
+                                    {/* 4. FOOTER: Poids de la main */}
+                                    <View style={styles.boudePlayerFooter}>
+                                        {p.hand.length > 0 ? (
+                                            <Text style={[styles.boudePlayerScore, isWin && styles.boudePlayerScoreWinner]}>
+                                                {handPips} ⚫
+                                            </Text>
+                                        ) : (
+                                            <Text style={[styles.boudePlayerScore, styles.boudePlayerScoreWinner, { opacity: 0.5, fontSize: 13 }]}>
+                                                💯
+                                            </Text>
+                                        )}
+                                    </View>
                                 </View>
                             );
                         })}
@@ -586,105 +581,6 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 </View>
             </Animated.View>
         </View>
-    );
-};
-
-// --- HELPER COMPONENT FOR BOUDE CARDS ---
-const BoudeCard = ({ player, isWinner, handPoints, delay, onReady }: { player: Player, isWinner: boolean, handPoints: number, delay: number, onReady: (pts: number) => void }) => {
-    const points = handPoints;
-    const count = useSharedValue(0);
-    const [displayCount, setDisplayCount] = useState(0);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            count.value = withTiming(points, {
-                duration: 1500,
-                easing: Easing.out(Easing.quad)
-            }, (finished) => {
-                if (finished) {
-                    runOnJS(onReady)(points);
-                }
-            });
-
-            const interval = setInterval(() => {
-                setDisplayCount(Math.round(count.value));
-                if (count.value >= points) clearInterval(interval);
-            }, 50);
-
-            return () => clearInterval(interval);
-        }, delay);
-
-        return () => clearTimeout(timer);
-    }, []);
-
-    return (
-        <Animated.View
-            entering={ZoomIn.delay(delay).duration(600)}
-            style={[styles.podiumCardBoude, isWinner && styles.podiumCardWinnerBoude, styles.boudeCard]}
-        >
-            {isWinner && (
-                <View style={styles.winnerBadge}>
-                    <Text style={styles.winnerBadgeText}>VAINQUEUR</Text>
-                </View>
-            )}
-
-            <Image
-                source={getAvatarImage(player.avatarId as AvatarId || 'avatar_default')}
-                style={[styles.podiumAvatar, isWinner && styles.podiumAvatarWinner, { marginBottom: 5 }]}
-            />
-
-            <Text style={styles.podiumNameBoude} numberOfLines={1}>{player.name}</Text>
-
-            <Text style={[styles.boudePoints, isWinner ? styles.pointsWinner : styles.pointsLoser]}>
-                {displayCount} pts
-            </Text>
-
-            <View style={styles.boudeHand}>
-                {player.hand.map((domino, idx) => (
-                    <View key={domino.id || idx} style={styles.miniDominoWrapper}>
-                        <DominoTile
-                            left={domino.left}
-                            right={domino.right}
-                            size={45}
-                            noMargin
-                            entering={FadeIn.delay(delay + 1600 + idx * 100)}
-                        />
-                    </View>
-                ))}
-            </View>
-        </Animated.View>
-    );
-};
-
-// --- HELPER COMPONENT FOR PODIUM CARDS ---
-const PodiumCard = ({ player, isWinner, totalPoints }: { player: Player, isWinner: boolean, totalPoints: number }) => {
-    return (
-        <Animated.View
-            entering={ZoomIn.delay(isWinner ? 200 : 400).duration(600)}
-            style={[styles.podiumCard, isWinner && styles.podiumCardWinner]}
-        >
-            {isWinner && (
-                <View style={styles.winnerBadge}>
-                    <Text style={styles.winnerBadgeText}>VAINQUEUR</Text>
-                </View>
-            )}
-
-            <View style={styles.cardGlowContainer}>
-                <Image
-                    source={getAvatarImage(player.avatarId as AvatarId || 'avatar_default')}
-                    style={[styles.podiumAvatar, isWinner && styles.podiumAvatarWinner]}
-                />
-                {isWinner && <Text style={styles.podiumCrown}>👑</Text>}
-            </View>
-
-            <Text style={styles.podiumName} numberOfLines={1}>{player.name}</Text>
-            <Text style={styles.podiumScore}>{totalPoints}</Text>
-
-            {/* Added for visual flair like in the screenshot */}
-            <TouchableOpacity style={styles.podiumAction}>
-                <Ionicons name="person-add" size={16} color="white" />
-            </TouchableOpacity>
-        </Animated.View>
     );
 };
 
@@ -1261,6 +1157,25 @@ const styles = StyleSheet.create({
         borderColor: '#CCC',
         opacity: 0.85,
     },
+    podiumRoyalAvatarBlock: {
+        position: 'relative',
+        flexShrink: 1,
+    },
+    podiumRoyalAvatar: {
+        resizeMode: 'cover',
+    },
+    podiumRoyalPlayerName: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#444',
+        flexShrink: 1,
+    },
+    podiumRoyalScore: {
+        fontSize: 14,
+        fontWeight: '900',
+        color: '#555',
+        flexShrink: 1,
+    },
     podiumRoyalAvatarWinner: {
         width: 60,
         height: 60,
@@ -1452,20 +1367,18 @@ const styles = StyleSheet.create({
             default: { elevation: 6, shadowColor: '#DAA520', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8 }
         })
     },
-    boudePlayerInfoRow: {
+    boudePlayerHeader: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         width: '100%',
-        marginBottom: 4, // Reduced to give more space to bigger dominos
-        gap: 8,
+        gap: 6,
+        marginBottom: 2,
     },
-    boudeAvatarBlock: {
-        position: 'relative',
-    },
-    boudeMiniAvatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+    boudeMicroAvatar: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: '#CCC',
     },
@@ -1473,34 +1386,36 @@ const styles = StyleSheet.create({
         borderColor: '#DAA520',
         borderWidth: 2,
     },
-    boudeCrown: {
-        position: 'absolute', // Make crown festive and big
-        top: -16,
-        left: -8,
-        fontSize: 24,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 2,
-        ...Platform.select({
-            web: { filter: 'drop-shadow(2px 4px 6px rgba(218,165,32,0.6))' } as any
-        }) // Glow effect on web
+    boudePlayerStars: {
+        fontSize: 12,
+        fontWeight: '900',
+        color: '#B8860B',
     },
-    boudePlayerTextCol: {
-        flex: 1,
-        flexDirection: 'column',
+    boudeCrownSmall: {
+        position: 'absolute',
+        top: -10,
+        left: -4,
+        fontSize: 16,
     },
     boudePlayerName: {
         fontSize: 13,
         fontWeight: 'bold',
         color: '#444',
+        flexShrink: 1, // Autoriser le nom à rétrécir si besoin sans déborder
     },
     boudePlayerNameWinner: {
         color: '#8B6508', // Dark Goldenrod
     },
-    boudePlayerScoresRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 4,
+    boudePlayerTotalScoreMatch: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#1565C0', // Strong contrast color (Dark Blue)
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    boudePlayerFooter: {
+        marginTop: 4,
+        alignItems: 'center',
     },
     boudePlayerScore: {
         fontSize: 14,
@@ -1509,11 +1424,6 @@ const styles = StyleSheet.create({
     },
     boudePlayerScoreWinner: {
         color: '#DAA520', // Goldenrod
-    },
-    boudePlayerTotalScore: {
-        fontSize: 11,
-        fontWeight: '800',
-        color: '#1565C0', // Strong contrast color (Dark Blue)
     },
     boudeMiniHand: {
         flexDirection: 'row',

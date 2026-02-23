@@ -61,11 +61,18 @@ describe('Scoring Verification', () => {
         const newState = finalizeRound(state, 'C');
         logResult('Test 1: Chirée (C wins)', newState, {});
 
-        expect(newState.players.every(p => p.currentMancheStars === 0)).toBe(true);
+        // Les étoiles ne sont plus remises à 0 à ce stade ! C'est UI (GameScreen) qui fera le reset.
+        // A avait 2, B avait 1, C vient de gagner donc il passe de 0 à 1.
+        expect(newState.players.find(p => p.id === 'A')?.currentMancheStars).toBe(2);
+        expect(newState.players.find(p => p.id === 'B')?.currentMancheStars).toBe(1);
+        expect(newState.players.find(p => p.id === 'C')?.currentMancheStars).toBe(1);
+
         expect(newState.mancheResult).toBe('CHIRE');
-        // C should have 1 point from round win despite reset? 
-        // Logic says round points added in Step 1, Reset in Step 2.
-        // So C totalPoints should be 1.
+
+        // Vérifier l'historique
+        expect(newState.mancheHistory.length).toBe(1);
+        expect(newState.mancheHistory[0].points['A']).toBe(2);
+        expect(newState.mancheHistory[0].points['C']).toBe(1);
     });
 
     test('2. Test Double Cochon', () => {
@@ -160,7 +167,7 @@ describe('Scoring Verification', () => {
         expect(newState.mancheHistory).toBeDefined();
         expect(newState.mancheHistory.length).toBe(1);
         expect(newState.mancheHistory[0].winnerId).toBe('A');
-        expect(newState.mancheHistory[0].points['A']).toBe(3); // 1 (round) + 2 (cochons)
+        expect(newState.mancheHistory[0].points['A']).toBe(5); // 3 (stars) + 2 (cochons)
     });
 
     test('7. Test Tie-Breaker at Threshold (End of Manche)', () => {

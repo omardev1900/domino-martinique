@@ -241,7 +241,7 @@ export default function LobbyScreen() {
                     onPress={() => { setGameMode('SCORE'); setWinningCondition(6); }}
                 >
                     <Text style={[styles.gameModeTitle, gameMode === 'SCORE' && styles.gameModeTitleActive]}>
-                        [ <Text style={styles.gameModeIcon}>🎯</Text> SCORE ]
+                        <Text style={styles.gameModeIcon}>🎯</Text> SCORE
                     </Text>
                     <Text style={[styles.gameModeSubtitle, gameMode === 'SCORE' && styles.gameModeSubtitleActive]}>
                         Le premier à X points
@@ -252,7 +252,7 @@ export default function LobbyScreen() {
                     onPress={() => { setGameMode('COCHON'); setWinningCondition(3); }}
                 >
                     <Text style={[styles.gameModeTitle, gameMode === 'COCHON' && styles.gameModeTitleActive]}>
-                        [ <Text style={styles.gameModeIcon}>🐷</Text> COCHON ]
+                        <Text style={styles.gameModeIcon}>🐷</Text> COCHON
                     </Text>
                     <Text style={[styles.gameModeSubtitle, gameMode === 'COCHON' && styles.gameModeSubtitleActive]}>
                         Évitez le zéro
@@ -263,7 +263,7 @@ export default function LobbyScreen() {
                     onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); }}
                 >
                     <Text style={[styles.gameModeTitle, gameMode === 'MANCHE' && styles.gameModeTitleActive]}>
-                        [ <Text style={styles.gameModeIcon}>🏆</Text> MANCHE ]
+                        <Text style={styles.gameModeIcon}>🏆</Text> MANCHE
                     </Text>
                     <Text style={[styles.gameModeSubtitle, gameMode === 'MANCHE' && styles.gameModeSubtitleActive]}>
                         Le meilleur à X manches

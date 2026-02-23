@@ -230,13 +230,18 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                                     <Text style={styles.name} numberOfLines={1}>
                                                         {p.name} {isCochon ? '🐷' : ''}
                                                     </Text>
-                                                    <Text style={styles.starsSub}>
-                                                        {p.currentMancheStars} {p.currentMancheStars > 1 ? 'Étoiles' : 'Étoile'}
-                                                    </Text>
+                                                    {/* On cache les étoiles de manche si le MATCH est terminé */}
+                                                    {!isMatchOver && (
+                                                        <Text style={styles.starsSub}>
+                                                            {p.currentMancheStars} {p.currentMancheStars > 1 ? 'Étoiles' : 'Étoile'}
+                                                        </Text>
+                                                    )}
                                                 </View>
                                                 <View style={styles.scoreColumnEnd}>
-                                                    <Text style={styles.scoreMain}>{p.currentMancheStars} {p.currentMancheStars > 1 ? 'Wins' : 'Win'}</Text>
-                                                    <Text style={[styles.points, isCochon && { color: '#ffb300' }]}>
+                                                    {!isMatchOver && (
+                                                        <Text style={styles.scoreMain}>{p.currentMancheStars} {p.currentMancheStars > 1 ? 'Wins' : 'Win'}</Text>
+                                                    )}
+                                                    <Text style={[styles.points, isCochon && { color: '#ffb300' }, isMatchOver && { fontSize: 20, fontWeight: 'bold' }]}>
                                                         {sign}{points} pts
                                                     </Text>
                                                 </View>
@@ -392,10 +397,18 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                                 )}
                                                 <View style={styles.scoreContainer}>
                                                     <View style={styles.scoreColumn}>
-                                                        <Text style={[styles.scoreMain, isWinner && styles.winnerText, gameState.mancheResult === 'COCHON' && p.currentMancheStars === 0 && styles.statWinsCochon]}>
-                                                            {p.currentMancheStars} {p.currentMancheStars > 1 ? 'Wins' : 'Win'}
-                                                        </Text>
-                                                        {gameState.gameMode === 'MANCHE' && (
+                                                        {/* Hide manche stars if match is over, focus on global stats */}
+                                                        {!isMatchOver ? (
+                                                            <Text style={[styles.scoreMain, isWinner && styles.winnerText, gameState.mancheResult === 'COCHON' && p.currentMancheStars === 0 && styles.statWinsCochon]}>
+                                                                {p.currentMancheStars} {p.currentMancheStars > 1 ? 'Wins' : 'Win'}
+                                                            </Text>
+                                                        ) : (
+                                                            <Text style={[styles.scoreMain, isWinner && styles.winnerText]}>
+                                                                {p.mancheWins} {p.mancheWins > 1 ? 'Manches' : 'Manche'}
+                                                            </Text>
+                                                        )}
+                                                        {/* Show subtext only if we need it (when not MatchOver) */}
+                                                        {gameState.gameMode === 'MANCHE' && !isMatchOver && (
                                                             <Text style={styles.scoreSub}>
                                                                 {p.mancheWins} {p.mancheWins > 1 ? 'Manches' : 'Manche'}
                                                             </Text>
