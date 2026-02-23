@@ -38,7 +38,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 }) => {
     const { height: screenHeight, width: screenWidth } = useWindowDimensions();
     const isLandscape = screenWidth > screenHeight;
-    const [countdown, setCountdown] = useState(10);
     const hasRecordedStats = useRef(false);
 
     // Determine context
@@ -70,38 +69,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         }
     }, [isBoudé]);
 
-    // Auto-restart countdown for next round (skip during BOUDE - parent handles resolution)
-    useEffect(() => {
-        // Don't run countdown during BOUDE phase - parent will handle resolution
-        if (isBoudé) return;
-        if (isMatchOver) return;
-        if (!isMancheOver) return; // Wait for round end if not even manche end
-        if (!onNextRound) return;
-        if (isSolo) return; // No auto-next round in solo mode
-
-        const timer = setInterval(() => {
-            setCountdown((prev) => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, [isMatchOver, isBoudé, onNextRound]);
-
-    // Separate effect to call onNextRound when countdown reaches 0
-    useEffect(() => {
-        if (countdown === 0 && isMancheOver && !isMatchOver && !isBoudé && onNextRound && !isSolo) {
-            // Use setTimeout to defer state update to next tick
-            const timeout = setTimeout(() => {
-                onNextRound();
-            }, 0);
-            return () => clearTimeout(timeout);
-        }
-    }, [countdown, isMatchOver, isBoudé, onNextRound]);
+    // Les manches sont passées manuellement par l'utilisateur (ou l'hôte)
 
     // 📊 STATS: Record match result for every completed manche
     useEffect(() => {
@@ -433,12 +401,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                     })}
                                 </View>
 
-                                {/* Countdown - only show for MANCHE_END, not MATCH_END, and not in solo */}
-                                {isMancheOver && !isMatchOver && countdown > 0 && !isSolo && (
-                                    <Text style={styles.countdownText}>
-                                        Prochaine manche dans {countdown}s...
-                                    </Text>
-                                )}
+                                {/* Plus de timer automatique affiché */}
 
                                 {/* Action buttons */}
                                 <Animated.View entering={FadeIn.delay(1000)} style={styles.buttonContainer}>
@@ -479,7 +442,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                             <Text style={styles.replayText}>
                                                 {isSolo
                                                     ? "Démarrer la Manche suivante"
-                                                    : `Manche suivante${countdown > 0 ? ` (${countdown}s)` : ''}`
+                                                    : "Manche suivante"
                                                 }
                                             </Text>
                                         </TouchableOpacity>

@@ -995,26 +995,21 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
             if (isTie) {
                 console.log('[Boude] TIE detected — restarting round without scoring');
-                if (isSoloMode || !gameId) {
-                    setGameState(resolvedState);
-                } else {
-                    safeUpdateGameState(gameId, resolvedState);
-                }
-                setTimeout(() => handleNextRound(resolvedState), 100);
+                handleNextRound(resolvedState);
             } else {
                 console.log(`[Boude] Winner resolved, new phase: ${resolvedState.phase}`);
-                if (isSoloMode || !gameId) {
-                    setGameState(resolvedState);
-                } else {
-                    safeUpdateGameState(gameId, resolvedState);
-                }
 
-                // If it's a manche end, we MUST allow the overlay to show the new phase
-                // if it's just a round end, we can proceed
+                // If it's a manche end or match end, we MUST allow the overlay to show the new phase
                 if (resolvedState.phase !== 'MATCH_END' && resolvedState.phase !== 'MANCHE_END') {
-                    setTimeout(() => handleNextRound(resolvedState), 100);
+                    // Bypass storing PARTIE_END into the state to avoid the "victory screen" glitch
+                    handleNextRound(resolvedState);
+                } else {
+                    if (isSoloMode || !gameId) {
+                        setGameState(resolvedState);
+                    } else {
+                        safeUpdateGameState(gameId, resolvedState);
+                    }
                 }
-                // If MATCH_END or MANCHE_END, the overlay will refresh with the new phase (PARTIE_END -> MANCHE_END)
             }
         } else {
             // Round / Manche End -> Go to next round/manche
@@ -1598,6 +1593,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     currentUserId={localPlayerId}
                     onContinue={handleOverlayContinue}
                     onLeave={handleLeaveRoom}
+                    isHost={isSoloMode || roomData?.createdBy === localPlayerId}
                 />
             )}
 

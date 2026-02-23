@@ -41,6 +41,7 @@ interface UnifiedResultOverlayProps {
     onLeave?: () => void; // For match end
     allReady?: boolean; // Signal from outside if needed, but we'll handle internally too
     onAnimationFinished?: () => void;
+    isHost?: boolean;
 }
 
 type OverlayMode = 'SIMPLE_WIN' | 'MANCHE_END' | 'MATCH_END' | 'BOUDE';
@@ -50,7 +51,8 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     visible,
     currentUserId,
     onContinue,
-    onLeave
+    onLeave,
+    isHost = true // Par défaut, on considère qu'on a le droit (Solo ou fallback)
 }) => {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
@@ -146,39 +148,8 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         }
     }, [visible, mode, isChire, isCochon, isMeWinner]);
 
-    // AUTO-CONTINUE TIMER
-    useEffect(() => {
-        if (visible && animationReady && !isMatchOver) {
-            shouldContinueRef.current = false;
-            setCountdown(5);
-            if (countdownRef.current) clearInterval(countdownRef.current);
-
-            countdownRef.current = setInterval(() => {
-                setCountdown(prev => {
-                    if (prev <= 1) {
-                        if (countdownRef.current) clearInterval(countdownRef.current);
-                        // Don't call onContinue here (inside setState = during render)
-                        // Mark flag instead, useEffect below will fire it safely
-                        shouldContinueRef.current = true;
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        }
-
-        return () => {
-            if (countdownRef.current) clearInterval(countdownRef.current);
-        };
-    }, [visible, animationReady, isMatchOver, mode]);
-
-    // Safe trigger: fires onContinue AFTER render, when countdown hits 0
-    useEffect(() => {
-        if (countdown === 0 && shouldContinueRef.current) {
-            shouldContinueRef.current = false;
-            onContinue();
-        }
-    }, [countdown]);
+    // PAS DE PASSAGE AUTOMATIQUE : 
+    // L'hôte ou l'utilisateur clique lui-même sur "Continuer" / "Nouvelle Manche"
 
     const handlePlayerReady = (id: string, pts: number) => {
         setReadyPlayers(prev => {
@@ -254,12 +225,19 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                 ) : (
                                     <Text style={styles.boudeBannerSubtitle}>Égalité parfaite !</Text>
                                 )}
+                                {/* BUTTON CONTINUER (réservé à l'hôte) */}
                             </View>
                             {animationReady && (
-                                <TouchableOpacity style={styles.boudeBannerButton} onPress={onContinue}>
-                                    <Text style={styles.boudeBannerButtonText}>CONTINUER ({countdown}s)</Text>
-                                    <Ionicons name="arrow-forward" size={16} color="white" />
-                                </TouchableOpacity>
+                                isHost ? (
+                                    <TouchableOpacity style={styles.boudeBannerButton} onPress={onContinue}>
+                                        <Text style={styles.boudeBannerButtonText}>CONTINUER</Text>
+                                        <Ionicons name="arrow-forward" size={16} color="white" />
+                                    </TouchableOpacity>
+                                ) : (
+                                    <View style={[styles.boudeBannerButton, { backgroundColor: '#555', opacity: 0.8 }]}>
+                                        <Text style={styles.boudeBannerButtonText}>En attente de l'hôte...</Text>
+                                    </View>
+                                )
                             )}
                         </View>
 
@@ -450,7 +428,6 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                                             <Text style={[styles.podiumRoyalPlayerName, isWin ? styles.podiumNameWinner : styles.podiumNameLoser]} numberOfLines={1}>{p.name}</Text>
-                                            <Text style={styles.boudePlayerStars}>{p.currentMancheStars || 0}⭐</Text>
                                         </View>
 
                                         {/* Statistiques de Gloire */}
@@ -483,7 +460,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                         style={styles.podiumButtonRejouer}
                                         onPress={onContinue}
                                     >
-                                        <Text style={styles.podiumButtonRejouerText}>REJOUER ({countdown}s)</Text>
+                                        <Text style={styles.podiumButtonRejouerText}>REJOUER</Text>
                                         <Ionicons name="refresh" size={20} color="white" />
                                     </TouchableOpacity>
                                 </>
@@ -518,12 +495,20 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                             <Text style={styles.boudeBannerSubtitle}>{headerInfo.subtitle}</Text>
                         </View>
                         {animationReady && (
-                            <TouchableOpacity style={styles.boudeBannerButton} onPress={onContinue}>
-                                <Text style={styles.boudeBannerButtonText}>
-                                    {isMancheOver ? "MANCHE SUIVANTE" : "CONTINUER"} ({countdown}s)
-                                </Text>
-                                <Ionicons name="arrow-forward" size={16} color="white" />
-                            </TouchableOpacity>
+                            isHost ? (
+                                <TouchableOpacity style={styles.boudeBannerButton} onPress={onContinue}>
+                                    <Text style={styles.boudeBannerButtonText}>
+                                        {isMancheOver ? "MANCHE SUIVANTE" : "CONTINUER"}
+                                    </Text>
+                                    <Ionicons name="arrow-forward" size={16} color="white" />
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={[styles.boudeBannerButton, { backgroundColor: '#555', opacity: 0.8 }]}>
+                                    <Text style={styles.boudeBannerButtonText}>
+                                        {isMancheOver ? "En attente de l'hôte..." : "En attente..."}
+                                    </Text>
+                                </View>
+                            )
                         )}
                     </View>
 
