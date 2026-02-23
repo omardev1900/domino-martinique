@@ -1,0 +1,224 @@
+﻿
+> mobile@1.0.0 lint
+> expo lint
+
+env: load .env
+env: export EXPO_PUBLIC_FIREBASE_API_KEY EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN EXPO_PUBLIC_FIREBASE_PROJECT_ID EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID EXPO_PUBLIC_FIREBASE_APP_ID EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\app\(tabs)\explore.tsx
+  1:10  warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\app\(tabs)\index.tsx
+  1:10  warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\app\index.tsx
+    8:5  warning  'Platform' is defined but never used                                                                                                              @typescript-eslint/no-unused-vars
+   63:8  warning  React Hook useEffect has a missing dependency: 'logoScale'. Either include it or remove the dependency array                                      react-hooks/exhaustive-deps
+   98:8  warning  React Hook useEffect has missing dependencies: 'onBarComplete' and 'progressAnim'. Either include them or remove the dependency array             react-hooks/exhaustive-deps
+  139:8  warning  React Hook useEffect has missing dependencies: 'buttonOpacity', 'pulseScale', and 'shimmerX'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\app\lobby.tsx
+   13:5   warning  'Platform' is defined but never used                                                                         @typescript-eslint/no-unused-vars
+   18:20  warning  'FadeInUp' is defined but never used                                                                         @typescript-eslint/no-unused-vars
+   19:13  warning  'Clipboard' is defined but never used                                                                        @typescript-eslint/no-unused-vars
+   36:7   warning  'MODE_UNIT_LABELS' is assigned a value but never used                                                        @typescript-eslint/no-unused-vars
+   44:11  warning  'navigation' is assigned a value but never used                                                              @typescript-eslint/no-unused-vars
+   47:11  warning  'isLandscape' is assigned a value but never used                                                             @typescript-eslint/no-unused-vars
+   92:12  warning  React Hook useCallback has a missing dependency: 'router'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  165:18  warning  'error' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+  344:74  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                              react/no-unescaped-entities
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\app\login.tsx
+  14:5   warning  'ImageBackground' is defined but never used  @typescript-eslint/no-unused-vars
+  77:59  warning  A `require()` style import is forbidden      @typescript-eslint/no-require-imports
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\app\profile.tsx
+   1:27  warning  'useEffect' is defined but never used      @typescript-eslint/no-unused-vars
+  33:12  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\app\solo.tsx
+   2:52  warning  'ScrollView' is defined but never used                                                                                                       @typescript-eslint/no-unused-vars
+   3:27  warning  'E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\node_modules\expo-router\build\index.js' imported multiple times  import/no-duplicates
+   5:30  warning  'FadeInLeft' is defined but never used                                                                                                       @typescript-eslint/no-unused-vars
+   7:32  warning  'E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\node_modules\expo-router\build\index.js' imported multiple times  import/no-duplicates
+  18:11  warning  'isLandscape' is assigned a value but never used                                                                                             @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\__tests__\MultiplayerLogic.test.ts
+  3:39  warning  'Domino' is defined but never used  @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\__tests__\rules_scenarios.test.ts
+  1:10  warning  'handleTurn' is defined but never used  @typescript-eslint/no-unused-vars
+  1:22  warning  'passTurn' is defined but never used    @typescript-eslint/no-unused-vars
+  2:29  warning  'Domino' is defined but never used      @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\CircularTimer.tsx
+  48:8  warning  React Hook useEffect has missing dependencies: 'onTimeout' and 'progress'. Either include them or remove the dependency array. If 'onTimeout' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\DominoDots.tsx
+  2:16  warning  'StyleSheet' is defined but never used  @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\DominoTile.tsx
+   3:20  warning  'FadeIn' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+  62:8   warning  React Hook React.useEffect has a missing dependency: 'glowValue'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\FlyingDomino.tsx
+  43:8  warning  React Hook useEffect has missing dependencies: 'data.endPoint', 'onFinished', and 'progress'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\GameAnnouncer.tsx
+   2:28  warning  'View' is defined but never used                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  48:8   warning  React Hook useEffect has missing dependencies: 'glow' and 'onFinished'. Either include them or remove the dependency array. If 'onFinished' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\GameTable.tsx
+   24:7   warning  'CELL' is assigned a value but never used                                                                 @typescript-eslint/no-unused-vars
+  215:26  error    Component definition is missing display name                                                              react/display-name
+  251:8   warning  React Hook useEffect has a missing dependency: 'pulse'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  277:11  warning  'leftmostTile' is assigned a value but never used                                                         @typescript-eslint/no-unused-vars
+  282:11  warning  'rightmostTile' is assigned a value but never used                                                        @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\PlayerAvatar.tsx
+   97:8   warning  React Hook useEffect has missing dependencies: 'animatedProgress', 'breatheValue', and 'secondsLeft'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  119:11  warning  'isTopOpponent' is assigned a value but never used                                                                                                        @typescript-eslint/no-unused-vars
+  120:11  warning  'isLocalPlayer' is assigned a value but never used                                                                                                        @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\RulesPanel.tsx
+  12:55   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  12:66   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  37:93   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  37:99   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  45:105  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  45:112  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  48:82   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  48:89   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  54:20   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  54:120  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  54:126  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  54:134  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\UnifiedResultOverlay.tsx
+    1:38   warning  'useCallback' is defined but never used                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+    3:28   warning  'SlideInDown' is defined but never used                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+    3:65   warning  'useAnimatedStyle' is defined but never used                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+    3:83   warning  'withRepeat' is defined but never used                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+    3:95   warning  'withSequence' is defined but never used                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+    3:150  warning  'interpolate' is defined but never used                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+    3:163  warning  'Extrapolate' is defined but never used                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+    7:29   warning  'PlayerId' is defined but never used                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+    7:39   warning  'GameMode' is defined but never used                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+    7:49   warning  'MancheResult' is defined but never used                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+    8:36   warning  'AVAILABLE_AVATARS' is defined but never used                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   92:12   warning  'readyPlayers' is assigned a value but never used                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  129:8    warning  React Hook useEffect has missing dependencies: 'isBoude', 'opacityValue', 'scaleValue', and 'winner'. Either include them or remove the dependency array                                                                             react-hooks/exhaustive-deps
+  163:8    warning  React Hook useEffect has a missing dependency: 'onContinue'. Either include it or remove the dependency array. If 'onContinue' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+  193:15   warning  'roundWinnerId' is assigned a value but never used                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  474:8    warning  React Hook useEffect has missing dependencies: 'count', 'delay', 'onReady', and 'points'. Either include them or remove the dependency array                                                                                         react-hooks/exhaustive-deps
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\BotEngine.ts
+  2:42  warning  'ValidMove' is defined but never used  @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\LogicEngine.ts
+    1:18  warning  'DominoSide' is defined but never used                                                                                         @typescript-eslint/no-unused-vars
+    1:59  warning  'GamePhase' is defined but never used                                                                                          @typescript-eslint/no-unused-vars
+    1:70  warning  'GameMode' is defined but never used                                                                                           @typescript-eslint/no-unused-vars
+    1:80  warning  'MancheResult' is defined but never used                                                                                       @typescript-eslint/no-unused-vars
+    2:34  warning  'TALON_MORT_SIZE' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+    2:70  warning  'MAX_PLAYERS' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+    2:83  warning  'MANCHE_WIN_THRESHOLD' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+  169:1   warning  Import in body of module; reorder to top                                                                                       import/first
+  170:1   warning  Import in body of module; reorder to top                                                                                       import/first
+  170:31  warning  'E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\ScoringEngine.ts' imported multiple times  import/no-duplicates
+  347:1   warning  Import in body of module; reorder to top                                                                                       import/first
+  347:40  warning  'E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\ScoringEngine.ts' imported multiple times  import/no-duplicates
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\ScoringEngine.ts
+  1:39  warning  'GameMode' is defined but never used           @typescript-eslint/no-unused-vars
+  1:49  warning  'MancheResult' is defined but never used       @typescript-eslint/no-unused-vars
+  2:32  warning  'WINS_TO_WIN_MATCH' is defined but never used  @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\StressTest.test.ts
+  87:15  warning  'totalPoints' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\__tests__\BotEngine.test.ts
+  3:37  warning  'DominoSide' is defined but never used  @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\__tests__\GameIntegration.test.ts
+  1:42  warning  'checkValidMove' is defined but never used  @typescript-eslint/no-unused-vars
+  3:21  warning  'PlayerId' is defined but never used        @typescript-eslint/no-unused-vars
+  3:31  warning  'GamePhase' is defined but never used       @typescript-eslint/no-unused-vars
+  4:29  warning  'MAX_PLAYERS' is defined but never used     @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\__tests__\LogicEngine.test.ts
+   2:82  warning  'calculateHandPoints' is defined but never used  @typescript-eslint/no-unused-vars
+   3:26  warning  'DominoSide' is defined but never used           @typescript-eslint/no-unused-vars
+  20:15  warning  'domino00' is assigned a value but never used    @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\__tests__\ManualSimulation.test.ts
+  5:7  warning  'mockDomino' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\__tests__\ScoringScenarios.test.ts
+   87:15  warning  'playerB' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   88:15  warning  'playerC' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  208:34  warning  A `require()` style import is forbidden       @typescript-eslint/no-require-imports
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\core\services\firebase.ts
+  12:5   warning  'getFirestore' is defined but never used     @typescript-eslint/no-unused-vars
+  24:5   warning  'serverTimestamp' is defined but never used  @typescript-eslint/no-unused-vars
+  26:5   warning  'arrayRemove' is defined but never used      @typescript-eslint/no-unused-vars
+  70:10  warning  'error' is defined but never used            @typescript-eslint/no-unused-vars
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\hooks\useMultiplayerGame.ts
+  195:8  warning  React Hook useEffect has a missing dependency: 'gameState'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\hooks\useSoloGame.ts
+  72:8  warning  React Hook useCallback has a missing dependency: 'triggerBotTurn'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\screens\GameOverScreen.tsx
+    3:29  warning  'PlayerId' is defined but never used                                                                                            @typescript-eslint/no-unused-vars
+    5:10  warning  'WINS_TO_WIN_MATCH' is defined but never used                                                                                   @typescript-eslint/no-unused-vars
+   24:7   warning  'getInitials' is assigned a value but never used                                                                                @typescript-eslint/no-unused-vars
+   63:8   warning  React Hook useEffect has a missing dependency: 'gameState.players'. Either include it or remove the dependency array            react-hooks/exhaustive-deps
+   93:8   warning  React Hook useEffect has missing dependencies: 'isMancheOver' and 'isSolo'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  104:8   warning  React Hook useEffect has missing dependencies: 'isMancheOver' and 'isSolo'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\screens\GameScreen.tsx
+     3:70   warning  'SafeAreaView' is defined but never used                                                                                                                                                                              @typescript-eslint/no-unused-vars
+     3:105  warning  'Image' is defined but never used                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+    11:27   warning  'E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\GameTable.tsx' imported multiple times                                                                                      import/no-duplicates
+    18:92   warning  'checkValidMove' is defined but never used                                                                                                                                                                            @typescript-eslint/no-unused-vars
+    24:39   warning  'MancheResult' is defined but never used                                                                                                                                                                              @typescript-eslint/no-unused-vars
+    24:82   warning  'RoomStatus' is defined but never used                                                                                                                                                                                @typescript-eslint/no-unused-vars
+    25:55   warning  'startGame' is defined but never used                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+    32:22   warning  'TABLE_THEMES' is defined but never used                                                                                                                                                                              @typescript-eslint/no-unused-vars
+    34:39   warning  'getAvatarImage' is defined but never used                                                                                                                                                                            @typescript-eslint/no-unused-vars
+    35:30   warning  'E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\components\GameTable.tsx' imported multiple times                                                                                      import/no-duplicates
+   123:12   warning  React Hook useCallback has a missing dependency: 'router'. Either include it or remove the dependency array                                                                                                           react-hooks/exhaustive-deps
+   167:8    warning  React Hook useEffect has a missing dependency: 'pulseOpacity'. Either include it or remove the dependency array                                                                                                       react-hooks/exhaustive-deps
+   205:8    warning  React Hook useEffect has a missing dependency: 'gameState'. Either include it or remove the dependency array                                                                                                          react-hooks/exhaustive-deps
+   262:8    warning  React Hook useEffect has missing dependencies: 'handlePassTurn', 'handlePlayDomino', 'isPaused', and 'localPlayerId'. Either include them or remove the dependency array                                              react-hooks/exhaustive-deps
+   320:11   warning  'animatedBorderStyle' is assigned a value but never used                                                                                                                                                              @typescript-eslint/no-unused-vars
+   335:8    warning  React Hook useEffect has a missing dependency: 'gameState'. Either include it or remove the dependency array                                                                                                          react-hooks/exhaustive-deps
+   346:8    warning  React Hook useEffect has a missing dependency: 'gameState'. Either include it or remove the dependency array                                                                                                          react-hooks/exhaustive-deps
+   365:8    warning  React Hook useEffect has missing dependencies: 'gameState' and 'timeLeft'. Either include them or remove the dependency array                                                                                         react-hooks/exhaustive-deps
+   365:37   warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked                                                                              react-hooks/exhaustive-deps
+   401:8    warning  React Hook useEffect has missing dependencies: 'startNewLocalGame' and 'startSoloGame'. Either include them or remove the dependency array                                                                            react-hooks/exhaustive-deps
+   404:11   warning  'canPlayAny' is assigned a value but never used                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   413:8    warning  React Hook useMemo has a missing dependency: 'gameState'. Either include it or remove the dependency array                                                                                                            react-hooks/exhaustive-deps
+   851:8    warning  React Hook useEffect has missing dependencies: 'boudedPlayerId', 'gameId', 'gameState', 'handlePassTurn', 'isSoloMode', 'localPlayerId', and 'roomData?.players'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   952:11   warning  'handleVoteRematch' is assigned a value but never used                                                                                                                                                                @typescript-eslint/no-unused-vars
+  1033:15   warning  'previousData' is assigned a value but never used                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  1129:8    warning  React Hook useEffect has missing dependencies: 'handleStartGame' and 'roomData'. Either include them or remove the dependency array                                                                                   react-hooks/exhaustive-deps
+  1229:8    warning  React Hook useEffect has a missing dependency: 'gameState'. Either include it or remove the dependency array                                                                                                          react-hooks/exhaustive-deps
+  1262:8    warning  React Hook useEffect has a missing dependency: 'gameState'. Either include it or remove the dependency array                                                                                                          react-hooks/exhaustive-deps
+  1282:8    warning  React Hook useMemo has a missing dependency: 'gameState'. Either include it or remove the dependency array                                                                                                            react-hooks/exhaustive-deps
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\screens\LobbyScreen.tsx
+  3:20  warning  'GameMode' is defined but never used                                                                                                                          @typescript-eslint/no-unused-vars
+  4:34  warning  'E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\node_modules\react-native-reanimated\lib\module\index.js' imported multiple times  import/no-duplicates
+  5:22  warning  'E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\node_modules\react-native-reanimated\lib\module\index.js' imported multiple times  import/no-duplicates
+
+E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\src\screens\SettingsScreen.tsx
+  4:26  warning  'E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\node_modules\react-native-reanimated\lib\module\index.js' imported multiple times  import/no-duplicates
+  5:22  warning  'E:\HAPPYAGENCY\00 Clients\00 En cours\Manuel\code src\react-native\mobile\node_modules\react-native-reanimated\lib\module\index.js' imported multiple times  import/no-duplicates
+
+Ô£û 146 problems (14 errors, 132 warnings)
+  0 errors and 7 warnings potentially fixable with the `--fix` option.
+

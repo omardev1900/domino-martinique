@@ -4,7 +4,10 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { HAND_SIZE, TURN_DURATION_SECONDS } from '../src/core/constants';
+import { authService } from '../src/core/services/auth.service';
+import { PlayerProfile } from '../src/core/types';
 
 type Difficulty = 'easy' | 'medium' | 'expert' | 'legend';
 type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
@@ -19,6 +22,22 @@ export default function SoloScreen() {
     const [winningCondition, setWinningCondition] = useState(6);
     const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
     const [startingHandSize, setStartingHandSize] = useState(HAND_SIZE);
+    const [user, setUser] = useState<PlayerProfile | null>(null);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            authService.getCurrentUser().then(setUser);
+        }, [])
+    );
+
+    const handleBack = () => {
+        if (user?.uid?.startsWith('guest_')) {
+            // Un utilisateur anonyme qui quitte le solo doit retourner au LoginScreen
+            router.replace('/login');
+        } else {
+            router.back();
+        }
+    };
 
     const startGame = () => {
         router.push({
@@ -44,178 +63,124 @@ export default function SoloScreen() {
             colors={['#2D1B4E', '#1A0E2E']}
             style={styles.container}
         >
-            {/* Back Button */}
-            <View style={[styles.backContainer, isLandscape && styles.backContainerLandscape]}>
+            <View style={styles.backContainer}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={() => router.back()}
+                    onPress={handleBack}
                     activeOpacity={0.7}
                 >
                     <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
             </View>
 
-            <View style={[styles.mainWrapper, isLandscape && styles.mainWrapperLandscape]}>
-                {/* Left Panel: Branding & Difficulty */}
-                <View style={[styles.sidebar, isLandscape && styles.sidebarLandscape]}>
-                    <Animated.View entering={FadeInUp.duration(600)} style={styles.sidebarContent}>
-                        <Text style={[styles.title, isLandscape && styles.titleLandscape]}>Mode Solo</Text>
+            <View style={styles.mainWrapper}>
+                <Animated.View entering={FadeInUp.duration(600)} style={styles.contentContainer}>
+                    <Text style={styles.title}>SOLO MODE</Text>
 
-                        {/* Difficulty Selection moved here */}
-                        <View style={[styles.section, { marginTop: 20 }]}>
-                            <Text style={[styles.sectionTitle, isLandscape && { textAlign: 'center' }]}>Difficulté des Bots</Text>
-                            <View style={styles.difficultyGrid}>
-                                <TouchableOpacity
-                                    style={[styles.difficultyBox, difficulty === 'easy' && styles.activeChoice]}
-                                    onPress={() => setDifficulty('easy')}
-                                >
-                                    <Text style={styles.choiceIcon}>🌱</Text>
-                                    <Text style={styles.choiceTextSmall}>Débutant</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.difficultyBox, difficulty === 'medium' && styles.activeChoice]}
-                                    onPress={() => setDifficulty('medium')}
-                                >
-                                    <Text style={styles.choiceIcon}>🔥</Text>
-                                    <Text style={styles.choiceTextSmall}>Moyen</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.difficultyBox, difficulty === 'expert' && styles.activeChoice]}
-                                    onPress={() => setDifficulty('expert')}
-                                >
-                                    <Text style={styles.choiceIcon}>🦁</Text>
-                                    <Text style={styles.choiceTextSmall}>Expert</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.difficultyBox, difficulty === 'legend' && styles.activeChoice]}
-                                    onPress={() => setDifficulty('legend')}
-                                >
-                                    <Text style={styles.choiceIcon}>👑</Text>
-                                    <Text style={styles.choiceTextSmall}>Légende</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </Animated.View>
-                </View>
-
-                {/* Right Panel: Configuration Forms */}
-                <View style={[styles.configPanel, isLandscape && styles.configPanelLandscape]}>
-                    <ScrollView
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={[
-                            styles.scrollContent,
-                            isLandscape && styles.scrollContentLandscape
-                        ]}
-                    >
-                        {/* Game Mode Selection */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Type de Jeu</Text>
-                            <View style={styles.row}>
-                                <TouchableOpacity
-                                    style={[styles.choiceButton, gameMode === 'SCORE' && styles.activeChoice]}
-                                    onPress={() => { setGameMode('SCORE'); setWinningCondition(6); }}
-                                >
-                                    <Text style={styles.choiceIcon}>🎯</Text>
-                                    <Text style={styles.choiceText}>Score</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.choiceButton, gameMode === 'COCHON' && styles.activeChoice]}
-                                    onPress={() => { setGameMode('COCHON'); setWinningCondition(3); }}
-                                >
-                                    <Text style={styles.choiceIcon}>🐷</Text>
-                                    <Text style={styles.choiceText}>Cochon</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.choiceButton, gameMode === 'MANCHE' && styles.activeChoice]}
-                                    onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); }}
-                                >
-                                    <Text style={styles.choiceIcon}>🏆</Text>
-                                    <Text style={styles.choiceText}>Manche</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Winning Condition Selection */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>
-                                {gameMode === 'MANCHE' ? 'Manches pour gagner' :
-                                    gameMode === 'SCORE' ? 'Points pour gagner' :
-                                        'Nombre de cochons total'}
+                    {/* Game Mode Selection */}
+                    <View style={styles.gameModeContainer}>
+                        <TouchableOpacity
+                            style={[styles.gameModeTile, gameMode === 'SCORE' && styles.gameModeTileActive]}
+                            onPress={() => { setGameMode('SCORE'); setWinningCondition(6); }}
+                        >
+                            <Text style={[styles.gameModeTitle, gameMode === 'SCORE' && styles.gameModeTitleActive]}>
+                                [ <Text style={styles.gameModeIcon}>🎯</Text> SCORE ]
                             </Text>
-                            <View style={styles.targetRow}>
-                                <TouchableOpacity style={[styles.targetButton, isLandscape && styles.targetButtonSmall]} onPress={() => updateTarget(-1)}>
-                                    <Ionicons name="remove" size={20} color="#FFF" />
-                                </TouchableOpacity>
-                                <View style={styles.targetValueContainer}>
-                                    <Text style={[styles.targetValue, isLandscape && styles.targetValueSmall]}>{winningCondition}</Text>
-                                </View>
-                                <TouchableOpacity style={[styles.targetButton, isLandscape && styles.targetButtonSmall]} onPress={() => updateTarget(1)}>
-                                    <Ionicons name="add" size={20} color="#FFF" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Turn Duration Selection */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Durée du tour (secondes)</Text>
-                            <View style={styles.targetRow}>
-                                <TouchableOpacity
-                                    style={[styles.targetButton, isLandscape && styles.targetButtonSmall]}
-                                    onPress={() => setTurnDuration(prev => {
-                                        const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
-                                        const idx = steps.indexOf(prev);
-                                        return idx > 0 ? steps[idx - 1] : steps[0];
-                                    })}
-                                >
-                                    <Ionicons name="remove" size={20} color="#FFF" />
-                                </TouchableOpacity>
-                                <View style={styles.targetValueContainer}>
-                                    <Text style={[styles.targetValue, isLandscape && styles.targetValueSmall]}>
-                                        {turnDuration === 0 ? 'Off' : turnDuration}
-                                    </Text>
-                                </View>
-                                <TouchableOpacity
-                                    style={[styles.targetButton, isLandscape && styles.targetButtonSmall]}
-                                    onPress={() => setTurnDuration(prev => {
-                                        const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
-                                        const idx = steps.indexOf(prev);
-                                        return idx < steps.length - 1 ? steps[idx + 1] : steps[steps.length - 1];
-                                    })}
-                                >
-                                    <Ionicons name="add" size={20} color="#FFF" />
-                                </TouchableOpacity>
-                            </View>
-                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, textAlign: 'center', marginTop: 4 }}>
-                                {turnDuration === 0 ? 'Pas de limite de temps' : `Le tour se termine après ${turnDuration}s`}
+                            <Text style={[styles.gameModeSubtitle, gameMode === 'SCORE' && styles.gameModeSubtitleActive]}>
+                                Le premier à X points
                             </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.gameModeTile, gameMode === 'COCHON' && styles.gameModeTileActive]}
+                            onPress={() => { setGameMode('COCHON'); setWinningCondition(3); }}
+                        >
+                            <Text style={[styles.gameModeTitle, gameMode === 'COCHON' && styles.gameModeTitleActive]}>
+                                [ <Text style={styles.gameModeIcon}>🐷</Text> COCHON ]
+                            </Text>
+                            <Text style={[styles.gameModeSubtitle, gameMode === 'COCHON' && styles.gameModeSubtitleActive]}>
+                                Évitez le zéro
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.gameModeTile, gameMode === 'MANCHE' && styles.gameModeTileActive]}
+                            onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); }}
+                        >
+                            <Text style={[styles.gameModeTitle, gameMode === 'MANCHE' && styles.gameModeTitleActive]}>
+                                [ <Text style={styles.gameModeIcon}>🏆</Text> MANCHE ]
+                            </Text>
+                            <Text style={[styles.gameModeSubtitle, gameMode === 'MANCHE' && styles.gameModeSubtitleActive]}>
+                                Le meilleur à X manches
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Options Bar */}
+                    <View style={styles.optionsBar}>
+                        {/* Niveau */}
+                        <View style={styles.optionGroup}>
+                            <Text style={styles.optionLabel}>Niveau: <Text style={styles.diffValue}>{
+                                difficulty === 'easy' ? 'DÉBUTANT' :
+                                    difficulty === 'medium' ? 'NORMAL' :
+                                        difficulty === 'expert' ? 'EXPERT' : 'LÉGENDE'
+                            }</Text></Text>
+                            <View style={styles.optionRow}>
+                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'easy' && styles.activeDiffBtn]} onPress={() => setDifficulty('easy')}><Text style={[styles.compactIcon, difficulty === 'easy' && styles.activeCompactIcon]}>🌱</Text></TouchableOpacity>
+                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'medium' && styles.activeDiffBtn]} onPress={() => setDifficulty('medium')}><Text style={[styles.compactIcon, difficulty === 'medium' && styles.activeCompactIcon]}>🔥</Text></TouchableOpacity>
+                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'expert' && styles.activeDiffBtn]} onPress={() => setDifficulty('expert')}><Text style={[styles.compactIcon, difficulty === 'expert' && styles.activeCompactIcon]}>🦁</Text></TouchableOpacity>
+                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'legend' && styles.activeDiffBtn]} onPress={() => setDifficulty('legend')}><Text style={[styles.compactIcon, difficulty === 'legend' && styles.activeCompactIcon]}>👑</Text></TouchableOpacity>
+                            </View>
                         </View>
 
-                        {/* Starting Hand Size */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Dominos de départ</Text>
-                            <View style={styles.row}>
+                        <Text style={styles.optionSeparator}>|</Text>
+
+                        {/* But */}
+                        <View style={styles.optionGroup}>
+                            <Text style={styles.optionLabel}>But: </Text>
+                            <View style={styles.optionRow}>
+                                <TouchableOpacity onPress={() => updateTarget(-1)} style={styles.compactBtn}><Ionicons name="remove" size={12} color="#000" /></TouchableOpacity>
+                                <Text style={styles.optionValue}>{winningCondition}</Text>
+                                <TouchableOpacity onPress={() => updateTarget(1)} style={styles.compactBtn}><Ionicons name="add" size={12} color="#000" /></TouchableOpacity>
+                            </View>
+                        </View>
+
+                        <Text style={styles.optionSeparator}>|</Text>
+
+                        {/* Durée */}
+                        <View style={styles.optionGroup}>
+                            <Text style={styles.optionLabel}>Durée: {turnDuration === 0 ? 'Off' : `${turnDuration}s`} </Text>
+                            <View style={styles.optionRow}>
+                                <TouchableOpacity onPress={() => setTurnDuration(prev => {
+                                    const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+                                    const idx = steps.indexOf(prev);
+                                    return idx > 0 ? steps[idx - 1] : steps[0];
+                                })} style={styles.compactBtn}><Ionicons name="remove" size={12} color="#000" /></TouchableOpacity>
+                                <TouchableOpacity onPress={() => setTurnDuration(prev => {
+                                    const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+                                    const idx = steps.indexOf(prev);
+                                    return idx < steps.length - 1 ? steps[idx + 1] : steps[steps.length - 1];
+                                })} style={styles.compactBtn}><Ionicons name="add" size={12} color="#000" /></TouchableOpacity>
+                            </View>
+                        </View>
+
+                        <Text style={styles.optionSeparator}>|</Text>
+
+                        {/* Main */}
+                        <View style={styles.optionGroup}>
+                            <Text style={styles.optionLabel}>Main: </Text>
+                            <View style={styles.optionRow}>
                                 {[3, 5, 7].map(size => (
-                                    <TouchableOpacity
-                                        key={size}
-                                        style={[styles.choiceButton, startingHandSize === size && styles.activeChoice]}
-                                        onPress={() => setStartingHandSize(size)}
-                                    >
-                                        <Text style={styles.choiceText}>{size}</Text>
+                                    <TouchableOpacity key={size} onPress={() => setStartingHandSize(size)} style={[styles.mainBtn, startingHandSize === size && styles.activeMainBtn]}>
+                                        <Text style={[styles.mainBtnText, startingHandSize === size && styles.activeMainBtnText]}>{size}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
                         </View>
+                    </View>
 
-                        <TouchableOpacity style={[styles.startButton, isLandscape && styles.startButtonLandscape]} onPress={startGame}>
-                            <LinearGradient
-                                colors={['#4CAF50', '#2E7D32']}
-                                style={styles.startGradient}
-                            >
-                                <Text style={styles.startText}>LANCER LA PARTIE</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </ScrollView>
-                </View>
+                    <TouchableOpacity style={styles.startButton} onPress={startGame}>
+                        <Text style={styles.startText}>[ JOUER MAINTENANT ]</Text>
+                    </TouchableOpacity>
+                </Animated.View>
             </View>
         </LinearGradient>
     );
@@ -225,53 +190,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    mainWrapper: {
-        flex: 1,
-        paddingTop: 80,
-    },
-    mainWrapperLandscape: {
-        flexDirection: 'row',
-        paddingTop: 0,
-    },
-    sidebar: {
-        paddingHorizontal: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    sidebarLandscape: {
-        flex: 0.4,
-        paddingLeft: 0, // Retrait du padding pour un vrai centrage
-    },
-    sidebarContent: {
-        width: '100%',
-        alignItems: 'center',
-    },
-    configPanel: {
-        flex: 1,
-    },
-    configPanelLandscape: {
-        flex: 0.6,
-        backgroundColor: 'rgba(0,0,0,0.15)',
-        borderLeftWidth: 1,
-        borderLeftColor: 'rgba(255,255,255,0.1)',
-    },
-    scrollContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-    },
-    scrollContentLandscape: {
-        paddingTop: 40,
-        paddingHorizontal: 30,
-    },
     backContainer: {
         position: 'absolute',
-        top: 40,
-        left: 20,
-        zIndex: 10,
-    },
-    backContainerLandscape: {
         top: 20,
         left: 20,
+        zIndex: 10,
     },
     backButton: {
         width: 44,
@@ -281,155 +204,173 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    mainWrapper: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+    },
+    contentContainer: {
+        width: '100%',
+        maxWidth: 800,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
     title: {
-        fontSize: 32,
+        fontSize: 24,
         fontWeight: '900',
         color: '#FFF',
-        marginBottom: 8,
+        marginBottom: 20,
         textAlign: 'center',
         textTransform: 'uppercase',
         letterSpacing: 2,
     },
-    titleLandscape: {
-        fontSize: 38,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: 'rgba(255,255,255,0.7)',
-        marginBottom: 30,
-        textAlign: 'center',
-    },
-    subtitleLandscape: {
-        textAlign: 'left',
-        marginBottom: 0,
-    },
-    decorationContainer: {
-        marginTop: 40,
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.2)',
-    },
-    decorationIcon: {
-        fontSize: 60,
-    },
-    section: {
-        width: '100%',
-        marginBottom: 25,
-    },
-    sectionTitle: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: '#FFD700',
-        marginBottom: 12,
-        textTransform: 'uppercase',
-        letterSpacing: 1.5,
-    },
-    row: {
+    gameModeContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        width: '100%',
+        marginBottom: 20,
         gap: 10,
     },
-    choiceButton: {
+    gameModeTile: {
         flex: 1,
         backgroundColor: 'rgba(255,255,255,0.08)',
         borderRadius: 12,
-        paddingVertical: 12,
+        paddingVertical: 35,
+        paddingHorizontal: 10,
         alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    activeChoice: {
-        backgroundColor: 'rgba(76, 175, 80, 0.15)',
-        borderColor: '#4CAF50',
-    },
-    difficultyGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
         justifyContent: 'center',
-    },
-    difficultyBox: {
-        width: '45%',
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 12,
-        paddingVertical: 10,
-        alignItems: 'center',
-        borderWidth: 1.5,
+        borderWidth: 2,
         borderColor: 'rgba(255,255,255,0.1)',
-        marginBottom: 4,
+        overflow: 'hidden',
     },
-    choiceIcon: {
-        fontSize: 18,
-        marginBottom: 2,
+    gameModeTileActive: {
+        backgroundColor: '#FFF',
+        borderColor: '#FFD700',
     },
-    choiceText: {
+    gameModeTitle: {
         color: '#FFF',
+        fontSize: 16,
+        fontWeight: '900',
+        marginBottom: 8,
+    },
+    gameModeTitleActive: {
+        color: '#000',
+    },
+    gameModeSubtitle: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 12,
+        textAlign: 'center',
+    },
+    gameModeSubtitleActive: {
+        color: '#333',
+        fontWeight: 'bold',
+    },
+    gameModeIcon: {
+        fontSize: 16,
+    },
+    optionsBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFF',
+        borderRadius: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        width: '100%',
+        marginBottom: 20,
+        flexWrap: 'wrap',
+    },
+    optionGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    optionLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#333',
+        marginRight: 6,
+    },
+    optionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    compactIcon: {
+        fontSize: 14,
+        opacity: 0.5,
+    },
+    activeCompactIcon: {
+        opacity: 1,
+    },
+    diffValue: {
+        color: '#ff9800',
+        fontWeight: 'bold',
+        fontSize: 10,
+    },
+    diffBtn: {
+        borderWidth: 1,
+        borderColor: 'transparent',
+        borderRadius: 6,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    activeDiffBtn: {
+        borderColor: '#ff9800',
+        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    },
+    optionSeparator: {
+        color: '#CCC',
+        fontSize: 16,
+        marginHorizontal: 12,
+    },
+    compactBtn: {
+        borderWidth: 1,
+        borderColor: '#CCC',
+        borderRadius: 4,
+        padding: 2,
+        backgroundColor: '#F5F5F5',
+    },
+    optionValue: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#000',
+        minWidth: 16,
+        textAlign: 'center',
+    },
+    mainBtn: {
+        borderWidth: 1,
+        borderColor: '#CCC',
+        borderRadius: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        backgroundColor: '#F5F5F5',
+    },
+    activeMainBtn: {
+        backgroundColor: '#333',
+        borderColor: '#333',
+    },
+    mainBtnText: {
         fontSize: 12,
         fontWeight: 'bold',
+        color: '#333',
     },
-    choiceTextSmall: {
+    activeMainBtnText: {
         color: '#FFF',
-        fontSize: 11,
-        fontWeight: 'bold',
-    },
-    targetRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 20,
-    },
-    targetButton: {
-        width: 46,
-        height: 46,
-        borderRadius: 23,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
-    },
-    targetButtonSmall: {
-        width: 40,
-        height: 40,
-    },
-    targetValueContainer: {
-        minWidth: 50,
-        alignItems: 'center',
-    },
-    targetValue: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#FFF',
-    },
-    targetValueSmall: {
-        fontSize: 28,
     },
     startButton: {
         width: '100%',
-        height: 56,
-        borderRadius: 28,
-        overflow: 'hidden',
-        marginTop: 10,
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-    },
-    startButtonLandscape: {
-        marginTop: 5,
-        width: '80%',
-        alignSelf: 'center',
-    },
-    startGradient: {
-        flex: 1,
-        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.1)',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
     },
     startText: {
         color: '#FFF',

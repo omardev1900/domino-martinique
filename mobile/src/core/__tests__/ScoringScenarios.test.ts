@@ -187,4 +187,36 @@ describe('Scoring Verification', () => {
         // Match should NOT be over because of the tie
         expect(newState.phase).toBe('MANCHE_END');
     });
+
+    test('8. Test resolveBoude with Cochon scoring', () => {
+        // A=2 Stars, B=0, C=0.
+        // It's a Boudé. We must resolve it.
+        // A's hand = 5 points. B's hand = 20 points. C's hand = 30 points.
+        // A has the lowest score, so A wins.
+        // Because B and C have 0 stars, it's a Double Cochon.
+        let state = createMockState([
+            { id: 'A', stars: 2, totalPoints: 0 },
+            { id: 'B', stars: 0, totalPoints: 0 },
+            { id: 'C', stars: 0, totalPoints: 0 }
+        ]);
+
+        state.phase = 'BOUDE';
+        state.players[0].hand = [{ id: '1', left: 2, right: 3 } as any]; // 5 pts
+        state.players[1].hand = [{ id: '2', left: 10, right: 10 } as any]; // 20 pts
+        state.players[2].hand = [{ id: '3', left: 15, right: 15 } as any]; // 30 pts
+
+        const { resolveBoude } = require('../LogicEngine');
+        const { newState, isTie } = resolveBoude(state);
+
+        logResult('Test 8: Boudé resolved (A wins, Double Cochon)', newState, {});
+
+        expect(isTie).toBe(false);
+        // A should get 1 (win) + 2 (cochons) = 3 total points.
+        const playerA = newState.players.find((p: Player) => p.id === 'A');
+        expect(playerA?.totalPoints).toBe(3);
+        // Phase should be MATCH_END if winningCondition is 3 ? Wait, default winningCondition is 30.
+        // It should be MANCHE_END because A reaches 3 stars.
+        expect(newState.phase).toBe('MANCHE_END');
+        expect(newState.mancheResult).toBe('COCHON');
+    });
 });

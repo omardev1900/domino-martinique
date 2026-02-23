@@ -7,7 +7,8 @@ import {
     TouchableOpacity,
     ScrollView,
     useWindowDimensions,
-    Image
+    Image,
+    Alert
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -96,17 +97,32 @@ export default function HomeScreen() {
 
                     <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.cardWrapper}>
                         <TouchableOpacity
-                            style={styles.modeCard}
-                            onPress={() => router.push('/lobby')}
+                            style={[styles.modeCard, user?.uid?.startsWith('guest_') && { opacity: 0.7 }]}
+                            onPress={() => {
+                                if (user?.uid?.startsWith('guest_')) {
+                                    Alert.alert(
+                                        'Accès Restreint',
+                                        'Le mode multijoueur requiert un compte gratuit pour jouer avec des amis, gagner des Coins et être classé.',
+                                        [
+                                            { text: 'Plus tard', style: 'cancel' },
+                                            { text: 'Créer un compte', onPress: () => router.push('/login') }
+                                        ]
+                                    );
+                                } else {
+                                    router.push('/lobby');
+                                }
+                            }}
                             activeOpacity={0.85}
                         >
                             <LinearGradient
-                                colors={['#2196F3', '#1565C0']}
+                                colors={user?.uid?.startsWith('guest_') ? ['#424242', '#212121'] : ['#2196F3', '#1565C0']}
                                 style={styles.cardGradient}
                             >
-                                <Text style={styles.cardIcon}>👥</Text>
+                                <Text style={styles.cardIcon}>{user?.uid?.startsWith('guest_') ? '🔒' : '👥'}</Text>
                                 <Text style={styles.cardTitle}>Mode Multijoueurs</Text>
-                                <Text style={styles.cardDesc}>Jouer contre des amis</Text>
+                                <Text style={styles.cardDesc}>
+                                    {user?.uid?.startsWith('guest_') ? 'Nécessite un compte' : 'Jouer contre des amis'}
+                                </Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     </Animated.View>

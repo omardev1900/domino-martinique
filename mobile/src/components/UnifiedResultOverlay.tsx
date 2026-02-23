@@ -264,7 +264,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                         {isMatchOver && (
                             <View style={styles.gainsContainer}>
                                 <Text style={styles.gainsText}>Vos gains :</Text>
-                                <Text style={styles.gainsValue}>+180 🟡</Text>
+                                <Text style={styles.gainsValue}>+100 🟡</Text>
                             </View>
                         )}
 

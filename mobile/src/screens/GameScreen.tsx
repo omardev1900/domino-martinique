@@ -94,6 +94,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     // -------------------------------------------------------------------------
     useFocusEffect(
         useCallback(() => {
+            const checkAuthGuard = async () => {
+                const user = await authService.getCurrentUser();
+                if (mode === 'multiplayer' && user?.uid?.startsWith('guest_')) {
+                    console.log('[GameScreen] Guard: Anonymous user attempted multiplayer.');
+                    router.replace('/login');
+                    return;
+                }
+            };
+            checkAuthGuard();
+
             if (Platform.OS !== 'web') {
                 ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
                 if (Platform.OS === 'android') {
@@ -110,7 +120,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     }
                 }
             };
-        }, [])
+        }, [mode])
     );
 
     const toggleFullscreen = useCallback(() => {
@@ -658,67 +668,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     };
 
 
-    // BOT LOGIC EFFECT
-    useEffect(() => {
-        if (!gameState || gameState.phase !== 'PLAYING' || isPaused || showRoundBanner) return;
-
-        const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
-        if (!currentPlayer || !currentPlayer.isBot) return;
-
-        // Skip if it's the solo player's turn (in solo mode, 'Moi' is not a bot)
-        // But checking isBot is enough.
-
-        if (isProcessing.current) return;
-        isProcessing.current = true;
-
-        // Calculate Delay based on game speed/difficulty if needed
-        // For now constant delay for "thinking"
-        const delay = 1500;
-
-        const timer = setTimeout(() => {
-            const tableState = {
-                left: gameState.table.leftValue,
-                right: gameState.table.rightValue
-            };
-
-            // Use specific bot difficulty if available, else fallback to room/game global difficulty
-            const botDiff = currentPlayer.difficulty || (gameState as any).difficulty || (roomData?.difficulty) || (difficulty) || 'medium';
-
-            console.log(`[Bot] ${currentPlayer.name} thinking... (Difficulty: ${botDiff})`);
-
-            const decision = getBotMove(currentPlayer.hand, tableState.left, tableState.right, botDiff);
-
-            let newState: GameState;
-
-            if (decision) {
-                console.log(`[Bot] Plays ${decision.tile.id} on ${decision.side}`);
-                const sideToPlay = decision.side === 'start' ? undefined : decision.side as 'left' | 'right';
-                newState = handleTurn(gameState, currentPlayer.id, decision.tile, sideToPlay);
-                SoundManager.playClack();
-            } else {
-                console.log(`[Bot] No move - Passing`);
-                newState = passTurn(gameState, currentPlayer.id);
-            }
-
-            // Update State
-            if (isSoloMode || !gameId) {
-                setGameState(newState);
-                isProcessing.current = false;
-            } else {
-                // Update Firestore (multiplayer)
-                const sanitized = JSON.parse(JSON.stringify(newState, (k, v) => v === undefined ? null : v));
-                safeUpdateGameState(gameId, sanitized)
-                    .then(() => { isProcessing.current = false; })
-                    .catch(err => {
-                        console.error("Bot update failed", err);
-                        isProcessing.current = false;
-                    });
-            }
-
-        }, delay);
-
-        return () => clearTimeout(timer);
-    }, [gameState, isPaused, isProcessing, isSoloMode, gameId, showRoundBanner]);
+    // --- BOT LOGIC HANDLING ---
+    // The "Industrial" bot loop (lines 1200+) handles all bot moves consistently.
 
     const handlePlayDomino = async (domino: Domino, startPos?: { x: number, y: number }) => {
         SoundManager.unlockAudio();
@@ -800,13 +751,13 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             console.log("[handlePassTurn] Action blocked by guard");
             return;
         }
-
         const targetId = forcedPlayerId || localPlayerId;
         const isHost = roomData?.players[0].uid === localPlayerId;
         const isTargetMe = targetId === localPlayerId;
 
-        // Validation: Only let a player pass for themselves OR allow host to pass for others
-        if (!isTargetMe && !isHost) {
+        // Validation: Local mode always authorized, OR target player themselves, OR host in multiplayer
+        const isAuthorized = isSoloMode || isTargetMe || isHost;
+        if (!isAuthorized) {
             console.log("[handlePassTurn] Not authorized to pass for this player");
             return;
         }
@@ -890,7 +841,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     }
                 }
                 setBoudedPlayerId(null);
-            }, isTargetMe ? 1500 : 3000); // Host waits longer (3s) to let the player pass themselves (1.5s)
+            }, isSoloMode ? 1000 : (isTargetMe ? 1500 : 3000)); // Solo mode is snappy (1s), Host waits longer (3s)
 
             return () => clearTimeout(timer);
         } else if (!isPlayerBlocked && boudedPlayerId === currentPlayer.id) {
@@ -1039,34 +990,31 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 // Multiplayer: return to lobby or handle vote
                 handleReplay();
             }
-        } else if (gameState.phase === 'BOUDE') {
-            // CRITICAL FIX: Résoudre le boudé AVANT de passer au round suivant
-            // resolveBoude() détermine le gagnant (plus petit score en main) et
-            // appelle finalizeRound() qui attribue +1 étoile, +1 roundWin, etc.
+        } else if (gameState?.phase === 'BOUDE') {
             const { newState: resolvedState, isTie } = resolveBoude(gameState);
 
             if (isTie) {
-                // Égalité parfaite → on relance simplement sans attribution
                 console.log('[Boude] TIE detected — restarting round without scoring');
-                // Update state to resolved (still BOUDE but we need to restart)
                 if (isSoloMode || !gameId) {
                     setGameState(resolvedState);
                 } else {
                     safeUpdateGameState(gameId, resolvedState);
                 }
-                // Then deal a new round
-                setTimeout(() => handleNextRound(), 100);
+                setTimeout(() => handleNextRound(resolvedState), 100);
             } else {
-                // Gagnant identifié → state est maintenant PARTIE_END, MANCHE_END ou MATCH_END
                 console.log(`[Boude] Winner resolved, new phase: ${resolvedState.phase}`);
                 if (isSoloMode || !gameId) {
                     setGameState(resolvedState);
                 } else {
                     safeUpdateGameState(gameId, resolvedState);
                 }
-                // If the resolved state ends the match, the overlay will reappear with MATCH_END
-                // Otherwise, the overlay will reappear with PARTIE_END/MANCHE_END and
-                // clicking continue will call handleNextRound() as expected.
+
+                // If it's a manche end, we MUST allow the overlay to show the new phase
+                // if it's just a round end, we can proceed
+                if (resolvedState.phase !== 'MATCH_END' && resolvedState.phase !== 'MANCHE_END') {
+                    setTimeout(() => handleNextRound(resolvedState), 100);
+                }
+                // If MATCH_END or MANCHE_END, the overlay will refresh with the new phase (PARTIE_END -> MANCHE_END)
             }
         } else {
             // Round / Manche End -> Go to next round/manche
@@ -1074,14 +1022,15 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     };
 
-    const handleNextRound = () => {
-        if (!gameState) return;
+    const handleNextRound = (stateOverride?: GameState) => {
+        const activeState = stateOverride || gameState;
+        if (!activeState) return;
 
-        const isMancheEnd = gameState.phase === 'MANCHE_END';
+        const isMancheEnd = activeState.phase === 'MANCHE_END';
 
         // Get player names preserving their order
-        const playerNames = gameState.players.map(p => p.name);
-        const previousData = gameState.players.map(p => ({
+        const playerNames = activeState.players.map(p => p.name);
+        const previousData = activeState.players.map(p => ({
             id: p.id,
             totalPoints: p.totalPoints,
             mancheWins: p.mancheWins,
@@ -1091,12 +1040,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         // PRD: Double rule for Match start and EVERY new Manche start
         // Otherwise, winner of previous round starts.
-        let winnerId = isMancheEnd ? null : gameState.firstPlayerOfRound;
+        let winnerId = isMancheEnd ? null : activeState.firstPlayerOfRound;
 
         // Deal new game
-        const partialState = dealGame(playerNames, startingHandSize);
+        const partialState = dealGame(playerNames, activeState.startingHandSize || startingHandSize);
         const newPlayers = (partialState.players as Player[]).map((p, i) => {
-            const originalPlayer = gameState.players[i];
+            const originalPlayer = activeState.players[i];
             return {
                 ...p,
                 id: originalPlayer.id,
@@ -1121,7 +1070,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
 
         const newState: GameState = {
-            ...gameState,
+            ...activeState,
+            gameId: activeState.gameId || gameId || 'local-' + Date.now(),
             players: newPlayers,
             talonMort: partialState.talonMort as Domino[],
             table: partialState.table!,
@@ -1131,8 +1081,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             history: [],
             mancheResult: null, // RESET MANCHE RESULT
             lastActionTimestamp: Date.now(),
-            roundNumber: isMancheEnd ? 1 : (gameState.roundNumber || 0) + 1,
-            mancheNumber: isMancheEnd ? (gameState.mancheNumber || 1) + 1 : (gameState.mancheNumber || 1)
+            roundNumber: isMancheEnd ? 1 : (activeState.roundNumber || 0) + 1,
+            mancheNumber: isMancheEnd ? (activeState.mancheNumber || 1) + 1 : (activeState.mancheNumber || 1)
         };
 
         if (isSoloMode || !gameId) {
@@ -1190,6 +1140,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         // HARD PHASE GUARD - Must be PLAYING to enter
         if (gameState.phase !== 'PLAYING') {
             console.log(`[Bot Loop] Phase is ${gameState.phase}, not executing.`);
+            // Reset processing lock on phase change to avoid hangs
+            isProcessing.current = false;
             return;
         }
 
@@ -1562,7 +1514,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                             <PlayerAvatar
                                 key={`${opponents[0]?.id}-${gameState.currentPlayerId}`}
                                 player={opponents[0]}
-                                isActive={gameState.currentPlayerId === opponents[0]?.id}
+                                isActive={gameState.currentPlayerId === opponents[0]?.id && gameState.phase === 'PLAYING'}
                                 showTimer={gameState.currentPlayerId === opponents[0]?.id && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
                                 isPaused={isPaused}
                                 timerDuration={gameState.turnDuration}
@@ -1585,7 +1537,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                             <PlayerAvatar
                                 key={`${opponents[1]?.id}-${gameState.currentPlayerId}`}
                                 player={opponents[1]}
-                                isActive={gameState.currentPlayerId === opponents[1]?.id}
+                                isActive={gameState.currentPlayerId === opponents[1]?.id && gameState.phase === 'PLAYING'}
                                 showTimer={gameState.currentPlayerId === opponents[1]?.id && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
                                 isPaused={isPaused}
                                 timerDuration={gameState.turnDuration}
@@ -1610,7 +1562,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         >
                             <PlayerAvatar
                                 player={localPlayer}
-                                isActive={isMyTurn}
+                                isActive={isMyTurn && gameState.phase === 'PLAYING'}
                                 showTimer={isMyTurn && !isGameOver && gameState.phase === 'PLAYING' && gameState.turnDuration > 0}
                                 isPaused={isPaused}
                                 timerDuration={gameState.turnDuration}

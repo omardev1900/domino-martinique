@@ -368,6 +368,8 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
     );
 });
 
+GameTable.displayName = 'GameTable';
+
 // ═══════════════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
     container: {

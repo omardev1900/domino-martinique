@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
     View,
@@ -12,7 +11,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     useWindowDimensions,
-    Image
+    ImageBackground
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,14 +22,14 @@ import { authService } from '../src/core/services/auth.service';
 export default function LoginScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { width, height } = useWindowDimensions();
-    const isLandscape = width > height;
+    const { height } = useWindowDimensions();
 
     const [isLoading, setIsLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [isLoginMode, setIsLoginMode] = useState(false);
 
     const getErrorMessage = (error: any) => {
         const code = error.code || '';
@@ -53,7 +52,7 @@ export default function LoginScreen() {
         setIsLoading(true);
         try {
             await authService.loginAsGuest();
-            router.replace('/home');
+            router.replace('/solo');
         } catch (error) {
             console.error(error);
             Alert.alert('Erreur', 'Impossible de se connecter en invité.');
@@ -62,52 +61,48 @@ export default function LoginScreen() {
         }
     };
 
-    const handleSignIn = async () => {
+    const handleAuthAction = async () => {
         setErrorMessage('');
         if (!email || !password) {
             setErrorMessage('Veuillez remplir tous les champs.');
             return;
         }
+
         setIsLoading(true);
         try {
-            const user = await authService.signIn(email, password);
-            console.log(`✅ User signed in: ${user?.uid}`);
-
-            // Check for active room after successful login
-            if (user) {
-                try {
-                    console.log('🔍 Checking for active room after login...');
-                    const { findActiveRoomForUser } = require('../src/core/services/firebase');
-                    const activeRoomId = await findActiveRoomForUser(user.uid);
-
-                    if (activeRoomId) {
-                        console.log(`✅ Active room found: ${activeRoomId} - showing reconnection alert`);
-
-                        // Small delay to ensure DOM is ready
-                        setTimeout(() => {
-                            // Use window.confirm for web compatibility
-                            const shouldReconnect = window.confirm(
-                                "🎮 Reconnexion\n\nVous avez une partie en cours. Voulez-vous la reprendre ?"
-                            );
-
-                            if (shouldReconnect) {
-                                console.log(`User accepted reconnection to room: ${activeRoomId}`);
-                                router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } });
-                            } else {
-                                console.log('User declined reconnection');
-                                router.replace('/home');
-                            }
-                        }, 100);
-                        return;
-                    } else {
-                        console.log('❌ No active room found - proceeding to home');
+            if (isLoginMode) {
+                const user = await authService.signIn(email, password);
+                if (user) {
+                    try {
+                        const { findActiveRoomForUser } = require('../src/core/services/firebase');
+                        const activeRoomId = await findActiveRoomForUser(user.uid);
+                        if (activeRoomId) {
+                            setTimeout(() => {
+                                const shouldReconnect = window.confirm(
+                                    "🎮 Reconnexion\n\nVous avez une partie en cours. Voulez-vous la reprendre ?"
+                                );
+                                if (shouldReconnect) {
+                                    router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } });
+                                } else {
+                                    router.replace('/home');
+                                }
+                            }, 100);
+                            return;
+                        }
+                    } catch (e) {
+                        console.error("❌ Rejoin check failed:", e);
                     }
-                } catch (e) {
-                    console.error("❌ Rejoin check failed:", e);
                 }
+                router.replace('/home');
+            } else {
+                if (password.length < 6) {
+                    setErrorMessage('Le mot de passe doit contenir au moins 6 caractères.');
+                    setIsLoading(false);
+                    return;
+                }
+                await authService.signUp(email, password);
+                router.replace('/home');
             }
-
-            router.replace('/home');
         } catch (error: any) {
             console.error(error);
             setErrorMessage(getErrorMessage(error));
@@ -115,107 +110,6 @@ export default function LoginScreen() {
             setIsLoading(false);
         }
     };
-
-    const handleSignUp = async () => {
-        setErrorMessage('');
-        if (!email || !password) {
-            setErrorMessage('Veuillez remplir tous les champs.');
-            return;
-        }
-        if (password.length < 6) {
-            setErrorMessage('Le mot de passe doit contenir au moins 6 caractères.');
-            return;
-        }
-        setIsLoading(true);
-        try {
-            await authService.signUp(email, password);
-            router.replace('/home');
-        } catch (error: any) {
-            console.error(error);
-            setErrorMessage(getErrorMessage(error));
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const renderLogo = () => (
-        <View style={[styles.logoSection, isLandscape && styles.logoSectionLandscape]}>
-            <Image
-                source={require('@/assets/images/logo.png')}
-                style={[styles.logoImage, isLandscape && styles.logoImageLandscape]}
-                resizeMode="contain"
-            />
-        </View>
-    );
-
-    const renderForm = () => (
-        <View style={[styles.formContainer, isLandscape && styles.formContainerLandscape]}>
-            <Text style={styles.welcomeText}>Bienvenue</Text>
-
-            <TouchableOpacity
-                style={styles.guestButton}
-                onPress={handleGuestLogin}
-                disabled={isLoading}
-            >
-                <Text style={styles.guestButtonText}>Jouer en Invité</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.orText}>- ou -</Text>
-
-            <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="rgba(255,255,255,0.5)"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-            />
-
-            <View style={styles.passwordContainer}>
-                <TextInput
-                    style={styles.passwordInput}
-                    placeholder="Mot de passe"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                />
-                <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                >
-                    <Ionicons
-                        name={showPassword ? "eye-off" : "eye"}
-                        size={24}
-                        color="rgba(255,255,255,0.7)"
-                    />
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.authButtonsRow}>
-                <TouchableOpacity
-                    style={styles.authButton}
-                    onPress={handleSignIn}
-                    disabled={isLoading}
-                >
-                    <Text style={styles.authButtonText}>Connexion</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.authButton, styles.signUpButton]}
-                    onPress={handleSignUp}
-                    disabled={isLoading}
-                >
-                    <Text style={styles.authButtonText}>Inscription</Text>
-                </TouchableOpacity>
-            </View>
-
-            {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
-            {isLoading && <ActivityIndicator color="#FFD700" style={{ marginTop: 10 }} />}
-        </View>
-    );
 
     return (
         <LinearGradient
@@ -229,13 +123,116 @@ export default function LoginScreen() {
                 <ScrollView
                     contentContainerStyle={[
                         styles.scrollContent,
-                        { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }
+                        { paddingTop: Math.max(insets.top, 10), paddingBottom: Math.max(insets.bottom, 10) }
                     ]}
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                 >
-                    <View style={[styles.mainLayout, isLandscape && styles.mainLayoutLandscape]}>
-                        {renderLogo()}
-                        {renderForm()}
+                    {/* TOP: Short Title */}
+                    <Text style={styles.mainTitle}>DEVIENS UNE LÉGENDE !</Text>
+
+                    <View style={styles.contentWrapper}>
+                        {/* MIDDLE: Free Account Card (Highly Compressed) */}
+                        <LinearGradient
+                            colors={['#1B5E20', '#0A330B']}
+                            style={styles.authCard}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            {/* Single line benefits */}
+                            <View style={styles.benefitsRow}>
+                                <View style={styles.benefitItem}>
+                                    <Ionicons name="globe-outline" size={14} color="#FFD700" />
+                                    <Text style={styles.benefitText}>Multi</Text>
+                                </View>
+                                <View style={styles.benefitItem}>
+                                    <Ionicons name="stats-chart" size={14} color="#FFD700" />
+                                    <Text style={styles.benefitText}>Stats</Text>
+                                </View>
+                                <View style={styles.benefitItem}>
+                                    <Ionicons name="cash" size={14} color="#FFD700" />
+                                    <Text style={styles.benefitText}>Coins</Text>
+                                </View>
+                                <View style={styles.benefitItem}>
+                                    <Ionicons name="trophy" size={14} color="#FFD700" />
+                                    <Text style={styles.benefitText}>Gratuit</Text>
+                                </View>
+                            </View>
+
+                            {/* Dense Form */}
+                            <View style={styles.formContainer}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Email"
+                                    placeholderTextColor="rgba(255,255,255,0.6)"
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    autoCapitalize="none"
+                                    keyboardType="email-address"
+                                />
+
+                                <View style={styles.passwordContainer}>
+                                    <TextInput
+                                        style={styles.passwordInput}
+                                        placeholder="Mot de passe"
+                                        placeholderTextColor="rgba(255,255,255,0.6)"
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry={!showPassword}
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.eyeIcon}
+                                        onPress={() => setShowPassword(!showPassword)}
+                                    >
+                                        <Ionicons
+                                            name={showPassword ? "eye-off" : "eye"}
+                                            size={18}
+                                            color="rgba(255,255,255,0.7)"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+                                <TouchableOpacity
+                                    style={styles.mainAuthButton}
+                                    onPress={handleAuthAction}
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? (
+                                        <ActivityIndicator color="#1a0505" size="small" />
+                                    ) : (
+                                        <Text style={styles.mainAuthButtonText}>
+                                            {isLoginMode ? "SE CONNECTER" : "CRÉER UN COMPTE"}
+                                        </Text>
+                                    )}
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.toggleModeButton}
+                                    onPress={() => setIsLoginMode(!isLoginMode)}
+                                >
+                                    <Text style={styles.toggleModeText}>
+                                        {isLoginMode
+                                            ? "Pas de compte ? S'inscrire"
+                                            : "Déjà un compte ? Connexion"}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </LinearGradient>
+
+                        {/* BOTTOM: Minimal Guest Section */}
+                        <TouchableOpacity
+                            style={styles.guestSection}
+                            onPress={handleGuestLogin}
+                            disabled={isLoading}
+                        >
+                            <Ionicons name="person-circle-outline" size={24} color="#90CAF9" />
+                            <View style={styles.guestTexts}>
+                                <Text style={styles.guestButtonText}>Jouer Solo (Invité)</Text>
+                                <Text style={styles.guestWarningText}>Pas de multijoueur, pas de stats.</Text>
+                            </View>
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -250,132 +247,143 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         justifyContent: 'center',
-        paddingHorizontal: 20,
+        alignItems: 'center',
+        paddingHorizontal: 12,
     },
-    mainLayout: {
+    mainTitle: {
+        fontSize: 26,
+        fontWeight: '900',
+        color: '#F5F5DC', // Beige
+        marginBottom: 12,
+        textShadowColor: '#FFD700', // Gold shadow acts as a glowing border
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 8,
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    contentWrapper: {
         width: '100%',
-        alignItems: 'center',
-    },
-    mainLayoutLandscape: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        gap: 20,
-    },
-    logoSection: {
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    logoSectionLandscape: {
-        flex: 1,
-        marginBottom: 0,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    logoImage: {
-        width: 180,
-        height: 180,
-    },
-    logoImageLandscape: {
-        width: 250,
-        height: 250,
-    },
-    formContainer: {
-        width: '100%',
-        maxWidth: 320,
+        maxWidth: 400,
         gap: 12,
     },
-    formContainerLandscape: {
-        flex: 1.2,
-        maxWidth: 400,
-    },
-    welcomeText: {
-        fontSize: 18,
-        color: '#FFFFFF',
-        opacity: 0.8,
-        textAlign: 'center',
-        marginBottom: 4,
-    },
-    guestButton: {
-        width: '100%',
-        height: 48,
-        backgroundColor: '#FFD700',
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 4,
-    },
-    guestButtonText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1a0505',
-    },
-    orText: {
-        color: 'rgba(255,255,255,0.3)',
-        fontSize: 12,
-        textAlign: 'center',
-        marginVertical: 2,
-    },
-    input: {
-        width: '100%',
-        height: 48,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+    authCard: {
         borderRadius: 12,
-        paddingHorizontal: 16,
-        fontSize: 16,
-        color: '#FFFFFF',
+        padding: 12,
+        borderWidth: 2,
+        borderColor: '#FFD700',
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 6,
+    },
+    benefitsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        padding: 6,
+        borderRadius: 8,
+        marginBottom: 10,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(255,215,0,0.2)',
     },
-    passwordContainer: {
-        width: '100%',
-        height: 48,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 12,
+    benefitItem: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 4,
+    },
+    benefitText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    formContainer: {
+        gap: 8,
+    },
+    input: {
+        height: 40,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        fontSize: 14,
+        color: '#FFFFFF',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(255,215,0,0.3)',
+    },
+    passwordContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 40,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
     },
     passwordInput: {
         flex: 1,
         height: '100%',
-        paddingHorizontal: 16,
-        fontSize: 16,
+        paddingHorizontal: 12,
+        fontSize: 14,
         color: '#FFFFFF',
     },
     eyeIcon: {
-        padding: 10,
+        padding: 8,
     },
-    authButtonsRow: {
-        flexDirection: 'row',
-        gap: 10,
-        width: '100%',
-        marginTop: 4,
-    },
-    authButton: {
-        flex: 1,
-        height: 44,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        borderRadius: 22,
+    mainAuthButton: {
+        height: 42,
+        backgroundColor: '#FFD700',
+        borderRadius: 21,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        marginTop: 4,
     },
-    signUpButton: {
-        backgroundColor: 'rgba(33, 150, 243, 0.2)',
-        borderColor: '#2196F3',
-    },
-    authButtonText: {
+    mainAuthButtonText: {
         fontSize: 14,
+        fontWeight: '900',
+        color: '#0A330B',
+    },
+    toggleModeButton: {
+        alignItems: 'center',
+        paddingVertical: 2,
+    },
+    toggleModeText: {
+        color: '#FFD700',
+        fontSize: 12,
+        textDecorationLine: 'underline',
         fontWeight: '600',
-        color: '#FFFFFF',
     },
     errorText: {
         color: '#FF5252',
-        fontSize: 13,
         textAlign: 'center',
-        marginTop: 4,
+        fontSize: 12,
+        fontWeight: 'bold',
+        backgroundColor: 'rgba(255, 82, 82, 0.2)',
+        padding: 4,
+        borderRadius: 4,
     },
+    guestSection: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(20, 25, 20, 0.9)',
+        borderRadius: 12,
+        padding: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        alignItems: 'center',
+        gap: 12,
+        justifyContent: 'center'
+    },
+    guestTexts: {
+        alignItems: 'flex-start',
+    },
+    guestWarningText: {
+        color: '#FFCDD2',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    guestButtonText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#90CAF9',
+    }
 });

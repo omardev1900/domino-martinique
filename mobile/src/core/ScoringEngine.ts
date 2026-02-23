@@ -115,11 +115,15 @@ export const finalizeRound = (
             let updatedPlayer = { ...p };
 
             if (p.id === mancheWinner.id) {
+                // The winner already received +1 point in Step 1 (round win).
+                // They now receive the 'bonus' cochons to reach the total of (3 + cochonCount).
+                // Example: Double Cochon = 3 (stars) + 2 (losers at zero) = 5 total pts.
+                // Since they already have 3 pts (from 3 round wins), we add 2 more.
                 finalManchePoints = 3 + cochonCount;
                 updatedPlayer = {
                     ...p,
                     mancheWins: p.mancheWins + 1,
-                    totalPoints: p.totalPoints + cochonCount, // Bonus cochons (+1 round point already added previously)
+                    totalPoints: p.totalPoints + cochonCount,
                     totalCochons: p.totalCochons + cochonCount
                 };
             } else if (p.currentMancheStars === 0) {
