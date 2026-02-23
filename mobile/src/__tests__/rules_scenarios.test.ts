@@ -1,5 +1,4 @@
-
-import { handleEndOfRound, calculateCochonPoints, determineWinnerOnBoudé } from '../core/LogicEngine';
+import { handleTurn, passTurn, calculateHandPoints, finalizeRound, determineWinnerOnBoudé } from '../core/LogicEngine';
 import { GameState, Player, Domino } from '../core/types';
 
 const createMockPlayer = (id: string, name: string, wins: number, totalPoints: number = 0): Player => ({
@@ -11,7 +10,10 @@ const createMockPlayer = (id: string, name: string, wins: number, totalPoints: n
     mancheWins: 0,
     totalPoints,
     isCochon: false,
-    isBot: false
+    isBot: false,
+    currentMancheStars: 0,
+    totalRoundWins: 0,
+    totalCochons: 0
 });
 
 const createMockState = (players: Player[], winningCondition: number = 3): GameState => ({
@@ -25,7 +27,12 @@ const createMockState = (players: Player[], winningCondition: number = 3): GameS
     history: [],
     winningCondition,
     gameMode: 'MANCHE',
-    lastActionTimestamp: Date.now()
+    lastActionTimestamp: Date.now(),
+    turnDuration: 15,
+    mancheHistory: [],
+    roundNumber: 1,
+    mancheNumber: 1,
+    startingHandSize: 7
 });
 
 describe('Domino Martiniquais Rules - Termination Scenarios', () => {
@@ -36,7 +43,7 @@ describe('Domino Martiniquais Rules - Termination Scenarios', () => {
             createMockPlayer('p3', 'P3', 0) // P3 wins -> 2-1-1
         ];
         const state = createMockState(players);
-        const result = handleEndOfRound(state, 'p3');
+        const result = finalizeRound(state, 'p3');
 
         expect(result.phase).toBe('MATCH_END');
         expect(result.mancheResult).toBe('CHIRE');
@@ -52,7 +59,7 @@ describe('Domino Martiniquais Rules - Termination Scenarios', () => {
             createMockPlayer('p3', 'P3', 0)
         ];
         const state = createMockState(players);
-        const result = handleEndOfRound(state, 'p1');
+        const result = finalizeRound(state, 'p1');
         expect(result.players.find(p => p.id === 'p1')?.totalPoints).toBe(5);
         expect(result.players.find(p => p.id === 'p2')?.totalPoints).toBe(-1);
     });
@@ -64,7 +71,7 @@ describe('Domino Martiniquais Rules - Termination Scenarios', () => {
             createMockPlayer('p3', 'P3', 0)
         ];
         const state = createMockState(players);
-        const result = handleEndOfRound(state, 'p1');
+        const result = finalizeRound(state, 'p1');
         expect(result.players.find(p => p.id === 'p1')?.totalPoints).toBe(4);
         expect(result.players.find(p => p.id === 'p3')?.totalPoints).toBe(-1);
         expect(result.players.find(p => p.id === 'p2')?.totalPoints).toBe(1); // Keep wins as pts
@@ -77,7 +84,7 @@ describe('Domino Martiniquais Rules - Termination Scenarios', () => {
             createMockPlayer('p3', 'P3', 0)
         ];
         const state = createMockState(players);
-        const result = handleEndOfRound(state, 'p1'); // P1 wins -> 2-1-0
+        const result = finalizeRound(state, 'p1'); // P1 wins -> 2-1-0
 
         expect(result.phase).toBe('ROUND_END');
         expect(result.players.find(p => p.id === 'p1')?.wins).toBe(2);
@@ -115,5 +122,22 @@ describe('Domino Martiniquais Rules - Termination Scenarios', () => {
             const winner = determineWinnerOnBoudé(players);
             expect(winner).toBeDefined();
         });
+    });
+
+    test('calculateHandPoints counts stars/points properly', () => {
+        const p1: Player = {
+            id: 'p1', name: 'Alice', hand: [
+                { id: '1', left: 4, right: 2, sum: 6, isDouble: false },
+                { id: '2', left: 1, right: 1, sum: 2, isDouble: true }
+            ], handSize: 2, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, isBot: false,
+            currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0
+        };
+        const p2: Player = { id: 'p2', name: 'Bob', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, isBot: false, currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0 };
+
+        const pts1 = calculateHandPoints(p1.hand);
+        expect(pts1).toBe(8); // 4+2 + 1+1
+
+        const pts2 = calculateHandPoints(p2.hand);
+        expect(pts2).toBe(0);
     });
 });

@@ -12,7 +12,9 @@ const createMockPlayer = (id: string, name: string, score: number): Player => ({
     totalPoints: 0,
     isCochon: false,
     totalCochons: 0,
-    isBot: false
+    isBot: false,
+    currentMancheStars: 0,
+    totalRoundWins: 0
 });
 
 describe('Boudé Resolution Rules', () => {

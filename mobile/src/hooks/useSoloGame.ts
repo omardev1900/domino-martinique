@@ -53,7 +53,10 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
                     gameMode: 'MANCHE',
                     turnDuration: 15,
                     lastActionTimestamp: Date.now(),
-                    mancheHistory: []
+                    mancheHistory: [],
+                    roundNumber: 1,
+                    mancheNumber: 1,
+                    startingHandSize: 7
                 };
                 updateGameState(restartState);
 
@@ -143,7 +146,10 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
             gameMode: 'MANCHE',
             turnDuration: 15,
             lastActionTimestamp: Date.now(),
-            mancheHistory: []
+            mancheHistory: [],
+            roundNumber: 1,
+            mancheNumber: 1,
+            startingHandSize: 7
         };
 
         SoundManager.playSound('shuffle');

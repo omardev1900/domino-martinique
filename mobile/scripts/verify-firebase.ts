@@ -70,8 +70,8 @@ async function runVerification() {
         const mockGameState: GameState = {
             gameId: roomId,
             players: [
-                { id: hostProfile.uid, name: hostProfile.displayName, hand: [], handSize: 7, wins: 0, isCochon: false, isBot: false },
-                { id: joinerProfile.uid, name: joinerProfile.displayName, hand: [], handSize: 7, wins: 0, isCochon: false, isBot: false }
+                { id: hostProfile.uid, name: hostProfile.displayName, hand: [], handSize: 7, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, isBot: false, currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0 },
+                { id: joinerProfile.uid, name: joinerProfile.displayName, hand: [], handSize: 7, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, isBot: false, currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0 }
             ],
             talonMort: [],
             table: { sequence: [], leftValue: null, rightValue: null },
@@ -80,7 +80,13 @@ async function runVerification() {
             firstPlayerOfRound: hostProfile.uid,
             history: [],
             winningCondition: 3,
-            lastActionTimestamp: Date.now()
+            lastActionTimestamp: Date.now(),
+            gameMode: 'MANCHE',
+            turnDuration: 15,
+            mancheHistory: [],
+            roundNumber: 1,
+            mancheNumber: 1,
+            startingHandSize: 7
         };
 
         // Note: The 'startGame' function in firebase.ts is essentially an updateGameState with status change.

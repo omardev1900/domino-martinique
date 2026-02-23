@@ -328,7 +328,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                     {gameState.mancheResult === 'CHIRE' ? "MATCH NUL" : roundWinner.name}
                                 </Text>
                                 {gameState.mancheResult === 'CHIRE' ? (
-                                    <Text style={styles.winReason}>Pas de cochon, la manche s'arrête !</Text>
+                                    <Text style={styles.winReason}>Pas de cochon, la manche s&apos;arrête !</Text>
                                 ) : !isBoudé && (
                                     <Text style={styles.winReason}>A posé tous ses dominos !</Text>
                                 )}
@@ -477,7 +477,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                             style={styles.replayButton}
                                             onPress={() => onReplay()}
                                         >
-                                            <Text style={styles.replayText}>Retourner à l'accueil</Text>
+                                            <Text style={styles.replayText}>Retourner à l&apos;accueil</Text>
                                         </TouchableOpacity>
                                     )}
 

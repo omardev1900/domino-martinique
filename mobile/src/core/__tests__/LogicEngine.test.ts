@@ -108,7 +108,8 @@ describe('passTurn', () => {
         roundNumber: 1,
         mancheNumber: 1,
         turnDuration: 15,
-        mancheHistory: []
+        mancheHistory: [],
+        startingHandSize: 7
     };
 
     it('should throw if player has a valid move', () => {
@@ -158,7 +159,8 @@ describe('handleTurn', () => {
         roundNumber: 1,
         mancheNumber: 1,
         turnDuration: 15,
-        mancheHistory: []
+        mancheHistory: [],
+        startingHandSize: 7
     };
 
     // Re-initialize p1's hand for each test

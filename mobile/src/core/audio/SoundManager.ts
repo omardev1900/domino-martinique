@@ -191,7 +191,12 @@ class SoundManager {
             const player = this.sounds[name];
             if (player) {
                 player.seekTo(0);
-                player.play();
+                // Fire and forget, catching errors internally
+                try {
+                   player.play();
+                } catch(err) {
+                   console.warn(`[SoundManager] Audio play error for ${name}`, err);
+                }
             }
             // Silently ignore if sound not loaded yet
         } catch (error) {

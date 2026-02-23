@@ -100,6 +100,7 @@ export interface GameRoom {
     players: PlayerProfile[]; // Liste des joueurs connectés (max 3)
     gameState: GameState | null; // État complet de la partie une fois lancée
     createdBy: string; // UID du créateur
+    //hostId: string;
     isPrivate: boolean;
     passcode?: string; // Si privé
     roomName?: string; // Nom personnalisé ou généré

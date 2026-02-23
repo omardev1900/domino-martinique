@@ -1,5 +1,5 @@
 
-import { handleEndOfRound } from './LogicEngine';
+import { finalizeRound } from './LogicEngine';
 import { GameState, Player } from './types';
 
 const createMockPlayer = (id: string, name: string): Player => ({
@@ -12,7 +12,9 @@ const createMockPlayer = (id: string, name: string): Player => ({
     totalPoints: 0,
     isCochon: false,
     totalCochons: 0,
-    isBot: false
+    isBot: false,
+    currentMancheStars: 0,
+    totalRoundWins: 0
 });
 
 const createInitialState = (players: Player[], mode: any, condition: number): GameState => ({
@@ -27,7 +29,11 @@ const createInitialState = (players: Player[], mode: any, condition: number): Ga
     winningCondition: condition,
     gameMode: mode,
     turnDuration: 30, // Default duration
-    lastActionTimestamp: Date.now()
+    lastActionTimestamp: Date.now(),
+    mancheHistory: [],
+    roundNumber: 1,
+    mancheNumber: 1,
+    startingHandSize: 7
 });
 
 describe('Phase 2.3: Stress Test Simulation', () => {
@@ -44,7 +50,7 @@ describe('Phase 2.3: Stress Test Simulation', () => {
             const winnerIdx = Math.floor(Math.random() * 3);
             const winnerId = state.players[winnerIdx].id;
 
-            state = handleEndOfRound(state, winnerId);
+            state = finalizeRound(state, winnerId);
 
             if (state.phase === 'MANCHE_END') {
                 state.players = state.players.map(p => ({

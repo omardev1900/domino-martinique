@@ -6,7 +6,7 @@ import {
     browserLocalPersistence,
     getAuth
 } from 'firebase/auth';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     getFirestore,
@@ -112,6 +112,7 @@ export const createRoom = async (
             players: [{ ...hostProfile, isHost: true }], // Force Host flag
             gameState: null,
             createdBy: hostProfile.uid,
+            //hostId: hostProfile.uid,
             isPrivate,
             ...(passcode && { passcode }),
             // Default room name if not provided
@@ -133,8 +134,15 @@ export const createRoom = async (
         await updateDoc(docRef, { roomId: docRef.id });
 
         return docRef.id;
-    } catch (e) {
+    } catch (e: any) {
         console.error("Error adding document: ", e);
+        // CRITICAL UI FEEDBACK: Ensure user sees the error
+        Alert.alert(
+            "Erreur de création",
+            e.code === 'permission-denied'
+                ? "Permissions insuffisantes pour créer une table. Vérifiez votre profil."
+                : "Impossible de créer la table. " + (e.message || "Erreur inconnue")
+        );
         throw e;
     }
 };

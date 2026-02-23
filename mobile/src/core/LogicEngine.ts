@@ -361,29 +361,26 @@ export const resolveBoude = (gameState: GameState): { newState: GameState; isTie
  * determineFirstPlayer : Détermine qui commence (Plus gros double ou plus gros domino)
  */
 export const determineFirstPlayer = (players: Player[]): string => {
-    // Explicit type to avoid 'never' inference relative to null initialization
-    type BestDomino = { sum: number; isDouble: boolean; playerId: string };
-    let bestDomino: BestDomino | null = null;
+    let bestDomino: { sum: number; isDouble: boolean; playerId: string } | null = null;
 
-    players.forEach(p => {
-        p.hand.forEach(d => {
+    for (const p of players) {
+        for (const d of p.hand) {
             const isDouble = d.left === d.right;
             const sum = d.left + d.right;
 
             if (!bestDomino) {
                 bestDomino = { sum, isDouble, playerId: p.id };
             } else {
-                const best = bestDomino as BestDomino;
-                if (isDouble && (!best || !best.isDouble)) {
+                if (isDouble && !bestDomino.isDouble) {
                     bestDomino = { sum, isDouble, playerId: p.id };
-                } else if (best && isDouble === best.isDouble) {
-                    if (sum > best.sum) {
+                } else if (isDouble === bestDomino.isDouble) {
+                    if (sum > bestDomino.sum) {
                         bestDomino = { sum, isDouble, playerId: p.id };
                     }
                 }
             }
-        });
-    });
+        }
+    }
 
     return bestDomino ? bestDomino.playerId : players[0].id;
 };

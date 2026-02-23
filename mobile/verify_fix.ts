@@ -10,7 +10,7 @@ const runTest = () => {
             { id: '6-6', left: 6, right: 6, isDouble: true, sum: 12 },
             { id: '6-2', left: 6, right: 2, isDouble: false, sum: 8 },
             { id: '2-3', left: 2, right: 3, isDouble: false, sum: 5 }
-        ], handSize: 3, wins: 0, isCochon: false, isBot: false
+        ], handSize: 3, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0
     };
 
     let state: GameState = {
@@ -23,7 +23,13 @@ const runTest = () => {
         phase: 'PLAYING',
         firstPlayerOfRound: 'p1',
         winningCondition: 100,
-        lastActionTimestamp: Date.now()
+        lastActionTimestamp: Date.now(),
+        gameMode: 'MANCHE',
+        turnDuration: 15,
+        mancheHistory: [],
+        roundNumber: 1,
+        mancheNumber: 1,
+        startingHandSize: 7
     };
 
     console.log("1. Playing first domino (6-6)");

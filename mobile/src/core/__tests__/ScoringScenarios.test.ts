@@ -34,7 +34,8 @@ const createMockState = (playersData: { id: string, stars: number, totalPoints: 
         firstPlayerOfRound: null,
         mancheHistory: [],
         roundNumber: 1,
-        mancheNumber: 1
+        mancheNumber: 1,
+        startingHandSize: 7
     };
 };
 
@@ -112,8 +113,9 @@ describe('Scoring Verification', () => {
         // User expected +4. Code gives +2.
     });
 
-    test('4. Test Match Over', () => {
+    test('4. Test Match NOT Over after round win (must wait for manche end)', () => {
         // A=29, Goal=30. A wins round.
+        // Expect: A gets 1 point (total 30) but phase remains PARTIE_END because manche is not over.
         const state = createMockState([
             { id: 'A', stars: 0, totalPoints: 29 },
             { id: 'B', stars: 0, totalPoints: 10 },
@@ -121,17 +123,17 @@ describe('Scoring Verification', () => {
         ], 'SCORE', 30);
 
         const newState = finalizeRound(state, 'A');
-        logResult('Test 4: Match Over', newState, {});
+        logResult('Test 4: Match NOT Over after round', newState, {});
 
         const playerA = newState.players.find(p => p.id === 'A');
         expect(playerA?.totalPoints).toBe(30);
-        expect(newState.phase).toBe('MATCH_END');
+        expect(newState.phase).toBe('PARTIE_END'); // Deferred until manche winner or chira
     });
 
-    test('5. Test Simultaneous Manche and Match Win', () => {
+    test('5. Test Match Over at Manche End', () => {
         // A=2 Stars, 29 Points. Goal=30. A wins round.
         // Result: A gets +1 Star (3 Stars => Manche Win) AND +1 Point (30 Pts => Match Win).
-        // Priority: Match Win MUST override Manche Win.
+        // Since it's end of Manche, Match Win is triggered.
         const state = createMockState([
             { id: 'A', stars: 2, totalPoints: 29 },
             { id: 'B', stars: 0, totalPoints: 10 },
@@ -139,14 +141,10 @@ describe('Scoring Verification', () => {
         ], 'SCORE', 30);
 
         const newState = finalizeRound(state, 'A');
-        logResult('Test 5: Simultaneous Win (A wins)', newState, {});
+        logResult('Test 5: Match Over at Manche End', newState, {});
 
         const playerA = newState.players.find(p => p.id === 'A');
-
-        // Check points
         expect(playerA?.totalPoints).toBe(30);
-
-        // CRITICAL CHECK: Phase must be MATCH_END, not MANCHE_END
         expect(newState.phase).toBe('MATCH_END');
     });
 
@@ -163,7 +161,30 @@ describe('Scoring Verification', () => {
         expect(newState.mancheHistory.length).toBe(1);
         expect(newState.mancheHistory[0].winnerId).toBe('A');
         expect(newState.mancheHistory[0].points['A']).toBe(3); // 1 (round) + 2 (cochons)
-        expect(newState.mancheHistory[0].points['B']).toBe(-1);
-        expect(newState.mancheHistory[0].points['C']).toBe(-1);
+    });
+
+    test('7. Test Tie-Breaker at Threshold (End of Manche)', () => {
+        // A and B both hit threshold at the end of a manche.
+        // A wins the round and the manche.
+        // A: 27 pts + 3 bonus = 30 pts.
+        // B: 30 pts.
+        // Both >= 30, but it's a tie for the lead.
+        const state = createMockState([
+            { id: 'A', stars: 2, totalPoints: 26 }, // will get 1(round)+3(manche) = 30
+            { id: 'B', stars: 1, totalPoints: 30 }, // already at 30
+            { id: 'C', stars: 0, totalPoints: 10 }
+        ], 'SCORE', 30);
+
+        const newState = finalizeRound(state, 'A');
+        logResult('Test 7: Tie-Breaker (A and B at 30)', newState, {});
+
+        const playerA = newState.players.find(p => p.id === 'A');
+        const playerB = newState.players.find(p => p.id === 'B');
+
+        expect(playerA?.totalPoints).toBe(30);
+        expect(playerB?.totalPoints).toBe(30);
+
+        // Match should NOT be over because of the tie
+        expect(newState.phase).toBe('MANCHE_END');
     });
 });

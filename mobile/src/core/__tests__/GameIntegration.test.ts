@@ -31,7 +31,8 @@ describe('GameIntegration - Full Game Simulation', () => {
 
             if (move) {
                 // Play
-                state = handleTurn(state, currentPlayer.id, move);
+                const forcedSide = move.side === 'start' ? undefined : move.side;
+                state = handleTurn(state, currentPlayer.id, move.tile, forcedSide);
             } else {
                 // Pass (using the LogicEngine passTurn directly)
                 // We must catch errors because passTurn throws if player can actually play
@@ -65,7 +66,13 @@ describe('GameIntegration - Full Game Simulation', () => {
             firstPlayerOfRound: null,
             history: [],
             winningCondition: WINS_TO_WIN_MATCH,
-            lastActionTimestamp: Date.now()
+            lastActionTimestamp: Date.now(),
+            gameMode: 'MANCHE',
+            turnDuration: 15,
+            mancheHistory: [],
+            roundNumber: 1,
+            mancheNumber: 1,
+            startingHandSize: 7
         };
 
         // Mark all as bots (optional, mostly for our generic logic if we used it)
@@ -79,8 +86,8 @@ describe('GameIntegration - Full Game Simulation', () => {
             rounds++;
 
             // Verify we are starting a round or continuing?
-            // If previous phase was ROUND_END, we need to re-deal
-            if (state.phase === 'ROUND_END' || state.phase === 'BOUDE') {
+            // If previous phase was PARTIE_END or MANCHE_END, we need to re-deal
+            if (state.phase === 'PARTIE_END' || state.phase === 'MANCHE_END' || state.phase === 'BOUDE') {
                 // Simulate re-deal logic (LogicEngine doesn't have a specific "nextRound" function that keeps scores, 
                 // usually handled by server/GameScreen state management. We mimic it here.)
                 const winners = state.players.map(p => ({ id: p.id, wins: p.wins }));
@@ -111,7 +118,7 @@ describe('GameIntegration - Full Game Simulation', () => {
             playFullRound();
 
             // Assert round ended correctly
-            expect(['ROUND_END', 'MATCH_END', 'BOUDE']).toContain(state.phase);
+            expect(['PARTIE_END', 'MANCHE_END', 'MATCH_END', 'BOUDE']).toContain(state.phase);
         }
 
         console.log(`Match finished in ${rounds} rounds.`);

@@ -50,7 +50,8 @@ describe('LogicEngine Advanced', () => {
             roundNumber: 1,
             mancheNumber: 1,
             turnDuration: 15,
-            mancheHistory: []
+            mancheHistory: [],
+            startingHandSize: 7
         };
 
         const domino = p1.hand[0];

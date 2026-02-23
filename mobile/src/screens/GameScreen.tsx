@@ -309,11 +309,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         const endPhases: GamePhase[] = ['PARTIE_END', 'MANCHE_END', 'MATCH_END', 'BOUDE'];
         if (endPhases.includes(gameState.phase)) {
-            // Tiny delay to let the last move animation finish if needed
-            const timer = setTimeout(() => {
-                setShowScoreboard(true);
-            }, 800);
-            return () => clearTimeout(timer);
+            // Show scoreboard immediately to prevent freezes on blocked games
+            setShowScoreboard(true);
         } else {
             setShowScoreboard(false);
         }

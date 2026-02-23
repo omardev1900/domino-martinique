@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft, FadeIn } from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { createRoom, joinRoom, listenToPublicRooms, RoomOptions } from '../src/core/services/firebase';
+import { createRoom, joinRoom, listenToPublicRooms, RoomOptions, auth } from '../src/core/services/firebase';
 import { PlayerProfile, GameMode, GameRoom } from '../src/core/types';
 import { authService } from '../src/core/services/auth.service';
 import { FlatList } from 'react-native-gesture-handler';
@@ -90,22 +90,46 @@ export default function LobbyScreen() {
     );
 
     useEffect(() => {
+        let unsubscribe: (() => void) | null = null;
+        let retryInterval: any = null;
+
+        const startListening = () => {
+            if (activeTab === 'PUBLIC') {
+                setLoadingPublicRooms(true);
+                unsubscribe = listenToPublicRooms((rooms) => {
+                    setPublicRooms(rooms);
+                    setLoadingPublicRooms(false);
+                }, (error) => {
+                    console.log("Error listening to rooms", error);
+                    setLoadingPublicRooms(false);
+                    // Retenter plus tard si erreur (ex: déconnexion passagère)
+                });
+            }
+        };
+
+        startListening();
+
+        // Robustness: Re-check every 30s if we are in public tab
         if (activeTab === 'PUBLIC') {
-            setLoadingPublicRooms(true);
-            const unsubscribe = listenToPublicRooms((rooms) => {
-                setPublicRooms(rooms);
-                setLoadingPublicRooms(false);
-            }, (error) => {
-                console.log("Error listening to rooms", error);
-                setLoadingPublicRooms(false);
-            });
-            return () => unsubscribe();
+            retryInterval = setInterval(() => {
+                if (!unsubscribe) startListening();
+            }, 30000);
         }
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+            if (retryInterval) clearInterval(retryInterval);
+        };
     }, [activeTab]);
 
     // ─── Actions ────────────────────────────────────────────────────
 
     const handleCreateRoom = async () => {
+        if (!auth.currentUser) {
+            Alert.alert("Connexion requise", "Vous devez être connecté pour créer une table.");
+            router.push('/login');
+            return;
+        }
         if (!currentUser) return;
         try {
             setLoading(true);
@@ -127,6 +151,11 @@ export default function LobbyScreen() {
     };
 
     const handleJoinRoom = async () => {
+        if (!auth.currentUser) {
+            Alert.alert("Connexion requise", "Vous devez être connecté pour rejoindre une table.");
+            router.push('/login');
+            return;
+        }
         if (!roomIdToJoin.trim() || !currentUser) return;
         try {
             setLoading(true);
@@ -140,6 +169,11 @@ export default function LobbyScreen() {
     };
 
     const handleJoinPublicRoom = async (roomId: string) => {
+        if (!auth.currentUser) {
+            Alert.alert("Connexion requise", "Vous devez être connecté pour rejoindre une table.");
+            router.push('/login');
+            return;
+        }
         if (!currentUser) return;
         try {
             setLoading(true);

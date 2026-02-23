@@ -30,7 +30,11 @@ const createMockState = (players: Player[], winningCondition: number = 3): GameS
     winningCondition,
     gameMode: 'MANCHE',
     turnDuration: 15,
-    lastActionTimestamp: Date.now()
+    lastActionTimestamp: Date.now(),
+    mancheHistory: [],
+    roundNumber: 1,
+    mancheNumber: 1,
+    startingHandSize: 7
 });
 
 describe('Manual Simulation Scenarios', () => {

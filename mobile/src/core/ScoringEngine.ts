@@ -160,21 +160,40 @@ export const finalizeRound = (
     }
 
     // 3.3 Check Match End
+    // NEW RULE: Match ends ONLY at the end of a Manche (mancheWinner OR isChire)
     let isMatchOver = false;
-    if (newState.gameMode === 'MANCHE') {
-        // NEW RULE: Match ends ONLY when fixed number of manches played
-        isMatchOver = newState.mancheHistory && newState.mancheHistory.length >= newState.winningCondition;
-    } else if (newState.gameMode === 'SCORE') {
-        isMatchOver = newState.players.some(p => p.totalPoints >= newState.winningCondition);
-    } else if (newState.gameMode === 'COCHON') {
-        isMatchOver = newState.players.some(p => p.totalCochons >= newState.winningCondition);
+    if (mancheWinner || isChire) {
+        if (newState.gameMode === 'MANCHE') {
+            // Match ends ONLY when fixed number of manches played
+            isMatchOver = newState.mancheHistory && newState.mancheHistory.length >= newState.winningCondition;
+        } else if (newState.gameMode === 'SCORE') {
+            const maxPoints = Math.max(...newState.players.map(p => p.totalPoints));
+            if (maxPoints >= newState.winningCondition) {
+                // TIE BREAKER: Only end if there is a unique winner with the maximum points
+                const leaders = newState.players.filter(p => p.totalPoints === maxPoints);
+                isMatchOver = leaders.length === 1;
+                if (leaders.length > 1) {
+                    console.log(`TIE AT THRESHOLD (${maxPoints})! Continuing for another manche...`);
+                }
+            }
+        } else if (newState.gameMode === 'COCHON') {
+            const maxCochons = Math.max(...newState.players.map(p => p.totalCochons));
+            if (maxCochons >= newState.winningCondition) {
+                // TIE BREAKER: Only end if there is a unique winner with the maximum cochons
+                const leaders = newState.players.filter(p => p.totalCochons === maxCochons);
+                isMatchOver = leaders.length === 1;
+                if (leaders.length > 1) {
+                    console.log(`TIE AT COCHON THRESHOLD (${maxCochons})! Continuing for another manche...`);
+                }
+            }
+        }
     }
 
     if (isMatchOver) {
         newState.phase = 'MATCH_END';
-    } else if (mancheWinner) {
+    } else if (mancheWinner || isChire) {
         newState.phase = 'MANCHE_END';
-        newState.firstPlayerOfRound = mancheWinner.id;
+        if (mancheWinner) newState.firstPlayerOfRound = mancheWinner.id;
     }
 
     return newState;
