@@ -63,17 +63,38 @@ export const dealGame = (playerNames: string[], handSize: number = HAND_SIZE): P
 export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'easy' | 'medium' | 'expert' | 'legend' = 'medium', handSize: number = HAND_SIZE): Partial<GameState> => {
     const deck = shuffleDeck();
 
-    const getBotAvatar = (diff: string) => {
+    const getBots = (diff: string) => {
         switch (diff) {
-            case 'easy': return 'bot_01';
-            case 'medium': return 'bot_02';
-            case 'expert': return 'bot_03';
-            case 'legend': return 'bot_03';
-            default: return 'bot_01';
+            case 'easy':
+                return [
+                    { name: 'Chip_1', avatarId: 'Chip_1', diff: 'easy' },
+                    { name: 'Spark_2', avatarId: 'Spark_2', diff: 'medium' }
+                ];
+            case 'medium':
+                return [
+                    { name: 'Spark_2', avatarId: 'Spark_2', diff: 'medium' },
+                    { name: 'Atlas_3', avatarId: 'Atlas_3', diff: 'expert' }
+                ];
+            case 'expert':
+                return [
+                    { name: 'Atlas_3', avatarId: 'Atlas_3', diff: 'expert' },
+                    { name: 'Zenith_4', avatarId: 'Zenith_4', diff: 'legend' }
+                ];
+            case 'legend':
+            case 'valou_legend':
+                return [
+                    { name: 'Zenith_4', avatarId: 'Zenith_4', diff: 'legend' },
+                    { name: 'Zenith_4', avatarId: 'Zenith_4', diff: 'valou_legend' } // Note: fallback on same avatar
+                ];
+            default:
+                return [
+                    { name: 'Spark_2', avatarId: 'Spark_2', diff: 'medium' },
+                    { name: 'Atlas_3', avatarId: 'Atlas_3', diff: 'expert' }
+                ];
         }
     };
 
-    const botAvatar = getBotAvatar(botDifficulty);
+    const bots = getBots(botDifficulty);
 
     const players: Player[] = [
         {
@@ -93,8 +114,8 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         },
         {
             id: 'bot-1',
-            name: `Bot ${botDifficulty === 'easy' ? 'Débutant' : botDifficulty === 'medium' ? 'Moyen' : botDifficulty === 'expert' ? 'Expert' : 'Légende'}`,
-            avatarId: botAvatar,
+            name: bots[0].name,
+            avatarId: bots[0].avatarId,
             hand: deck.slice(handSize, handSize * 2),
             handSize: handSize,
             currentMancheStars: 0,
@@ -104,13 +125,13 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             isCochon: false,
             totalCochons: 0,
             isBot: true,
-            difficulty: botDifficulty,
+            difficulty: bots[0].diff as any,
             wins: 0,
         },
         {
             id: 'bot-2',
-            name: `Bot ${botDifficulty === 'easy' ? 'Novice' : botDifficulty === 'medium' ? 'Initié' : botDifficulty === 'expert' ? 'Pro' : 'Maître'}`,
-            avatarId: botAvatar,
+            name: bots[1].name,
+            avatarId: bots[1].avatarId,
             hand: deck.slice(handSize * 2, handSize * 3),
             handSize: handSize,
             currentMancheStars: 0,
@@ -120,7 +141,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             isCochon: false,
             totalCochons: 0,
             isBot: true,
-            difficulty: botDifficulty,
+            difficulty: bots[1].diff as any,
             wins: 0,
         },
     ];

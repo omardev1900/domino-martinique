@@ -14,11 +14,10 @@ export const AVATAR_IMAGES = {
     avatar_07: require('@/assets/images/avatars/player/avatar_07.jpg'),
     avatar_08: require('@/assets/images/avatars/player/avatar_08.jpg'),
     avatar_default: require('@/assets/images/avatars/default.jpg'),
-    bot_01: require('@/assets/images/avatars/bot/bot_01.jpg'),
-    bot_02: require('@/assets/images/avatars/bot/bot_02.jpg'),
-    bot_03: require('@/assets/images/avatars/bot/bot_03.jpg'),
-    bot_04: require('@/assets/images/avatars/bot/bot_04.jpg'),
-    bot_05: require('@/assets/images/avatars/bot/bot_05.jpg'),
+    Chip_1: require('@/assets/images/avatars/bot/Chip_1.png'),
+    Spark_2: require('@/assets/images/avatars/bot/Spark_2.png'),
+    Atlas_3: require('@/assets/images/avatars/bot/Atlas_3.png'),
+    Zenith_4: require('@/assets/images/avatars/bot/Zenith_4.png'),
 } as const;
 
 export type AvatarId = keyof typeof AVATAR_IMAGES;

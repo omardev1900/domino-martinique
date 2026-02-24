@@ -532,33 +532,33 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             case 'easy':
                 // Débutant: 1 Easy (bot_01) + 1 Medium (bot_02)
                 return [
-                    { name: 'Bot Débutant', avatarId: 'bot_01', difficulty: 'easy' },
-                    { name: 'Bot Moyen', avatarId: 'bot_02', difficulty: 'medium' }
+                    { name: 'Chip_1', avatarId: 'Chip_1', difficulty: 'easy' },
+                    { name: 'Spark_2', avatarId: 'Spark_2', difficulty: 'medium' }
                 ];
             case 'medium':
                 // Moyen: 1 Medium (bot_02) + 1 Expert (bot_03)
                 return [
-                    { name: 'Bot Moyen', avatarId: 'bot_02', difficulty: 'medium' },
-                    { name: 'Bot Expert', avatarId: 'bot_03', difficulty: 'expert' }
+                    { name: 'Spark_2', avatarId: 'Spark_2', difficulty: 'medium' },
+                    { name: 'Atlas_3', avatarId: 'Atlas_3', difficulty: 'expert' }
                 ];
             case 'expert':
                 // Expert: 1 Expert (bot_03) + 1 Legend (bot_04)
                 return [
-                    { name: 'Bot Expert', avatarId: 'bot_03', difficulty: 'expert' },
-                    { name: 'Bot Légende', avatarId: 'bot_04', difficulty: 'legend' }
+                    { name: 'Atlas_3', avatarId: 'Atlas_3', difficulty: 'expert' },
+                    { name: 'Zenith_4', avatarId: 'Zenith_4', difficulty: 'legend' }
                 ];
             case 'legend':
             case 'valou_legend':
                 // Légende: 1 Legend (bot_04) + 1 Valou (bot_05)
                 return [
-                    { name: 'Bot Légende', avatarId: 'bot_04', difficulty: 'legend' },
-                    { name: 'Bot Valou', avatarId: 'bot_05', difficulty: 'valou_legend' }
+                    { name: 'Zenith_4', avatarId: 'Zenith_4', difficulty: 'legend' },
+                    { name: 'Zenith_4', avatarId: 'Zenith_4', difficulty: 'valou_legend' }
                 ];
             default:
                 // Fallback Medium
                 return [
-                    { name: 'Bot Moyen', avatarId: 'bot_02', difficulty: 'medium' },
-                    { name: 'Bot Expert', avatarId: 'bot_03', difficulty: 'expert' }
+                    { name: 'Spark_2', avatarId: 'Spark_2', difficulty: 'medium' },
+                    { name: 'Atlas_3', avatarId: 'Atlas_3', difficulty: 'expert' }
                 ];
         }
     };

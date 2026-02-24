@@ -119,13 +119,9 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const isTopOpponent = isTopLeft || isTopRight;
     const isLocalPlayer = position === 'bottom';
 
-    // Use player's avatarId or fallback to default 'avatar_default'
-    // Allow 'bot_' prefix for bot avatars
-    const finalAvatarId = (player.avatarId && (player.avatarId.startsWith('avatar_') || player.avatarId.startsWith('bot_')))
-        ? (player.avatarId as AvatarId)
-        : 'avatar_default';
-
-    const avatarImage = getAvatarImage(finalAvatarId);
+    // L'image de l'avatar est sûrement gérée par getAvatarImage 
+    // qui recourt au placeholder 'avatar_default' si non trouvée
+    const avatarImage = getAvatarImage(player.avatarId);
 
     // Image scaling factor to zoom into the face (top portion)
     const imageScale = 1.8;

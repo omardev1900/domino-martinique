@@ -67,7 +67,7 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
                         isBot: false
                     };
                 } else {
-                    return { ...p, id: `bot-${i}`, name: `Bot ${i}`, isBot: true, avatarId: i === 1 ? 'bot_01' : i === 2 ? 'bot_02' : 'bot_03' };
+                    return { ...p, id: `bot-${i}`, name: `Bot ${i}`, isBot: true, avatarId: i === 1 ? 'Spark_2' : i === 2 ? 'Atlas_3' : 'Zenith_4' };
                 }
             });
 
