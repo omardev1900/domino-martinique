@@ -9,7 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import SoundManager from '@/core/audio/SoundManager';
-
+import SettingsManager from '@/core/SettingsManager';
 
 // Keep the native splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -41,9 +41,12 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
+        await SettingsManager.loadSettings();
+
         // Preload audio assets
         await SoundManager.preloadSounds();
-        // Start menu music immediately (also started by PremiumSplashScreen but safe to call here)
+
+        // Start menu music immediately
         SoundManager.playMusic('bgm3', 0.5);
       } catch (e) {
         console.warn(e);
@@ -59,7 +62,12 @@ export default function RootLayout() {
     if (!appReady) return;
 
     if (pathname.startsWith('/game')) {
-      SoundManager.playMusic('bgm1', 0.3);
+      const settings = SettingsManager.getSettings();
+      if (settings.gameBgmTheme === 'none') {
+        SoundManager.stopMusic();
+      } else {
+        SoundManager.playMusic(settings.gameBgmTheme, 0.5);
+      }
     } else {
       SoundManager.playMusic('bgm3', 0.5);
     }

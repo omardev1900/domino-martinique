@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { authService } from '@/core/services/auth.service';
 import SettingsManager from '@/core/SettingsManager';
+import SoundManager from '@/core/audio/SoundManager';
 
 // ─── Timings ─────────────────────────────────────────────────────────────────
 // Delay before bar starts (logo entrance time)
@@ -151,6 +152,8 @@ export default function PremiumSplashScreen() {
 
     // ── Navigation ────────────────────────────────────────────────
     const handlePlay = () => {
+        SoundManager.unlockAudio();
+        SoundManager.playSound('startGame');
         router.replace(`/${authResultRef.current}` as any);
     };
 

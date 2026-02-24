@@ -243,7 +243,7 @@ export default function ProfileScreen() {
                         <Ionicons name="chevron-back" size={28} color="#FFD700" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>PROFIL</Text>
-                    <View style={{ width: 48 }} /> {/* Spacer for centering the title */}
+                    <View style={{ width: 48 }} />
                 </View>
 
                 <ScrollView

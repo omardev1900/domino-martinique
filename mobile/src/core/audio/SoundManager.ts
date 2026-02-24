@@ -2,7 +2,7 @@ import { createAudioPlayer, AudioPlayer, setAudioModeAsync, AudioSource } from '
 import { Platform } from 'react-native';
 import SettingsManager from '../SettingsManager';
 
-type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'boude' | 'toktok';
+type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'boude' | 'toktok' | 'startGame';
 
 class SoundManager {
     private static instance: SoundManager;
@@ -19,6 +19,7 @@ class SoundManager {
         bgm3: null,
         boude: null,
         toktok: null,
+        startGame: null,
     };
 
     private currentMusic: AudioPlayer | null = null;
@@ -86,6 +87,7 @@ class SoundManager {
                 bgm3: require('@/assets/sounds/bgm3.mp3'),
                 boude: require('@/assets/sounds/boude.mp3'),
                 toktok: require('@/assets/sounds/toktok.mp3'),
+                startGame: require('@/assets/sounds/start-game.mp3'),
             };
 
             for (const [key, source] of Object.entries(soundMap)) {
@@ -132,12 +134,14 @@ class SoundManager {
                 this.currentMusic.seekTo(0);
             }
 
-            if (!SettingsManager.getSettings().isSoundEnabled) return;
+            const settings = SettingsManager.getSettings();
+            // Le volume final est le volume de base de la piste * le volume BGM des réglages
+            const finalVolume = volume * settings.bgmVolume;
 
             const player = this.sounds[name];
             if (player) {
                 player.loop = true;
-                player.volume = volume;
+                player.volume = finalVolume;
                 player.play();
                 this.currentMusic = player;
                 this.currentMusicName = name;
@@ -166,7 +170,17 @@ class SoundManager {
 
     async setMusicVolume(volume: number) {
         if (this.currentMusic) {
-            this.currentMusic.volume = volume;
+            const settings = SettingsManager.getSettings();
+            this.currentMusic.volume = volume * settings.bgmVolume;
+        }
+    }
+
+    async updateVolumes() {
+        const settings = SettingsManager.getSettings();
+        if (this.currentMusic) {
+            // Restore intended volume multiplier properly if we stored base volume. 
+            // For now, simpler to just use 0.5 as base BGM volume.
+            this.currentMusic.volume = 0.5 * settings.bgmVolume;
         }
     }
 
@@ -178,7 +192,8 @@ class SoundManager {
         }
 
         try {
-            if (!SettingsManager.getSettings().isSoundEnabled) return;
+            const settings = SettingsManager.getSettings();
+            if (!settings.isSfxEnabled || settings.sfxVolume <= 0) return;
 
             // DEBOUNCE: Prevent same sound playing within 100ms
             const now = Date.now();
@@ -190,12 +205,13 @@ class SoundManager {
 
             const player = this.sounds[name];
             if (player) {
+                player.volume = settings.sfxVolume;
                 player.seekTo(0);
                 // Fire and forget, catching errors internally
                 try {
-                   player.play();
-                } catch(err) {
-                   console.warn(`[SoundManager] Audio play error for ${name}`, err);
+                    player.play();
+                } catch (err) {
+                    console.warn(`[SoundManager] Audio play error for ${name}`, err);
                 }
             }
             // Silently ignore if sound not loaded yet
@@ -213,19 +229,9 @@ class SoundManager {
     }
 
     async toggleMute(): Promise<boolean> {
-        const current = SettingsManager.getSettings().isSoundEnabled;
+        const current = SettingsManager.getSettings().isSfxEnabled;
         const newState = !current;
-        await SettingsManager.setSoundEnabled(newState);
-
-        if (newState) {
-            // Resume music if we were playing something
-            if (this.currentMusicName && (this.currentMusicName === 'bgm1' || this.currentMusicName === 'bgm2' || this.currentMusicName === 'bgm3')) {
-                this.playMusic(this.currentMusicName);
-            }
-        } else {
-            this.stopMusic();
-        }
-
+        await SettingsManager.setSfxEnabled(newState);
         return newState;
     }
 }

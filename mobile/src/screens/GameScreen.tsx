@@ -14,7 +14,6 @@ import { PlayerAvatar } from '../components/PlayerAvatar';
 import { LobbyScreen } from './LobbyScreen';
 import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
 // import { GameOverScreen } from './GameOverScreen'; // Legacy replaced by UnifiedResultOverlay
-import { SettingsScreen } from './SettingsScreen';
 import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude, checkValidMove } from '../core/LogicEngine';
 import { getValidMoves } from '../core/DominoEngine';
 import { getBotMove } from '../core/BotEngine';
@@ -56,7 +55,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [roomData, setRoomData] = useState<GameRoom | null>(null);
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [localPlayerId] = useState<PlayerId>(userId || 'p1');
-    const [showSettings, setShowSettings] = useState(false);
     const [showRoomInfo, setShowRoomInfo] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [isSoloMode] = useState(mode === 'solo');
@@ -271,11 +269,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
 
     useEffect(() => {
-        if (Platform.OS === 'web' && !showSettings && !showScoreOverlay && !showRoomInfo && !isPaused) {
+        if (Platform.OS === 'web' && !showScoreOverlay && !showRoomInfo && !isPaused) {
             // Restore focus to root element when overlays are closed
             (rootRef.current as any)?.focus?.();
         }
-    }, [showSettings, showScoreOverlay, showRoomInfo, isPaused]);
+    }, [showScoreOverlay, showRoomInfo, isPaused]);
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
 
 
@@ -289,7 +287,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             const loadSettings = async () => {
                 const settings = SettingsManager.getSettings();
                 setTableTheme(settings.tableTheme);
-                setIsSoundEnabled(settings.isSoundEnabled);
+                setIsSoundEnabled(settings.isSfxEnabled);
 
                 // Load player profile for solo mode
                 if (isSoloMode) {
@@ -1341,7 +1339,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             {/* Wrapper for inert when overlays are open */}
             <View
                 style={{ flex: 1 }}
-                {...({ inert: (Platform.OS === 'web' && (showSettings || showScoreOverlay || isPaused || showRoomInfo)) ? true : undefined } as any)}
+                {...({ inert: (Platform.OS === 'web' && (showScoreOverlay || isPaused || showRoomInfo)) ? true : undefined } as any)}
             >
                 {/* CHOICE BANNER (Overlay) */}
                 {pendingDomino && (
@@ -1419,6 +1417,14 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                                 style={styles.controlBtn}
                             >
                                 <Ionicons name={isSoundEnabled ? "volume-high" : "volume-mute"} size={20} color="#FFD700" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => router.push('/modal')}
+                                activeOpacity={0.7}
+                                style={styles.controlBtn}
+                            >
+                                <Ionicons name="settings-outline" size={20} color="#FFD700" />
                             </TouchableOpacity>
 
                             {Platform.OS === 'web' && (
@@ -1655,12 +1661,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     </Animated.View>
                 </View>
             )}
-
-            {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
         </View>
     );
 }
-
 
 const styles = StyleSheet.create({
     container: {
