@@ -21,7 +21,7 @@ import { getBotMove } from '../core/BotEngine';
 // import { BoudeCounting } from '../components/BoudeCounting'; // Removed as per instruction
 
 import { GameState, Player, PlayerId, MancheResult, GamePhase, Domino, GameRoom, RoomStatus, GameMode } from '@/core/types';
-import { subscribeToRoom, updateGameState, leaveRoom, startGame, resetRoomToLobby, voteForRematch, clearRematchVotes } from '../core/services/firebase';
+import { subscribeToRoom, updateGameState, leaveRoom, startGame, resetRoomToLobby, voteForRematch, clearRematchVotes, updatePlayerChat } from '../core/services/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
@@ -34,6 +34,7 @@ import { AVAILABLE_AVATARS, AvatarId, getAvatarImage } from '../core/avatars';
 import { GameTableRef } from '../components/GameTable';
 import { FlyingDomino } from '../components/FlyingDomino';
 import { FlyingDominoData } from '../core/animations/AnimationTypes';
+import { QuickChat } from '../components/QuickChat';
 
 
 interface GameScreenProps {
@@ -66,6 +67,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [isSoundEnabled, setIsSoundEnabled] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [bannerState, setBannerState] = useState<'NONE' | 'MANCHE' | 'ROUND'>('NONE');
+    const [playersChat, setPlayersChat] = useState<{ [playerId: string]: string | null }>({});
+    const chatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lastChatTimeRef = useRef<number>(0);
 
     // Fullscreen API (web only)
     useEffect(() => {
@@ -141,6 +145,43 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const avatarRefs = useRef<{ [key: string]: View | null }>({});
     const prevHistoryLength = useRef(0);
     const isProcessing = useRef(false);
+    const lastSeenChatTimestamps = useRef<{ [playerId: string]: number }>({});
+
+    const triggerLocalChat = useCallback((content: string, skipFirebase: boolean = false) => {
+        const now = Date.now();
+        // 3s Cooldown (Anti-Spam)
+        if (now - lastChatTimeRef.current < 3000) return;
+
+        lastChatTimeRef.current = now;
+
+        // Clear existing timeout
+        if (chatTimeoutRef.current) {
+            clearTimeout(chatTimeoutRef.current);
+        }
+
+        // Update state
+        setPlayersChat(prev => ({ ...prev, [localPlayerId]: content }));
+
+        // Pass to Firebase if needed (Step 4 - Fixed)
+        if (gameId && !skipFirebase) {
+            updatePlayerChat(gameId, localPlayerId, content);
+        }
+
+        // Set new auto-hide timeout
+        chatTimeoutRef.current = setTimeout(() => {
+            setPlayersChat(prev => ({ ...prev, [localPlayerId]: null }));
+            chatTimeoutRef.current = null;
+        }, 3000);
+    }, [localPlayerId, gameId, gameState]);
+
+    const triggerOpponentChat = useCallback((playerId: string, content: string) => {
+        setPlayersChat(prev => ({ ...prev, [playerId]: content }));
+
+        // Auto-hide for opponent
+        setTimeout(() => {
+            setPlayersChat(prev => ({ ...prev, [playerId]: null }));
+        }, 3000);
+    }, []);
     const gameStateRef = useRef<GameState | null>(null);
     const navigation = useNavigation();
     const router = useRouter();
@@ -408,6 +449,24 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             setRoomData(data);
             // Sync game state - status null means we return to lobby
             setGameState(data.gameState || null);
+
+            // Detection des chats (Step 4 - Fixed decoupled version)
+            if (data.quickChats) {
+                const now = Date.now();
+                Object.keys(data.quickChats).forEach(pId => {
+                    const chat = data.quickChats![pId];
+                    if (chat && chat.timestamp > (lastSeenChatTimestamps.current[pId] || 0)) {
+                        lastSeenChatTimestamps.current[pId] = chat.timestamp;
+
+                        if (now - chat.timestamp < 5000) {
+                            if (pId !== localPlayerId) {
+                                triggerOpponentChat(pId, chat.content);
+                            }
+                        }
+                    }
+                });
+            }
+
             if (data.gameState) {
                 setIsStarting(false); // Game loaded successfully
             }
@@ -1545,6 +1604,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                                 position="top-right"
                                 isBoude={boudedPlayerId === opponents[0]?.id}
                                 onTimeout={() => handleTimeout(opponents[0]?.id)}
+                                chatContent={playersChat[opponents[0]?.id]}
                             />
                         </Animated.View>
                     )}
@@ -1568,6 +1628,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                                 position="top-left"
                                 isBoude={boudedPlayerId === opponents[1]?.id}
                                 onTimeout={() => handleTimeout(opponents[1]?.id)}
+                                chatContent={playersChat[opponents[1]?.id]}
                             />
                         </Animated.View>
                     )}
@@ -1593,6 +1654,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                                 position="bottom"
                                 isBoude={boudedPlayerId === localPlayerId}
                                 onTimeout={() => handleTimeout(localPlayerId)}
+                                chatContent={playersChat[localPlayerId]}
                             />
                         </Animated.View>
                     )}
@@ -1610,6 +1672,14 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         />
                     )}
                 </View>
+
+                {/* QUICK CHAT UI */}
+                {!isGameOver && (
+                    <QuickChat
+                        onSelectMessage={triggerLocalChat}
+                        onSelectEmoji={triggerLocalChat}
+                    />
+                )}
             </View>
 
             {showScoreOverlay && gameState && (

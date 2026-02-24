@@ -110,4 +110,5 @@ export interface GameRoom {
     turnDuration?: number; // NEW: Durée du tour
     difficulty?: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend'; // NEW: Difficulté des bots
     startingHandSize?: number;
+    quickChats?: { [playerId: string]: { content: string; timestamp: number } | null }; // NEW: Decoupled chat
 }

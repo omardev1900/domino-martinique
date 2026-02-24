@@ -355,6 +355,27 @@ export const updateGameState = async (roomId: string, newGameState: Partial<Game
 };
 
 /**
+ * Updates only the chat field of a specific player (silent update)
+ * @param roomId 
+ * @param playerId The ID of the player
+ * @param content The message or emoji
+ */
+export const updatePlayerChat = async (roomId: string, playerId: string, content: string): Promise<void> => {
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    try {
+        const updateData: any = {};
+        updateData[`quickChats.${playerId}`] = {
+            content,
+            timestamp: Date.now()
+        };
+        // Silent update on a decoupled root field
+        await updateDoc(roomRef, updateData);
+    } catch (e) {
+        console.error("Error updating player chat: ", e);
+    }
+};
+
+/**
  * Votes for a rematch in a finished game
  * @param roomId 
  * @param userId 

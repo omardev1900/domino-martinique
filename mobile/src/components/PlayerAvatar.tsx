@@ -5,6 +5,7 @@ import Animated, { useSharedValue, useAnimatedProps, useAnimatedStyle, withTimin
 import { Player } from '../core/types';
 import { getAvatarImage, AvatarId } from '../core/avatars';
 import { Ionicons } from '@expo/vector-icons';
+import { ChatBubble } from './ChatBubble';
 
 interface PlayerAvatarProps {
     player: Player;
@@ -21,6 +22,7 @@ interface PlayerAvatarProps {
     isPaused?: boolean; // NEW: Pause the timer
     onTimeout?: () => void; // Callback when timer expires
     isBoude?: boolean; // NEW: Player is currently blocked
+    chatContent?: string | null; // NEW: Chat message or emoji
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -39,7 +41,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     showHandSize = true,
     isPaused = false,
     onTimeout,
-    isBoude = false
+    isBoude = false,
+    chatContent
 }) => {
     const strokeWidth = 4;
     const radius = (size - strokeWidth) / 2;
@@ -134,6 +137,12 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             isHorizontal && position !== 'top-right' && styles.containerRow,
             isHorizontal && position === 'top-right' && styles.containerRowReverse
         ]}>
+            {chatContent && (
+                <ChatBubble
+                    content={chatContent}
+                    position={position?.startsWith('top') ? 'bottom' : 'top'}
+                />
+            )}
             {/* Name above avatar in vertical layout */}
             {!isHorizontal && namePlacement === 'above' && (
                 <View style={styles.nameContainerVertical}>
