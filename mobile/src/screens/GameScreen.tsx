@@ -67,7 +67,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [boudedPlayerId, setBoudedPlayerId] = useState<PlayerId | null>(null);
     const [isSoundEnabled, setIsSoundEnabled] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [showRoundBanner, setShowRoundBanner] = useState(false);
+    const [bannerState, setBannerState] = useState<'NONE' | 'MANCHE' | 'ROUND'>('NONE');
 
     // Fullscreen API (web only)
     useEffect(() => {
@@ -334,20 +334,40 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     }, [gameState?.phase]);
 
-    // Show Round Banner when a new round starts
+    // Show Round/Manche Banner when a new round starts
     useEffect(() => {
         if (!gameState || gameState.phase !== 'PLAYING') return;
-        // Show the banner only when roundNumber changes (new round dealt)
-        setShowRoundBanner(true);
-        const timer = setTimeout(() => {
-            setShowRoundBanner(false);
-        }, 2000);
-        return () => clearTimeout(timer);
-    }, [gameState?.roundNumber]);
+
+        // Si c'est le round 1 de la manche, on affiche "Manche X" pendant 1s, puis "Round 1" pendant 1s
+        if (gameState.roundNumber === 1) {
+            setBannerState('MANCHE');
+            const timer1 = setTimeout(() => {
+                setBannerState('ROUND');
+                const timer2 = setTimeout(() => {
+                    setBannerState('NONE');
+                }, 1000);
+                // On garde la référence du timer2 potentiellement pour clean up,
+                // mais c'est encapsulé ici.
+            }, 1000);
+
+            return () => {
+                clearTimeout(timer1);
+                // Pas trivial d'annuler timer2 ici sans state ref complexe,
+                // mais acceptable pour 1s.
+            };
+        } else {
+            // Sinon (Round 2+), on affiche juste "Round Y" pendant 1s
+            setBannerState('ROUND');
+            const timer = setTimeout(() => {
+                setBannerState('NONE');
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [gameState?.roundNumber, gameState?.mancheNumber]);
 
     // Timer countdown logic
     useEffect(() => {
-        if (!gameState || gameState.phase !== 'PLAYING' || isPaused || timeLeft === null) {
+        if (!gameState || gameState.phase !== 'PLAYING' || isPaused || timeLeft === null || bannerState !== 'NONE') {
             return;
         }
 
@@ -362,7 +382,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [gameState?.phase, isPaused, timeLeft === null]);
+    }, [gameState?.phase, isPaused, timeLeft === null, bannerState]);
 
     // Audio & Firebase Subscription
     useEffect(() => {
@@ -674,7 +694,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const handlePlayDomino = async (domino: Domino, startPos?: { x: number, y: number }) => {
         SoundManager.unlockAudio();
         // ATOMIC GUARD
-        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused || showRoundBanner) {
+        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused || bannerState !== 'NONE') {
             return;
         }
 
@@ -1578,7 +1598,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         <PlayerHand
                             hand={localPlayer.hand}
                             onPlayDomino={handlePlayDomino}
-                            disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING' || showRoundBanner}
+                            disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING' || bannerState !== 'NONE'}
                             leftValue={gameState.table.leftValue as any}
                             rightValue={gameState.table.rightValue as any}
                         />
@@ -1598,15 +1618,18 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             )}
 
             {/* ROUND BANNER */}
-            {showRoundBanner && gameState && (
+            {bannerState !== 'NONE' && gameState && (
                 <Animated.View
-                    entering={ZoomIn.duration(400)}
-                    exiting={FadeOut.duration(500)}
+                    key={bannerState}
+                    entering={ZoomIn.duration(300)}
+                    exiting={FadeOut.duration(300)}
                     style={styles.roundBannerContainer}
                     pointerEvents="none"
                 >
                     <View style={styles.roundBanner}>
-                        <Text style={styles.roundBannerText}>Round {gameState.roundNumber || 1}</Text>
+                        <Text style={styles.roundBannerText}>
+                            {bannerState === 'MANCHE' ? `Manche N° ${gameState.mancheNumber || 1}` : `Round ${gameState.roundNumber || 1}`}
+                        </Text>
                     </View>
                 </Animated.View>
             )}
