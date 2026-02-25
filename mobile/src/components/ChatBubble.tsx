@@ -22,8 +22,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ content, position = 'top
     const isBottom = position === 'bottom';
 
     useEffect(() => {
-        // Entry animation: -40 for top (up), +40 for bottom (down)
-        translateY.value = withSpring(isBottom ? 40 : -40);
+        // Entry animation: -25 for top (up), +25 for bottom (down)
+        translateY.value = withSpring(isBottom ? 25 : -25);
         opacity.value = withTiming(1, { duration: 300 });
 
         return () => {
@@ -36,6 +36,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ content, position = 'top
         opacity: opacity.value,
     }));
 
+    const isEmoji = content ? /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(content) || content.length <= 2 : false;
+
     return (
         <Animated.View
             style={[
@@ -45,7 +47,9 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ content, position = 'top
             ]}
             pointerEvents="none"
         >
-            <Text style={styles.text}>{content}</Text>
+            <Text style={[styles.text, isEmoji ? styles.emojiText : styles.messageText]}>
+                {content}
+            </Text>
         </Animated.View>
     );
 };
@@ -58,18 +62,23 @@ const styles = StyleSheet.create({
         zIndex: 1000,
     },
     containerTop: {
-        top: -20, // Initial position, animated to -40
+        top: -10, // Initial position, animated to -25
     },
     containerBottom: {
-        bottom: -20, // Initial position, animated to +40
+        bottom: -10, // Initial position, animated to +25
     },
     text: {
-        fontSize: 32,
         fontWeight: 'bold',
         color: 'white',
         textAlign: 'center',
         textShadowColor: 'rgba(0, 0, 0, 0.9)',
         textShadowOffset: { width: 2, height: 2 },
         textShadowRadius: 10,
+    },
+    messageText: {
+        fontSize: 18,
+    },
+    emojiText: {
+        fontSize: 30,
     },
 });
