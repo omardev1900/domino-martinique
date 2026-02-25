@@ -12,6 +12,7 @@ interface PlayerHandProps {
     disabled?: boolean;
     leftValue?: DominoSide | null;
     rightValue?: DominoSide | null;
+    isLocked?: boolean;
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -20,6 +21,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
     disabled = false,
     leftValue = null,
     rightValue = null,
+    isLocked = false,
 }) => {
     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
 
@@ -37,7 +39,10 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
     };
 
     return (
-        <View style={styles.container}>
+        <View
+            style={[styles.container, isLocked && { opacity: 0.5 }]}
+            pointerEvents={isLocked ? 'none' : 'auto'}
+        >
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}

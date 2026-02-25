@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text, Image } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, StyleSheet, Text, Image, Animated as RNAnimated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedProps, useAnimatedStyle, withTiming, Easing, withRepeat, withSequence } from 'react-native-reanimated';
 import { Player } from '../core/types';
@@ -23,6 +23,8 @@ interface PlayerAvatarProps {
     onTimeout?: () => void; // Callback when timer expires
     isBoude?: boolean; // NEW: Player is currently blocked
     chatContent?: string | null; // NEW: Chat message or emoji
+    overtime?: number | null; // NEW: Explicit 5s Overtime
+    isBotPlaying?: boolean; // NEW: Show bot indicator
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -42,7 +44,9 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     isPaused = false,
     onTimeout,
     isBoude = false,
-    chatContent
+    chatContent,
+    overtime = null,
+    isBotPlaying = false
 }) => {
     const strokeWidth = 4;
     const radius = (size - strokeWidth) / 2;
@@ -51,6 +55,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const animatedProgress = useSharedValue(1);
     const breatheValue = useSharedValue(1);
     const [secondsLeft, setSecondsLeft] = useState(timerDuration);
+    const scaleAnim = useRef(new RNAnimated.Value(1)).current;
 
     // Timer Countdown Effect
     useEffect(() => {
@@ -112,6 +117,35 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
         }
     }, [secondsLeft, showTimer, isActive, onTimeout]);
 
+    // BOMB ANIMATION EFFECT (Scale pulse at 0s or Overtime)
+    useEffect(() => {
+        const shouldPulse = showTimer && isActive && !isPaused && (secondsLeft === 0 || (overtime !== null && overtime > 0));
+
+        if (shouldPulse) {
+            const animation = RNAnimated.loop(
+                RNAnimated.sequence([
+                    RNAnimated.timing(scaleAnim, {
+                        toValue: 1.15,
+                        duration: 150,
+                        useNativeDriver: true
+                    }),
+                    RNAnimated.timing(scaleAnim, {
+                        toValue: 1,
+                        duration: 150,
+                        useNativeDriver: true
+                    }),
+                ])
+            );
+            animation.start();
+            return () => {
+                animation.stop();
+                scaleAnim.setValue(1);
+            };
+        } else {
+            scaleAnim.setValue(1);
+        }
+    }, [secondsLeft, overtime, showTimer, isActive, isPaused]);
+
     const animatedProps = useAnimatedProps(() => ({
         strokeDashoffset: circumference * (1 - animatedProgress.value),
     }));
@@ -132,10 +166,11 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const imageOffset = -(imageSize - size) * 0.25;
 
     return (
-        <View style={[
+        <RNAnimated.View style={[
             styles.container,
             isHorizontal && position !== 'top-right' && styles.containerRow,
-            isHorizontal && position === 'top-right' && styles.containerRowReverse
+            isHorizontal && position === 'top-right' && styles.containerRowReverse,
+            { transform: [{ scale: scaleAnim }] }
         ]}>
             {chatContent && (
                 <ChatBubble
@@ -170,13 +205,22 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             borderWidth: isActive ? 3 : 2,
                             borderColor: isActive ? '#FFD700' : 'rgba(255,255,255,0.3)',
                             overflow: 'hidden',
+                            backgroundColor: (isActive && (secondsLeft === 0 || overtime !== null)) ? '#FF0000' : 'rgba(50,50,50,0.9)'
                         },
                         isActive && styles.activeGlow,
                     ]}
                 >
                     {showTimer && isActive ? (
-                        <Text style={[styles.countdown, { fontSize: size / 2.2 }]}>
-                            {secondsLeft}
+                        <Text style={[
+                            styles.countdown,
+                            { fontSize: size / 2.2 },
+                            (secondsLeft === 0 || overtime !== null) && {
+                                color: (overtime !== null && overtime > 0) ? '#FFFFFF' : '#FFD700',
+                                fontWeight: 'bold',
+                                fontSize: (size / 2.2) * 1.2
+                            }
+                        ]}>
+                            {overtime !== null ? overtime : secondsLeft}
                         </Text>
                     ) : (
                         <Image
@@ -196,6 +240,13 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     {isBoude && (
                         <View style={styles.boudeOverlay}>
                             <Text style={styles.boudeText}>BOUDÉ</Text>
+                        </View>
+                    )}
+
+                    {/* BOT PLAYING OVERLAY */}
+                    {isBotPlaying && (
+                        <View style={styles.botOverlay}>
+                            <Text style={styles.botText}>BOT...</Text>
                         </View>
                     )}
                 </View>
@@ -276,7 +327,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     </View>
                 </View>
             )}
-        </View>
+        </RNAnimated.View>
     );
 };
 
@@ -377,6 +428,21 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 12,
         letterSpacing: 1,
+    },
+    botOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 5,
+    },
+    botText: {
+        color: '#FFD700',
+        fontWeight: 'bold',
+        fontSize: 10,
+        textShadowColor: 'rgba(0,0,0,0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
     },
     handBadgeOverlaid: {
         position: 'absolute',
