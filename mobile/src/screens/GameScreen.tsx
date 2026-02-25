@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
-import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image, Platform } from 'react-native';
+import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image, Platform, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn, ZoomIn, FadeOut } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -1499,65 +1499,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     </View>
                 )}
 
-                {/* ROOM INFO CARD - Floating card with room code + game objective */}
-                {!isSoloMode && gameId && showRoomInfo && (
-                    <>
-                        {/* Backdrop - close on tap outside */}
-                        <TouchableOpacity
-                            style={styles.infoBackdrop}
-                            activeOpacity={1}
-                            onPress={() => setShowRoomInfo(false)}
-                        >
-                            <View style={styles.infoCard}>
-                                {/* Room Code Row */}
-                                <View style={styles.infoCardHeader}>
-                                    <Ionicons name="game-controller-outline" size={16} color="#FFD700" />
-                                    <Text style={styles.infoCardTitle}>Salle</Text>
-                                </View>
-
-                                <TouchableOpacity
-                                    style={styles.infoCardCodeRow}
-                                    onPress={() => {
-                                        Clipboard.setStringAsync(gameId);
-                                        Alert.alert("✓ Copié", "Code copié dans le presse-papier !");
-                                    }}
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons name="copy-outline" size={14} color="rgba(255,255,255,0.5)" />
-                                    <Text style={styles.infoCardCode}>{gameId}</Text>
-                                </TouchableOpacity>
-
-                                {/* Divider */}
-                                <View style={styles.infoCardDivider} />
-
-                                {/* Game Objective */}
-                                <View style={styles.infoCardHeader}>
-                                    <Ionicons name="trophy-outline" size={16} color="#FFD700" />
-                                    <Text style={styles.infoCardTitle}>Objectif</Text>
-                                </View>
-
-                                <View style={styles.infoCardObjective}>
-                                    <Text style={styles.infoCardObjectiveText}>
-                                        {gameState.gameMode === 'MANCHE'
-                                            ? `🏆  ${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
-                                            : gameState.gameMode === 'SCORE'
-                                                ? `⭐  ${gameState.winningCondition} points`
-                                                : `🐷  ${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
-                                        }
-                                    </Text>
-                                    <Text style={styles.infoCardModeLabel}>
-                                        {gameState.gameMode === 'MANCHE'
-                                            ? 'Mode Manche'
-                                            : gameState.gameMode === 'SCORE'
-                                                ? 'Mode Score'
-                                                : 'Mode Cochon'
-                                        }
-                                    </Text>
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    </>
-                )}
 
 
                 <GameTable
@@ -1681,6 +1622,68 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     />
                 )}
             </View>
+
+            {/* ROOM INFO CARD - Moved OUTSIDE the inert wrapper to maintain interactivity */}
+            {!isSoloMode && gameId && showRoomInfo && (
+                <Pressable
+                    style={styles.infoBackdrop}
+                    onPress={() => setShowRoomInfo(false)}
+                >
+                    <Pressable style={styles.infoCard} onPress={(e) => e.stopPropagation()}>
+                        {/* Explicit Close Button (X) */}
+                        <TouchableOpacity
+                            onPress={() => setShowRoomInfo(false)}
+                            style={styles.infoCardCloseBtn}
+                        >
+                            <Ionicons name="close" size={24} color="#FFD700" />
+                        </TouchableOpacity>
+
+                        {/* Room Code Row */}
+                        <View style={styles.infoCardHeader}>
+                            <Ionicons name="game-controller-outline" size={16} color="#FFD700" />
+                            <Text style={styles.infoCardTitle}>Salle</Text>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.infoCardCodeRow}
+                            onPress={() => {
+                                Clipboard.setStringAsync(gameId);
+                                Alert.alert("✓ Copié", "Code copié dans le presse-papier !");
+                            }}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="copy-outline" size={14} color="rgba(255,255,255,0.5)" />
+                            <Text style={styles.infoCardCode}>{gameId}</Text>
+                        </TouchableOpacity>
+
+                        {/* Game Objective & Mode Section */}
+                        <View style={styles.infoCardDivider} />
+
+                        {/* Line 1: Objective */}
+                        <View style={styles.infoRow}>
+                            <Ionicons name="star-outline" size={16} color="#FFD700" />
+                            <Text style={styles.infoLabel}>Objectif : </Text>
+                            <Text style={styles.infoValue}>
+                                {gameState.gameMode === 'MANCHE'
+                                    ? `${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
+                                    : gameState.gameMode === 'SCORE'
+                                        ? `${gameState.winningCondition} points`
+                                        : `${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
+                                }
+                            </Text>
+                        </View>
+
+                        {/* Line 2: Mode */}
+                        <View style={[styles.infoRow, { marginTop: 10 }]}>
+                            <Ionicons name="trophy-outline" size={16} color="#FFD700" />
+                            <Text style={styles.infoLabel}>Mode de jeu : </Text>
+                            <Text style={styles.infoValue}>
+                                {gameState.gameMode === 'MANCHE' ? 'Manche' : gameState.gameMode === 'SCORE' ? 'Score' : 'Cochon'}
+                            </Text>
+                        </View>
+                    </Pressable>
+                </Pressable>
+            )}
 
             {showScoreOverlay && gameState && (
                 <UnifiedResultOverlay
@@ -2062,17 +2065,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     infoCard: {
-        width: 280,
+        width: 300,
         backgroundColor: '#1E1E1E',
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: '#333',
+        borderRadius: 20,
+        padding: 24,
+        borderWidth: 2,
+        borderColor: '#FFD700',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.5,
-        shadowRadius: 20,
-        elevation: 10,
+        shadowOpacity: 0.6,
+        shadowRadius: 25,
+        elevation: 15,
     },
     infoCardHeader: {
         flexDirection: 'row',
@@ -2099,11 +2102,11 @@ const styles = StyleSheet.create({
     },
     infoCardCode: {
         color: '#FFD700',
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: 'bold',
         marginLeft: 10,
-        letterSpacing: 2,
-        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     },
     infoCardDivider: {
         height: 1,
@@ -2121,12 +2124,26 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         marginLeft: 8,
     },
-    infoCardModeLabel: {
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    infoLabel: {
+        color: '#AAA',
+        fontSize: 13,
+        marginLeft: 8,
+    },
+    infoValue: {
         color: '#FFD700',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 'bold',
-        marginTop: 2,
-        marginLeft: 24,
+    },
+    infoCardCloseBtn: {
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        zIndex: 10,
+        padding: 4,
     },
     roundBannerContainer: {
         ...StyleSheet.absoluteFillObject,
