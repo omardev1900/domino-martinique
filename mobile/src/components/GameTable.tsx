@@ -19,7 +19,7 @@ const H_W = T * 2;            // horizontal tile width (84)
 const H_H = T;                // horizontal tile height (42)
 const V_W = T;                // vertical tile width (42)
 const V_H = T * 2;            // vertical tile height (84)
-const GAP = 4;                // gap between tiles
+const GAP = 1;                // tiny visual breathing without visible empty gap
 const ROW_GAP = 50;           // ++ Increased gap for better aération
 const CELL = H_W + GAP;       // one grid cell advance (88)
 const ROW_STEP = V_H + ROW_GAP; // vertical step between rows (134)
@@ -128,10 +128,14 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
         isLeftChain: boolean
     ): PlacedTile[] {
         const tiles: PlacedTile[] = [];
+        const CORNER_JOIN_GAP = 1; // Slight breathing space at corner joins.
         let cursor = startCursorX;   // left-edge (dir=1) or right-edge (dir=-1)
         let curY = rowCenterY;       // center Y of current row
         let rowCount = 0;
         let currentDir = dir;
+        let justPlacedCorner = false;
+        let lastCornerTop = 0;
+        let lastCornerBottom = 0;
 
         for (let i = 0; i < chain.length; i++) {
             const item = chain[i];
@@ -141,10 +145,12 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
                 // ── CORNER TILE ──────────────────────────────────────────
                 const cW = V_W;
                 const cH = V_H;
-                const cLeft = currentDir === 1 ? cursor : cursor - cW;
+                const edgeX = currentDir === 1 ? cursor - GAP : cursor + GAP;
+                // Align corner with the first tile of the next row (not centered on edge axis).
+                const cLeft = currentDir === 1 ? edgeX - cW : edgeX;
                 const cTop = verticalGrowth === 1
-                    ? curY - H_H / 2
-                    : curY - V_H + H_H / 2;
+                    ? curY + H_H / 2
+                    : curY - H_H / 2 - cH;
 
                 tiles.push({
                     domino: item.domino,
@@ -155,11 +161,14 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
                     width: cW,
                     height: cH,
                 });
+                justPlacedCorner = true;
+                lastCornerTop = cTop;
+                lastCornerBottom = cTop + cH;
 
-                // Move to next row
-                curY += ROW_STEP * verticalGrowth;
+                // Move to next row: stick the corner to the first tile of the new row.
+                curY += (V_H + H_H) * verticalGrowth;
                 currentDir = currentDir === 1 ? -1 : 1;
-                cursor = currentDir === 1 ? cLeft + cW + GAP : cLeft - GAP;
+                cursor = edgeX;
                 rowCount = 0;
                 continue;
             }
@@ -168,7 +177,15 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
             const tW = isDouble ? V_W : H_W;
             const tH = isDouble ? V_H : H_H;
             const tLeft = currentDir === 1 ? cursor : cursor - tW;
-            const tTop = curY - tH / 2;
+            let tTop = curY - tH / 2;
+            if (justPlacedCorner && rowCount === 0) {
+                tTop = verticalGrowth === 1
+                    ? lastCornerBottom + CORNER_JOIN_GAP
+                    : lastCornerTop - tH - CORNER_JOIN_GAP;
+                // Re-anchor row center on the first tile after the corner.
+                curY = tTop + tH / 2;
+                justPlacedCorner = false;
+            }
 
             const visualFlip = isLeftChain ? currentDir === 1 : currentDir === -1;
 
