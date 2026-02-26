@@ -11,7 +11,8 @@ import {
     handleTurn,
     passTurn,
     checkValidMove,
-    resolveBoude
+    resolveBoude,
+    getForcedOpeningDominoId
 } from '../core/LogicEngine';
 import { getBotMove } from '../core/BotEngine';
 import SoundManager from '../core/audio/SoundManager';
@@ -143,11 +144,18 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
 
         if (currentPlayer?.isBot && gameState.phase === 'PLAYING' && isHost) {
             const timer = setTimeout(async () => {
-                const move = getBotMove(
-                    currentPlayer.hand,
-                    gameState.table.leftValue,
-                    gameState.table.rightValue
-                );
+                const forcedOpeningId = getForcedOpeningDominoId(gameState, currentPlayer.id);
+                const forcedOpeningTile = forcedOpeningId
+                    ? currentPlayer.hand.find(tile => tile.id === forcedOpeningId) || null
+                    : null;
+
+                const move = forcedOpeningTile
+                    ? { tile: forcedOpeningTile, side: 'start' as const }
+                    : getBotMove(
+                        currentPlayer.hand,
+                        gameState.table.leftValue,
+                        gameState.table.rightValue
+                    );
 
                 try {
                     let newState;
@@ -201,6 +209,15 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
         if (playerId !== localPlayerId) return; // Only handle own timeout
 
         const player = gameState.players.find(p => p.id === playerId);
+        const forcedOpeningId = getForcedOpeningDominoId(gameState, playerId);
+        if (forcedOpeningId) {
+            const forcedOpeningTile = player?.hand.find(tile => tile.id === forcedOpeningId);
+            if (forcedOpeningTile) {
+                await handleHumanMove(forcedOpeningTile);
+                return;
+            }
+        }
+
         const validMove = player?.hand.find(d =>
             checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
         );

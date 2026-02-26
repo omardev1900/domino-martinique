@@ -1,6 +1,48 @@
 import { Domino, DominoSide, Player, PlayerId, GameState, GamePhase, GameMode, MancheResult } from './types';
 import { ALL_DOMINOS, HAND_SIZE, TALON_MORT_SIZE, WINS_TO_WIN_MATCH, MAX_PLAYERS, MANCHE_WIN_THRESHOLD } from './constants';
 
+interface HighestDoubleInfo {
+    playerId: PlayerId;
+    domino: Domino;
+    sum: number;
+}
+
+const isVeryFirstTurnOfMatch = (gameState: GameState): boolean => {
+    const isFirstRoundOfFirstManche = gameState.roundNumber === 1 && gameState.mancheNumber === 1;
+    const isTableEmpty = gameState.table.sequence.length === 0
+        && gameState.table.leftValue === null
+        && gameState.table.rightValue === null;
+    return isFirstRoundOfFirstManche && isTableEmpty;
+};
+
+const findHighestDouble = (players: Player[]): HighestDoubleInfo | null => {
+    let best: HighestDoubleInfo | null = null;
+
+    for (const player of players) {
+        for (const domino of player.hand) {
+            const isDouble = domino.isDouble || domino.left === domino.right;
+            if (!isDouble) continue;
+
+            const sum = domino.left + domino.right;
+            if (!best || sum > best.sum) {
+                best = { playerId: player.id, domino, sum };
+            }
+        }
+    }
+
+    return best;
+};
+
+export const getForcedOpeningDominoId = (gameState: GameState, playerId: PlayerId): string | null => {
+    if (!isVeryFirstTurnOfMatch(gameState)) return null;
+
+    const highestDouble = findHighestDouble(gameState.players);
+    if (!highestDouble) return null;
+    if (highestDouble.playerId !== playerId) return null;
+
+    return highestDouble.domino.id;
+};
+
 /**
  * Mélange des dominos avec l'algorithme de Fisher-Yates
  */
@@ -204,6 +246,15 @@ export const handleTurn = (
     domino: Domino,
     forcedSide?: 'left' | 'right'
 ): GameState => {
+    if (gameState.currentPlayerId !== playerId) {
+        throw new Error("Not your turn");
+    }
+
+    const forcedOpeningDominoId = getForcedOpeningDominoId(gameState, playerId);
+    if (forcedOpeningDominoId && domino.id !== forcedOpeningDominoId) {
+        throw new Error("Opening rule: highest double must be played on round 1 / manche 1.");
+    }
+
     // 1. Validation Logic with the new engine
     const allValidMoves = getValidMoves([domino], {
         left: gameState.table.leftValue,
@@ -382,26 +433,20 @@ export const resolveBoude = (gameState: GameState): { newState: GameState; isTie
  * determineFirstPlayer : Détermine qui commence (Plus gros double ou plus gros domino)
  */
 export const determineFirstPlayer = (players: Player[]): string => {
-    let bestDomino: { sum: number; isDouble: boolean; playerId: string } | null = null;
+    const highestDouble = findHighestDouble(players);
+    if (highestDouble) {
+        return highestDouble.playerId;
+    }
 
-    for (const p of players) {
-        for (const d of p.hand) {
-            const isDouble = d.left === d.right;
-            const sum = d.left + d.right;
-
-            if (!bestDomino) {
-                bestDomino = { sum, isDouble, playerId: p.id };
-            } else {
-                if (isDouble && !bestDomino.isDouble) {
-                    bestDomino = { sum, isDouble, playerId: p.id };
-                } else if (isDouble === bestDomino.isDouble) {
-                    if (sum > bestDomino.sum) {
-                        bestDomino = { sum, isDouble, playerId: p.id };
-                    }
-                }
+    let bestSum: { sum: number; playerId: string } | null = null;
+    for (const player of players) {
+        for (const domino of player.hand) {
+            const sum = domino.left + domino.right;
+            if (!bestSum || sum > bestSum.sum) {
+                bestSum = { sum, playerId: player.id };
             }
         }
     }
 
-    return bestDomino ? bestDomino.playerId : players[0].id;
+    return bestSum ? bestSum.playerId : players[0].id;
 };

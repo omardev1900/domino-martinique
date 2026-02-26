@@ -25,6 +25,21 @@ export const getBotMove = (
         return null;
     }
 
+    // Safety for opening turns: if the table is empty and the bot has doubles,
+    // start with the highest double to stay compatible with strict opening rules.
+    if (leftValue === null && rightValue === null) {
+        const highestDouble = hand
+            .filter(tile => tile.isDouble || tile.left === tile.right)
+            .sort((a, b) => (b.left + b.right) - (a.left + a.right))[0];
+
+        if (highestDouble) {
+            return {
+                tile: highestDouble,
+                side: 'start'
+            };
+        }
+    }
+
     const decision = getEngineBotMove(hand, { left: leftValue, right: rightValue }, difficulty);
 
     if (!decision) return null;

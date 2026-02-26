@@ -13,6 +13,7 @@ interface PlayerHandProps {
     leftValue?: DominoSide | null;
     rightValue?: DominoSide | null;
     isLocked?: boolean;
+    forcedPlayableDominoId?: string | null;
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -22,6 +23,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
     leftValue = null,
     rightValue = null,
     isLocked = false,
+    forcedPlayableDominoId = null,
 }) => {
     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
 
@@ -50,7 +52,8 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                 style={styles.scrollView}
             >
                 {hand.map((domino, index) => {
-                    const canPlay = !disabled && checkValidMove(domino, leftValue, rightValue).canPlay;
+                    const canPlayByBoardRule = !disabled && checkValidMove(domino, leftValue, rightValue).canPlay;
+                    const canPlay = canPlayByBoardRule && (!forcedPlayableDominoId || domino.id === forcedPlayableDominoId);
                     return (
                         <Animated.View
                             key={domino.id}
@@ -66,8 +69,8 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                                 right={domino.right}
                                 size={40}
                                 orientation="vertical"
-                                onPress={() => handleTilePress(domino)}
-                                disabled={disabled}
+                                onPress={canPlay ? () => handleTilePress(domino) : undefined}
+                                disabled={disabled || !canPlay}
                                 isPlayable={canPlay}
                                 entering={FadeInDown.delay(index * 10).springify()}
                             />

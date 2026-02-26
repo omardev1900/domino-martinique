@@ -14,7 +14,7 @@ import { PlayerAvatar } from '../components/PlayerAvatar';
 import { LobbyScreen } from './LobbyScreen';
 import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
 // import { GameOverScreen } from './GameOverScreen'; // Legacy replaced by UnifiedResultOverlay
-import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude, checkValidMove } from '../core/LogicEngine';
+import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude, checkValidMove, getForcedOpeningDominoId } from '../core/LogicEngine';
 import { getValidMoves } from '../core/DominoEngine';
 import { getBotMove } from '../core/BotEngine';
 // import { GameAnnouncer } from '../components/GameAnnouncer'; // Removed as per instruction
@@ -583,17 +583,25 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         };
     }, [gameId, isSoloMode, profileLoaded]);
 
+    const forcedOpeningDominoId = useMemo(() => {
+        if (!gameState) return null;
+        return getForcedOpeningDominoId(gameState, localPlayerId);
+    }, [gameState, localPlayerId]);
+
     // Check if player has ANY playable domino (NEW: Before early return for hooks safety)
     const canPlayAny = useMemo(() => {
         if (!gameState) return false;
         const localPlayer = gameState.players.find(p => p.id === localPlayerId);
         if (!localPlayer) return false;
-        const moves = getValidMoves(localPlayer.hand, {
+        let moves = getValidMoves(localPlayer.hand, {
             left: gameState.table.leftValue,
             right: gameState.table.rightValue
         });
+        if (forcedOpeningDominoId) {
+            moves = moves.filter(move => move.tile.id === forcedOpeningDominoId);
+        }
         return moves.length > 0;
-    }, [gameState?.players, gameState?.table.leftValue, gameState?.table.rightValue, localPlayerId]);
+    }, [gameState?.players, gameState?.table.leftValue, gameState?.table.rightValue, localPlayerId, forcedOpeningDominoId]);
 
 
     // IN-GAME PROTECTION: Prevent accidental exit
@@ -881,6 +889,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 lastPlayStartPos.current = startPos;
             }
 
+            const forcedOpeningId = getForcedOpeningDominoId(gameState, localPlayerId);
+            if (forcedOpeningId && domino.id !== forcedOpeningId) {
+                const forcedDomino = gameState.players
+                    .find(player => player.id === localPlayerId)
+                    ?.hand.find(tile => tile.id === forcedOpeningId);
+                const forcedLabel = forcedDomino ? `${forcedDomino.left}-${forcedDomino.right}` : forcedOpeningId;
+                Alert.alert("Règle d'ouverture", `Au 1er coup (manche 1 / round 1), vous devez jouer le plus grand double: ${forcedLabel}.`);
+                return;
+            }
+
             const validMoves = getValidMoves([domino], {
                 left: gameState.table.leftValue,
                 right: gameState.table.rightValue
@@ -1164,20 +1182,27 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         try {
             console.log(`[Timeout] Turn timeout for ${activeId} - activating Auto-Play`);
 
-            const validMoves = getValidMoves(freshPlayer.hand, {
-                left: freshState.table.leftValue,
-                right: freshState.table.rightValue
-            });
-
             let validMove = null;
-            if (validMoves.length > 0) {
-                const sortedMoves = [...validMoves].sort((a, b) => (b.tile.left + b.tile.right) - (a.tile.left + a.tile.right));
-                validMove = sortedMoves[0];
+            const forcedOpeningId = getForcedOpeningDominoId(freshState, activeId);
+            if (forcedOpeningId) {
+                const forcedDomino = freshPlayer.hand.find(tile => tile.id === forcedOpeningId);
+                if (forcedDomino) {
+                    validMove = { tile: forcedDomino, side: 'start' as const };
+                }
+            } else {
+                const validMoves = getValidMoves(freshPlayer.hand, {
+                    left: freshState.table.leftValue,
+                    right: freshState.table.rightValue
+                });
+                if (validMoves.length > 0) {
+                    const sortedMoves = [...validMoves].sort((a, b) => (b.tile.left + b.tile.right) - (a.tile.left + a.tile.right));
+                    validMove = sortedMoves[0];
+                }
             }
 
             let newState: GameState;
             if (validMove) {
-                console.log(`[Auto-Play] Playing heaviest domino for ${activeId}:`, validMove.tile);
+                console.log(`[Auto-Play] Playing domino for ${activeId}:`, validMove.tile);
                 newState = handleTurn(freshState, activeId, validMove.tile, validMove.side === 'start' ? undefined : validMove.side);
                 SoundManager.playClack();
             } else {
@@ -1449,13 +1474,20 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 return;
             }
 
+            const forcedOpeningId = getForcedOpeningDominoId(freshState, freshPlayer.id);
+            const forcedOpeningTile = forcedOpeningId
+                ? freshPlayer.hand.find(tile => tile.id === forcedOpeningId) || null
+                : null;
+
             // Get bot move
-            const decision = getBotMove(
-                freshPlayer.hand,
-                freshState.table.leftValue,
-                freshState.table.rightValue,
-                isSoloMode ? 'expert' : 'medium'
-            );
+            const decision = forcedOpeningTile
+                ? { tile: forcedOpeningTile, side: 'start' as const }
+                : getBotMove(
+                    freshPlayer.hand,
+                    freshState.table.leftValue,
+                    freshState.table.rightValue,
+                    isSoloMode ? 'expert' : 'medium'
+                );
 
             console.log(`[Bot Decision] ${freshPlayer.name} thinking on table [${freshState.table.leftValue}|${freshState.table.rightValue}]`);
 
@@ -1817,6 +1849,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                             isLocked={isHardLocked}
                             leftValue={gameState.table.leftValue as any}
                             rightValue={gameState.table.rightValue as any}
+                            forcedPlayableDominoId={forcedOpeningDominoId}
                         />
                     )}
                 </View>

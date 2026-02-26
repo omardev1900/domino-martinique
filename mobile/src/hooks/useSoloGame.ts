@@ -6,7 +6,8 @@ import {
     handleTurn,
     passTurn,
     checkValidMove,
-    resolveBoude
+    resolveBoude,
+    getForcedOpeningDominoId
 } from '../core/LogicEngine';
 import { getBotMove } from '../core/BotEngine';
 import SoundManager from '../core/audio/SoundManager';
@@ -90,11 +91,18 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
             // Verify it's still a bot turn
             if (!currentPlayer?.isBot) return;
 
-            const move = getBotMove(
-                currentPlayer.hand,
-                currentState.table.leftValue,
-                currentState.table.rightValue
-            );
+            const forcedOpeningId = getForcedOpeningDominoId(currentState, currentPlayer.id);
+            const forcedOpeningTile = forcedOpeningId
+                ? currentPlayer.hand.find(tile => tile.id === forcedOpeningId) || null
+                : null;
+
+            const move = forcedOpeningTile
+                ? { tile: forcedOpeningTile, side: 'start' as const }
+                : getBotMove(
+                    currentPlayer.hand,
+                    currentState.table.leftValue,
+                    currentState.table.rightValue
+                );
 
             try {
                 let newState: GameState;
@@ -222,6 +230,15 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
         if (currentState.currentPlayerId !== playerId) return;
 
         const player = currentState.players.find(p => p.id === playerId);
+        const forcedOpeningId = getForcedOpeningDominoId(currentState, playerId);
+        if (forcedOpeningId) {
+            const forcedOpeningTile = player?.hand.find(tile => tile.id === forcedOpeningId);
+            if (forcedOpeningTile) {
+                handleHumanMove(forcedOpeningTile);
+                return;
+            }
+        }
+
         const validMove = player?.hand.find(d =>
             checkValidMove(d, currentState.table.leftValue, currentState.table.rightValue).canPlay
         );

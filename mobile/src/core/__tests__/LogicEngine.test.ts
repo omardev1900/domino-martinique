@@ -1,5 +1,5 @@
 
-import { dealGame, checkValidMove, determineFirstPlayer, determineWinnerOnBoudé, calculateHandPoints, passTurn, handleTurn } from '../LogicEngine';
+import { dealGame, checkValidMove, determineFirstPlayer, determineWinnerOnBoudé, calculateHandPoints, passTurn, handleTurn, getForcedOpeningDominoId } from '../LogicEngine';
 import { Domino, Player, DominoSide, GameState } from '../types';
 
 describe('LogicEngine', () => {
@@ -175,3 +175,83 @@ describe('handleTurn', () => {
         expect(() => handleTurn(state, 'p1', foreignTile)).toThrow("Player does not have this domino");
     });
 });
+
+describe('Opening rule (round 1 / manche 1)', () => {
+    const d66: Domino = { id: 'd66', left: 6, right: 6, isDouble: true, sum: 12 };
+    const d65: Domino = { id: 'd65', left: 6, right: 5, isDouble: false, sum: 11 };
+    const d55: Domino = { id: 'd55', left: 5, right: 5, isDouble: true, sum: 10 };
+
+    const createState = (roundNumber: number = 1, mancheNumber: number = 1): GameState => ({
+        gameId: 'g-open',
+        gameMode: 'MANCHE',
+        players: [
+            {
+                id: 'p1',
+                name: 'P1',
+                hand: [d66, d65],
+                handSize: 2,
+                wins: 0,
+                mancheWins: 0,
+                currentMancheStars: 0,
+                totalRoundWins: 0,
+                totalPoints: 0,
+                totalCochons: 0,
+                isCochon: false,
+                isBot: false
+            },
+            {
+                id: 'p2',
+                name: 'P2',
+                hand: [d55],
+                handSize: 1,
+                wins: 0,
+                mancheWins: 0,
+                currentMancheStars: 0,
+                totalRoundWins: 0,
+                totalPoints: 0,
+                totalCochons: 0,
+                isCochon: false,
+                isBot: false
+            }
+        ],
+        talonMort: [],
+        table: { sequence: [], leftValue: null, rightValue: null },
+        history: [],
+        currentPlayerId: 'p1',
+        phase: 'PLAYING',
+        firstPlayerOfRound: null,
+        winningCondition: 3,
+        lastActionTimestamp: 0,
+        roundNumber,
+        mancheNumber,
+        turnDuration: 15,
+        mancheHistory: [],
+        startingHandSize: 7
+    });
+
+    it('should expose forced opening domino only for the starter with highest double', () => {
+        const state = createState();
+        expect(getForcedOpeningDominoId(state, 'p1')).toBe('d66');
+        expect(getForcedOpeningDominoId(state, 'p2')).toBeNull();
+    });
+
+    it('should reject non-double opening move for the starter on first round/manche', () => {
+        const state = createState();
+        expect(() => handleTurn(state, 'p1', d65)).toThrow("Opening rule: highest double must be played on round 1 / manche 1.");
+    });
+
+    it('should allow highest double opening move on first round/manche', () => {
+        const state = createState();
+        const newState = handleTurn(state, 'p1', d66);
+        expect(newState.table.sequence).toHaveLength(1);
+        expect(newState.table.sequence[0].domino.id).toBe('d66');
+    });
+
+    it('should allow any opening domino from round 2 onward', () => {
+        const state = createState(2, 1);
+        const newState = handleTurn(state, 'p1', d65);
+        expect(newState.table.sequence).toHaveLength(1);
+        expect(newState.table.sequence[0].domino.id).toBe('d65');
+    });
+});
+
