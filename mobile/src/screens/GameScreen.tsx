@@ -242,6 +242,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         overtimeTriggeredRef.current = false;
         overtimeResolvedRef.current = false;
         lastTimerSoundRef.current = null;
+        // Sync fix: tie "BOUDE" visibility to active turn ownership.
+        setBoudedPlayerId(null);
         setIsHardLocked(false);
         setOvertime(null);
         setIsBotPlaying(false);
@@ -1061,6 +1063,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
         if (!currentPlayer) return;
+
+        // Extra safeguard: never keep a stale BOUDE marker on a non-active player.
+        if (boudedPlayerId && boudedPlayerId !== currentPlayer.id) {
+            setBoudedPlayerId(null);
+        }
 
         // Check if player has valid moves
         const validMoves = getValidMoves(currentPlayer.hand, {
