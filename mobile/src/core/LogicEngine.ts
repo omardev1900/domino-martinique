@@ -435,10 +435,12 @@ export const resolveBoude = (gameState: GameState): { newState: GameState; isTie
     const winnerId = determineWinnerOnBoudé(gameState.players);
 
     if (winnerId === 'TIE') {
+        // IMPORTANT: In case of TIE, we return isTie true. 
+        // The dispatcher will handle re-dealing to avoid lock issues.
         return { newState: gameState, isTie: true };
     }
 
-    const newState = finalizeRound(gameState, winnerId); // USE FINALIZE ROUND
+    const newState = finalizeRound(gameState, winnerId);
     return { newState, isTie: false };
 };
 

@@ -115,9 +115,9 @@ export const useActionDispatcher = ({
                     if (gameState.phase !== 'BOUDE') break;
                     const { newState: resolvedState, isTie } = resolveBoude(gameState);
                     if (isTie) {
-                        // Hacky: appeler le dispatch directement avec le nouveau type 
-                        dispatch({ type: 'NEXT_ROUND', stateOverride: resolvedState });
-                        return; // Lock released in recursive or handled there
+                        // ACTION ATOMIQUE : En cas d'égalité, on re-deal immédiatement
+                        // pour éviter le deadlock du verrou (cycle interne).
+                        newState = computeNextRoundState(resolvedState, startingHandSize);
                     } else {
                         newState = resolvedState;
                     }

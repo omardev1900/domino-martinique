@@ -223,7 +223,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                 {boudeWinner ? (
                                     <Text style={styles.boudeBannerSubtitle}>{boudeWinner.name} gagne aux points.</Text>
                                 ) : (
-                                    <Text style={styles.boudeBannerSubtitle}>Égalité parfaite !</Text>
+                                    <Text style={styles.boudeBannerSubtitle}>Égalité parfaite : nouvelle partie à jouer</Text>
                                 )}
                                 {/* BUTTON CONTINUER (réservé à l'hôte) */}
                             </View>
