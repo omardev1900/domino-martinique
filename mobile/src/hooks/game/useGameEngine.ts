@@ -3,6 +3,7 @@ import { GameState, Domino, GameRoom } from '../../core/types';
 import { useTurnManager } from './useTurnManager';
 import { useActionDispatcher } from './useActionDispatcher';
 import { useBotDecision } from './useBotDecision';
+import { useAutoPass } from './useAutoPass';
 
 export interface UseGameEngineProps {
     gameState: GameState | null;
@@ -74,6 +75,15 @@ export const useGameEngine = ({
         isSoloMode,
         isPaused,
         canAction: turnManager.canAction,
+        dispatch
+    });
+
+    // 4. Gérer l'auto-pass visuel (Boudé)
+    const { visualBoudePlayerId } = useAutoPass({
+        gameState,
+        localPlayerId,
+        isLocalHost,
+        isPaused,
         dispatch
     });
 
@@ -165,6 +175,7 @@ export const useGameEngine = ({
         pendingDomino,
         setPendingDomino,
         isProcessingMove: turnManager.isProcessingMove.current,
+        visualBoudePlayerId,
         turnManager
     };
 };

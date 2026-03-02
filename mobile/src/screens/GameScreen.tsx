@@ -18,6 +18,7 @@ import { PlayerArea } from '../components/game/PlayerArea';
 import { ActionFooter } from '../components/game/ActionFooter';
 import { LobbyScreen } from './LobbyScreen';
 import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
+import { QuickChat } from '../components/QuickChat';
 
 // Core
 import { determineFirstPlayer, dealGameSolo, getForcedOpeningDominoId, dealGame } from '../core/LogicEngine';
@@ -148,7 +149,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         handleTimeout,
         handleOverlayContinue,
         pendingDomino,
-        isProcessingMove
+        isProcessingMove,
+        visualBoudePlayerId
     } = useGameEngine({
         gameState,
         localPlayerId,
@@ -733,7 +735,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     localPlayer={localPlayer as any}
                     gameState={gameState}
                     localPlayerId={localPlayerId}
-                    boudedPlayerId={null}
+                    boudedPlayerId={visualBoudePlayerId}
                     playersChat={playersChat as any}
                     overtime={overtime}
                     isBotPlaying={isProcessingMove}

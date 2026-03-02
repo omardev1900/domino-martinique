@@ -13,7 +13,7 @@ import { getValidMoves, ValidMove } from '../core/DominoEngine';
 // ═══════════════════════════════════════════════════════════════════════════
 //  GRID CONSTANTS — Never change with screen size. Only 'scale' adapts.
 // ═══════════════════════════════════════════════════════════════════════════
-const TILES_PER_ROW = 6;
+const TILES_PER_ROW = 8; // ++ Increased from 6 to 8 for better landscape support
 const T = 42;                 // base unit (half-tile)
 const H_W = T * 2;            // horizontal tile width (84)
 const H_H = T;                // horizontal tile height (42)
@@ -141,7 +141,7 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
             const item = chain[i];
             const isDouble = item.domino.isDouble;
 
-            if (rowCount >= TILES_PER_ROW) {
+            if (rowCount >= TILES_PER_ROW && i < chain.length - 1) {
                 // ── CORNER TILE ──────────────────────────────────────────
                 const cW = V_W;
                 const cH = V_H;
@@ -228,7 +228,9 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
         maxY = Math.max(maxY, t.y + t.height);
     }
 
-    return { tiles: allTiles, bounds: { minX, minY, maxX, maxY } };
+    // ── Add small padding to bounds for shadows ─────────────────────────
+    const P = 2;
+    return { tiles: allTiles, bounds: { minX: minX - P, minY: minY - P, maxX: maxX + P, maxY: maxY + P } };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -294,7 +296,7 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
     const availW = screenWidth - safeXPadd;
 
     // Approximating safe area height by removing typical HUD dimensions (header + bottom bar)
-    const hudOffset = isLandscape ? 120 : 210;
+    const hudOffset = isLandscape ? 140 : 240; // ++ Increased breathing room
     const availH = screenHeight - hudOffset - safeYPadd;
 
     // Scale down to fit available space. Cap at 1.0 to ensure tiles start large but never exceed safe area.
