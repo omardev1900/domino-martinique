@@ -1,5 +1,6 @@
-import { Domino, DominoSide } from './types';
+import { Domino, DominoSide, GameState } from './types';
 import { getBotMove as getEngineBotMove, ValidMove } from './DominoEngine';
+import { getForcedOpeningDominoId } from './LogicEngine';
 
 /**
  * Interface pour le retour du Bot
@@ -49,4 +50,28 @@ export const getBotMove = (
         tile: decision.tile,
         side: decision.side as 'left' | 'right' | 'start'
     };
+};
+
+/**
+ * Calcule purement la décision d'un joueur (bot ou déconnecté).
+ * Prend en charge l'obligation de rejouer le plus gros double au 1er tour.
+ */
+export const computeBotDecision = (gameState: GameState, playerId: string): BotDecision | null => {
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) return null;
+
+    const forcedOpeningId = getForcedOpeningDominoId(gameState, playerId);
+    if (forcedOpeningId) {
+        const forcedTile = player.hand.find(t => t.id === forcedOpeningId);
+        if (forcedTile) {
+            return { tile: forcedTile, side: 'start' };
+        }
+    }
+
+    return getBotMove(
+        player.hand,
+        gameState.table.leftValue,
+        gameState.table.rightValue,
+        (player.difficulty as any) || 'medium'
+    );
 };

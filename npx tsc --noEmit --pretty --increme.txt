@@ -1,0 +1,553 @@
+npx tsc --noEmit --pretty --incremental false
+scripts/verify-firebase.ts:70:15 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: { id: string; name: string; hand: never[]; handSize: number; wins: number; mancheWins: number; totalPoints: number; isCochon: false; isBot: false; currentMancheStars: number; totalRoundWins: number; totalCochons: number; }[]; ... 13 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+70         const mockGameState: GameState = {
+                 ~~~~~~~~~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/__tests__/MultiplayerLogic.test.ts:7:5 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: { id: string; name: string; hand: never[]; handSize: number; wins: number; mancheWins: number; totalPoints: number; isCochon: false; totalCochons: number; isBot: false; currentMancheStars: number; totalRoundWins: number; }[]; ... 14 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+7     return {
+      ~~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/__tests__/rules_scenarios.test.ts:19:90 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: Player[]; talonMort: never[]; table: { sequence: never[]; leftValue: null; rightValue: null; }; currentPlayerId: string; phase: "PLAYING"; firstPlayerOfRound: null; ... 8 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+ 19 const createMockState = (players: Player[], winningCondition: number = 3): GameState => ({
+                                                                                             ~
+ 20     gameId: 'test-game',
+    ~~~~~~~~~~~~~~~~~~~~~~~~
+...
+ 35     startingHandSize: 7
+    ~~~~~~~~~~~~~~~~~~~~~~~
+ 36 });
+    ~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/components/game/__tests__/ActionFooter.test.tsx:9:9 - error TS2339: Property 'mock-player-hand' does not exist on type 'JSX.IntrinsicElements'.
+
+9         <mock-player-hand testID="mock-player-hand" disabled={disabled} />
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/components/game/__tests__/ActionFooter.test.tsx:34:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+34         const { getByTestID } = render(<ActionFooter {...defaultProps} />);
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/ActionFooter.test.tsx:42:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+42         const { getByTestID } = render(
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/ActionFooter.test.tsx:55:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+55         const { getByTestID } = render(
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/ActionFooter.test.tsx:68:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+68         const { getByTestID } = render(
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/ActionFooter.test.tsx:86:17 - error TS2339: Property 'queryByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+86         const { queryByTestID } = render(
+                   ~~~~~~~~~~~~~
+
+src/components/game/__tests__/GameHeader.test.tsx:39:17 - error TS2339: Property 'queryByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+39         const { queryByTestID } = render(
+                   ~~~~~~~~~~~~~
+
+src/components/game/__tests__/GameHeader.test.tsx:47:17 - error TS2339: Property 'queryByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+47         const { queryByTestID } = render(
+                   ~~~~~~~~~~~~~
+
+src/components/game/__tests__/GameHeader.test.tsx:55:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+55         const { getByTestID } = render(<GameHeader {...defaultProps} />);
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/GameHeader.test.tsx:63:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+63         const { getByTestID } = render(<GameHeader {...props} />);
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/GameHeader.test.tsx:70:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+70         const { getByTestID } = render(<GameHeader {...defaultProps} />);
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/GameHeader.test.tsx:77:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+77         const { getByTestID } = render(<GameHeader {...defaultProps} />);
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/GameOverlays.test.tsx:5:38 - error TS2307: Cannot find module '../UnifiedResultOverlay' or its corresponding type declarations.
+
+5 import { UnifiedResultOverlay } from '../UnifiedResultOverlay';
+                                       ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/components/game/__tests__/GameOverlays.test.tsx:43:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+43         const { getByTestID } = render(
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/GameOverlays.test.tsx:50:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+50         const { getByTestID } = render(
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/GameOverlays.test.tsx:57:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+57         const { getByTestID } = render(
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/GameOverlays.test.tsx:65:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+65         const { getByTestID } = render(
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/GameOverlays.test.tsx:73:28 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+73         const { getByText, getByTestID } = render(
+                              ~~~~~~~~~~~
+
+src/components/game/__tests__/GameOverlays.test.tsx:81:28 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+81         const { getByText, getByTestID } = render(
+                              ~~~~~~~~~~~
+
+src/components/game/__tests__/GameOverlays.test.tsx:90:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+90         const { getByTestID } = render(
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/PlayerArea.test.tsx:9:9 - error TS2339: Property 'mock-player-avatar' does not exist on type 'JSX.IntrinsicElements'.
+
+9         <mock-player-avatar testID={`mock-avatar-for-${player.id}`} isActive={isActive} position={position} />
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/components/game/__tests__/PlayerArea.test.tsx:41:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+41         const { getByTestID } = render(<PlayerArea {...defaultProps} />);
+                   ~~~~~~~~~~~
+
+src/components/game/__tests__/PlayerArea.test.tsx:49:17 - error TS2339: Property 'queryByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+49         const { queryByTestID } = render(
+                   ~~~~~~~~~~~~~
+
+src/components/game/__tests__/PlayerArea.test.tsx:56:17 - error TS2339: Property 'getByTestID' does not exist on type '{ rerender: (component: React.ReactElement) => void; rerenderAsync: (component: React.ReactElement) => Promise<void>; update: (component: React.ReactElement) => void; updateAsync: (component: React.ReactElement) => Promise<void>; unmount: () => void; ... 66 more ...; findAllByText: FindAllByQuery<...>; }'.
+
+56         const { getByTestID } = render(<PlayerArea {...defaultProps} />);
+                   ~~~~~~~~~~~
+
+src/core/__tests__/BotEngine.test.ts:38:13 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; gameMode: "MANCHE"; players: Player[]; talonMort: never[]; table: { sequence: never[]; leftValue: null; rightValue: null; }; history: never[]; currentPlayerId: string; phase: "PLAYING"; ... 7 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+38         let state: GameState = {
+               ~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/core/__tests__/GameIntegration.test.ts:59:9 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: any; talonMort: any; table: { sequence: { domino: Domino; sideAtTable: "left" | "right"; isReversed: boolean; }[]; leftValue: DominoSide | null; rightValue: DominoSide | null; }; ... 11 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+59         state = {
+           ~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/core/__tests__/LogicEngine.test.ts:96:9 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; gameMode: "MANCHE"; players: Player[]; talonMort: never[]; table: { sequence: never[]; leftValue: 6; rightValue: 6; }; history: never[]; currentPlayerId: string; phase: "PLAYING"; ... 7 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+96     let state: GameState = {
+           ~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/core/__tests__/LogicEngine.test.ts:147:9 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; gameMode: "MANCHE"; players: Player[]; talonMort: never[]; table: { sequence: never[]; leftValue: 6; rightValue: 6; }; history: never[]; currentPlayerId: string; phase: "PLAYING"; ... 7 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+147     let state: GameState = {
+            ~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/core/__tests__/LogicEngine.test.ts:184:92 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; gameMode: "MANCHE"; players: { id: string; name: string; hand: Domino[]; handSize: number; wins: number; mancheWins: number; currentMancheStars: number; totalRoundWins: number; totalPoints: number; totalCochons: number; isCochon: false; isBot: false; }[]; ... 12 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+184     const createState = (roundNumber: number = 1, mancheNumber: number = 1): GameState => ({
+                                                                                               ~
+185         gameId: 'g-open',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+229         startingHandSize: 7
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+230     });
+    ~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/core/__tests__/ManualSimulation.test.ts:21:90 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: Player[]; talonMort: never[]; table: { sequence: never[]; leftValue: null; rightValue: null; }; currentPlayerId: string; phase: "PLAYING"; firstPlayerOfRound: null; ... 8 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+ 21 const createMockState = (players: Player[], winningCondition: number = 3): GameState => ({
+                                                                                             ~
+ 22     gameId: 'test-game',
+    ~~~~~~~~~~~~~~~~~~~~~~~~
+...
+ 37     startingHandSize: 7
+    ~~~~~~~~~~~~~~~~~~~~~~~
+ 38 });
+    ~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/core/__tests__/ScoringScenarios.test.ts:9:5 - error TS2741: Property 'turnId' is missing in type '{ players: Player[]; gameId: string; turnDuration: number; phase: "PLAYING"; gameMode: GameMode; winningCondition: number; talonMort: never[]; table: { sequence: never[]; leftValue: null; rightValue: null; }; ... 8 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+9     return {
+      ~~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/core/StressTest.test.ts:20:93 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: Player[]; talonMort: never[]; table: { sequence: never[]; leftValue: null; rightValue: null; }; currentPlayerId: string; phase: "PLAYING"; firstPlayerOfRound: null; ... 8 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+ 20 const createInitialState = (players: Player[], mode: any, condition: number): GameState => ({
+                                                                                                ~
+ 21     gameId: 'stress-test',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+ 36     startingHandSize: 7
+    ~~~~~~~~~~~~~~~~~~~~~~~
+ 37 });
+    ~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/hooks/game/__tests__/useBotManager.test.tsx:64:40 - error TS2345: Argument of type '{ gameState: GameState; roomData: GameRoom; localPlayerId: string; isSoloMode: false; isPaused: false; onBotPlay: jest.Mock<any, any, any>; }' is not assignable to parameter of type 'UseBotManagerProps'.
+  Property 'onBotPass' is missing in type '{ gameState: GameState; roomData: GameRoom; localPlayerId: string; isSoloMode: false; isPaused: false; onBotPlay: jest.Mock<any, any, any>; }' but required in type 'UseBotManagerProps'.
+
+ 64         renderHook(() => useBotManager({
+                                           ~
+ 65             gameState,
+    ~~~~~~~~~~~~~~~~~~~~~~
+...
+ 70             onBotPlay: mockOnBotPlay
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 71         }), { wrapper });
+    ~~~~~~~~~
+
+  src/hooks/game/useBotManager.ts:13:5
+    13     onBotPass: (playerId: string) => void;
+           ~~~~~~~~~
+    'onBotPass' is declared here.
+
+src/hooks/game/__tests__/useBotManager.test.tsx:84:40 - error TS2345: Argument of type '{ gameState: GameState; roomData: GameRoom; localPlayerId: string; isSoloMode: false; isPaused: false; onBotPlay: jest.Mock<any, any, any>; }' is not assignable to parameter of type 'UseBotManagerProps'.
+  Property 'onBotPass' is missing in type '{ gameState: GameState; roomData: GameRoom; localPlayerId: string; isSoloMode: false; isPaused: false; onBotPlay: jest.Mock<any, any, any>; }' but required in type 'UseBotManagerProps'.
+
+ 84         renderHook(() => useBotManager({
+                                           ~
+ 85             gameState,
+    ~~~~~~~~~~~~~~~~~~~~~~
+...
+ 90             onBotPlay: mockOnBotPlay
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 91         }), { wrapper });
+    ~~~~~~~~~
+
+  src/hooks/game/useBotManager.ts:13:5
+    13     onBotPass: (playerId: string) => void;
+           ~~~~~~~~~
+    'onBotPass' is declared here.
+
+src/hooks/game/__tests__/useBotManager.test.tsx:110:40 - error TS2345: Argument of type '{ gameState: GameState; roomData: GameRoom; localPlayerId: string; isSoloMode: false; isPaused: false; onBotPlay: jest.Mock<any, any, any>; }' is not assignable to parameter of type 'UseBotManagerProps'.
+  Property 'onBotPass' is missing in type '{ gameState: GameState; roomData: GameRoom; localPlayerId: string; isSoloMode: false; isPaused: false; onBotPlay: jest.Mock<any, any, any>; }' but required in type 'UseBotManagerProps'.
+
+110         renderHook(() => useBotManager({
+                                           ~
+111             gameState,
+    ~~~~~~~~~~~~~~~~~~~~~~
+...
+116             onBotPlay: mockOnBotPlay
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+117         }), { wrapper });
+    ~~~~~~~~~
+
+  src/hooks/game/useBotManager.ts:13:5
+    13     onBotPass: (playerId: string) => void;
+           ~~~~~~~~~
+    'onBotPass' is declared here.
+
+src/hooks/game/__tests__/useBotManager.test.tsx:137:40 - error TS2345: Argument of type '{ gameState: GameState; roomData: GameRoom; localPlayerId: string; isSoloMode: false; isPaused: false; onBotPlay: jest.Mock<any, any, any>; }' is not assignable to parameter of type 'UseBotManagerProps'.
+  Property 'onBotPass' is missing in type '{ gameState: GameState; roomData: GameRoom; localPlayerId: string; isSoloMode: false; isPaused: false; onBotPlay: jest.Mock<any, any, any>; }' but required in type 'UseBotManagerProps'.
+
+137         renderHook(() => useBotManager({
+                                           ~
+138             gameState,
+    ~~~~~~~~~~~~~~~~~~~~~~
+...
+143             onBotPlay: mockOnBotPlay
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+144         }), { wrapper });
+    ~~~~~~~~~
+
+  src/hooks/game/useBotManager.ts:13:5
+    13     onBotPass: (playerId: string) => void;
+           ~~~~~~~~~
+    'onBotPass' is declared here.
+
+src/hooks/game/__tests__/useGameEngine.test.tsx:45:13 - error TS2352: Conversion of type '{ id: string; name: string; hand: never[]; }' to type 'Player' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: string; name: string; hand: never[]; }' is missing the following properties from type 'Player': handSize, currentMancheStars, wins, mancheWins, and 5 more.
+
+45             { id: 'p2', name: 'Bot', hand: [] } as Player
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/hooks/game/__tests__/useGameEngine.test.tsx:66:13 - error TS2353: Object literal may only specify known properties, and 'setIsHardLocked' does not exist in type 'UseGameEngineProps'.
+
+66             setIsHardLocked: mockSetIsHardLocked,
+               ~~~~~~~~~~~~~~~
+
+src/hooks/game/__tests__/useGameSync.test.ts:51:57 - error TS2345: Argument of type '{ gameId: undefined; localPlayerId: string; isSoloMode: true; }' is not assignable to parameter of type 'UseGameSyncProps'.
+  Property 'signalPlayerOnline' is missing in type '{ gameId: undefined; localPlayerId: string; isSoloMode: true; }' but required in type 'UseGameSyncProps'.
+
+ 51         const { result } = renderHook(() => useGameSync({
+                                                            ~
+ 52             gameId: undefined,
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+ 54             isSoloMode: true
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 55         }));
+    ~~~~~~~~~
+
+  src/hooks/game/useGameSync.ts:11:5
+    11     signalPlayerOnline: () => Promise<void>;
+           ~~~~~~~~~~~~~~~~~~
+    'signalPlayerOnline' is declared here.
+
+src/hooks/game/__tests__/useGameSync.test.ts:72:57 - error TS2345: Argument of type '{ gameId: string; localPlayerId: string; isSoloMode: false; }' is not assignable to parameter of type 'UseGameSyncProps'.
+  Property 'signalPlayerOnline' is missing in type '{ gameId: string; localPlayerId: string; isSoloMode: false; }' but required in type 'UseGameSyncProps'.
+
+ 72         const { result } = renderHook(() => useGameSync({
+                                                            ~
+ 73             gameId: 'test-room-1',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+ 75             isSoloMode: false
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 76         }));
+    ~~~~~~~~~
+
+  src/hooks/game/useGameSync.ts:11:5
+    11     signalPlayerOnline: () => Promise<void>;
+           ~~~~~~~~~~~~~~~~~~
+    'signalPlayerOnline' is declared here.
+
+src/hooks/game/__tests__/useGameSync.test.ts:102:57 - error TS2345: Argument of type '{ gameId: string; localPlayerId: string; isSoloMode: false; }' is not assignable to parameter of type 'UseGameSyncProps'.
+  Property 'signalPlayerOnline' is missing in type '{ gameId: string; localPlayerId: string; isSoloMode: false; }' but required in type 'UseGameSyncProps'.
+
+102         const { result } = renderHook(() => useGameSync({
+                                                            ~
+103             gameId: 'test-room-1',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+105             isSoloMode: false
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+106         }));
+    ~~~~~~~~~
+
+  src/hooks/game/useGameSync.ts:11:5
+    11     signalPlayerOnline: () => Promise<void>;
+           ~~~~~~~~~~~~~~~~~~
+    'signalPlayerOnline' is declared here.
+
+src/hooks/game/__tests__/useGameSync.test.ts:136:57 - error TS2345: Argument of type '{ gameId: string; localPlayerId: string; isSoloMode: false; }' is not assignable to parameter of type 'UseGameSyncProps'.
+  Property 'signalPlayerOnline' is missing in type '{ gameId: string; localPlayerId: string; isSoloMode: false; }' but required in type 'UseGameSyncProps'.
+
+136         const { result } = renderHook(() => useGameSync({
+                                                            ~
+137             gameId: 'test-room-1',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+139             isSoloMode: false
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+140         }));
+    ~~~~~~~~~
+
+  src/hooks/game/useGameSync.ts:11:5
+    11     signalPlayerOnline: () => Promise<void>;
+           ~~~~~~~~~~~~~~~~~~
+    'signalPlayerOnline' is declared here.
+
+src/hooks/game/__tests__/useGameTimers.test.tsx:40:37 - error TS2339: Property 'isHardLocked' does not exist on type 'UseGameTimersResult'.
+
+40         const { timeLeft, overtime, isHardLocked } = useGameTimers({
+                                       ~~~~~~~~~~~~
+
+src/hooks/game/__tests__/useGameTimers.test.tsx:40:68 - error TS2345: Argument of type '{ gameState: any; isPaused: false; onTimeout: jest.Mock<any, any, any>; }' is not assignable to parameter of type 'UseGameTimersProps'.
+  Property 'localPlayerId' is missing in type '{ gameState: any; isPaused: false; onTimeout: jest.Mock<any, any, any>; }' but required in type 'UseGameTimersProps'.
+
+ 40         const { timeLeft, overtime, isHardLocked } = useGameTimers({
+                                                                       ~
+ 41             gameState,               // ✅ ONLY the defined props
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+ 43             onTimeout: mockOnTimeout
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 44         });
+    ~~~~~~~~~
+
+  src/hooks/game/useGameTimers.ts:7:5
+    7     localPlayerId: string;
+          ~~~~~~~~~~~~~
+    'localPlayerId' is declared here.
+
+src/hooks/useMultiplayerGame.ts:77:19 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: { id: string; name: string; avatarId: string | undefined; isBot: boolean; hand: Domino[]; handSize: number; currentMancheStars: number; wins: number; mancheWins: number; ... 5 more ...; isDisconnected?: boolean; }[]; ... 13 more ...; mancheNumber: number; }' but required in type 'GameState'.
+
+77             const initialState: GameState = {
+                     ~~~~~~~~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/hooks/useSoloGame.ts:44:23 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: Player[]; talonMort: Domino[]; table: { sequence: { domino: Domino; sideAtTable: "left" | "right"; isReversed: boolean; }[]; leftValue: DominoSide | null; rightValue: DominoSide | null; }; ... 11 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+44                 const restartState: GameState = {
+                         ~~~~~~~~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/hooks/useSoloGame.ts:144:15 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: Player[]; talonMort: Domino[]; table: { sequence: { domino: Domino; sideAtTable: "left" | "right"; isReversed: boolean; }[]; leftValue: DominoSide | null; rightValue: DominoSide | null; }; ... 11 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+144         const fullState: GameState = {
+                  ~~~~~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+src/screens/GameScreen.tsx:195:45 - error TS2552: Cannot find name 'useBotManager'. Did you mean 'useTurnManager'?
+
+195     const { isProcessingMove: isBotBusy } = useBotManager({
+                                                ~~~~~~~~~~~~~
+
+src/screens/GameScreen.tsx:201:21 - error TS7006: Parameter 'pId' implicitly has an 'any' type.
+
+201         onBotPlay: (pId, tile, side) => {
+                        ~~~
+
+src/screens/GameScreen.tsx:201:26 - error TS7006: Parameter 'tile' implicitly has an 'any' type.
+
+201         onBotPlay: (pId, tile, side) => {
+                             ~~~~
+
+src/screens/GameScreen.tsx:201:32 - error TS7006: Parameter 'side' implicitly has an 'any' type.
+
+201         onBotPlay: (pId, tile, side) => {
+                                   ~~~~
+
+src/screens/GameScreen.tsx:211:13 - error TS2304: Cannot find name 'executeMoveRef'.
+
+211             executeMoveRef.current(tile, side === 'start' ? undefined : side, true, pId);
+                ~~~~~~~~~~~~~~
+
+src/screens/GameScreen.tsx:215:21 - error TS7006: Parameter 'pId' implicitly has an 'any' type.
+
+215         onBotPass: (pId) => {
+                        ~~~
+
+src/screens/GameScreen.tsx:217:13 - error TS2304: Cannot find name 'handlePassTurn'.
+
+217             handlePassTurn(pId);
+                ~~~~~~~~~~~~~~
+
+src/screens/GameScreen.tsx:798:37 - error TS2304: Cannot find name 'boudedPlayerId'.
+
+798                     boudedPlayerId={boudedPlayerId}
+                                        ~~~~~~~~~~~~~~
+
+testscript.ts:6:5 - error TS2741: Property 'turnId' is missing in type '{ players: Player[]; gameId: string; turnDuration: number; phase: "BOUDE"; gameMode: GameMode; winningCondition: number; talonMort: never[]; table: { sequence: never[]; leftValue: null; rightValue: null; }; ... 8 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+6     return {
+      ~~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+verify_fix.ts:16:9 - error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: Player[]; talonMort: never[]; table: { sequence: never[]; leftValue: null; rightValue: null; }; history: never[]; currentPlayerId: string; phase: "PLAYING"; firstPlayerOfRound: string; ... 7 more ...; startingHandSize: number; }' but required in type 'GameState'.
+
+16     let state: GameState = {
+           ~~~~~
+
+  src/core/types.ts:67:5
+    67     turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
+           ~~~~~~
+    'turnId' is declared here.
+
+
+Found 60 errors in 22 files.
+
+Errors  Files
+     1  scripts/verify-firebase.ts:70
+     1  src/__tests__/MultiplayerLogic.test.ts:7
+     1  src/__tests__/rules_scenarios.test.ts:19
+     6  src/components/game/__tests__/ActionFooter.test.tsx:9
+     6  src/components/game/__tests__/GameHeader.test.tsx:39
+     8  src/components/game/__tests__/GameOverlays.test.tsx:5
+     4  src/components/game/__tests__/PlayerArea.test.tsx:9
+     1  src/core/__tests__/BotEngine.test.ts:38
+     1  src/core/__tests__/GameIntegration.test.ts:59
+     3  src/core/__tests__/LogicEngine.test.ts:96
+     1  src/core/__tests__/ManualSimulation.test.ts:21
+     1  src/core/__tests__/ScoringScenarios.test.ts:9
+     1  src/core/StressTest.test.ts:20
+     4  src/hooks/game/__tests__/useBotManager.test.tsx:64
+     2  src/hooks/game/__tests__/useGameEngine.test.tsx:45
+     4  src/hooks/game/__tests__/useGameSync.test.ts:51
+     2  src/hooks/game/__tests__/useGameTimers.test.tsx:40
+     1  src/hooks/useMultiplayerGame.ts:77
+     2  src/hooks/useSoloGame.ts:44
+     8  src/screens/GameScreen.tsx:195
+     1  testscript.ts:6
+     1  verify_fix.ts:16

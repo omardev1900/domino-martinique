@@ -2,6 +2,7 @@ import { dealGame, handleTurn, passTurn, checkValidMove, determineFirstPlayer } 
 import { getBotMove } from '../BotEngine';
 import { GameState, PlayerId, GamePhase } from '../types';
 import { WINS_TO_WIN_MATCH, MAX_PLAYERS } from '../constants';
+import { createBaseGameState } from '../../hooks/game/__tests__/testUtils';
 
 const MAX_TURNS = 200; // Fail-safe to prevent infinite loops
 
@@ -56,24 +57,14 @@ describe('GameIntegration - Full Game Simulation', () => {
     it('should simulate a full match between 3 bots without crashing', () => {
         // Init
         const partial = dealGame(['Bot1', 'Bot2', 'Bot3']);
-        state = {
+        state = createBaseGameState({
             gameId: 'integration-test',
             players: partial.players as any,
             talonMort: partial.talonMort as any,
             table: partial.table!,
             currentPlayerId: partial.players![0].id,
-            phase: 'PLAYING',
-            firstPlayerOfRound: null,
-            history: [],
             winningCondition: WINS_TO_WIN_MATCH,
-            lastActionTimestamp: Date.now(),
-            gameMode: 'MANCHE',
-            turnDuration: 15,
-            mancheHistory: [],
-            roundNumber: 1,
-            mancheNumber: 1,
-            startingHandSize: 7
-        };
+        });
 
         // Mark all as bots (optional, mostly for our generic logic if we used it)
         state.players.forEach(p => p.isBot = true);

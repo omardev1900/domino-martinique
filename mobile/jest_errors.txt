@@ -1,0 +1,27 @@
+﻿node.exe : FAIL src/hooks/game/__tests__/useGameSync.test.ts
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (FAIL src/hooks/...ameSync.test.ts:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  ÔùÅ Test suite failed to run
+
+    Cannot find module '../../../core/firebase' from 'src/hooks/game/__tests__/useGameSync.test.ts'
+
+    [0m [90m  5 |[39m
+     [90m  6 |[39m [90m// Mock Firebase dependencies[39m
+    [31m[1m>[22m[39m[90m  7 |[39m jest[33m.[39mmock([32m'../../../core/firebase'[39m[33m,[39m () [33m=>[39m ({
+     [90m    |[39m                                     [31m[1m^[22m[39m
+     [90m  8 |[39m     db[33m:[39m {}
+     [90m  9 |[39m }))[33m;[39m
+     [90m 10 |[39m jest[33m.[39mmock([32m'firebase/firestore'[39m[33m,[39m () [33m=>[39m ({[0m
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.<anonymous> (src/hooks/game/__tests__/useGameSync.test.ts:7:37)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        1.139 s
+Ran all test suites matching /src\\hooks\\game\\__tests__\\useGameSync.test.ts/i.

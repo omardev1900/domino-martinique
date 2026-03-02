@@ -1,0 +1,56 @@
+commit dc8a4823ca3eb46d36c537551160ed4e73f32390
+Author: OMAR <cmm.saghir@gmail.com>
+Date:   Thu Feb 26 03:00:32 2026 +0000
+
+    fix : boudé reste affiché longtemps chez les adversaires
+
+ mobile/src/screens/GameScreen.tsx | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+commit f091a4edd1dfe47eeded6f2013bd41cd504fb054
+Author: OMAR <cmm.saghir@gmail.com>
+Date:   Thu Feb 26 02:39:15 2026 +0000
+
+    fix error jouer double plus grabd au M1 R1
+
+ mobile/src/components/PlayerHand.tsx          |  9 ++-
+ mobile/src/core/BotEngine.ts                  | 15 +++++
+ mobile/src/core/LogicEngine.ts                | 81 ++++++++++++++++++++------
+ mobile/src/core/__tests__/LogicEngine.test.ts | 82 ++++++++++++++++++++++++++-
+ mobile/src/hooks/useMultiplayerGame.ts        | 29 ++++++++--
+ mobile/src/hooks/useSoloGame.ts               | 29 ++++++++--
+ mobile/src/screens/GameScreen.tsx             | 69 ++++++++++++++++------
+ 7 files changed, 262 insertions(+), 52 deletions(-)
+
+commit 44a5303b91062d0559e303a9048c2bcfd77b411b
+Author: OMAR <cmm.saghir@gmail.com>
+Date:   Thu Feb 26 00:24:58 2026 +0000
+
+    fix domino raccord et espace domino surplateau
+
+ mobile/src/components/GameTable.tsx | 33 +++++++++++++++++++++++++--------
+ 1 file changed, 25 insertions(+), 8 deletions(-)
+
+commit 3739b106802700705e21af67ade5ec0e2c6a30e4
+Author: OMAR <cmm.saghir@gmail.com>
+Date:   Wed Feb 25 18:47:16 2026 +0000
+
+    fix : affochage des -1 dans score plateau - temps d'attete avant jouer et action bot
+
+ mobile/src/assets/sounds/end_time.mp3  | Bin 0 -> 11393 bytes
+ mobile/src/assets/sounds/timer.mp3     | Bin 0 -> 6014 bytes
+ mobile/src/components/PlayerAvatar.tsx |  82 +++++-
+ mobile/src/components/PlayerHand.tsx   |   7 +-
+ mobile/src/core/audio/SoundManager.ts  |   6 +-
+ mobile/src/screens/GameScreen.tsx      | 477 +++++++++++++++++++++++----------
+ 6 files changed, 427 insertions(+), 145 deletions(-)
+
+commit 10d98874d78d42ca20fe7f4da3d361686856f205
+Author: OMAR <cmm.saghir@gmail.com>
+Date:   Wed Feb 25 00:49:38 2026 +0000
+
+    feat: add ChatBubble and QuickChat components for interactive messaging.
+
+ mobile/src/components/ChatBubble.tsx |  21 ++--
+ mobile/src/components/QuickChat.tsx  | 200 +++++++++++++++++++++++++----------
+ 2 files changed, 162 insertions(+), 59 deletions(-)

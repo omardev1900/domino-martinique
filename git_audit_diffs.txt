@@ -1,0 +1,1987 @@
+commit dc8a4823ca3eb46d36c537551160ed4e73f32390
+Author: OMAR <cmm.saghir@gmail.com>
+Date:   Thu Feb 26 03:00:32 2026 +0000
+
+    fix : boudé reste affiché longtemps chez les adversaires
+
+diff --git a/mobile/src/screens/GameScreen.tsx b/mobile/src/screens/GameScreen.tsx
+index 545ca8c..45d534f 100644
+--- a/mobile/src/screens/GameScreen.tsx
++++ b/mobile/src/screens/GameScreen.tsx
+@@ -242,6 +242,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         overtimeTriggeredRef.current = false;
+         overtimeResolvedRef.current = false;
+         lastTimerSoundRef.current = null;
++        // Sync fix: tie "BOUDE" visibility to active turn ownership.
++        setBoudedPlayerId(null);
+         setIsHardLocked(false);
+         setOvertime(null);
+         setIsBotPlaying(false);
+@@ -1062,6 +1064,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
+         if (!currentPlayer) return;
+ 
++        // Extra safeguard: never keep a stale BOUDE marker on a non-active player.
++        if (boudedPlayerId && boudedPlayerId !== currentPlayer.id) {
++            setBoudedPlayerId(null);
++        }
++
+         // Check if player has valid moves
+         const validMoves = getValidMoves(currentPlayer.hand, {
+             left: gameState.table.leftValue,
+
+commit f091a4edd1dfe47eeded6f2013bd41cd504fb054
+Author: OMAR <cmm.saghir@gmail.com>
+Date:   Thu Feb 26 02:39:15 2026 +0000
+
+    fix error jouer double plus grabd au M1 R1
+
+diff --git a/mobile/src/components/PlayerHand.tsx b/mobile/src/components/PlayerHand.tsx
+index 3151700..97ab640 100644
+--- a/mobile/src/components/PlayerHand.tsx
++++ b/mobile/src/components/PlayerHand.tsx
+@@ -13,6 +13,7 @@ interface PlayerHandProps {
+     leftValue?: DominoSide | null;
+     rightValue?: DominoSide | null;
+     isLocked?: boolean;
++    forcedPlayableDominoId?: string | null;
+ }
+ 
+ export const PlayerHand: React.FC<PlayerHandProps> = ({
+@@ -22,6 +23,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
+     leftValue = null,
+     rightValue = null,
+     isLocked = false,
++    forcedPlayableDominoId = null,
+ }) => {
+     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
+ 
+@@ -50,7 +52,8 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
+                 style={styles.scrollView}
+             >
+                 {hand.map((domino, index) => {
+-                    const canPlay = !disabled && checkValidMove(domino, leftValue, rightValue).canPlay;
++                    const canPlayByBoardRule = !disabled && checkValidMove(domino, leftValue, rightValue).canPlay;
++                    const canPlay = canPlayByBoardRule && (!forcedPlayableDominoId || domino.id === forcedPlayableDominoId);
+                     return (
+                         <Animated.View
+                             key={domino.id}
+@@ -66,8 +69,8 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
+                                 right={domino.right}
+                                 size={40}
+                                 orientation="vertical"
+-                                onPress={() => handleTilePress(domino)}
+-                                disabled={disabled}
++                                onPress={canPlay ? () => handleTilePress(domino) : undefined}
++                                disabled={disabled || !canPlay}
+                                 isPlayable={canPlay}
+                                 entering={FadeInDown.delay(index * 10).springify()}
+                             />
+diff --git a/mobile/src/core/BotEngine.ts b/mobile/src/core/BotEngine.ts
+index 670fde7..a602682 100644
+--- a/mobile/src/core/BotEngine.ts
++++ b/mobile/src/core/BotEngine.ts
+@@ -25,6 +25,21 @@ export const getBotMove = (
+         return null;
+     }
+ 
++    // Safety for opening turns: if the table is empty and the bot has doubles,
++    // start with the highest double to stay compatible with strict opening rules.
++    if (leftValue === null && rightValue === null) {
++        const highestDouble = hand
++            .filter(tile => tile.isDouble || tile.left === tile.right)
++            .sort((a, b) => (b.left + b.right) - (a.left + a.right))[0];
++
++        if (highestDouble) {
++            return {
++                tile: highestDouble,
++                side: 'start'
++            };
++        }
++    }
++
+     const decision = getEngineBotMove(hand, { left: leftValue, right: rightValue }, difficulty);
+ 
+     if (!decision) return null;
+diff --git a/mobile/src/core/LogicEngine.ts b/mobile/src/core/LogicEngine.ts
+index cbbfb0d..9030181 100644
+--- a/mobile/src/core/LogicEngine.ts
++++ b/mobile/src/core/LogicEngine.ts
+@@ -1,6 +1,48 @@
+ import { Domino, DominoSide, Player, PlayerId, GameState, GamePhase, GameMode, MancheResult } from './types';
+ import { ALL_DOMINOS, HAND_SIZE, TALON_MORT_SIZE, WINS_TO_WIN_MATCH, MAX_PLAYERS, MANCHE_WIN_THRESHOLD } from './constants';
+ 
++interface HighestDoubleInfo {
++    playerId: PlayerId;
++    domino: Domino;
++    sum: number;
++}
++
++const isVeryFirstTurnOfMatch = (gameState: GameState): boolean => {
++    const isFirstRoundOfFirstManche = gameState.roundNumber === 1 && gameState.mancheNumber === 1;
++    const isTableEmpty = gameState.table.sequence.length === 0
++        && gameState.table.leftValue === null
++        && gameState.table.rightValue === null;
++    return isFirstRoundOfFirstManche && isTableEmpty;
++};
++
++const findHighestDouble = (players: Player[]): HighestDoubleInfo | null => {
++    let best: HighestDoubleInfo | null = null;
++
++    for (const player of players) {
++        for (const domino of player.hand) {
++            const isDouble = domino.isDouble || domino.left === domino.right;
++            if (!isDouble) continue;
++
++            const sum = domino.left + domino.right;
++            if (!best || sum > best.sum) {
++                best = { playerId: player.id, domino, sum };
++            }
++        }
++    }
++
++    return best;
++};
++
++export const getForcedOpeningDominoId = (gameState: GameState, playerId: PlayerId): string | null => {
++    if (!isVeryFirstTurnOfMatch(gameState)) return null;
++
++    const highestDouble = findHighestDouble(gameState.players);
++    if (!highestDouble) return null;
++    if (highestDouble.playerId !== playerId) return null;
++
++    return highestDouble.domino.id;
++};
++
+ /**
+  * Mélange des dominos avec l'algorithme de Fisher-Yates
+  */
+@@ -204,6 +246,15 @@ export const handleTurn = (
+     domino: Domino,
+     forcedSide?: 'left' | 'right'
+ ): GameState => {
++    if (gameState.currentPlayerId !== playerId) {
++        throw new Error("Not your turn");
++    }
++
++    const forcedOpeningDominoId = getForcedOpeningDominoId(gameState, playerId);
++    if (forcedOpeningDominoId && domino.id !== forcedOpeningDominoId) {
++        throw new Error("Opening rule: highest double must be played on round 1 / manche 1.");
++    }
++
+     // 1. Validation Logic with the new engine
+     const allValidMoves = getValidMoves([domino], {
+         left: gameState.table.leftValue,
+@@ -382,26 +433,20 @@ export const resolveBoude = (gameState: GameState): { newState: GameState; isTie
+  * determineFirstPlayer : Détermine qui commence (Plus gros double ou plus gros domino)
+  */
+ export const determineFirstPlayer = (players: Player[]): string => {
+-    let bestDomino: { sum: number; isDouble: boolean; playerId: string } | null = null;
+-
+-    for (const p of players) {
+-        for (const d of p.hand) {
+-            const isDouble = d.left === d.right;
+-            const sum = d.left + d.right;
+-
+-            if (!bestDomino) {
+-                bestDomino = { sum, isDouble, playerId: p.id };
+-            } else {
+-                if (isDouble && !bestDomino.isDouble) {
+-                    bestDomino = { sum, isDouble, playerId: p.id };
+-                } else if (isDouble === bestDomino.isDouble) {
+-                    if (sum > bestDomino.sum) {
+-                        bestDomino = { sum, isDouble, playerId: p.id };
+-                    }
+-                }
++    const highestDouble = findHighestDouble(players);
++    if (highestDouble) {
++        return highestDouble.playerId;
++    }
++
++    let bestSum: { sum: number; playerId: string } | null = null;
++    for (const player of players) {
++        for (const domino of player.hand) {
++            const sum = domino.left + domino.right;
++            if (!bestSum || sum > bestSum.sum) {
++                bestSum = { sum, playerId: player.id };
+             }
+         }
+     }
+ 
+-    return bestDomino ? bestDomino.playerId : players[0].id;
++    return bestSum ? bestSum.playerId : players[0].id;
+ };
+diff --git a/mobile/src/core/__tests__/LogicEngine.test.ts b/mobile/src/core/__tests__/LogicEngine.test.ts
+index a18a93c..d082815 100644
+--- a/mobile/src/core/__tests__/LogicEngine.test.ts
++++ b/mobile/src/core/__tests__/LogicEngine.test.ts
+@@ -1,5 +1,5 @@
+ 
+-import { dealGame, checkValidMove, determineFirstPlayer, determineWinnerOnBoudé, calculateHandPoints, passTurn, handleTurn } from '../LogicEngine';
++import { dealGame, checkValidMove, determineFirstPlayer, determineWinnerOnBoudé, calculateHandPoints, passTurn, handleTurn, getForcedOpeningDominoId } from '../LogicEngine';
+ import { Domino, Player, DominoSide, GameState } from '../types';
+ 
+ describe('LogicEngine', () => {
+@@ -175,3 +175,83 @@ describe('handleTurn', () => {
+         expect(() => handleTurn(state, 'p1', foreignTile)).toThrow("Player does not have this domino");
+     });
+ });
++
++describe('Opening rule (round 1 / manche 1)', () => {
++    const d66: Domino = { id: 'd66', left: 6, right: 6, isDouble: true, sum: 12 };
++    const d65: Domino = { id: 'd65', left: 6, right: 5, isDouble: false, sum: 11 };
++    const d55: Domino = { id: 'd55', left: 5, right: 5, isDouble: true, sum: 10 };
++
++    const createState = (roundNumber: number = 1, mancheNumber: number = 1): GameState => ({
++        gameId: 'g-open',
++        gameMode: 'MANCHE',
++        players: [
++            {
++                id: 'p1',
++                name: 'P1',
++                hand: [d66, d65],
++                handSize: 2,
++                wins: 0,
++                mancheWins: 0,
++                currentMancheStars: 0,
++                totalRoundWins: 0,
++                totalPoints: 0,
++                totalCochons: 0,
++                isCochon: false,
++                isBot: false
++            },
++            {
++                id: 'p2',
++                name: 'P2',
++                hand: [d55],
++                handSize: 1,
++                wins: 0,
++                mancheWins: 0,
++                currentMancheStars: 0,
++                totalRoundWins: 0,
++                totalPoints: 0,
++                totalCochons: 0,
++                isCochon: false,
++                isBot: false
++            }
++        ],
++        talonMort: [],
++        table: { sequence: [], leftValue: null, rightValue: null },
++        history: [],
++        currentPlayerId: 'p1',
++        phase: 'PLAYING',
++        firstPlayerOfRound: null,
++        winningCondition: 3,
++        lastActionTimestamp: 0,
++        roundNumber,
++        mancheNumber,
++        turnDuration: 15,
++        mancheHistory: [],
++        startingHandSize: 7
++    });
++
++    it('should expose forced opening domino only for the starter with highest double', () => {
++        const state = createState();
++        expect(getForcedOpeningDominoId(state, 'p1')).toBe('d66');
++        expect(getForcedOpeningDominoId(state, 'p2')).toBeNull();
++    });
++
++    it('should reject non-double opening move for the starter on first round/manche', () => {
++        const state = createState();
++        expect(() => handleTurn(state, 'p1', d65)).toThrow("Opening rule: highest double must be played on round 1 / manche 1.");
++    });
++
++    it('should allow highest double opening move on first round/manche', () => {
++        const state = createState();
++        const newState = handleTurn(state, 'p1', d66);
++        expect(newState.table.sequence).toHaveLength(1);
++        expect(newState.table.sequence[0].domino.id).toBe('d66');
++    });
++
++    it('should allow any opening domino from round 2 onward', () => {
++        const state = createState(2, 1);
++        const newState = handleTurn(state, 'p1', d65);
++        expect(newState.table.sequence).toHaveLength(1);
++        expect(newState.table.sequence[0].domino.id).toBe('d65');
++    });
++});
++
+diff --git a/mobile/src/hooks/useMultiplayerGame.ts b/mobile/src/hooks/useMultiplayerGame.ts
+index e2b3ea3..9e01948 100644
+--- a/mobile/src/hooks/useMultiplayerGame.ts
++++ b/mobile/src/hooks/useMultiplayerGame.ts
+@@ -11,7 +11,8 @@ import {
+     handleTurn,
+     passTurn,
+     checkValidMove,
+-    resolveBoude
++    resolveBoude,
++    getForcedOpeningDominoId
+ } from '../core/LogicEngine';
+ import { getBotMove } from '../core/BotEngine';
+ import SoundManager from '../core/audio/SoundManager';
+@@ -143,11 +144,18 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string |
+ 
+         if (currentPlayer?.isBot && gameState.phase === 'PLAYING' && isHost) {
+             const timer = setTimeout(async () => {
+-                const move = getBotMove(
+-                    currentPlayer.hand,
+-                    gameState.table.leftValue,
+-                    gameState.table.rightValue
+-                );
++                const forcedOpeningId = getForcedOpeningDominoId(gameState, currentPlayer.id);
++                const forcedOpeningTile = forcedOpeningId
++                    ? currentPlayer.hand.find(tile => tile.id === forcedOpeningId) || null
++                    : null;
++
++                const move = forcedOpeningTile
++                    ? { tile: forcedOpeningTile, side: 'start' as const }
++                    : getBotMove(
++                        currentPlayer.hand,
++                        gameState.table.leftValue,
++                        gameState.table.rightValue
++                    );
+ 
+                 try {
+                     let newState;
+@@ -201,6 +209,15 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string |
+         if (playerId !== localPlayerId) return; // Only handle own timeout
+ 
+         const player = gameState.players.find(p => p.id === playerId);
++        const forcedOpeningId = getForcedOpeningDominoId(gameState, playerId);
++        if (forcedOpeningId) {
++            const forcedOpeningTile = player?.hand.find(tile => tile.id === forcedOpeningId);
++            if (forcedOpeningTile) {
++                await handleHumanMove(forcedOpeningTile);
++                return;
++            }
++        }
++
+         const validMove = player?.hand.find(d =>
+             checkValidMove(d, gameState.table.leftValue, gameState.table.rightValue).canPlay
+         );
+diff --git a/mobile/src/hooks/useSoloGame.ts b/mobile/src/hooks/useSoloGame.ts
+index 686336c..03e616c 100644
+--- a/mobile/src/hooks/useSoloGame.ts
++++ b/mobile/src/hooks/useSoloGame.ts
+@@ -6,7 +6,8 @@ import {
+     handleTurn,
+     passTurn,
+     checkValidMove,
+-    resolveBoude
++    resolveBoude,
++    getForcedOpeningDominoId
+ } from '../core/LogicEngine';
+ import { getBotMove } from '../core/BotEngine';
+ import SoundManager from '../core/audio/SoundManager';
+@@ -90,11 +91,18 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
+             // Verify it's still a bot turn
+             if (!currentPlayer?.isBot) return;
+ 
+-            const move = getBotMove(
+-                currentPlayer.hand,
+-                currentState.table.leftValue,
+-                currentState.table.rightValue
+-            );
++            const forcedOpeningId = getForcedOpeningDominoId(currentState, currentPlayer.id);
++            const forcedOpeningTile = forcedOpeningId
++                ? currentPlayer.hand.find(tile => tile.id === forcedOpeningId) || null
++                : null;
++
++            const move = forcedOpeningTile
++                ? { tile: forcedOpeningTile, side: 'start' as const }
++                : getBotMove(
++                    currentPlayer.hand,
++                    currentState.table.leftValue,
++                    currentState.table.rightValue
++                );
+ 
+             try {
+                 let newState: GameState;
+@@ -222,6 +230,15 @@ export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermedia
+         if (currentState.currentPlayerId !== playerId) return;
+ 
+         const player = currentState.players.find(p => p.id === playerId);
++        const forcedOpeningId = getForcedOpeningDominoId(currentState, playerId);
++        if (forcedOpeningId) {
++            const forcedOpeningTile = player?.hand.find(tile => tile.id === forcedOpeningId);
++            if (forcedOpeningTile) {
++                handleHumanMove(forcedOpeningTile);
++                return;
++            }
++        }
++
+         const validMove = player?.hand.find(d =>
+             checkValidMove(d, currentState.table.leftValue, currentState.table.rightValue).canPlay
+         );
+diff --git a/mobile/src/screens/GameScreen.tsx b/mobile/src/screens/GameScreen.tsx
+index e50ebc1..545ca8c 100644
+--- a/mobile/src/screens/GameScreen.tsx
++++ b/mobile/src/screens/GameScreen.tsx
+@@ -14,7 +14,7 @@ import { PlayerAvatar } from '../components/PlayerAvatar';
+ import { LobbyScreen } from './LobbyScreen';
+ import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
+ // import { GameOverScreen } from './GameOverScreen'; // Legacy replaced by UnifiedResultOverlay
+-import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude, checkValidMove } from '../core/LogicEngine';
++import { dealGame, dealGameSolo, handleTurn, passTurn, determineFirstPlayer, resolveBoude, checkValidMove, getForcedOpeningDominoId } from '../core/LogicEngine';
+ import { getValidMoves } from '../core/DominoEngine';
+ import { getBotMove } from '../core/BotEngine';
+ // import { GameAnnouncer } from '../components/GameAnnouncer'; // Removed as per instruction
+@@ -583,17 +583,25 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         };
+     }, [gameId, isSoloMode, profileLoaded]);
+ 
++    const forcedOpeningDominoId = useMemo(() => {
++        if (!gameState) return null;
++        return getForcedOpeningDominoId(gameState, localPlayerId);
++    }, [gameState, localPlayerId]);
++
+     // Check if player has ANY playable domino (NEW: Before early return for hooks safety)
+     const canPlayAny = useMemo(() => {
+         if (!gameState) return false;
+         const localPlayer = gameState.players.find(p => p.id === localPlayerId);
+         if (!localPlayer) return false;
+-        const moves = getValidMoves(localPlayer.hand, {
++        let moves = getValidMoves(localPlayer.hand, {
+             left: gameState.table.leftValue,
+             right: gameState.table.rightValue
+         });
++        if (forcedOpeningDominoId) {
++            moves = moves.filter(move => move.tile.id === forcedOpeningDominoId);
++        }
+         return moves.length > 0;
+-    }, [gameState?.players, gameState?.table.leftValue, gameState?.table.rightValue, localPlayerId]);
++    }, [gameState?.players, gameState?.table.leftValue, gameState?.table.rightValue, localPlayerId, forcedOpeningDominoId]);
+ 
+ 
+     // IN-GAME PROTECTION: Prevent accidental exit
+@@ -881,6 +889,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+                 lastPlayStartPos.current = startPos;
+             }
+ 
++            const forcedOpeningId = getForcedOpeningDominoId(gameState, localPlayerId);
++            if (forcedOpeningId && domino.id !== forcedOpeningId) {
++                const forcedDomino = gameState.players
++                    .find(player => player.id === localPlayerId)
++                    ?.hand.find(tile => tile.id === forcedOpeningId);
++                const forcedLabel = forcedDomino ? `${forcedDomino.left}-${forcedDomino.right}` : forcedOpeningId;
++                Alert.alert("Règle d'ouverture", `Au 1er coup (manche 1 / round 1), vous devez jouer le plus grand double: ${forcedLabel}.`);
++                return;
++            }
++
+             const validMoves = getValidMoves([domino], {
+                 left: gameState.table.leftValue,
+                 right: gameState.table.rightValue
+@@ -1164,20 +1182,27 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         try {
+             console.log(`[Timeout] Turn timeout for ${activeId} - activating Auto-Play`);
+ 
+-            const validMoves = getValidMoves(freshPlayer.hand, {
+-                left: freshState.table.leftValue,
+-                right: freshState.table.rightValue
+-            });
+-
+             let validMove = null;
+-            if (validMoves.length > 0) {
+-                const sortedMoves = [...validMoves].sort((a, b) => (b.tile.left + b.tile.right) - (a.tile.left + a.tile.right));
+-                validMove = sortedMoves[0];
++            const forcedOpeningId = getForcedOpeningDominoId(freshState, activeId);
++            if (forcedOpeningId) {
++                const forcedDomino = freshPlayer.hand.find(tile => tile.id === forcedOpeningId);
++                if (forcedDomino) {
++                    validMove = { tile: forcedDomino, side: 'start' as const };
++                }
++            } else {
++                const validMoves = getValidMoves(freshPlayer.hand, {
++                    left: freshState.table.leftValue,
++                    right: freshState.table.rightValue
++                });
++                if (validMoves.length > 0) {
++                    const sortedMoves = [...validMoves].sort((a, b) => (b.tile.left + b.tile.right) - (a.tile.left + a.tile.right));
++                    validMove = sortedMoves[0];
++                }
+             }
+ 
+             let newState: GameState;
+             if (validMove) {
+-                console.log(`[Auto-Play] Playing heaviest domino for ${activeId}:`, validMove.tile);
++                console.log(`[Auto-Play] Playing domino for ${activeId}:`, validMove.tile);
+                 newState = handleTurn(freshState, activeId, validMove.tile, validMove.side === 'start' ? undefined : validMove.side);
+                 SoundManager.playClack();
+             } else {
+@@ -1449,13 +1474,20 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+                 return;
+             }
+ 
++            const forcedOpeningId = getForcedOpeningDominoId(freshState, freshPlayer.id);
++            const forcedOpeningTile = forcedOpeningId
++                ? freshPlayer.hand.find(tile => tile.id === forcedOpeningId) || null
++                : null;
++
+             // Get bot move
+-            const decision = getBotMove(
+-                freshPlayer.hand,
+-                freshState.table.leftValue,
+-                freshState.table.rightValue,
+-                isSoloMode ? 'expert' : 'medium'
+-            );
++            const decision = forcedOpeningTile
++                ? { tile: forcedOpeningTile, side: 'start' as const }
++                : getBotMove(
++                    freshPlayer.hand,
++                    freshState.table.leftValue,
++                    freshState.table.rightValue,
++                    isSoloMode ? 'expert' : 'medium'
++                );
+ 
+             console.log(`[Bot Decision] ${freshPlayer.name} thinking on table [${freshState.table.leftValue}|${freshState.table.rightValue}]`);
+ 
+@@ -1817,6 +1849,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+                             isLocked={isHardLocked}
+                             leftValue={gameState.table.leftValue as any}
+                             rightValue={gameState.table.rightValue as any}
++                            forcedPlayableDominoId={forcedOpeningDominoId}
+                         />
+                     )}
+                 </View>
+
+commit 44a5303b91062d0559e303a9048c2bcfd77b411b
+Author: OMAR <cmm.saghir@gmail.com>
+Date:   Thu Feb 26 00:24:58 2026 +0000
+
+    fix domino raccord et espace domino surplateau
+
+diff --git a/mobile/src/components/GameTable.tsx b/mobile/src/components/GameTable.tsx
+index 7a656bd..5679c7f 100644
+--- a/mobile/src/components/GameTable.tsx
++++ b/mobile/src/components/GameTable.tsx
+@@ -19,7 +19,7 @@ const H_W = T * 2;            // horizontal tile width (84)
+ const H_H = T;                // horizontal tile height (42)
+ const V_W = T;                // vertical tile width (42)
+ const V_H = T * 2;            // vertical tile height (84)
+-const GAP = 4;                // gap between tiles
++const GAP = 1;                // tiny visual breathing without visible empty gap
+ const ROW_GAP = 50;           // ++ Increased gap for better aération
+ const CELL = H_W + GAP;       // one grid cell advance (88)
+ const ROW_STEP = V_H + ROW_GAP; // vertical step between rows (134)
+@@ -128,10 +128,14 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
+         isLeftChain: boolean
+     ): PlacedTile[] {
+         const tiles: PlacedTile[] = [];
++        const CORNER_JOIN_GAP = 1; // Slight breathing space at corner joins.
+         let cursor = startCursorX;   // left-edge (dir=1) or right-edge (dir=-1)
+         let curY = rowCenterY;       // center Y of current row
+         let rowCount = 0;
+         let currentDir = dir;
++        let justPlacedCorner = false;
++        let lastCornerTop = 0;
++        let lastCornerBottom = 0;
+ 
+         for (let i = 0; i < chain.length; i++) {
+             const item = chain[i];
+@@ -141,10 +145,12 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
+                 // ── CORNER TILE ──────────────────────────────────────────
+                 const cW = V_W;
+                 const cH = V_H;
+-                const cLeft = currentDir === 1 ? cursor : cursor - cW;
++                const edgeX = currentDir === 1 ? cursor - GAP : cursor + GAP;
++                // Align corner with the first tile of the next row (not centered on edge axis).
++                const cLeft = currentDir === 1 ? edgeX - cW : edgeX;
+                 const cTop = verticalGrowth === 1
+-                    ? curY - H_H / 2
+-                    : curY - V_H + H_H / 2;
++                    ? curY + H_H / 2
++                    : curY - H_H / 2 - cH;
+ 
+                 tiles.push({
+                     domino: item.domino,
+@@ -155,11 +161,14 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
+                     width: cW,
+                     height: cH,
+                 });
++                justPlacedCorner = true;
++                lastCornerTop = cTop;
++                lastCornerBottom = cTop + cH;
+ 
+-                // Move to next row
+-                curY += ROW_STEP * verticalGrowth;
++                // Move to next row: stick the corner to the first tile of the new row.
++                curY += (V_H + H_H) * verticalGrowth;
+                 currentDir = currentDir === 1 ? -1 : 1;
+-                cursor = currentDir === 1 ? cLeft + cW + GAP : cLeft - GAP;
++                cursor = edgeX;
+                 rowCount = 0;
+                 continue;
+             }
+@@ -168,7 +177,15 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
+             const tW = isDouble ? V_W : H_W;
+             const tH = isDouble ? V_H : H_H;
+             const tLeft = currentDir === 1 ? cursor : cursor - tW;
+-            const tTop = curY - tH / 2;
++            let tTop = curY - tH / 2;
++            if (justPlacedCorner && rowCount === 0) {
++                tTop = verticalGrowth === 1
++                    ? lastCornerBottom + CORNER_JOIN_GAP
++                    : lastCornerTop - tH - CORNER_JOIN_GAP;
++                // Re-anchor row center on the first tile after the corner.
++                curY = tTop + tH / 2;
++                justPlacedCorner = false;
++            }
+ 
+             const visualFlip = isLeftChain ? currentDir === 1 : currentDir === -1;
+ 
+
+commit 3739b106802700705e21af67ade5ec0e2c6a30e4
+Author: OMAR <cmm.saghir@gmail.com>
+Date:   Wed Feb 25 18:47:16 2026 +0000
+
+    fix : affochage des -1 dans score plateau - temps d'attete avant jouer et action bot
+
+diff --git a/mobile/src/assets/sounds/end_time.mp3 b/mobile/src/assets/sounds/end_time.mp3
+new file mode 100644
+index 0000000..c6bc4b1
+Binary files /dev/null and b/mobile/src/assets/sounds/end_time.mp3 differ
+diff --git a/mobile/src/assets/sounds/timer.mp3 b/mobile/src/assets/sounds/timer.mp3
+new file mode 100644
+index 0000000..f4c2509
+Binary files /dev/null and b/mobile/src/assets/sounds/timer.mp3 differ
+diff --git a/mobile/src/components/PlayerAvatar.tsx b/mobile/src/components/PlayerAvatar.tsx
+index 171b921..4586262 100644
+--- a/mobile/src/components/PlayerAvatar.tsx
++++ b/mobile/src/components/PlayerAvatar.tsx
+@@ -1,5 +1,5 @@
+-import React, { useEffect, useState } from 'react';
+-import { View, StyleSheet, Text, Image } from 'react-native';
++import React, { useEffect, useState, useRef } from 'react';
++import { View, StyleSheet, Text, Image, Animated as RNAnimated } from 'react-native';
+ import Svg, { Circle } from 'react-native-svg';
+ import Animated, { useSharedValue, useAnimatedProps, useAnimatedStyle, withTiming, Easing, withRepeat, withSequence } from 'react-native-reanimated';
+ import { Player } from '../core/types';
+@@ -23,6 +23,8 @@ interface PlayerAvatarProps {
+     onTimeout?: () => void; // Callback when timer expires
+     isBoude?: boolean; // NEW: Player is currently blocked
+     chatContent?: string | null; // NEW: Chat message or emoji
++    overtime?: number | null; // NEW: Explicit 5s Overtime
++    isBotPlaying?: boolean; // NEW: Show bot indicator
+ }
+ 
+ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+@@ -42,7 +44,9 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
+     isPaused = false,
+     onTimeout,
+     isBoude = false,
+-    chatContent
++    chatContent,
++    overtime = null,
++    isBotPlaying = false
+ }) => {
+     const strokeWidth = 4;
+     const radius = (size - strokeWidth) / 2;
+@@ -51,6 +55,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
+     const animatedProgress = useSharedValue(1);
+     const breatheValue = useSharedValue(1);
+     const [secondsLeft, setSecondsLeft] = useState(timerDuration);
++    const scaleAnim = useRef(new RNAnimated.Value(1)).current;
+ 
+     // Timer Countdown Effect
+     useEffect(() => {
+@@ -112,6 +117,35 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
+         }
+     }, [secondsLeft, showTimer, isActive, onTimeout]);
+ 
++    // BOMB ANIMATION EFFECT (Scale pulse at 0s or Overtime)
++    useEffect(() => {
++        const shouldPulse = showTimer && isActive && !isPaused && (secondsLeft === 0 || (overtime !== null && overtime > 0));
++
++        if (shouldPulse) {
++            const animation = RNAnimated.loop(
++                RNAnimated.sequence([
++                    RNAnimated.timing(scaleAnim, {
++                        toValue: 1.15,
++                        duration: 150,
++                        useNativeDriver: true
++                    }),
++                    RNAnimated.timing(scaleAnim, {
++                        toValue: 1,
++                        duration: 150,
++                        useNativeDriver: true
++                    }),
++                ])
++            );
++            animation.start();
++            return () => {
++                animation.stop();
++                scaleAnim.setValue(1);
++            };
++        } else {
++            scaleAnim.setValue(1);
++        }
++    }, [secondsLeft, overtime, showTimer, isActive, isPaused]);
++
+     const animatedProps = useAnimatedProps(() => ({
+         strokeDashoffset: circumference * (1 - animatedProgress.value),
+     }));
+@@ -132,10 +166,11 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
+     const imageOffset = -(imageSize - size) * 0.25;
+ 
+     return (
+-        <View style={[
++        <RNAnimated.View style={[
+             styles.container,
+             isHorizontal && position !== 'top-right' && styles.containerRow,
+-            isHorizontal && position === 'top-right' && styles.containerRowReverse
++            isHorizontal && position === 'top-right' && styles.containerRowReverse,
++            { transform: [{ scale: scaleAnim }] }
+         ]}>
+             {chatContent && (
+                 <ChatBubble
+@@ -170,13 +205,22 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
+                             borderWidth: isActive ? 3 : 2,
+                             borderColor: isActive ? '#FFD700' : 'rgba(255,255,255,0.3)',
+                             overflow: 'hidden',
++                            backgroundColor: (isActive && (secondsLeft === 0 || overtime !== null)) ? '#FF0000' : 'rgba(50,50,50,0.9)'
+                         },
+                         isActive && styles.activeGlow,
+                     ]}
+                 >
+                     {showTimer && isActive ? (
+-                        <Text style={[styles.countdown, { fontSize: size / 2.2 }]}>
+-                            {secondsLeft}
++                        <Text style={[
++                            styles.countdown,
++                            { fontSize: size / 2.2 },
++                            (secondsLeft === 0 || overtime !== null) && {
++                                color: (overtime !== null && overtime > 0) ? '#FFFFFF' : '#FFD700',
++                                fontWeight: 'bold',
++                                fontSize: (size / 2.2) * 1.2
++                            }
++                        ]}>
++                            {overtime !== null ? overtime : secondsLeft}
+                         </Text>
+                     ) : (
+                         <Image
+@@ -198,6 +242,13 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
+                             <Text style={styles.boudeText}>BOUDÉ</Text>
+                         </View>
+                     )}
++
++                    {/* BOT PLAYING OVERLAY */}
++                    {isBotPlaying && (
++                        <View style={styles.botOverlay}>
++                            <Text style={styles.botText}>BOT...</Text>
++                        </View>
++                    )}
+                 </View>
+ 
+                 {/* Timer Ring */}
+@@ -276,7 +327,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
+                     </View>
+                 </View>
+             )}
+-        </View>
++        </RNAnimated.View>
+     );
+ };
+ 
+@@ -378,6 +429,21 @@ const styles = StyleSheet.create({
+         fontSize: 12,
+         letterSpacing: 1,
+     },
++    botOverlay: {
++        ...StyleSheet.absoluteFillObject,
++        backgroundColor: 'rgba(0, 0, 0, 0.7)',
++        justifyContent: 'center',
++        alignItems: 'center',
++        zIndex: 5,
++    },
++    botText: {
++        color: '#FFD700',
++        fontWeight: 'bold',
++        fontSize: 10,
++        textShadowColor: 'rgba(0,0,0,0.8)',
++        textShadowOffset: { width: 0, height: 1 },
++        textShadowRadius: 3,
++    },
+     handBadgeOverlaid: {
+         position: 'absolute',
+         backgroundColor: '#FFF',
+diff --git a/mobile/src/components/PlayerHand.tsx b/mobile/src/components/PlayerHand.tsx
+index 164e4e8..3151700 100644
+--- a/mobile/src/components/PlayerHand.tsx
++++ b/mobile/src/components/PlayerHand.tsx
+@@ -12,6 +12,7 @@ interface PlayerHandProps {
+     disabled?: boolean;
+     leftValue?: DominoSide | null;
+     rightValue?: DominoSide | null;
++    isLocked?: boolean;
+ }
+ 
+ export const PlayerHand: React.FC<PlayerHandProps> = ({
+@@ -20,6 +21,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
+     disabled = false,
+     leftValue = null,
+     rightValue = null,
++    isLocked = false,
+ }) => {
+     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
+ 
+@@ -37,7 +39,10 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
+     };
+ 
+     return (
+-        <View style={styles.container}>
++        <View
++            style={[styles.container, isLocked && { opacity: 0.5 }]}
++            pointerEvents={isLocked ? 'none' : 'auto'}
++        >
+             <ScrollView
+                 horizontal
+                 showsHorizontalScrollIndicator={false}
+diff --git a/mobile/src/core/audio/SoundManager.ts b/mobile/src/core/audio/SoundManager.ts
+index ccad7e0..933f370 100644
+--- a/mobile/src/core/audio/SoundManager.ts
++++ b/mobile/src/core/audio/SoundManager.ts
+@@ -2,7 +2,7 @@ import { createAudioPlayer, AudioPlayer, setAudioModeAsync, AudioSource } from '
+ import { Platform } from 'react-native';
+ import SettingsManager from '../SettingsManager';
+ 
+-type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'boude' | 'toktok' | 'startGame';
++type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'boude' | 'toktok' | 'startGame' | 'timer' | 'end_time';
+ 
+ class SoundManager {
+     private static instance: SoundManager;
+@@ -20,6 +20,8 @@ class SoundManager {
+         boude: null,
+         toktok: null,
+         startGame: null,
++        timer: null,
++        end_time: null,
+     };
+ 
+     private currentMusic: AudioPlayer | null = null;
+@@ -88,6 +90,8 @@ class SoundManager {
+                 boude: require('@/assets/sounds/boude.mp3'),
+                 toktok: require('@/assets/sounds/toktok.mp3'),
+                 startGame: require('@/assets/sounds/start-game.mp3'),
++                timer: require('@/assets/sounds/timer.mp3'),
++                end_time: require('@/assets/sounds/end_time.mp3'),
+             };
+ 
+             for (const [key, source] of Object.entries(soundMap)) {
+diff --git a/mobile/src/screens/GameScreen.tsx b/mobile/src/screens/GameScreen.tsx
+index abb88e2..e50ebc1 100644
+--- a/mobile/src/screens/GameScreen.tsx
++++ b/mobile/src/screens/GameScreen.tsx
+@@ -70,6 +70,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+     const [playersChat, setPlayersChat] = useState<{ [playerId: string]: string | null }>({});
+     const chatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+     const lastChatTimeRef = useRef<number>(0);
++    const [isHardLocked, setIsHardLocked] = useState(false);
++    const [overtime, setOvertime] = useState<number | null>(null);
++    const [isBotPlaying, setIsBotPlaying] = useState(false);
+ 
+     // Fullscreen API (web only)
+     useEffect(() => {
+@@ -144,7 +147,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+     const lastPlayStartPos = useRef<{ x: number, y: number } | null>(null);
+     const avatarRefs = useRef<{ [key: string]: View | null }>({});
+     const prevHistoryLength = useRef(0);
+-    const isProcessing = useRef(false);
++    const isProcessingMove = useRef(false);
+     const lastSeenChatTimestamps = useRef<{ [playerId: string]: number }>({});
+ 
+     const triggerLocalChat = useCallback((content: string, skipFirebase: boolean = false) => {
+@@ -183,11 +186,38 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         }, 3000);
+     }, []);
+     const gameStateRef = useRef<GameState | null>(null);
++    const mainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
++    const overtimeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
++    const overtimeTriggeredRef = useRef(false);
++    const overtimeResolvedRef = useRef(false);
++    const lastTimerSoundRef = useRef<number | null>(null);
++    const handleTimeoutRef = useRef<(playerId?: PlayerId, alreadyLocked?: boolean) => Promise<void>>(async () => { });
+     const navigation = useNavigation();
+     const router = useRouter();
+     const [timeLeft, setTimeLeft] = useState<number | null>(null);
+     const [pendingDomino, setPendingDomino] = useState<Domino | null>(null);
+     const pulseOpacity = useSharedValue(1);
++    const hostUid = roomData?.players?.[0]?.uid;
++    const isLocalHost = hostUid === localPlayerId;
++
++    const clearMainTurnTimer = useCallback(() => {
++        if (mainTimerRef.current) {
++            clearTimeout(mainTimerRef.current);
++            mainTimerRef.current = null;
++        }
++    }, []);
++
++    const clearOvertimeTimer = useCallback(() => {
++        if (overtimeTimerRef.current) {
++            clearTimeout(overtimeTimerRef.current);
++            overtimeTimerRef.current = null;
++        }
++    }, []);
++
++    const clearAllTurnTimers = useCallback(() => {
++        clearMainTurnTimer();
++        clearOvertimeTimer();
++    }, [clearMainTurnTimer, clearOvertimeTimer]);
+ 
+     // Sync ref for listeners
+     useEffect(() => {
+@@ -205,6 +235,18 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         );
+     }, []);
+ 
++    // RESET LOCK ON TURN CHANGE
++    useEffect(() => {
++        isProcessingMove.current = false;
++        clearAllTurnTimers();
++        overtimeTriggeredRef.current = false;
++        overtimeResolvedRef.current = false;
++        lastTimerSoundRef.current = null;
++        setIsHardLocked(false);
++        setOvertime(null);
++        setIsBotPlaying(false);
++    }, [gameState?.currentPlayerId, clearAllTurnTimers]);
++
+     // -------------------------------------------------------------------------
+     // SMART LISTENER: Detect Opponent Moves & Trigger Effects
+     // -------------------------------------------------------------------------
+@@ -244,61 +286,144 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+     }, [gameState?.history, localPlayerId]);
+ 
+     // -------------------------------------------------------------------------
+-    // TIMER EFFECT (Moved to top to prevent hook violation)
++    // TIMER & OVERTIME EFFECTS - AUTHORITY SAFE + RACE SAFE
+     // -------------------------------------------------------------------------
+     useEffect(() => {
+-        if (timeLeft !== 0 || isPaused) return;
++        if (!gameState || gameState.phase !== 'PLAYING') {
++            clearAllTurnTimers();
++            overtimeTriggeredRef.current = false;
++            overtimeResolvedRef.current = false;
++            lastTimerSoundRef.current = null;
++            setTimeLeft(null);
++            setOvertime(null);
++            setIsHardLocked(false);
++            setIsBotPlaying(false);
++            return;
++        }
+ 
+-        // Use ref to get fresh state
+-        const freshState = gameStateRef.current;
+-        if (!freshState) {
+-            console.log('⏰ Timer expired but no gameState available');
++        const currentPlayer = gameState.players.find(player => player.id === gameState.currentPlayerId);
++        const canManageCurrentTurn = !!currentPlayer && (
++            currentPlayer.id === localPlayerId ||
++            (currentPlayer.isBot && (isSoloMode || !gameId || isLocalHost))
++        );
++
++        if (!canManageCurrentTurn) {
++            clearAllTurnTimers();
++            overtimeTriggeredRef.current = false;
++            overtimeResolvedRef.current = false;
++            lastTimerSoundRef.current = null;
++            setTimeLeft(null);
++            setOvertime(null);
++            setIsHardLocked(false);
++            setIsBotPlaying(false);
+             return;
+         }
+ 
+-        if (freshState.currentPlayerId !== localPlayerId) {
+-            console.log('⏰ Timer expired but not my turn anymore');
++        clearAllTurnTimers();
++        overtimeTriggeredRef.current = false;
++        overtimeResolvedRef.current = false;
++        lastTimerSoundRef.current = null;
++        setIsHardLocked(false);
++        setIsBotPlaying(false);
++        setOvertime(null);
++        setTimeLeft(gameState.turnDuration);
++    }, [gameState?.currentPlayerId, gameState?.phase, gameState?.turnDuration, localPlayerId, isSoloMode, gameId, isLocalHost, clearAllTurnTimers]);
++
++    useEffect(() => {
++        if (!gameState || gameState.phase !== 'PLAYING' || isPaused || bannerState !== 'NONE') {
++            clearMainTurnTimer();
+             return;
+         }
+ 
+-        if (freshState.phase !== 'PLAYING') {
+-            console.log('⏰ Timer expired but game phase is', freshState.phase);
++        const currentPlayer = gameState.players.find(player => player.id === gameState.currentPlayerId);
++        const canManageCurrentTurn = !!currentPlayer && (
++            currentPlayer.id === localPlayerId ||
++            (currentPlayer.isBot && (isSoloMode || !gameId || isLocalHost))
++        );
++
++        if (!canManageCurrentTurn || overtime !== null || timeLeft === null || timeLeft <= 0) {
++            clearMainTurnTimer();
+             return;
+         }
+ 
+-        console.log('⏰ Timer expired - checking for valid moves...');
++        clearMainTurnTimer();
++        mainTimerRef.current = setTimeout(() => {
++            setTimeLeft(prev => {
++                if (prev === null) return null;
++                return Math.max(prev - 1, 0);
++            });
++        }, 1000);
++
++        return clearMainTurnTimer;
++    }, [gameState?.phase, gameState?.currentPlayerId, timeLeft, overtime, isPaused, bannerState, localPlayerId, isSoloMode, gameId, isLocalHost, clearMainTurnTimer]);
+ 
+-        // CRITICAL: Force release processing lock - timer has absolute priority
+-        isProcessing.current = false;
++    useEffect(() => {
++        if (!gameState || gameState.phase !== 'PLAYING' || timeLeft === null) return;
+ 
+-        // Find the local player in fresh state
+-        const freshPlayer = freshState.players.find(p => p.id === localPlayerId);
+-        if (!freshPlayer) {
+-            console.error('⏰ Timer expired but player not found in state');
++        const currentPlayer = gameState.players.find(player => player.id === gameState.currentPlayerId);
++        const canManageCurrentTurn = !!currentPlayer && (
++            currentPlayer.id === localPlayerId ||
++            (currentPlayer.isBot && (isSoloMode || !gameId || isLocalHost))
++        );
++        if (!canManageCurrentTurn) return;
++
++        if (timeLeft > 0 && timeLeft <= 3 && lastTimerSoundRef.current !== timeLeft) {
++            lastTimerSoundRef.current = timeLeft;
++            SoundManager.playSound('timer');
++        }
++
++        if (timeLeft === 0 && !overtimeTriggeredRef.current) {
++            overtimeTriggeredRef.current = true;
++            SoundManager.playSound('end_time');
++            setOvertime(5);
++        }
++    }, [timeLeft, gameState?.phase, gameState?.currentPlayerId, localPlayerId, isSoloMode, gameId, isLocalHost]);
++
++    useEffect(() => {
++        if (overtime === null) {
++            clearOvertimeTimer();
++            overtimeResolvedRef.current = false;
+             return;
+         }
+ 
+-        // STEP A: Check for valid moves
+-        const validMoves = getValidMoves(freshPlayer.hand, {
+-            left: freshState.table.leftValue,
+-            right: freshState.table.rightValue
+-        });
++        if (!gameState || gameState.phase !== 'PLAYING' || isPaused) {
++            clearOvertimeTimer();
++            return;
++        }
+ 
++        const currentPlayer = gameState.players.find(player => player.id === gameState.currentPlayerId);
++        const canManageCurrentTurn = !!currentPlayer && (
++            currentPlayer.id === localPlayerId ||
++            (currentPlayer.isBot && (isSoloMode || !gameId || isLocalHost))
++        );
++        if (!canManageCurrentTurn) {
++            clearOvertimeTimer();
++            setOvertime(null);
++            return;
++        }
+ 
+-        if (validMoves.length > 0) {
+-            // STEP B: Auto-play the first valid domino
+-            const move = validMoves[0];
+-            const dominoToPlay = move.tile;
+-            console.log(`⏰ AUTO-PLAY: Playing ${dominoToPlay.left}|${dominoToPlay.right} automatically`);
++        if (overtime > 0) {
++            clearOvertimeTimer();
++            overtimeTimerRef.current = setTimeout(() => {
++                setOvertime(prev => (prev === null ? null : Math.max(prev - 1, 0)));
++            }, 1000);
++            return clearOvertimeTimer;
++        }
+ 
+-            // Call handlePlayDomino as if user clicked
+-            handlePlayDomino(dominoToPlay);
+-        } else {
+-            // STEP C: No valid moves - auto-pass
+-            console.log('⏰ AUTO-PASS: No valid moves, passing turn automatically');
+-            handlePassTurn();
++        if (overtime === 0 && !overtimeResolvedRef.current) {
++            clearOvertimeTimer();
++            overtimeResolvedRef.current = true;
++            setIsHardLocked(true);
++            setIsBotPlaying(true);
++            void handleTimeoutRef.current(undefined, true);
+         }
+-    }, [timeLeft]);
++    }, [overtime, gameState?.phase, gameState?.currentPlayerId, isPaused, localPlayerId, isSoloMode, gameId, isLocalHost, clearOvertimeTimer]);
++
++    useEffect(() => {
++        return () => {
++            clearAllTurnTimers();
++        };
++    }, [clearAllTurnTimers]);
+ 
+     // DERIVED STATE - Must be after state hooks but before handlers
+     const localPlayer = gameState?.players.find(p => p.id === localPlayerId);
+@@ -404,25 +529,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         }
+     }, [gameState?.roundNumber, gameState?.mancheNumber]);
+ 
+-    // Timer countdown logic
+-    useEffect(() => {
+-        if (!gameState || gameState.phase !== 'PLAYING' || isPaused || timeLeft === null || bannerState !== 'NONE') {
+-            return;
+-        }
+-
+-        const interval = setInterval(() => {
+-            setTimeLeft(prev => {
+-                if (prev === null || prev <= 1) {
+-                    clearInterval(interval);
+-                    return 0;
+-                }
+-                return prev - 1;
+-            });
+-        }, 1000);
+-
+-        return () => clearInterval(interval);
+-    }, [gameState?.phase, isPaused, timeLeft === null, bannerState]);
+-
+     // Audio & Firebase Subscription
+     useEffect(() => {
+         // Preload sounds
+@@ -749,36 +855,69 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+     // The "Industrial" bot loop (lines 1200+) handles all bot moves consistently.
+ 
+     const handlePlayDomino = async (domino: Domino, startPos?: { x: number, y: number }) => {
++        isProcessingMove.current = true; // Turn-based Lock: Absolute priority to human
++
+         SoundManager.unlockAudio();
+-        // ATOMIC GUARD
+-        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused || bannerState !== 'NONE') {
++        // ATOMIC GUARD - We only check OTHER conditions now, since we already set the lock
++        if (!gameState || gameState.phase !== 'PLAYING' || isPaused || bannerState !== 'NONE') {
++            isProcessingMove.current = false; // Release if guard fails
+             return;
+         }
+ 
+-        if (gameState.currentPlayerId !== localPlayerId) {
++        if (isHardLocked) {
++            console.log("[handlePlayDomino] Action blocked: Hard Lock active");
++            isProcessingMove.current = false;
+             return;
+         }
+ 
+-        // Store start position in ref for later use in executeMove
+-        if (startPos) {
+-            lastPlayStartPos.current = startPos;
++        if (gameState.currentPlayerId !== localPlayerId) {
++            isProcessingMove.current = false;
++            return;
+         }
+ 
+-        const validMoves = getValidMoves([domino], {
+-            left: gameState.table.leftValue,
+-            right: gameState.table.rightValue
+-        });
++        try {
++            // Store start position in ref for later use in executeMove
++            if (startPos) {
++                lastPlayStartPos.current = startPos;
++            }
+ 
+-        if (validMoves.length === 0) return;
++            const validMoves = getValidMoves([domino], {
++                left: gameState.table.leftValue,
++                right: gameState.table.rightValue
++            });
+ 
+-        if (validMoves.length > 1) {
+-            SoundManager.playSound('notify');
+-            setPendingDomino(domino);
+-            return;
+-        }
++            if (validMoves.length === 0) {
++                console.log("[handlePlayDomino] Invalid move attempt");
++                return;
++            }
+ 
+-        const move = validMoves[0];
+-        executeMove(domino, move.side === 'start' ? undefined : move.side);
++            // KILL SWITCH: valid manual move intent takes priority over overtime/bot
++            clearAllTurnTimers();
++            setOvertime(null);
++            setIsBotPlaying(false);
++            setIsHardLocked(false);
++            setTimeLeft(null);
++
++            if (validMoves.length > 1) {
++                SoundManager.playSound('notify');
++                setPendingDomino(domino);
++                // RELEASE LOCK: Wait for user to choose a side
++                isProcessingMove.current = false;
++                return;
++            }
++
++            const move = validMoves[0];
++            // executeMove will handle its own locking if needed, 
++            // but here we already have the lock, so we use a flag or ensure it doesn't return
++            await executeMove(domino, move.side === 'start' ? undefined : move.side, true);
++        } catch (e) {
++            console.error("[handlePlayDomino] Error:", e);
++        } finally {
++            // Only release if we're not waiting for pending side selection
++            if (!pendingDomino) {
++                isProcessingMove.current = false;
++            }
++        }
+     };
+ 
+ 
+@@ -794,9 +933,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         setPendingDomino(null);
+     };
+ 
+-    const executeMove = async (domino: Domino, forcedSide?: 'left' | 'right') => {
+-        if (isProcessing.current || !gameState) return;
+-        isProcessing.current = true;
++    const executeMove = async (domino: Domino, forcedSide?: 'left' | 'right', alreadyLocked = false) => {
++        if (!alreadyLocked && isProcessingMove.current) return;
++        if (!gameState) return;
++
++        isProcessingMove.current = true;
+ 
+         try {
+             // Animation start: hide the tile on the board when it appears
+@@ -817,66 +958,82 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+             console.log("Invalid move", e);
+             setHiddenDominoId(null); // Reset if error
+         } finally {
+-            isProcessing.current = false;
++            isProcessingMove.current = false;
+         }
+     };
+ 
+     const handlePassTurn = async (forcedPlayerId?: PlayerId) => {
++        isProcessingMove.current = true; // Turn-based Lock: Absolute priority to human
++
+         SoundManager.unlockAudio();
+         // ATOMIC GUARD
+-        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING' || isPaused) {
++        if (!gameState || gameState.phase !== 'PLAYING' || isPaused) {
+             console.log("[handlePassTurn] Action blocked by guard");
++            isProcessingMove.current = false;
++            return;
++        }
++
++        if (isHardLocked) {
++            console.log("[handlePassTurn] Action blocked: Hard Lock active");
++            isProcessingMove.current = false;
+             return;
+         }
+         const targetId = forcedPlayerId || localPlayerId;
+-        const isHost = roomData?.players[0].uid === localPlayerId;
++        const isHost = isLocalHost;
+         const isTargetMe = targetId === localPlayerId;
+ 
+         // Validation: Local mode always authorized, OR target player themselves, OR host in multiplayer
+         const isAuthorized = isSoloMode || isTargetMe || isHost;
+         if (!isAuthorized) {
+             console.log("[handlePassTurn] Not authorized to pass for this player");
++            isProcessingMove.current = false;
+             return;
+         }
+ 
+         // Must be the target's turn
+         if (gameState.currentPlayerId !== targetId) {
+             console.log("[handlePassTurn] Not the target player's turn:", targetId);
++            isProcessingMove.current = false;
+             return;
+         }
+ 
+-        isProcessing.current = true;
+-
+-        // Safety timeout to release processing lock if something hangs
+-        const lockSafety = setTimeout(() => { isProcessing.current = false; }, 5000);
++        try {
++            // Safety timeout to release processing lock if something hangs
++            const lockSafety = setTimeout(() => { isProcessingMove.current = false; }, 5000);
++
++            // Double check validation client-side to prevent "Cannot Pass" alert loop
++            const targetPlayer = gameState.players.find(p => p.id === targetId);
++            const currentValidMoves = getValidMoves(targetPlayer?.hand || [], {
++                left: gameState.table.leftValue,
++                right: gameState.table.rightValue
++            });
+ 
+-        // Double check validation client-side to prevent "Cannot Pass" alert loop
+-        const targetPlayer = gameState.players.find(p => p.id === targetId);
+-        const currentValidMoves = getValidMoves(targetPlayer?.hand || [], {
+-            left: gameState.table.leftValue,
+-            right: gameState.table.rightValue
+-        });
++            if (currentValidMoves.length > 0) {
++                isProcessingMove.current = false;
++                clearTimeout(lockSafety);
++                Alert.alert("Action impossible", "Vous avez des dominos jouables. Vous ne pouvez pas passer.");
++                return;
++            }
+ 
+-        if (currentValidMoves.length > 0) {
+-            isProcessing.current = false;
+-            clearTimeout(lockSafety);
+-            Alert.alert("Action impossible", "Vous avez des dominos jouables. Vous ne pouvez pas passer.");
+-            return;
+-        }
++            // KILL SWITCH: confirmed manual pass cancels overtime/timers immediately
++            clearAllTurnTimers();
++            setOvertime(null);
++            setIsBotPlaying(false);
++            setIsHardLocked(false);
++            setTimeLeft(null);
+ 
+-        try {
+             const newState = passTurn(gameState, targetId);
+             if (isSoloMode || !gameId) {
+                 setGameState(newState);
+             } else {
+                 await safeUpdateGameState(gameId, newState);
+             }
++            clearTimeout(lockSafety);
+         } catch (e: any) {
+             console.error("Pass Error", e);
+             Alert.alert("Cannot Pass", e.message);
+         } finally {
+-            isProcessing.current = false;
+-            clearTimeout(lockSafety);
++            isProcessingMove.current = false;
+         }
+     };
+ 
+@@ -907,7 +1064,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+             const timer = setTimeout(() => {
+                 // Only execute pass if we are still on the same player
+                 const freshState = gameStateRef.current;
+-                const isHost = roomData?.players[0].uid === localPlayerId;
++                const isHost = isLocalHost;
+ 
+                 if (freshState && freshState.currentPlayerId === currentPlayer.id && freshState.phase === 'PLAYING') {
+                     // Solo mode: simple
+@@ -931,41 +1088,87 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+      * Handles turn timeout for ANY player (local or remote).
+      * Activates Auto-Play (Bot mode) for that player and plays their turn.
+      */
+-    const handleTimeout = async (playerId?: PlayerId) => {
+-        // ATOMIC GUARD - Critical for preventing race conditions
+-        if (isProcessing.current || !gameState || gameState.phase !== 'PLAYING') return;
++    const handleTimeout = async (playerId?: PlayerId, alreadyLocked = false) => {
++        // ABSOLUTE GUARD: Human action always has priority over bot takeover.
++        if (isProcessingMove.current) {
++            console.log("[Timeout] Cancelled: human action in progress");
++            if (alreadyLocked) {
++                const retryPlayerId = playerId ?? gameStateRef.current?.currentPlayerId;
++                setTimeout(() => {
++                    const freshState = gameStateRef.current;
++                    if (!isProcessingMove.current && freshState?.phase === 'PLAYING' && retryPlayerId) {
++                        void handleTimeoutRef.current(retryPlayerId, true);
++                    }
++                }, 150);
++            }
++            return;
++        }
+ 
+-        const activeId = playerId || gameState.currentPlayerId;
++        const stateAtStart = gameStateRef.current ?? gameState;
++        if (!stateAtStart || stateAtStart.phase !== 'PLAYING') return;
+ 
+-        // CRITICAL FIX: Reset pending domino if player was choosing a side but timed out
++        const activeId = playerId || stateAtStart.currentPlayerId;
++        if (!activeId) return;
++
++        // CRITICAL FIX: Reset pending domino if player was choosing a side but timed out.
+         setPendingDomino(null);
+ 
++        if (alreadyLocked) {
++            clearAllTurnTimers();
++            setOvertime(null);
++        }
++
+         // Verify it's actually the active player's turn
+-        if (gameState.currentPlayerId !== activeId) {
+-            console.log(`[Timeout] Ignore: ${activeId} is not current player (${gameState.currentPlayerId})`);
++        if (stateAtStart.currentPlayerId !== activeId) {
++            console.log(`[Timeout] Ignore: ${activeId} is not current player (${stateAtStart.currentPlayerId})`);
+             return;
+         }
+ 
+-        isProcessing.current = true;
++        const playerAtStart = stateAtStart.players.find(player => player.id === activeId);
++        if (!playerAtStart) return;
+ 
+-        console.log(`[Timeout] Turn timeout for ${activeId} - Activating Auto-Play`);
++        const isBot = playerAtStart.isBot;
++        const isMe = activeId === localPlayerId;
++
++        // AUTHORITY GUARD: Only handle if it's the local player OR a bot managed locally.
++        if (!isMe && !isBot) {
++            console.log(`[Timeout] Authority Guard: client will not auto-play for remote opponent ${activeId}`);
++            return;
++        }
++        if (isBot && !isLocalHost && !isSoloMode && gameId) {
++            // Bots are handled by host.
++            return;
++        }
++
++        // COYOTE TIME: Delay bot action to allow last-second human clicks to complete.
++        if (!alreadyLocked) {
++            await new Promise(resolve => setTimeout(resolve, 1000));
++        }
++
++        const freshState = gameStateRef.current;
++        if (isProcessingMove.current || !freshState || freshState.phase !== 'PLAYING' || freshState.currentPlayerId !== activeId) {
++            console.log("[Timeout] Cancelled after grace period (human move or turn change)");
++            return;
++        }
++
++        const freshPlayer = freshState.players.find(player => player.id === activeId);
++        if (!freshPlayer) return;
++
++        isProcessingMove.current = true;
++        clearAllTurnTimers();
++        setTimeLeft(null);
++        setOvertime(null);
++        setIsHardLocked(true);
++        setIsBotPlaying(true);
+ 
+         try {
+-            // Find the player
+-            const pIndex = gameState.players.findIndex(player => player.id === activeId);
+-            if (pIndex === -1) return;
+-            const p = gameState.players[pIndex];
+-
+-            // 1. Mark player as Bot (Auto-Play) locally first to modify the state used for the turn
+-            const stateForTurn = gameState;
+-
+-            // Find all valid moves
+-            const validMoves = getValidMoves(p.hand, {
+-                left: stateForTurn.table.leftValue,
+-                right: stateForTurn.table.rightValue
++            console.log(`[Timeout] Turn timeout for ${activeId} - activating Auto-Play`);
++
++            const validMoves = getValidMoves(freshPlayer.hand, {
++                left: freshState.table.leftValue,
++                right: freshState.table.rightValue
+             });
+ 
+-            // Find heaviest valid domino (highest sum)
+             let validMove = null;
+             if (validMoves.length > 0) {
+                 const sortedMoves = [...validMoves].sort((a, b) => (b.tile.left + b.tile.right) - (a.tile.left + a.tile.right));
+@@ -975,14 +1178,13 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+             let newState: GameState;
+             if (validMove) {
+                 console.log(`[Auto-Play] Playing heaviest domino for ${activeId}:`, validMove.tile);
+-                newState = handleTurn(stateForTurn, activeId, validMove.tile, validMove.side === 'start' ? undefined : validMove.side);
++                newState = handleTurn(freshState, activeId, validMove.tile, validMove.side === 'start' ? undefined : validMove.side);
+                 SoundManager.playClack();
+             } else {
+-                console.log(`[Auto-Play] No valid moves for ${activeId} - Passing`);
+-                newState = passTurn(stateForTurn, activeId);
++                console.log(`[Auto-Play] No valid moves for ${activeId} - passing`);
++                newState = passTurn(freshState, activeId);
+             }
+ 
+-            // Update State
+             if (isSoloMode || !gameId) {
+                 setGameState(newState);
+             } else {
+@@ -991,9 +1193,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         } catch (e) {
+             console.error("Auto-play processing failed:", e);
+         } finally {
+-            isProcessing.current = false;
++            isProcessingMove.current = false;
+         }
+     };
++    handleTimeoutRef.current = handleTimeout;
+ 
+     const handleReplay = async () => {
+         console.log('[GameScreen] handleReplay called, isSoloMode:', isSoloMode);
+@@ -1213,7 +1416,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         if (gameState.phase !== 'PLAYING') {
+             console.log(`[Bot Loop] Phase is ${gameState.phase}, not executing.`);
+             // Reset processing lock on phase change to avoid hangs
+-            isProcessing.current = false;
++            isProcessingMove.current = false;
+             return;
+         }
+ 
+@@ -1224,7 +1427,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+         }
+ 
+         // Only Host executes bot moves in multiplayer
+-        const isHost = roomData?.players[0].uid === localPlayerId;
++        const isHost = isLocalHost;
+         const shouldExecuteBot = (isSoloMode || !gameId || isHost) && !isPaused;
+         if (!shouldExecuteBot) return;
+ 
+@@ -1278,7 +1481,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+                 } else {
+                     // This case is now handled by Auto-Boude useEffect above for consistency
+                     console.log(`[Bot Loop] ${freshPlayer.name} has no valid moves - useEffect will handle pass`);
+-                    isProcessing.current = false;
++                    isProcessingMove.current = false;
+                     return;
+                 }
+ 
+@@ -1289,11 +1492,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+                     updateGameState(gameId, newState);
+                 }
+ 
+-                isProcessing.current = false;
++                isProcessingMove.current = false;
+ 
+             } catch (e: any) {
+                 console.error("[Bot Error]", e.message);
+-                isProcessing.current = false;
++                isProcessingMove.current = false;
+             }
+         }, 1500);
+ 
+@@ -1383,7 +1586,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+                 // currentMancheStars = rounds won in current manche (each = +1 to totalPoints)
+                 // So: totalPoints - currentMancheStars = points from completed manches only
+                 const prevPoints = (player.totalPoints || 0) - (player.currentMancheStars || 0);
+-                return `${Math.max(0, prevPoints)} pts`;
++                return `${prevPoints} pts`;
+             }
+             case 'COCHON': return `${player.totalCochons} 🐷`;
+             default: return "";
+@@ -1544,8 +1747,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+                                 score={getPlayerScore(opponents[0])}
+                                 position="top-right"
+                                 isBoude={boudedPlayerId === opponents[0]?.id}
+-                                onTimeout={() => handleTimeout(opponents[0]?.id)}
+                                 chatContent={playersChat[opponents[0]?.id]}
++                                overtime={gameState.currentPlayerId === opponents[0]?.id ? overtime : null}
++                                isBotPlaying={gameState.currentPlayerId === opponents[0]?.id ? isBotPlaying : false}
+                             />
+                         </Animated.View>
+                     )}
+@@ -1568,8 +1772,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+                                 score={getPlayerScore(opponents[1])}
+                                 position="top-left"
+                                 isBoude={boudedPlayerId === opponents[1]?.id}
+-                                onTimeout={() => handleTimeout(opponents[1]?.id)}
+                                 chatContent={playersChat[opponents[1]?.id]}
++                                overtime={gameState.currentPlayerId === opponents[1]?.id ? overtime : null}
++                                isBotPlaying={gameState.currentPlayerId === opponents[1]?.id ? isBotPlaying : false}
+                             />
+                         </Animated.View>
+                     )}
+@@ -1594,8 +1799,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+                                 score={getPlayerScore(localPlayer)}
+                                 position="bottom"
+                                 isBoude={boudedPlayerId === localPlayerId}
+-                                onTimeout={() => handleTimeout(localPlayerId)}
+                                 chatContent={playersChat[localPlayerId]}
++                                overtime={isMyTurn ? overtime : null}
++                                isBotPlaying={isMyTurn ? isBotPlaying : false}
+                             />
+                         </Animated.View>
+                     )}
+@@ -1607,7 +1813,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
+                         <PlayerHand
+                             hand={localPlayer.hand}
+                             onPlayDomino={handlePlayDomino}
+-                            disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING' || bannerState !== 'NONE'}
++                            disabled={gameState.currentPlayerId !== localPlayerId || gameState.phase !== 'PLAYING' || bannerState !== 'NONE' || isHardLocked}
++                            isLocked={isHardLocked}
+                             leftValue={gameState.table.leftValue as any}
+                             rightValue={gameState.table.rightValue as any}
+                         />
+
+commit 10d98874d78d42ca20fe7f4da3d361686856f205
+Author: OMAR <cmm.saghir@gmail.com>
+Date:   Wed Feb 25 00:49:38 2026 +0000
+
+    feat: add ChatBubble and QuickChat components for interactive messaging.
+
+diff --git a/mobile/src/components/ChatBubble.tsx b/mobile/src/components/ChatBubble.tsx
+index 053cce1..6c2119b 100644
+--- a/mobile/src/components/ChatBubble.tsx
++++ b/mobile/src/components/ChatBubble.tsx
+@@ -22,8 +22,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ content, position = 'top
+     const isBottom = position === 'bottom';
+ 
+     useEffect(() => {
+-        // Entry animation: -40 for top (up), +40 for bottom (down)
+-        translateY.value = withSpring(isBottom ? 40 : -40);
++        // Entry animation: -25 for top (up), +25 for bottom (down)
++        translateY.value = withSpring(isBottom ? 25 : -25);
+         opacity.value = withTiming(1, { duration: 300 });
+ 
+         return () => {
+@@ -36,6 +36,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ content, position = 'top
+         opacity: opacity.value,
+     }));
+ 
++    const isEmoji = content ? /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(content) || content.length <= 2 : false;
++
+     return (
+         <Animated.View
+             style={[
+@@ -45,7 +47,9 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ content, position = 'top
+             ]}
+             pointerEvents="none"
+         >
+-            <Text style={styles.text}>{content}</Text>
++            <Text style={[styles.text, isEmoji ? styles.emojiText : styles.messageText]}>
++                {content}
++            </Text>
+         </Animated.View>
+     );
+ };
+@@ -58,13 +62,12 @@ const styles = StyleSheet.create({
+         zIndex: 1000,
+     },
+     containerTop: {
+-        top: -20, // Initial position, animated to -40
++        top: -10, // Initial position, animated to -25
+     },
+     containerBottom: {
+-        bottom: -20, // Initial position, animated to +40
++        bottom: -10, // Initial position, animated to +25
+     },
+     text: {
+-        fontSize: 32,
+         fontWeight: 'bold',
+         color: 'white',
+         textAlign: 'center',
+@@ -72,4 +75,10 @@ const styles = StyleSheet.create({
+         textShadowOffset: { width: 2, height: 2 },
+         textShadowRadius: 10,
+     },
++    messageText: {
++        fontSize: 18,
++    },
++    emojiText: {
++        fontSize: 30,
++    },
+ });
+diff --git a/mobile/src/components/QuickChat.tsx b/mobile/src/components/QuickChat.tsx
+index 3a0e954..3b92c3d 100644
+--- a/mobile/src/components/QuickChat.tsx
++++ b/mobile/src/components/QuickChat.tsx
+@@ -8,10 +8,14 @@ const QUICK_MESSAGES = [
+     'Bien joué !',
+     'Aïe...',
+     'Dépêche-toi !',
+-    'Chiré !'
++    'Chiré !',
++    'Je passe...',
++    'Beau coup !',
++    "Tu m'as bloqué !",
++    "C'est mon tour !"
+ ];
+ 
+-const QUICK_EMOJIS = ['😂', '😡', '😱', '👏', '🥳', '😭'];
++const QUICK_EMOJIS = ['😂', '😡', '😱', '👏', '🥳', '😭', '🤔', '🤫', '💀', '🔥', '🏆', '👎'];
+ 
+ interface QuickChatProps {
+     onSelectMessage: (msg: string) => void;
+@@ -20,6 +24,7 @@ interface QuickChatProps {
+ 
+ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectEmoji }) => {
+     const [isOpen, setIsOpen] = useState(false);
++    const [activeTab, setActiveTab] = useState<'messages' | 'emojis' | 'premium'>('messages');
+     const { width, height } = useWindowDimensions();
+     const insets = useSafeAreaInsets();
+     const isLandscape = width > height;
+@@ -49,18 +54,55 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
+                     ]}
+                 >
+                     <View style={styles.menuContent}>
+-                        {/* Header */}
++                        {/* Header - No Title, Just Close Button */}
+                         <View style={styles.header}>
+-                            <Text style={styles.headerTitle}>QUICK CHAT</Text>
+                             <TouchableOpacity onPress={() => setIsOpen(false)} style={styles.closeBtn}>
+-                                <Ionicons name="close" size={20} color="#8B6508" />
++                                <Ionicons name="close" size={24} color="#8B6508" />
+                             </TouchableOpacity>
+                         </View>
+ 
+-                        <View style={isLandscape ? styles.sectionsRow : styles.sectionsColumn}>
+-                            {/* Messages Section */}
+-                            <View style={styles.section}>
+-                                <Text style={styles.sectionTitle}>MESSAGES</Text>
++                        {/* Tabs Navigation */}
++                        <View style={styles.tabsContainer}>
++                            <TouchableOpacity
++                                style={[styles.tabButton, activeTab === 'messages' && styles.activeTabButton]}
++                                onPress={() => setActiveTab('messages')}
++                            >
++                                <Ionicons
++                                    name={activeTab === 'messages' ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"}
++                                    size={20}
++                                    color={activeTab === 'messages' ? "#332400" : "#8B6508"}
++                                />
++                            </TouchableOpacity>
++                            <TouchableOpacity
++                                style={[styles.tabButton, activeTab === 'emojis' && styles.activeTabButton]}
++                                onPress={() => setActiveTab('emojis')}
++                            >
++                                <Ionicons
++                                    name={activeTab === 'emojis' ? "happy" : "happy-outline"}
++                                    size={20}
++                                    color={activeTab === 'emojis' ? "#332400" : "#8B6508"}
++                                />
++                            </TouchableOpacity>
++                            <TouchableOpacity
++                                style={[styles.tabButton, activeTab === 'premium' && styles.activeTabButton]}
++                                onPress={() => setActiveTab('premium')}
++                            >
++                                <View style={styles.premiumTabIcon}>
++                                    <Ionicons
++                                        name="star-outline"
++                                        size={18}
++                                        color={activeTab === 'premium' ? "#332400" : "#8B6508"}
++                                    />
++                                    <View style={styles.lockBadge}>
++                                        <Ionicons name="lock-closed" size={10} color="#8B6508" />
++                                    </View>
++                                </View>
++                            </TouchableOpacity>
++                        </View>
++
++                        {/* Content Area */}
++                        <View style={styles.contentArea}>
++                            {activeTab === 'messages' && (
+                                 <View style={styles.messagesGrid}>
+                                     {QUICK_MESSAGES.map((msg, idx) => (
+                                         <TouchableOpacity
+@@ -72,11 +114,8 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
+                                         </TouchableOpacity>
+                                     ))}
+                                 </View>
+-                            </View>
+-
+-                            {/* Emojis Section */}
+-                            <View style={[styles.section, isLandscape && { marginLeft: 15 }]}>
+-                                <Text style={styles.sectionTitle}>EMOJIS</Text>
++                            )}
++                            {activeTab === 'emojis' && (
+                                 <View style={styles.emojisGrid}>
+                                     {QUICK_EMOJIS.map((emoji, idx) => (
+                                         <TouchableOpacity
+@@ -88,7 +127,14 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
+                                         </TouchableOpacity>
+                                     ))}
+                                 </View>
+-                            </View>
++                            )}
++                            {activeTab === 'premium' && (
++                                <View style={styles.premiumEmptyContainer}>
++                                    <Ionicons name="diamond-outline" size={40} color="rgba(139, 101, 8, 0.2)" />
++                                    <Text style={styles.premiumText}>Contenu Premium</Text>
++                                    <Text style={styles.premiumSubtext}>Bientôt disponible</Text>
++                                </View>
++                            )}
+                         </View>
+                     </View>
+                 </Animated.View>
+@@ -120,11 +166,11 @@ const styles = StyleSheet.create({
+         width: 50,
+         height: 50,
+         borderRadius: 25,
+-        backgroundColor: 'rgba(0,0,0,0.6)', // Black semi-transparent
++        backgroundColor: 'rgba(0,0,0,0.6)',
+         justifyContent: 'center',
+         alignItems: 'center',
+         borderWidth: 2,
+-        borderColor: '#FFD700', // Gold
++        borderColor: '#FFD700',
+         elevation: 5,
+         shadowColor: '#000',
+         shadowOffset: { width: 0, height: 2 },
+@@ -137,8 +183,8 @@ const styles = StyleSheet.create({
+         backgroundColor: '#FDF5E6', // Premium Parchment
+         borderRadius: 15,
+         borderWidth: 2,
+-        borderColor: '#FFD700', // Gold border
+-        padding: 12,
++        borderColor: '#FFD700',
++        padding: 5, // Tighter padding for tabs
+         elevation: 10,
+         shadowColor: '#000',
+         shadowOffset: { width: 0, height: 5 },
+@@ -146,56 +192,72 @@ const styles = StyleSheet.create({
+         shadowRadius: 10,
+     },
+     menuPortrait: {
+-        width: 180,
++        width: 240,
+     },
+     menuLandscape: {
+-        width: 320,
++        width: 340,
+     },
+     menuContent: {
+         width: '100%',
+     },
+     header: {
+         flexDirection: 'row',
+-        justifyContent: 'space-between',
++        justifyContent: 'flex-end',
+         alignItems: 'center',
+-        borderBottomWidth: 1,
+-        borderColor: 'rgba(139, 101, 8, 0.2)',
+-        paddingBottom: 5,
+-        marginBottom: 10,
+-    },
+-    headerTitle: {
+-        color: '#8B6508',
+-        fontSize: 10,
+-        fontWeight: 'bold',
+-        letterSpacing: 1,
++        paddingRight: 5,
++        paddingTop: 5,
+     },
+     closeBtn: {
+-        padding: 2,
++        padding: 4,
+     },
+-    sectionsRow: {
++    tabsContainer: {
+         flexDirection: 'row',
++        paddingHorizontal: 8,
++        gap: 8,
++        marginBottom: 10,
+     },
+-    sectionsColumn: {
+-        flexDirection: 'column',
+-    },
+-    section: {
++    tabButton: {
+         flex: 1,
++        height: 40,
++        justifyContent: 'center',
++        alignItems: 'center',
++        borderRadius: 10,
++        backgroundColor: 'rgba(139, 101, 8, 0.1)',
++        borderWidth: 1,
++        borderColor: 'rgba(139, 101, 8, 0.2)',
+     },
+-    sectionTitle: {
+-        color: '#666',
+-        fontSize: 9,
+-        fontWeight: '700',
+-        marginBottom: 8,
+-        textAlign: 'center',
++    activeTabButton: {
++        backgroundColor: '#FFD700',
++        borderColor: '#8B6508',
++        elevation: 3,
++        shadowColor: '#000',
++        shadowOffset: { width: 0, height: 2 },
++        shadowOpacity: 0.2,
++        shadowRadius: 2,
++    },
++    tabText: {
++        fontSize: 12,
++        fontWeight: 'bold',
++        color: '#8B6508',
++        letterSpacing: 1,
++    },
++    activeTabText: {
++        color: '#332400',
++    },
++    contentArea: {
++        paddingHorizontal: 8,
++        paddingBottom: 12,
+     },
+     messagesGrid: {
+-        flexDirection: 'column',
+-        gap: 5,
++        flexDirection: 'row',
++        flexWrap: 'wrap',
++        gap: 6,
+     },
+     messageItem: {
++        width: '48%', // 2 columns
+         backgroundColor: 'rgba(255, 215, 0, 0.15)',
+-        paddingVertical: 5,
+-        paddingHorizontal: 8,
++        paddingVertical: 8,
++        paddingHorizontal: 5,
+         borderRadius: 8,
+         borderWidth: 1,
+         borderColor: 'rgba(139, 101, 8, 0.2)',
+@@ -203,8 +265,39 @@ const styles = StyleSheet.create({
+     },
+     messageText: {
+         color: '#333',
++        fontSize: 10,
++        fontWeight: '700',
++        textAlign: 'center',
++    },
++    premiumTabIcon: {
++        flexDirection: 'row',
++        alignItems: 'center',
++    },
++    lockBadge: {
++        position: 'absolute',
++        bottom: -2,
++        right: -6,
++        backgroundColor: 'rgba(255, 215, 0, 0.8)',
++        borderRadius: 6,
++        padding: 1,
++    },
++    premiumEmptyContainer: {
++        height: 120,
++        justifyContent: 'center',
++        alignItems: 'center',
++        gap: 8,
++    },
++    premiumText: {
++        color: '#8B6508',
++        fontSize: 14,
++        fontWeight: 'bold',
++        textTransform: 'uppercase',
++        letterSpacing: 1,
++    },
++    premiumSubtext: {
++        color: '#A88B4A',
+         fontSize: 11,
+-        fontWeight: '600',
++        fontStyle: 'italic',
+     },
+     emojisGrid: {
+         flexDirection: 'row',
+@@ -213,16 +306,17 @@ const styles = StyleSheet.create({
+         gap: 8,
+     },
+     emojiItem: {
+-        width: 35,
+-        height: 35,
++        width: 45,
++        height: 45,
+         backgroundColor: 'white',
+-        borderRadius: 10,
++        borderRadius: 12,
+         justifyContent: 'center',
+         alignItems: 'center',
+         borderWidth: 1,
+         borderColor: '#E8CA8B',
++        elevation: 2,
+     },
+     emojiText: {
+-        fontSize: 20,
++        fontSize: 22,
+     },
+ });

@@ -1,6 +1,7 @@
 
 import { finalizeRound } from './LogicEngine';
 import { GameState, Player } from './types';
+import { createBaseGameState } from '../hooks/game/__tests__/testUtils';
 
 const createMockPlayer = (id: string, name: string): Player => ({
     id,
@@ -17,23 +18,11 @@ const createMockPlayer = (id: string, name: string): Player => ({
     totalRoundWins: 0
 });
 
-const createInitialState = (players: Player[], mode: any, condition: number): GameState => ({
-    gameId: 'stress-test',
+const createInitialState = (players: Player[], mode: any, condition: number): GameState => createBaseGameState({
     players,
-    talonMort: [],
-    table: { sequence: [], leftValue: null, rightValue: null },
     currentPlayerId: players[0].id,
-    phase: 'PLAYING',
-    firstPlayerOfRound: null,
-    history: [],
     winningCondition: condition,
     gameMode: mode,
-    turnDuration: 30, // Default duration
-    lastActionTimestamp: Date.now(),
-    mancheHistory: [],
-    roundNumber: 1,
-    mancheNumber: 1,
-    startingHandSize: 7
 });
 
 describe('Phase 2.3: Stress Test Simulation', () => {

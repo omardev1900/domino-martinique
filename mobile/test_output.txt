@@ -1,0 +1,4 @@
+
+> mobile@1.0.0 test
+> jest src/hooks/game/__tests__/useGameSync.test.ts
+

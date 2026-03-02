@@ -25,6 +25,7 @@ interface PlayerAvatarProps {
     chatContent?: string | null; // NEW: Chat message or emoji
     overtime?: number | null; // NEW: Explicit 5s Overtime
     isBotPlaying?: boolean; // NEW: Show bot indicator
+    isDisconnected?: boolean; // NEW: Show disconnected indicator
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -46,7 +47,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     isBoude = false,
     chatContent,
     overtime = null,
-    isBotPlaying = false
+    isBotPlaying = false,
+    isDisconnected = false
 }) => {
     const strokeWidth = 4;
     const radius = (size - strokeWidth) / 2;
@@ -243,8 +245,14 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         </View>
                     )}
 
-                    {/* BOT PLAYING OVERLAY */}
-                    {isBotPlaying && (
+                    {/* DISCONNECTED OVERLAY (Priorité sur Bot) */}
+                    {isDisconnected ? (
+                        <View style={styles.disconnectedOverlay}>
+                            <Ionicons name="wifi" size={24} color="#FFF" style={{ opacity: 0.5, marginBottom: -8 }} />
+                            <Text style={styles.disconnectedIcon}>/</Text>
+                            <Text style={styles.disconnectedText}>DÉCONNECTÉ</Text>
+                        </View>
+                    ) : isBotPlaying && (
                         <View style={styles.botOverlay}>
                             <Text style={styles.botText}>BOT...</Text>
                         </View>
@@ -294,40 +302,44 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             </Animated.View>
 
             {/* Name below avatar in vertical layout */}
-            {!isHorizontal && namePlacement === 'below' && (
-                <View style={styles.nameContainerVerticalBelow}>
-                    <Text style={[styles.playerName, styles.nameVertical]} numberOfLines={1}>{player.name}</Text>
-                    <Text style={styles.mancheZetwal}>{player.currentMancheStars || 0} ⭐</Text>
-                    {score && <Text style={styles.playerScore}>{score}</Text>}
-                    {showHandSize && (
-                        <View style={styles.handSizeBadge}>
-                            <Ionicons name="documents-outline" size={10} color="#FFF" style={{ opacity: 0.6 }} />
-                            <Text style={styles.handSizeText}>{player.handSize}/7</Text>
-                        </View>
-                    )}
-                </View>
-            )}
+            {
+                !isHorizontal && namePlacement === 'below' && (
+                    <View style={styles.nameContainerVerticalBelow}>
+                        <Text style={[styles.playerName, styles.nameVertical]} numberOfLines={1}>{player.name}</Text>
+                        <Text style={styles.mancheZetwal}>{player.currentMancheStars || 0} ⭐</Text>
+                        {score && <Text style={styles.playerScore}>{score}</Text>}
+                        {showHandSize && (
+                            <View style={styles.handSizeBadge}>
+                                <Ionicons name="documents-outline" size={10} color="#FFF" style={{ opacity: 0.6 }} />
+                                <Text style={styles.handSizeText}>{player.handSize}/7</Text>
+                            </View>
+                        )}
+                    </View>
+                )
+            }
 
             {/* Info Block for Horizontal Layout */}
-            {isHorizontal && (
-                <View style={[
-                    styles.opponentInfoBlock,
-                    position === 'top-right' ? styles.opponentInfoBlockRight : styles.opponentInfoBlockLeft
-                ]}>
-                    <Text style={styles.opponentNameText} numberOfLines={1}>{player.name}</Text>
-                    <View style={styles.opponentStatsRow}>
-                        <View style={styles.opponentStatCol}>
-                            <Text style={styles.statLabelV}>V</Text>
-                            <Text style={styles.statValueV}>{player.currentMancheStars || 0}</Text>
-                        </View>
-                        <View style={styles.opponentStatCol}>
-                            <Text style={styles.statLabelPTS}>PTS</Text>
-                            <Text style={styles.statValuePTS}>{typeof score === 'string' ? score.replace(/[^0-9-]/g, '') : (score || 0)}</Text>
+            {
+                isHorizontal && (
+                    <View style={[
+                        styles.opponentInfoBlock,
+                        position === 'top-right' ? styles.opponentInfoBlockRight : styles.opponentInfoBlockLeft
+                    ]}>
+                        <Text style={styles.opponentNameText} numberOfLines={1}>{player.name}</Text>
+                        <View style={styles.opponentStatsRow}>
+                            <View style={styles.opponentStatCol}>
+                                <Text style={styles.statLabelV}>V</Text>
+                                <Text style={styles.statValueV}>{player.currentMancheStars || 0}</Text>
+                            </View>
+                            <View style={styles.opponentStatCol}>
+                                <Text style={styles.statLabelPTS}>PTS</Text>
+                                <Text style={styles.statValuePTS}>{typeof score === 'string' ? score.replace(/[^0-9-]/g, '') : (score || 0)}</Text>
+                            </View>
                         </View>
                     </View>
-                </View>
-            )}
-        </RNAnimated.View>
+                )
+            }
+        </RNAnimated.View >
     );
 };
 
@@ -440,6 +452,33 @@ const styles = StyleSheet.create({
         color: '#FFD700',
         fontWeight: 'bold',
         fontSize: 10,
+        textShadowColor: 'rgba(0,0,0,0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    disconnectedOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(50, 50, 50, 0.85)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 6,
+    },
+    disconnectedIcon: {
+        color: '#E74C3C',
+        fontSize: 32,
+        fontWeight: '900',
+        position: 'absolute',
+        top: '20%',
+        textShadowColor: 'rgba(0,0,0,1)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 2,
+    },
+    disconnectedText: {
+        color: '#E74C3C',
+        fontWeight: '900',
+        fontSize: 9,
+        marginTop: 18,
+        letterSpacing: -0.5,
         textShadowColor: 'rgba(0,0,0,0.8)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 3,

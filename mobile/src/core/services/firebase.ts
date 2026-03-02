@@ -22,6 +22,7 @@ import {
     deleteDoc,
     onSnapshot,
     serverTimestamp,
+    runTransaction,
     arrayUnion,
     arrayRemove,
     DocumentSnapshot,
@@ -424,7 +425,18 @@ export const subscribeToRoom = (
 
     return onSnapshot(roomRef, (snapshot: DocumentSnapshot<DocumentData>) => {
         if (snapshot.exists()) {
-            onUpdate({ ...snapshot.data() } as GameRoom);
+            const data = { ...snapshot.data() } as GameRoom;
+
+            // FIREBASE SPARSE-ARRAY SANITIZATION
+            // Firebase occasionally serializes sparse arrays as objects, causing `.find()` crashes.
+            if (data.players && !Array.isArray(data.players)) {
+                data.players = Object.values(data.players);
+            }
+            if (data.gameState?.players && !Array.isArray(data.gameState.players)) {
+                data.gameState.players = Object.values(data.gameState.players);
+            }
+
+            onUpdate(data);
         } else {
             console.log("No such room!");
         }
@@ -543,4 +555,62 @@ export const listenToPublicRooms = (
         console.error("Public rooms listener error:", error);
         if (onError) onError(error);
     });
+};
+
+/**
+ * Explicitly signals to the Room that this player is online and active.
+ * Clears `isBot` and `isDisconnected` flags from the gameState.
+ * @param roomId 
+ * @param playerId 
+ */
+export const signalPlayerOnline = async (roomId: string, playerId: string): Promise<void> => {
+    if (!roomId || !playerId) return;
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const roomSnap = await transaction.get(roomRef);
+            if (!roomSnap.exists()) return;
+
+            const roomData = roomSnap.data() as GameRoom;
+
+            // Only proceed if there's an active gameState
+            if (!roomData.gameState || !roomData.gameState.players) return;
+
+            const playerIndex = roomData.gameState.players.findIndex(p => p.id === playerId);
+            if (playerIndex === -1) return; // Player not in active match
+
+            const currentPlayerState = roomData.gameState.players[playerIndex];
+
+            // Only explicitly run the expensive update if they are currently marked offline or bot
+            if (currentPlayerState.isBot || currentPlayerState.isDisconnected) {
+                console.log(`[Reconnection Protocol] Player ${playerId} signaling ONLINE natively via Transaction. Removing BOT locks.`);
+
+                const newGameStatePlayers = [...roomData.gameState.players];
+                newGameStatePlayers[playerIndex] = {
+                    ...newGameStatePlayers[playerIndex],
+                    isBot: false,
+                    isDisconnected: false
+                };
+
+                const updateData: any = {};
+                updateData[`gameState.players`] = newGameStatePlayers;
+                updateData[`gameState.lastActionTimestamp`] = Date.now(); // Resets Host Failsafe
+
+                const lobbyPlayerIndex = roomData.players.findIndex(p => p.uid === playerId);
+                if (lobbyPlayerIndex !== -1) {
+                    const newLobbyPlayers = [...roomData.players];
+                    newLobbyPlayers[lobbyPlayerIndex] = {
+                        ...newLobbyPlayers[lobbyPlayerIndex],
+                        isDisconnected: false
+                    } as any;
+                    updateData[`players`] = newLobbyPlayers;
+                }
+
+                transaction.update(roomRef, updateData);
+            }
+        });
+    } catch (e) {
+        console.error(`[Firebase] Failed to signal online status transaction for ${playerId}:`, e);
+    }
 };

@@ -96,6 +96,7 @@ export const dealGame = (playerNames: string[], handSize: number = HAND_SIZE): P
         gameMode: 'MANCHE',
         winningCondition: WINS_TO_WIN_MATCH,
         lastActionTimestamp: Date.now(),
+        turnId: 0,
     };
 };
 
@@ -202,6 +203,13 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         gameMode: 'MANCHE',
         winningCondition: WINS_TO_WIN_MATCH,
         lastActionTimestamp: Date.now(),
+        turnId: 0,
+        history: [],
+        firstPlayerOfRound: null,
+        mancheResult: null,
+        startingHandSize: handSize,
+        roundNumber: 1,
+        mancheNumber: 1,
     };
 };
 
@@ -278,6 +286,9 @@ export const handleTurn = (
 
     // Clone state deeply (simplified for structural clone)
     const newState: GameState = JSON.parse(JSON.stringify(gameState));
+    // ✅ Filet de securite : history peut manquer dans les anciens etats Firebase
+    if (!newState.history) newState.history = [];
+    if (!newState.talonMort) newState.talonMort = [];
     const playerIndex = newState.players.findIndex(p => p.id === playerId);
 
     if (playerIndex === -1) throw new Error("Player not found");
@@ -347,6 +358,7 @@ export const handleTurn = (
     const currentIdx = newState.players.findIndex(p => p.id === newState.currentPlayerId);
     const nextIdx = (currentIdx + 1) % newState.players.length;
     newState.currentPlayerId = newState.players[nextIdx].id;
+    newState.turnId = (newState.turnId ?? 0) + 1;
 
     return newState;
 };
@@ -409,6 +421,7 @@ export const passTurn = (
     const currentIdx = newState.players.findIndex(p => p.id === newState.currentPlayerId);
     const nextIdx = (currentIdx + 1) % newState.players.length;
     newState.currentPlayerId = newState.players[nextIdx].id;
+    newState.turnId = (newState.turnId ?? 0) + 1;
 
     return newState;
 };
@@ -450,3 +463,95 @@ export const determineFirstPlayer = (players: Player[]): string => {
 
     return bestSum ? bestSum.playerId : players[0].id;
 };
+
+/**
+ * handleTimeout : Joue automatiquement le meilleur coup valide (le plus gros domino) 
+ * ou passe le tour si aucun coup n'est possible.
+ */
+export const handleTimeout = (gameState: GameState, playerId: PlayerId): GameState => {
+    if (gameState.currentPlayerId !== playerId) {
+        throw new Error("Not your turn");
+    }
+
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+
+    let validMove = null;
+    const forcedOpeningId = getForcedOpeningDominoId(gameState, playerId);
+
+    if (forcedOpeningId) {
+        const forcedDomino = player.hand.find(tile => tile.id === forcedOpeningId);
+        if (forcedDomino) {
+            validMove = { tile: forcedDomino, side: 'start' as const };
+        }
+    } else {
+        const validMoves = getValidMoves(player.hand, {
+            left: gameState.table.leftValue,
+            right: gameState.table.rightValue
+        });
+        if (validMoves.length > 0) {
+            // Trier pour jouer le domino avec la plus grande valeur (sum)
+            const sortedMoves = [...validMoves].sort((a, b) => (b.tile.left + b.tile.right) - (a.tile.left + a.tile.right));
+            validMove = sortedMoves[0];
+        }
+    }
+
+    if (validMove) {
+        return handleTurn(gameState, playerId, validMove.tile, validMove.side === 'start' ? undefined : validMove.side);
+    } else {
+        return passTurn(gameState, playerId);
+    }
+};
+
+/**
+ * computeNextRoundState : Calcule l'état de départ du prochain round ou de la prochaine manche.
+ */
+export const computeNextRoundState = (activeState: GameState, fallbackHandSize: number = 7): GameState => {
+    const isMancheEnd = activeState.phase === 'MANCHE_END';
+    let winnerId = isMancheEnd ? null : activeState.firstPlayerOfRound;
+
+    const playerNames = activeState.players.map(p => p.name);
+    // On génère la nouvelle distribution pure
+    const partialState = dealGame(playerNames, activeState.startingHandSize || fallbackHandSize);
+
+    const safeOldPlayersArray = Array.isArray(activeState.players) ? activeState.players : Object.values(activeState.players || {});
+
+    const newPlayers = (partialState.players as Player[]).map((p, i) => {
+        const originalPlayer = safeOldPlayersArray[i] as Player | undefined;
+        return {
+            ...p,
+            id: originalPlayer?.id || p.id,
+            currentMancheStars: isMancheEnd ? 0 : (originalPlayer?.currentMancheStars ?? 0),
+            isCochon: isMancheEnd ? false : (originalPlayer?.isCochon ?? false),
+            mancheWins: originalPlayer?.mancheWins ?? 0,
+            totalPoints: originalPlayer?.totalPoints ?? 0,
+            totalCochons: originalPlayer?.totalCochons ?? 0,
+            isBot: originalPlayer?.isBot ?? false,
+            isDisconnected: originalPlayer?.isDisconnected ?? false,
+            avatarId: originalPlayer?.avatarId ?? undefined,
+            wins: originalPlayer?.wins ?? 0,
+            difficulty: originalPlayer?.difficulty,
+        } as Player;
+    });
+
+    if (!winnerId) {
+        winnerId = determineFirstPlayer(newPlayers);
+    }
+
+    return {
+        ...activeState, // Conserve configuration (gameId, rules...)
+        players: newPlayers,
+        talonMort: partialState.talonMort as Domino[],
+        table: partialState.table as any,
+        currentPlayerId: winnerId,
+        phase: 'PLAYING',
+        firstPlayerOfRound: null,
+        history: [],
+        mancheResult: null,
+        lastActionTimestamp: Date.now(),
+        turnId: 0, // Reset strict du turnId pour ce tour 1
+        roundNumber: isMancheEnd ? 1 : (activeState.roundNumber || 0) + 1,
+        mancheNumber: isMancheEnd ? (activeState.mancheNumber || 1) + 1 : (activeState.mancheNumber || 1)
+    };
+};
+

@@ -1,6 +1,7 @@
 
 import { createRoom, joinRoom, subscribeToRoom, updateGameState } from '../src/core/services/firebase';
 import { PlayerProfile, GameState, RoomStatus } from '../src/core/types';
+import { createBaseGameState } from '../src/hooks/game/__tests__/testUtils';
 
 // Polyfill for fetch/timers if needed in some node envs, but usually tsx handles it reasonably well with modern node.
 // If not, we might need 'cross-fetch' but let's try standard first.
@@ -67,27 +68,15 @@ async function runVerification() {
 
         // 4. Update Game State (Simulate starting game logic partially)
         log("\n4️⃣ Updating Game State...");
-        const mockGameState: GameState = {
+        const mockGameState = createBaseGameState({
             gameId: roomId,
             players: [
-                { id: hostProfile.uid, name: hostProfile.displayName, hand: [], handSize: 7, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, isBot: false, currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0 },
-                { id: joinerProfile.uid, name: joinerProfile.displayName, hand: [], handSize: 7, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, isBot: false, currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0 }
+                { id: hostProfile.uid, name: hostProfile.displayName, hand: [], handSize: 7, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, isBot: false, currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0 } as any,
+                { id: joinerProfile.uid, name: joinerProfile.displayName, hand: [], handSize: 7, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, isBot: false, currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0 } as any
             ],
-            talonMort: [],
-            table: { sequence: [], leftValue: null, rightValue: null },
             currentPlayerId: hostProfile.uid,
-            phase: 'PLAYING',
-            firstPlayerOfRound: hostProfile.uid,
-            history: [],
-            winningCondition: 3,
-            lastActionTimestamp: Date.now(),
-            gameMode: 'MANCHE',
-            turnDuration: 15,
-            mancheHistory: [],
-            roundNumber: 1,
-            mancheNumber: 1,
-            startingHandSize: 7
-        };
+            firstPlayerOfRound: hostProfile.uid
+        });
 
         // Note: The 'startGame' function in firebase.ts is essentially an updateGameState with status change.
         // We will call updateGameState directly as requested to test it, or better yet, we can use startGame provided by service if we want strictly that.

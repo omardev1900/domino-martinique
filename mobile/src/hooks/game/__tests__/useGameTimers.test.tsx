@@ -1,0 +1,107 @@
+import React from 'react';
+import { render, act } from '@testing-library/react-native';
+import { useGameTimers } from '../useGameTimers';
+import { GameState, Player } from '../../../core/types';
+import { createBaseGameState } from './testUtils';
+import { Text, View } from 'react-native';
+
+describe('useGameTimers Hook (Component Wrapper)', () => {
+    let mockOnTimeout: jest.Mock;
+
+    beforeEach(() => {
+        mockOnTimeout = jest.fn();
+        jest.clearAllMocks();
+        jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+        jest.runOnlyPendingTimers();
+        jest.useRealTimers();
+    });
+
+    const createMockState = (overrides = {}): GameState => createBaseGameState({
+        gameId: 'test-room',
+        players: [
+            { id: 'p1', name: 'Human', isBot: false, isDisconnected: false } as Player,
+            { id: 'p2', name: 'Bot', isBot: true, isDisconnected: false } as Player
+        ],
+        currentPlayerId: 'p1',
+        turnDuration: 10,
+        ...overrides
+    });
+
+    const TestComponent = ({ gameState, localPlayerId = 'p1', onTimeout }: any) => {
+        const { timeLeft, overtime } = useGameTimers({
+            gameState,
+            isPaused: false,
+            localPlayerId,
+            onTimeout: mockOnTimeout
+        });
+
+
+        return (
+            <View>
+                <Text testID="timeLeft">{timeLeft === null ? 'null' : timeLeft}</Text>
+                <Text testID="overtime">{overtime === null ? 'null' : overtime}</Text>
+            </View>
+        );
+    };
+
+    it('initializes timer for human player in PLAYING phase', () => {
+        const gameState = createMockState();
+        const { getByTestId } = render(<TestComponent gameState={gameState} onTimeout={mockOnTimeout} />);
+
+        expect(getByTestId('timeLeft').props.children).toBe(10);
+        expect(getByTestId('overtime').props.children).toBe('null');
+    });
+
+    it('clears timer if phase is not PLAYING', () => {
+        const gameState = createMockState({ phase: 'MATCH_END' });
+        const { getByTestId } = render(<TestComponent gameState={gameState} onTimeout={mockOnTimeout} />);
+
+        expect(getByTestId('timeLeft').props.children).toBe('null');
+        expect(getByTestId('overtime').props.children).toBe('null');
+    });
+
+    it('does not start timer for bot players', () => {
+        const gameState = createMockState({ currentPlayerId: 'p2' }); // p2 est un bot
+        const { getByTestId } = render(<TestComponent gameState={gameState} onTimeout={mockOnTimeout} />);
+
+        expect(getByTestId('timeLeft').props.children).toBe('null');
+    });
+
+    it('decrements timeLeft and activates overtime when it reaches 0', () => {
+        const gameState = createMockState({ turnDuration: 5 });
+        const { getByTestId } = render(<TestComponent gameState={gameState} onTimeout={mockOnTimeout} />);
+
+        act(() => {
+            jest.advanceTimersByTime(4000);
+        });
+        expect(getByTestId('timeLeft').props.children).toBe(1);
+
+        act(() => {
+            jest.advanceTimersByTime(1100);
+        });
+
+        expect(getByTestId('timeLeft').props.children).toBe(0);
+        expect(getByTestId('overtime').props.children).toBe(5);
+    });
+
+    it('triggers onTimeout when overtime reaches 0', () => {
+        const gameState = createMockState({ turnDuration: 1 });
+        const { getByTestId } = render(<TestComponent gameState={gameState} onTimeout={mockOnTimeout} />);
+
+        // Passer le timeLeft
+        act(() => {
+            jest.advanceTimersByTime(1100);
+        });
+
+        // Avancer tout l'overtime (5s)
+        act(() => {
+            jest.advanceTimersByTime(5500);
+        });
+
+        expect(getByTestId('overtime').props.children).toBe(0);
+        expect(mockOnTimeout).toHaveBeenCalledWith('p1', expect.any(Number));
+    });
+});

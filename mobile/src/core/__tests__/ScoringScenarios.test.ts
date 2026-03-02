@@ -1,43 +1,29 @@
 
 import { finalizeRound } from '../ScoringEngine';
 import { GameState, Player, GameMode } from '../types';
+import { createBaseGameState } from '../../hooks/game/__tests__/testUtils';
 
 // Mock Constants if needed, but we rely on imported ones. 
 // Assuming MANCHE_WIN_THRESHOLD is 3.
 
-const createMockState = (playersData: { id: string, stars: number, totalPoints: number }[], gameMode: GameMode = 'SCORE', winningCondition: number = 30): GameState => {
-    return {
-        players: playersData.map(p => ({
-            id: p.id,
-            name: p.id,
-            currentMancheStars: p.stars,
-            totalPoints: p.totalPoints,
-            mancheWins: 0,
-            totalRoundWins: 0,
-            totalCochons: 0,
-            isCochon: false,
-            isBot: false,
-            hand: [],
-            handSize: 0,
-        } as unknown as Player)),
-        gameId: 'test-game-id',
-        turnDuration: 30,
-        phase: 'PLAYING',
-        gameMode,
-        winningCondition,
-        talonMort: [],
-        table: { sequence: [], leftValue: null, rightValue: null },
-        history: [],
-        lastActionTimestamp: 0,
-        currentPlayerId: playersData[0].id,
-        mancheResult: null,
-        firstPlayerOfRound: null,
-        mancheHistory: [],
-        roundNumber: 1,
-        mancheNumber: 1,
-        startingHandSize: 7
-    };
-};
+const createMockState = (playersData: { id: string, stars: number, totalPoints: number }[], gameMode: GameMode = 'SCORE', winningCondition: number = 30): GameState => createBaseGameState({
+    players: playersData.map(p => ({
+        id: p.id,
+        name: p.id,
+        currentMancheStars: p.stars,
+        totalPoints: p.totalPoints,
+        mancheWins: 0,
+        totalRoundWins: 0,
+        totalCochons: 0,
+        isCochon: false,
+        isBot: false,
+        hand: [],
+        handSize: 0,
+    } as unknown as Player)),
+    currentPlayerId: playersData[0].id,
+    gameMode,
+    winningCondition,
+});
 
 describe('Scoring Verification', () => {
     // Helper to log clear results

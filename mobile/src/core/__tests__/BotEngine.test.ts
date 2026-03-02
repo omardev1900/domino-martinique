@@ -1,6 +1,7 @@
 import { getBotMove } from '../BotEngine';
 import { handleTurn } from '../LogicEngine';
 import { Domino, Player, GameState, DominoSide } from '../types';
+import { createBaseGameState } from '../../hooks/game/__tests__/testUtils';
 
 describe('BotEngine', () => {
     it('should return a valid move if one exists', () => {
@@ -35,24 +36,14 @@ describe('LogicEngine Advanced', () => {
         const p2: Player = { id: 'p2', name: 'Player 2', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: true };
         const p3: Player = { id: 'p3', name: 'Player 3', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: true };
 
-        let state: GameState = {
+        let state: GameState = createBaseGameState({
             gameId: 'g1',
-            gameMode: 'MANCHE',
             players: [p1, p2, p3],
-            talonMort: [],
-            table: { sequence: [], leftValue: null, rightValue: null },
             history: [],
             currentPlayerId: 'p1',
-            phase: 'PLAYING',
             firstPlayerOfRound: 'p1',
-            winningCondition: 3,
             lastActionTimestamp: 0,
-            roundNumber: 1,
-            mancheNumber: 1,
-            turnDuration: 15,
-            mancheHistory: [],
-            startingHandSize: 7
-        };
+        });
 
         const domino = p1.hand[0];
         const newState = handleTurn(state, 'p1', domino);

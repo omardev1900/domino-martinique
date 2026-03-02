@@ -36,6 +36,7 @@ export interface Player {
     totalCochons: number;
     isBot: boolean;
     difficulty?: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend'; // NEW: Niveau spécifique du bot
+    isDisconnected?: boolean; // NEW: Track if remote player is offline
 }
 
 export type GamePhase = 'LOBBY' | 'DEALING' | 'PLAYING' | 'BOUDE' | 'PARTIE_END' | 'MATCH_END' | 'MANCHE_END';
@@ -63,6 +64,7 @@ export interface GameState {
     mancheResult?: MancheResult | null; // NEW: Résultat de la manche (pour affichage Chiré)
     turnDuration: number; // NEW: Durée du tour en secondes
     lastActionTimestamp: number;
+    turnId: number; // Incremental counter — bumped on every turn transition, used as invalidation key for timers
     mancheHistory: MancheHistoryRecord[];
     roundNumber: number; // NEW: Numéro du round/partie en cours dans la manche
     mancheNumber: number; // NEW: Numéro de la manche en cours

@@ -1,0 +1,162 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { GameState } from '../../core/types';
+
+export interface UseGameTimersProps {
+    gameState: GameState | null;
+    isPaused: boolean;
+    localPlayerId: string;
+    onTimeout: (playerId: string, turnIdFromTimer: number) => void;
+}
+
+export interface UseGameTimersResult {
+    timeLeft: number | null;
+    setTimeLeft: React.Dispatch<React.SetStateAction<number | null>>;
+    overtime: number | null;
+    setOvertime: React.Dispatch<React.SetStateAction<number | null>>;
+    clearAllTurnTimers: () => void;
+    getTurnAgeMs: () => number;
+}
+
+export const useGameTimers = ({
+    gameState,
+    isPaused,
+    localPlayerId,
+    onTimeout
+}: UseGameTimersProps): UseGameTimersResult => {
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    const [overtime, setOvertime] = useState<number | null>(null);
+
+    const turnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const overtimeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Ref qui stocke le turnId capturé AU MOMENT où le chrono démarre.
+    const capturedTurnIdRef = useRef<number>(0);
+
+    // IMMUNITÉ DE TOUR: Horloge locale, indépendante de Firebase.
+    const TURN_IMMUNITY_MS = 5000;
+    const turnMountedAtRef = useRef<number>(Date.now());
+
+    const getTurnAgeMs = useCallback(() => {
+        return Date.now() - turnMountedAtRef.current;
+    }, []);
+
+    const onTimeoutRef = useRef(onTimeout);
+    useEffect(() => {
+        onTimeoutRef.current = onTimeout;
+    });
+
+    const clearAllTurnTimers = useCallback(() => {
+        if (turnTimerRef.current) clearInterval(turnTimerRef.current);
+        if (overtimeTimerRef.current) clearTimeout(overtimeTimerRef.current);
+        turnTimerRef.current = null;
+        overtimeTimerRef.current = null;
+    }, []);
+
+    // ✅ RADICAL FIX: Quand un joueur se déconnecte en plein tour,
+    // turnId et phase ne changent pas. Ce flag dérivé force le redémarrage
+    // avec la durée réduite (5s).
+    const activePlayer = gameState?.players?.find(p => p.id === gameState?.currentPlayerId);
+    const activePlayerIsDisconnected = !!(activePlayer?.isDisconnected);
+
+    // Tour principal (PURE LOCAL CLOCK)
+    useEffect(() => {
+        clearAllTurnTimers();
+        setOvertime(null);
+
+        if (!gameState || isPaused) return;
+
+        if (gameState.phase !== 'PLAYING') {
+            setTimeLeft(null);
+            return;
+        }
+
+        const activeId = gameState.currentPlayerId;
+        const player = gameState.players?.find(p => p.id === activeId);
+
+        // Pas de timer visuel pour les bots PURS (IA de base).
+        // Les joueurs déconnectés DOIVENT garder un timer.
+        if (!player || (player.isBot && !player.isDisconnected)) {
+            setTimeLeft(null);
+            return;
+        }
+
+        const turnDuration = gameState.turnDuration;
+        if (!turnDuration || turnDuration <= 0) {
+            setTimeLeft(null);
+            return;
+        }
+
+        // Durée réduite pour les joueurs déconnectés
+        const effectiveDuration = player.isDisconnected
+            ? Math.min(turnDuration, 5)
+            : turnDuration;
+
+        const currentTurnId = gameState.turnId ?? 0;
+        capturedTurnIdRef.current = currentTurnId;
+
+
+
+        setTimeLeft(effectiveDuration);
+        turnMountedAtRef.current = Date.now();
+
+        const localStartTimeMs = Date.now();
+        const durationMs = effectiveDuration * 1000;
+
+        turnTimerRef.current = setInterval(() => {
+            if (isPaused) return;
+
+            const elapsed = Date.now() - localStartTimeMs;
+            const remaining = Math.max(0, Math.ceil((durationMs - elapsed) / 1000));
+            const turnAge = Date.now() - turnMountedAtRef.current;
+            const isPlayerDisconnected = player.isDisconnected;
+
+            setTimeLeft(remaining);
+
+            if (remaining === 0 && (isPlayerDisconnected || turnAge >= TURN_IMMUNITY_MS)) {
+                if (turnTimerRef.current) clearInterval(turnTimerRef.current);
+                turnTimerRef.current = null;
+
+                setOvertime(5);
+            } else if (remaining === 0 && !isPlayerDisconnected && turnAge < TURN_IMMUNITY_MS) {
+
+            }
+        }, 100);
+
+        return clearAllTurnTimers;
+    }, [gameState?.turnId, gameState?.phase, isPaused, clearAllTurnTimers, activePlayerIsDisconnected]);
+
+    // Décompte Overtime
+    useEffect(() => {
+        if (overtime === null || isPaused) return;
+
+        if (overtime > 0) {
+            overtimeTimerRef.current = setTimeout(() => {
+                setOvertime(prev => (prev !== null && prev > 0 ? prev - 1 : null));
+            }, 1000);
+        } else if (overtime === 0) {
+            const currentPlayerId = gameState?.currentPlayerId;
+            const turnIdToSend = capturedTurnIdRef.current;
+
+
+            // ✅ RADICAL FIX: Le timer ne verrouille PLUS l'interface.
+            // Il se contente d'émettre le signal onTimeout. 
+            // L'interface est pilotée par isMyTurn + phase.
+            if (currentPlayerId) {
+                onTimeoutRef.current(currentPlayerId, turnIdToSend);
+            }
+        }
+
+        return () => {
+            if (overtimeTimerRef.current) clearTimeout(overtimeTimerRef.current);
+        };
+    }, [overtime, isPaused, gameState?.currentPlayerId]);
+
+    return {
+        timeLeft,
+        setTimeLeft,
+        overtime,
+        setOvertime,
+        clearAllTurnTimers,
+        getTurnAgeMs
+    };
+};

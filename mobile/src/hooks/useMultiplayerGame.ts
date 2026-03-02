@@ -88,6 +88,7 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
                 turnDuration: roomData.turnDuration || 15,
                 startingHandSize: roomData.startingHandSize || 7,
                 lastActionTimestamp: Date.now(),
+                turnId: 0,
                 mancheHistory: [],
                 roundNumber: 1,
                 mancheNumber: 1,

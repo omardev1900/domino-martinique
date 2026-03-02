@@ -1,5 +1,6 @@
 import { handleTurn, passTurn, calculateHandPoints, finalizeRound, determineWinnerOnBoudé } from '../core/LogicEngine';
 import { GameState, Player, Domino } from '../core/types';
+import { createBaseGameState } from '../hooks/game/__tests__/testUtils';
 
 const createMockPlayer = (id: string, name: string, wins: number, totalPoints: number = 0): Player => ({
     id,
@@ -16,23 +17,10 @@ const createMockPlayer = (id: string, name: string, wins: number, totalPoints: n
     totalCochons: 0
 });
 
-const createMockState = (players: Player[], winningCondition: number = 3): GameState => ({
-    gameId: 'test-game',
+const createMockState = (players: Player[], winningCondition: number = 3): GameState => createBaseGameState({
     players,
-    talonMort: [],
-    table: { sequence: [], leftValue: null, rightValue: null },
     currentPlayerId: players[0].id,
-    phase: 'PLAYING',
-    firstPlayerOfRound: null,
-    history: [],
     winningCondition,
-    gameMode: 'MANCHE',
-    lastActionTimestamp: Date.now(),
-    turnDuration: 15,
-    mancheHistory: [],
-    roundNumber: 1,
-    mancheNumber: 1,
-    startingHandSize: 7
 });
 
 describe('Domino Martiniquais Rules - Termination Scenarios', () => {

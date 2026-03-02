@@ -1,32 +1,20 @@
-
 import { handleEndOfRound, determineWinnerOnBoudé } from '../core/LogicEngine';
 import { GameState, Player, GameMode, Domino } from '../core/types';
+import { createBaseGameState } from '../hooks/game/__tests__/testUtils';
 
 // Mock helper to create a basic state
 const createMockState = (mode: GameMode, condition: number): GameState => {
-    return {
-        gameId: 'test-game',
+    return createBaseGameState({
         players: [
             { id: 'p1', name: 'Player 1', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 },
             { id: 'p2', name: 'Player 2', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 },
             { id: 'p3', name: 'Player 3', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 }
         ],
-        talonMort: [],
-        table: { sequence: [], leftValue: null, rightValue: null },
         currentPlayerId: 'p1',
-        phase: 'PLAYING',
         firstPlayerOfRound: 'p1',
-        history: [],
         gameMode: mode,
         winningCondition: condition,
-        turnDuration: 15,
-        lastActionTimestamp: Date.now(),
-        mancheResult: null,
-        mancheHistory: [],
-        roundNumber: 1,
-        mancheNumber: 1,
-        startingHandSize: 7
-    };
+    });
 };
 
 describe('Multiplayer Game Logic & Rules Verification', () => {

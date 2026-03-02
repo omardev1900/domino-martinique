@@ -1,6 +1,7 @@
 
 import { handleEndOfRound } from '../LogicEngine';
 import { GameState, Player, Domino } from '../types';
+import { createBaseGameState } from '../../hooks/game/__tests__/testUtils';
 
 const mockDomino: Domino = { id: 'd', left: 0, right: 0, isDouble: true, sum: 0 };
 
@@ -18,23 +19,10 @@ const createMockPlayer = (id: string, name: string, wins: number, totalPoints: n
     isBot: false
 } as unknown as Player);
 
-const createMockState = (players: Player[], winningCondition: number = 3): GameState => ({
-    gameId: 'test-game',
+const createMockState = (players: Player[], winningCondition: number = 3): GameState => createBaseGameState({
     players,
-    talonMort: [],
-    table: { sequence: [], leftValue: null, rightValue: null },
     currentPlayerId: players[0].id,
-    phase: 'PLAYING',
-    firstPlayerOfRound: null,
-    history: [],
     winningCondition,
-    gameMode: 'MANCHE',
-    turnDuration: 15,
-    lastActionTimestamp: Date.now(),
-    mancheHistory: [],
-    roundNumber: 1,
-    mancheNumber: 1,
-    startingHandSize: 7
 });
 
 describe('Manual Simulation Scenarios', () => {

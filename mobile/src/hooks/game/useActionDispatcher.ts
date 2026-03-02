@@ -1,0 +1,186 @@
+import { useCallback } from 'react';
+import { GameState, Domino, PlayerId, GameRoom } from '../../core/types';
+import { handleTurn, passTurn, resolveBoude, handleTimeout, computeNextRoundState } from '../../core/LogicEngine';
+import SoundManager from '../../core/audio/SoundManager';
+
+export type ActionCommand =
+    | { type: 'PLAY_TILE'; playerId: PlayerId; tile: Domino; side?: 'start' | 'left' | 'right' }
+    | { type: 'PASS_TURN'; playerId: PlayerId }
+    | { type: 'TIMEOUT'; playerId: PlayerId }
+    | { type: 'NEXT_ROUND'; stateOverride?: GameState }
+    | { type: 'RESOLVE_BOUDE' };
+
+export interface UseActionDispatcherProps {
+    gameState: GameState | null;
+    localPlayerId: string;
+    isSoloMode: boolean;
+    gameId: string | undefined;
+    isLocalHost: boolean;
+    roomData: GameRoom | null;
+    startingHandSize?: number;
+    acquireLock: () => boolean;
+    releaseLock: () => void;
+    canAction: (playerId: string, isTimeoutAction?: boolean) => boolean;
+    safeUpdateGameState: (gameId: string, newState: GameState) => Promise<void>;
+    setGameState: (state: GameState) => void;
+    clearAllTurnTimers: () => void;
+    setOvertime: React.Dispatch<React.SetStateAction<number | null>>;
+    onTilePlayed?: (tile: Domino) => void;
+}
+
+export const useActionDispatcher = ({
+    gameState,
+    localPlayerId,
+    isSoloMode,
+    gameId,
+    isLocalHost,
+    roomData,
+    startingHandSize,
+    acquireLock,
+    releaseLock,
+    canAction,
+    safeUpdateGameState,
+    setGameState,
+    clearAllTurnTimers,
+    setOvertime,
+    onTilePlayed
+}: UseActionDispatcherProps) => {
+
+    const dispatch = useCallback(async (command: ActionCommand) => {
+        if (!gameState) return;
+
+        // Autorité de l'Hôte pour le TIMEOUT
+        if (command.type === 'TIMEOUT') {
+            const player = gameState.players.find(p => p.id === command.playerId);
+            const isBotOrDisconnected = player?.isBot || player?.isDisconnected;
+            if (isBotOrDisconnected && !isSoloMode && roomData && roomData.createdBy !== localPlayerId) {
+
+                return;
+            }
+        }
+
+        // Vérification globale canAction (C'est son tour ? Verrou libre ? Immunité (timeouts) ?)
+        if (command.type === 'PLAY_TILE' || command.type === 'PASS_TURN' || command.type === 'TIMEOUT') {
+            const isTimeout = command.type === 'TIMEOUT';
+            if (!canAction(command.playerId, isTimeout)) {
+                return;
+            }
+        }
+
+        // Tente d'acquérir le verrou
+        if (!acquireLock()) {
+            return;
+        }
+
+
+
+        try {
+            let newState: GameState | null = null;
+            let tilePlayed: Domino | null = null;
+
+            switch (command.type) {
+                case 'PLAY_TILE': {
+                    if (gameState.phase !== 'PLAYING') break;
+                    newState = handleTurn(gameState, command.playerId, command.tile, command.side === 'start' ? undefined : command.side);
+                    tilePlayed = command.tile;
+                    break;
+                }
+                case 'PASS_TURN': {
+                    if (gameState.phase !== 'PLAYING') break;
+                    newState = passTurn(gameState, command.playerId);
+                    break;
+                }
+                case 'TIMEOUT': {
+                    if (gameState.phase !== 'PLAYING') break;
+                    // LogicEngine.ts contains handleTimeout to do exactly this logic purely
+                    newState = handleTimeout(gameState, command.playerId);
+                    // Determine if a tile was actually played during timeout by checking history
+                    const latestAction = newState.history?.[newState.history.length - 1];
+                    if (latestAction?.action === 'PLAY' && latestAction.domino) {
+                        tilePlayed = latestAction.domino;
+                    }
+                    break;
+                }
+                case 'NEXT_ROUND': {
+                    const activeState = command.stateOverride || gameState;
+                    newState = computeNextRoundState(activeState, startingHandSize);
+
+                    // Override gameId specifically for solo mode local ID generation if needed
+                    if (isSoloMode || !activeState.gameId) {
+                        newState.gameId = activeState.gameId || gameId || 'local-' + Date.now();
+                    }
+                    break;
+                }
+                case 'RESOLVE_BOUDE': {
+                    if (gameState.phase !== 'BOUDE') break;
+                    const { newState: resolvedState, isTie } = resolveBoude(gameState);
+                    if (isTie) {
+                        // Hacky: appeler le dispatch directement avec le nouveau type 
+                        dispatch({ type: 'NEXT_ROUND', stateOverride: resolvedState });
+                        return; // Lock released in recursive or handled there
+                    } else {
+                        newState = resolvedState;
+                    }
+                    break;
+                }
+            }
+
+            if (newState) {
+                // Toujours mettre à jour le timestamp pour forcer Firebase
+                newState.lastActionTimestamp = Date.now();
+
+                // Effets sonores
+                try {
+                    if (command.type === 'NEXT_ROUND') {
+                        if ((SoundManager as any).playSound) (SoundManager as any).playSound('shuffle');
+                    } else if (tilePlayed) {
+                        if ((SoundManager as any).playClack) (SoundManager as any).playClack();
+                        if ((SoundManager as any).playSound) (SoundManager as any).playSound('place_tile');
+                        if (onTilePlayed) onTilePlayed(tilePlayed);
+                    } else if (command.type === 'PASS_TURN' || (command.type === 'TIMEOUT' && !tilePlayed)) {
+                        if ((SoundManager as any).playSound) (SoundManager as any).playSound('pass_turn');
+                    }
+                } catch (e) {
+                    console.error('[ActionDispatcher] Sound error:', e);
+                }
+
+                if (command.type !== 'NEXT_ROUND' && command.type !== 'RESOLVE_BOUDE') {
+                    setOvertime(null);
+                    clearAllTurnTimers();
+                }
+
+                if (isSoloMode || !gameId) {
+                    setGameState(newState);
+                } else {
+                    const cleanState = JSON.parse(JSON.stringify(newState));
+                    await safeUpdateGameState(gameId, cleanState);
+                }
+            } else {
+
+            }
+        } catch (e) {
+            console.error('[ActionDispatcher] Erreur durant l\'action:', e);
+        } finally {
+            // Toujours libérer le verrou à la fin de l'action, qu'elle réussisse ou échoue !
+            releaseLock();
+        }
+
+    }, [
+        gameState,
+        localPlayerId,
+        isSoloMode,
+        gameId,
+        roomData,
+        startingHandSize,
+        acquireLock,
+        releaseLock,
+        canAction,
+        safeUpdateGameState,
+        setGameState,
+        clearAllTurnTimers,
+        setOvertime,
+        onTilePlayed
+    ]);
+
+    return { dispatch };
+};

@@ -1,6 +1,7 @@
 
 import { dealGame, checkValidMove, determineFirstPlayer, determineWinnerOnBoudé, calculateHandPoints, passTurn, handleTurn, getForcedOpeningDominoId } from '../LogicEngine';
 import { Domino, Player, DominoSide, GameState } from '../types';
+import { createBaseGameState } from '../../hooks/game/__tests__/testUtils';
 
 describe('LogicEngine', () => {
     describe('dealGame', () => {
@@ -88,29 +89,19 @@ describe('LogicEngine', () => {
     });
 });
 
+
 describe('passTurn', () => {
     const p1: Player = { id: 'p1', name: 'P1', hand: [{ id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
     const p2: Player = { id: 'p2', name: 'P2', hand: [{ id: 'd2', left: 0, right: 0, isDouble: true, sum: 0 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
     const p3: Player = { id: 'p3', name: 'P3', hand: [{ id: 'd3', left: 2, right: 2, isDouble: true, sum: 4 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
 
-    let state: GameState = {
-        gameId: 'g1',
-        gameMode: 'MANCHE',
+    let state: GameState = createBaseGameState({
         players: [p1, p2, p3],
-        talonMort: [],
         table: { sequence: [], leftValue: 6, rightValue: 6 }, // Table matches 6
         history: [],
         currentPlayerId: 'p2', // P2 has 0-0, cannot play on 6-6
-        phase: 'PLAYING',
         firstPlayerOfRound: 'p1',
-        winningCondition: 3,
-        lastActionTimestamp: 0,
-        roundNumber: 1,
-        mancheNumber: 1,
-        turnDuration: 15,
-        mancheHistory: [],
-        startingHandSize: 7
-    };
+    });
 
     it('should throw if player has a valid move', () => {
         // P1 has 6-6 and table is 6-6, so P1 can play.
@@ -144,24 +135,13 @@ describe('passTurn', () => {
 describe('handleTurn', () => {
     const p1: Player = { id: 'p1', name: 'P1', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
 
-    let state: GameState = {
-        gameId: 'g1',
-        gameMode: 'MANCHE',
+    let state: GameState = createBaseGameState({
         players: [p1],
-        talonMort: [],
         table: { sequence: [], leftValue: 6, rightValue: 6 },
         history: [],
         currentPlayerId: 'p1',
-        phase: 'PLAYING',
         firstPlayerOfRound: 'p1',
-        winningCondition: 3,
-        lastActionTimestamp: 0,
-        roundNumber: 1,
-        mancheNumber: 1,
-        turnDuration: 15,
-        mancheHistory: [],
-        startingHandSize: 7
-    };
+    });
 
     // Re-initialize p1's hand for each test
     beforeEach(() => {
@@ -181,9 +161,7 @@ describe('Opening rule (round 1 / manche 1)', () => {
     const d65: Domino = { id: 'd65', left: 6, right: 5, isDouble: false, sum: 11 };
     const d55: Domino = { id: 'd55', left: 5, right: 5, isDouble: true, sum: 10 };
 
-    const createState = (roundNumber: number = 1, mancheNumber: number = 1): GameState => ({
-        gameId: 'g-open',
-        gameMode: 'MANCHE',
+    const createState = (roundNumber: number = 1, mancheNumber: number = 1): GameState => createBaseGameState({
         players: [
             {
                 id: 'p1',
@@ -214,19 +192,9 @@ describe('Opening rule (round 1 / manche 1)', () => {
                 isBot: false
             }
         ],
-        talonMort: [],
-        table: { sequence: [], leftValue: null, rightValue: null },
-        history: [],
         currentPlayerId: 'p1',
-        phase: 'PLAYING',
-        firstPlayerOfRound: null,
-        winningCondition: 3,
-        lastActionTimestamp: 0,
         roundNumber,
         mancheNumber,
-        turnDuration: 15,
-        mancheHistory: [],
-        startingHandSize: 7
     });
 
     it('should expose forced opening domino only for the starter with highest double', () => {

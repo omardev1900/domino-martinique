@@ -8,12 +8,14 @@ import {
     ScrollView,
     useWindowDimensions,
     Image,
-    Alert
+    Alert,
+    Modal
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInUp, FadeInLeft, FadeInRight } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeInLeft, FadeInRight, ZoomIn } from 'react-native-reanimated';
 import { authService } from '../src/core/services/auth.service';
 import { PlayerProfile } from '../src/core/types';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../src/core/avatars';
@@ -24,6 +26,7 @@ export default function HomeScreen() {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
     const [user, setUser] = useState<PlayerProfile | null>(null);
+    const [reconnectRoomId, setReconnectRoomId] = useState<string | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -31,6 +34,46 @@ export default function HomeScreen() {
         }, [])
     );
 
+    useFocusEffect(
+        useCallback(() => {
+            const checkActiveGame = async () => {
+                try {
+                    const activeRoomId = await AsyncStorage.getItem('active_roomId');
+                    if (activeRoomId) {
+                        setReconnectRoomId(activeRoomId);
+                    }
+                } catch (e) {
+                    console.error('Error checking active room', e);
+                }
+            };
+
+            // Delay check slightly to ensure screen is settled
+            const timer = setTimeout(checkActiveGame, 600);
+            return () => clearTimeout(timer);
+        }, [])
+    );
+
+    const handleReconnect = useCallback(() => {
+        if (reconnectRoomId) {
+            router.push({
+                pathname: '/game/[id]',
+                params: {
+                    id: reconnectRoomId,
+                    userId: user?.uid || 'guest'
+                }
+            });
+            setReconnectRoomId(null);
+        }
+    }, [reconnectRoomId, user, router]);
+
+    const handleCancelReconnect = async () => {
+        try {
+            await AsyncStorage.removeItem('active_roomId');
+            setReconnectRoomId(null);
+        } catch (e) {
+            console.error('Error clearing active room', e);
+        }
+    };
 
     return (
         <LinearGradient
@@ -128,6 +171,49 @@ export default function HomeScreen() {
                     </Animated.View>
                 </View>
             </ScrollView>
+
+            {/* Reconnection Modal */}
+            <Modal
+                visible={!!reconnectRoomId}
+                transparent={true}
+                animationType="fade"
+            >
+                <View style={styles.modalOverlay}>
+                    <Animated.View entering={ZoomIn.duration(400)} style={styles.modalContent}>
+                        <LinearGradient
+                            colors={['#2D1B4E', '#422770']}
+                            style={styles.modalGradient}
+                        >
+                            <Text style={styles.modalIcon}>📡</Text>
+                            <Text style={styles.modalTitle}>Partie Interrompue</Text>
+                            <Text style={styles.modalDescription}>
+                                Une partie multijoueur est toujours active. Souhaitez-vous la rejoindre pour reprendre la main ?
+                            </Text>
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity
+                                    style={styles.modalButtonSecondary}
+                                    onPress={handleCancelReconnect}
+                                >
+                                    <Text style={styles.modalButtonTextSecondary}>Abandonner</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.modalButtonPrimary}
+                                    onPress={handleReconnect}
+                                >
+                                    <LinearGradient
+                                        colors={['#FFD700', '#FFA500']}
+                                        style={styles.modalButtonGradient}
+                                    >
+                                        <Text style={styles.modalButtonTextPrimary}>REJOINDRE</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+                        </LinearGradient>
+                    </Animated.View>
+                </View>
+            </Modal>
         </LinearGradient>
     );
 }
@@ -244,5 +330,82 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: 'rgba(255,255,255,0.8)',
         textAlign: 'center',
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        width: '100%',
+        maxWidth: 400,
+        borderRadius: 24,
+        overflow: 'hidden',
+        elevation: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 15,
+    },
+    modalGradient: {
+        padding: 30,
+        alignItems: 'center',
+    },
+    modalIcon: {
+        fontSize: 50,
+        marginBottom: 15,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    modalDescription: {
+        fontSize: 15,
+        color: 'rgba(255,255,255,0.8)',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 25,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        gap: 15,
+        width: '100%',
+    },
+    modalButtonSecondary: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    modalButtonTextSecondary: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    modalButtonPrimary: {
+        flex: 1,
+        borderRadius: 12,
+        overflow: 'hidden',
+        elevation: 4,
+    },
+    modalButtonGradient: {
+        paddingVertical: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalButtonTextPrimary: {
+        color: '#1A0E2E',
+        fontSize: 14,
+        fontWeight: '900',
     },
 });
