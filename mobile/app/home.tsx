@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInLeft, FadeInRight, ZoomIn } from 'react-native-reanimated';
 import { authService } from '../src/core/services/auth.service';
+import { statsService } from '../src/core/services/stats.service';
 import { PlayerProfile } from '../src/core/types';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../src/core/avatars';
 
@@ -30,7 +31,13 @@ export default function HomeScreen() {
 
     useFocusEffect(
         useCallback(() => {
-            authService.getCurrentUser().then(setUser);
+            authService.getCurrentUser().then(u => {
+                setUser(u);
+                if (u && !u.uid.startsWith('guest_')) {
+                    console.log('🔄 HomeScreen: Forcing stats sync for', u.displayName);
+                    statsService.syncWithFirebase(u.uid);
+                }
+            });
         }, [])
     );
 

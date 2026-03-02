@@ -109,29 +109,20 @@ export const finalizeRound = (
         }
 
         // --- CALCULATION OF FINAL MANCHE POINTS (Rule of +5) ---
-        // Winner gets 3 + opponents at zero stars.
-        // Losers with stars > 0 get their stars as points.
-        // Losers at 0 stars get -1.
         newState.players = newState.players.map(p => {
             let historyPointsForManche = 0;
             let updatedPlayer = { ...p };
 
             if (p.id === mancheWinner.id) {
-                // Le vainqueur a accumulé des étoiles (qui ont déjà ajouté +1 totalPoints à chaque round).
-                // Il reçoit maintenant le BONUS de fin de manche (les cochons).
-                // Pour l'HISTORIQUE, on doit enregistrer la somme : (Etoiles courantes) + (Bonus cochon)
-                // Comme le Vainqueur a atteint MANCHE_WIN_THRESHOLD (ex: 3), historyPointsForManche = 3 + cochonCount.
                 historyPointsForManche = p.currentMancheStars + cochonCount;
 
                 updatedPlayer = {
                     ...p,
                     mancheWins: p.mancheWins + 1,
                     totalPoints: p.totalPoints + cochonCount,
-                    totalCochons: p.totalCochons + cochonCount
+                    totalCochons: p.totalCochons + cochonCount // SILENT STAT: Recorded here
                 };
             } else if (p.currentMancheStars === 0) {
-                // Joueur 'bredouille', il perd -1 pt dans le match.
-                // Son snapshot Historique de Manche est bien -1.
                 historyPointsForManche = -1;
                 updatedPlayer = {
                     ...p,
@@ -139,12 +130,9 @@ export const finalizeRound = (
                     totalPoints: p.totalPoints - 1
                 };
             } else {
-                // Joueurs ayant gagné quelques manches (1 ou 2 ⭐).
-                // Leurs points sont exactement le nombre de leurs victoires.
                 historyPointsForManche = p.currentMancheStars;
             }
 
-            // Mettre à jour `pointsGainedInRound` QUI SERT en fait d'Historique complet de la Manche
             pointsGainedInRound[p.id] = historyPointsForManche;
             return updatedPlayer;
         });

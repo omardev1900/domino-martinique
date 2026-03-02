@@ -80,17 +80,14 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
         // Match Logic
         if (isMatchOver) {
-            if (gameState.gameMode === 'MANCHE') {
-                // Manche mode winner determination: Le Camion (totalPoints) > Manche Wins
-                return [...gameState.players].sort((a, b) => {
-                    if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
-                    return b.mancheWins - a.mancheWins;
-                })[0];
-            }
-            if (gameState.gameMode === 'SCORE') return gameState.players.find(p => p.totalPoints >= gameState.winningCondition);
-            if (gameState.gameMode === 'COCHON') return gameState.players.find(p => p.totalCochons >= gameState.winningCondition);
-
-            return [...gameState.players].sort((a, b) => b.mancheWins - a.mancheWins)[0];
+            // Priority 1: totalPoints (Le Camion)
+            // Priority 2: totalCochons
+            // Priority 3: mancheWins
+            return [...gameState.players].sort((a, b) => {
+                if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+                if (b.totalCochons !== a.totalCochons) return b.totalCochons - a.totalCochons;
+                return b.mancheWins - a.mancheWins;
+            })[0];
         }
 
         // Manche Logic
@@ -256,6 +253,11 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                             <Text style={[styles.boudePlayerName, isMin && styles.boudePlayerNameWinner]} numberOfLines={1}>{p.name}</Text>
                                             <Text style={styles.boudePlayerStars}>{p.currentMancheStars || 0}⭐</Text>
                                             {isMin && <Text style={styles.boudeCrownSmall}>👑</Text>}
+                                            {isMin && gameState.mancheResult === 'COCHON' && (
+                                                <View style={styles.cochonBadgeSmall}>
+                                                    <Text style={{ fontSize: 10 }}>🐷</Text>
+                                                </View>
+                                            )}
                                         </View>
 
                                         {/* 2. PROGRESSION: Score Total (Bleu) */}
@@ -277,6 +279,9 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                         {/* 4. FOOTER: Poids de la main */}
                                         <View style={styles.boudePlayerFooter}>
                                             <Text style={[styles.boudePlayerScore, isMin && styles.boudePlayerScoreWinner]}>{pts} ⚫</Text>
+                                            {isMin && gameState.mancheResult === 'COCHON' && (
+                                                <Text style={styles.cochonBonusText}>+ Bonus 🐷</Text>
+                                            )}
                                         </View>
                                     </View>
                                 );
@@ -370,10 +375,14 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                             <View style={{ flexDirection: 'row', borderTopWidth: 2, borderColor: '#8B6508', paddingTop: 12, marginTop: 5 }}>
                                 <Text style={{ width: isLandscape ? 60 : 80, fontWeight: '900', color: '#333', fontSize: 14 }}>TOTAL</Text>
                                 {sortedPlayers.map(p => {
-                                    const totalPts = gameState.gameMode === 'SCORE' ? p.totalPoints : gameState.gameMode === 'COCHON' ? p.totalCochons : p.totalPoints;
+                                    // Robust sum of points from history as requested
+                                    const recalculatedTotal = gameState.mancheHistory?.reduce((sum, record) => {
+                                        return sum + (record.points[p.id] || 0);
+                                    }, 0) || 0;
+
                                     return (
                                         <Text key={p.id} style={{ flex: 1, textAlign: 'center', fontWeight: '900', color: '#8B6508', fontSize: 15 }}>
-                                            {totalPts}
+                                            {recalculatedTotal}
                                         </Text>
                                     );
                                 })}
@@ -415,7 +424,11 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                         <View style={styles.podiumRoyalContainer}>
                             {sortedPlayers.map((p, idx) => {
                                 const isWin = p.id === finalWinner?.id;
-                                const totalPts = gameState.gameMode === 'SCORE' ? p.totalPoints : gameState.gameMode === 'COCHON' ? p.totalCochons : p.totalPoints;
+
+                                // Robust sum from history for consistency
+                                const totalPts = gameState.mancheHistory?.reduce((sum, record) => {
+                                    return sum + (record.points[p.id] || 0);
+                                }, 0) || 0;
 
                                 return (
                                     <View key={p.id} style={[styles.podiumRoyalCard, isWin ? styles.podiumRoyalWinner : styles.podiumRoyalLoser]}>
@@ -435,6 +448,13 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                             <Text style={[styles.podiumRoyalScore, isWin ? styles.podiumScoreWinner : styles.podiumScoreLoser]}>
                                                 {totalPts} <Text style={{ fontSize: 14 }}>pts</Text>
                                             </Text>
+
+                                            {/* Badge Cochon du Vainqueur */}
+                                            {p.totalCochons > 0 && (
+                                                <View style={[styles.cochonBadgePodium, { marginTop: 4 }]}>
+                                                    <Text style={styles.cochonBadgeTextPodium}>🐷 x{p.totalCochons}</Text>
+                                                </View>
+                                            )}
                                         </View>
                                     </View>
                                 );
@@ -529,6 +549,11 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                         <Text style={[styles.boudePlayerName, isWin && styles.boudePlayerNameWinner]} numberOfLines={1}>{p.name}</Text>
                                         <Text style={styles.boudePlayerStars}>{p.currentMancheStars || 0}⭐</Text>
                                         {isWin && <Text style={styles.boudeCrownSmall}>👑</Text>}
+                                        {isWin && gameState.mancheResult === 'COCHON' && (
+                                            <View style={styles.cochonBadgeSmall}>
+                                                <Text style={{ fontSize: 10 }}>🐷</Text>
+                                            </View>
+                                        )}
                                     </View>
 
                                     {/* 2. PROGRESSION: Score Total (Bleu) */}
@@ -554,9 +579,14 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                                 {handPips} ⚫
                                             </Text>
                                         ) : (
-                                            <Text style={[styles.boudePlayerScore, styles.boudePlayerScoreWinner, { opacity: 0.5, fontSize: 13 }]}>
-                                                💯
-                                            </Text>
+                                            <View style={{ alignItems: 'center' }}>
+                                                <Text style={[styles.boudePlayerScore, styles.boudePlayerScoreWinner, { opacity: 0.5, fontSize: 13 }]}>
+                                                    💯
+                                                </Text>
+                                                {isWin && gameState.mancheResult === 'COCHON' && (
+                                                    <Text style={styles.cochonBonusText}>+ Bonus 🐷</Text>
+                                                )}
+                                            </View>
                                         )}
                                     </View>
                                 </View>
@@ -1418,11 +1448,39 @@ const styles = StyleSheet.create({
         gap: 2,
         minHeight: 45, // give space for scaled dominos
     },
+    cochonBadgePodium: {
+        backgroundColor: '#FFD700',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#8B6508',
+    },
+    cochonBadgeTextPodium: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#8B6508',
+    },
     boudeEmptyHand: {
         fontSize: 11,
         color: '#888',
         fontStyle: 'italic',
         fontWeight: '600',
+    },
+    cochonBadgeSmall: {
+        backgroundColor: '#FFEBEE',
+        borderRadius: 8,
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderWidth: 1,
+        borderColor: '#FFCDD2',
+        marginLeft: 4,
+    },
+    cochonBonusText: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#D32F2F',
+        marginTop: 2,
     },
     shadowStrong: {
         shadowColor: '#000',

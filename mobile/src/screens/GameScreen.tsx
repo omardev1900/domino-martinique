@@ -38,6 +38,7 @@ import { useConnectionStatus } from '../hooks/game/useConnectionStatus';
 import { useGameSync } from '../hooks/game/useGameSync';
 import { useGameTimers } from '../hooks/game/useGameTimers';
 import { useGameEngine } from '../hooks/game/useGameEngine';
+import { statsService } from '../core/services/stats.service';
 
 interface GameScreenProps {
     gameId?: string;
@@ -265,6 +266,54 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
     const [profileLoaded, setProfileLoaded] = useState(false);
+    const statsRecordedRef = useRef(false);
+
+    // -- stats recording effect --
+    useEffect(() => {
+        if (gameState?.phase === 'MATCH_END' && !statsRecordedRef.current) {
+            const localPlayer = gameState.players.find(p => p.id === localPlayerId);
+            if (localPlayer) {
+                // Determine Match Winner
+                // Priority: totalPoints (Le Camion), then totalCochons, then mancheWins
+                const sorted = [...gameState.players].sort((a, b) => {
+                    if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+                    if (b.totalCochons !== a.totalCochons) return b.totalCochons - a.totalCochons;
+                    return b.mancheWins - a.mancheWins;
+                });
+
+                const winner = sorted[0];
+                const result = winner.id === localPlayerId ? 'WIN' : 'LOSS';
+
+                const opponentsData = gameState.players
+                    .filter(p => p.id !== localPlayerId)
+                    .map(p => ({
+                        name: p.name,
+                        avatarId: p.avatarId || 'avatar_default'
+                    }));
+
+                console.log('📊 GameScreen: Recording match result...', {
+                    result,
+                    cochons: localPlayer.totalCochons,
+                    points: localPlayer.totalPoints,
+                    mode: isSoloMode ? 'SOLO' : 'MULTIPLAYER'
+                });
+
+                statsService.recordMatchResult({
+                    result,
+                    cochons: localPlayer.totalCochons || 0,
+                    points: localPlayer.totalPoints || 0,
+                    opponents: opponentsData,
+                    mode: isSoloMode ? 'SOLO' : 'MULTIPLAYER',
+                    userId: userId
+                }).catch(err => console.error('📊 Stats recording failed:', err));
+
+                statsRecordedRef.current = true;
+            }
+        } else if (gameState?.phase !== 'MATCH_END' && gameState?.phase !== 'MANCHE_END') {
+            // Reset the flag for the next match, but not during MANCHE_END as it might flicker
+            statsRecordedRef.current = false;
+        }
+    }, [gameState?.phase, localPlayerId, isSoloMode, userId]);
 
     useEffect(() => {
         if (Platform.OS === 'web' && !showScoreOverlay && !showRoomInfo && !isPaused) {

@@ -91,32 +91,24 @@ export default function SoloScreen() {
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.gameModeTile, { opacity: 0.5 }]}
-                            disabled={true}
+                            style={[styles.gameModeTile, gameMode === 'COCHON' && styles.gameModeTileActive]}
                             onPress={() => { setGameMode('COCHON'); setWinningCondition(3); }}
                         >
-                            <View style={styles.prochainementBadge}>
-                                <Text style={styles.prochainementText}>Bientôt</Text>
-                            </View>
-                            <Text style={styles.gameModeTitle}>
+                            <Text style={[styles.gameModeTitle, gameMode === 'COCHON' && styles.gameModeTitleActive]}>
                                 <Text style={styles.gameModeIcon}>🐷</Text> COCHON
                             </Text>
-                            <Text style={styles.gameModeSubtitle}>
+                            <Text style={[styles.gameModeSubtitle, gameMode === 'COCHON' && styles.gameModeSubtitleActive]}>
                                 Évitez le zéro
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.gameModeTile, { opacity: 0.5 }]}
-                            disabled={true}
+                            style={[styles.gameModeTile, gameMode === 'MANCHE' && styles.gameModeTileActive]}
                             onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); }}
                         >
-                            <View style={styles.prochainementBadge}>
-                                <Text style={styles.prochainementText}>Bientôt</Text>
-                            </View>
-                            <Text style={styles.gameModeTitle}>
+                            <Text style={[styles.gameModeTitle, gameMode === 'MANCHE' && styles.gameModeTitleActive]}>
                                 <Text style={styles.gameModeIcon}>🏆</Text> MANCHE
                             </Text>
-                            <Text style={styles.gameModeSubtitle}>
+                            <Text style={[styles.gameModeSubtitle, gameMode === 'MANCHE' && styles.gameModeSubtitleActive]}>
                                 Le meilleur à X manches
                             </Text>
                         </TouchableOpacity>
