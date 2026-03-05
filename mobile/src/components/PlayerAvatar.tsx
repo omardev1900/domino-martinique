@@ -17,8 +17,9 @@ interface PlayerAvatarProps {
     position?: 'top-left' | 'top-right' | 'bottom' | 'top-center';
     layout?: 'vertical' | 'horizontal';
     namePlacement?: 'above' | 'below'; // Where to place the name in vertical layout
-    score?: string; // NEW: Current score to display (e.g. "2 wins" or "45 pts")
-    showHandSize?: boolean; // NEW: Show remaining tiles count
+    score?: string; // Current score text (subtitle)
+    ptsScore?: number; // True accumulated points (Camion) from previous manches
+    showHandSize?: boolean; // Show remaining tiles count
     isPaused?: boolean; // NEW: Pause the timer
     onTimeout?: () => void; // Callback when timer expires
     isBoude?: boolean; // NEW: Player is currently blocked
@@ -42,6 +43,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     layout = 'vertical',
     namePlacement = 'below',
     score,
+    ptsScore = 0,
     showHandSize = true,
     isPaused = false,
     onTimeout,
@@ -341,7 +343,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             </View>
                             <View style={styles.opponentStatCol}>
                                 <Text style={styles.statLabelPTS}>PTS</Text>
-                                <Text style={styles.statValuePTS}>{typeof score === 'string' ? score.replace(/[^0-9-]/g, '') : (score || 0)}</Text>
+                                <Text style={styles.statValuePTS}>{ptsScore}</Text>
                             </View>
                         </View>
                     </View>

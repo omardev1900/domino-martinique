@@ -39,6 +39,11 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
     const isGameOver = ['MATCH_END', 'MANCHE_END', 'PARTIE_END', 'BOUDE'].includes(gameState.phase);
     const isPlaying = gameState.phase === 'PLAYING';
 
+    const getCamionScore = (pId: string) => {
+        if (!gameState.mancheHistory) return 0;
+        return gameState.mancheHistory.reduce((sum, record) => sum + (record.points[pId] || 0), 0);
+    };
+
     return (
         <View style={styles.uiLayer} pointerEvents="box-none" testID="player-area">
             {/* First opponent (Next in turn order) -> Top-Right */}
@@ -63,6 +68,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                         size={52}
                         layout="horizontal"
                         score={getPlayerScore(opponents[0])}
+                        ptsScore={getCamionScore(opponents[0]?.id)}
                         position="top-right"
                         isBoude={boudedPlayerId === opponents[0]?.id}
                         chatContent={playersChat[opponents[0]?.id]?.message || playersChat[opponents[0]?.id]?.emoji || null}
@@ -96,6 +102,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                         size={52}
                         layout="horizontal"
                         score={getPlayerScore(opponents[1])}
+                        ptsScore={getCamionScore(opponents[1]?.id)}
                         position="top-left"
                         isBoude={boudedPlayerId === opponents[1]?.id}
                         chatContent={playersChat[opponents[1]?.id]?.message || playersChat[opponents[1]?.id]?.emoji || null}
@@ -128,6 +135,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                         size={60}
                         layout="horizontal"
                         score={getPlayerScore(localPlayer)}
+                        ptsScore={getCamionScore(localPlayer.id)}
                         position="bottom"
                         isBoude={boudedPlayerId === localPlayerId}
                         chatContent={playersChat[localPlayerId]?.message || playersChat[localPlayerId]?.emoji || null}
