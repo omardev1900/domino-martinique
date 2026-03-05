@@ -464,26 +464,13 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                         {/* CALL TO ACTIONS */}
                         <View style={styles.podiumActionRow}>
                             {animationReady && (
-                                <>
-                                    <TouchableOpacity
-                                        style={styles.podiumButtonMenu}
-                                        onPress={() => {
-                                            if (onLeave) onLeave();
-                                            else onContinue(); // Fallback if no onLeave
-                                        }}
-                                    >
-                                        <Ionicons name="home" size={20} color="#555" />
-                                        <Text style={styles.podiumButtonMenuText}>MENU</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        style={styles.podiumButtonRejouer}
-                                        onPress={onContinue}
-                                    >
-                                        <Text style={styles.podiumButtonRejouerText}>REJOUER</Text>
-                                        <Ionicons name="refresh" size={20} color="white" />
-                                    </TouchableOpacity>
-                                </>
+                                <TouchableOpacity
+                                    style={styles.podiumButtonRejouer}
+                                    onPress={onContinue}
+                                >
+                                    <Text style={styles.podiumButtonRejouerText}>CONTINUER</Text>
+                                    <Ionicons name="arrow-forward" size={20} color="white" />
+                                </TouchableOpacity>
                             )}
                         </View>
 

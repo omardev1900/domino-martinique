@@ -682,6 +682,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     const interceptOverlayContinue = useCallback(() => {
         if (gameState?.phase === 'MATCH_END' && matchReward) {
+            console.log("Déclenchement de l'Overlay de Récompenses", { matchReward });
             setShowScoreboard(false);
             setShowRewardOverlay(true);
         } else {

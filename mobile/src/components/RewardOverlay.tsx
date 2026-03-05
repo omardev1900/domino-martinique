@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ScrollView } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut, ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MatchReward, RewardBreakdown } from '../core/economy.types';
@@ -49,6 +49,7 @@ const RollingNumber: React.FC<{ value: number; duration?: number; prefix?: strin
 // ─── Main Overlay ───────────────────────────────────────────────────────────
 export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardOverlayProps) {
     const { width, height } = useWindowDimensions();
+    const isLandscape = width > height;
 
     if (!visible || !reward) return null;
 
@@ -66,76 +67,88 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                 style={StyleSheet.absoluteFillObject}
             />
 
-            <Animated.View entering={ZoomIn.duration(600).springify()} exiting={ZoomOut} style={styles.modalContent}>
+            <Animated.View entering={ZoomIn.duration(600).springify()} exiting={ZoomOut} style={[styles.modalContent, isLandscape && styles.modalContentLandscape]}>
 
-                {/* Header = Winner/Loser */}
-                <Text style={[styles.title, { color: isWinner ? '#FFD700' : '#FFF' }]}>
-                    {isWinner ? '🏆 VICTOIRE 🏆' : 'FIN DE LA PARTIE'}
-                </Text>
+                <View style={[styles.contentWrapper, isLandscape && styles.contentWrapperLandscape]}>
 
-                {/* Level Up Banner */}
-                {isLevelUp && (
-                    <Animated.View entering={FadeInDown.delay(1000)} style={styles.levelUpBanner}>
-                        <Text style={styles.levelUpText}>⭐ NIVEAU SUPÉRIEUR : {reward.newLevel} !</Text>
-                    </Animated.View>
-                )}
-
-                {/* Grade Up Banner */}
-                {isGradeUp && (
-                    <Animated.View entering={FadeInDown.delay(1200)} style={styles.gradeUpBanner}>
-                        <Text style={styles.gradeUpText}>
-                            🐷 PROMOTION : {LEAGUE_LABELS[reward.newGrade]} !
+                    {/* Left Column (or Top in portrait) */}
+                    <View style={isLandscape ? styles.columnLeft : styles.columnFull}>
+                        {/* Header = Winner/Loser */}
+                        <Text style={[styles.title, { color: isWinner ? '#FFD700' : '#FFF' }]}>
+                            {isWinner ? '🏆 VICTOIRE 🏆' : 'FIN DE LA PARTIE'}
                         </Text>
-                    </Animated.View>
-                )}
 
-                {/* Totals Section */}
-                <View style={styles.totalsContainer}>
-                    <View style={styles.totalBox}>
-                        <Text style={styles.totalIcon}>🪙</Text>
-                        <RollingNumber value={reward.coinsEarned} prefix="+" style={styles.totalValue} />
-                        <Text style={styles.totalLabel}>Coins</Text>
-                    </View>
-                    <View style={styles.totalBox}>
-                        <Text style={styles.totalIcon}>⭐</Text>
-                        <RollingNumber value={reward.xpEarned} prefix="+" style={styles.totalValue} />
-                        <Text style={styles.totalLabel}>XP</Text>
-                    </View>
-                    {(reward.diamondsEarned > 0 || reward.leaguePointsEarned > 0) && (
-                        <View style={styles.totalBox}>
-                            <Text style={styles.totalIcon}>{reward.diamondsEarned > 0 ? '💎' : '🐷'}</Text>
-                            <RollingNumber
-                                value={reward.diamondsEarned > 0 ? reward.diamondsEarned : reward.leaguePointsEarned}
-                                prefix="+"
-                                style={[styles.totalValue, { color: reward.diamondsEarned > 0 ? '#60DCFF' : '#FF9800' }]}
-                            />
-                            <Text style={styles.totalLabel}>{reward.diamondsEarned > 0 ? 'Diamants' : 'Ligue'}</Text>
-                        </View>
-                    )}
-                </View>
+                        {/* Level Up Banner */}
+                        {isLevelUp && (
+                            <Animated.View entering={FadeInDown.delay(1000)} style={styles.levelUpBanner}>
+                                <Text style={styles.levelUpText}>⭐ NIVEAU SUPÉRIEUR : {reward.newLevel} !</Text>
+                            </Animated.View>
+                        )}
 
-                {/* Breakdown Details */}
-                <View style={styles.breakdownContainer}>
-                    <Text style={styles.breakdownTitle}>Détails des gains</Text>
-                    {reward.breakdown.map((item, index) => (
-                        <Animated.View
-                            key={item.id}
-                            entering={FadeInDown.delay(1500 + (index * 200))}
-                            style={styles.breakdownRow}
-                        >
-                            <Text style={styles.breakdownLabel}>{item.label}</Text>
-                            <View style={styles.breakdownValues}>
-                                {item.coins > 0 && <Text style={styles.breakdownValText}>+{item.coins}🪙</Text>}
-                                {item.xp > 0 && <Text style={styles.breakdownValText}>+{item.xp}⭐</Text>}
-                                {item.leaguePoints > 0 && <Text style={styles.breakdownValText}>+{item.leaguePoints}🐷</Text>}
-                                {item.diamonds > 0 && <Text style={[styles.breakdownValText, { color: '#60DCFF' }]}>+{item.diamonds}💎</Text>}
+                        {/* Grade Up Banner */}
+                        {isGradeUp && (
+                            <Animated.View entering={FadeInDown.delay(1200)} style={styles.gradeUpBanner}>
+                                <Text style={styles.gradeUpText}>
+                                    🐷 PROMOTION : {LEAGUE_LABELS[reward.newGrade]} !
+                                </Text>
+                            </Animated.View>
+                        )}
+
+                        {/* Totals Section */}
+                        <View style={styles.totalsContainer}>
+                            <View style={[styles.totalBox, isLandscape && styles.totalBoxLandscape]}>
+                                <Text style={[styles.totalIcon, isLandscape && styles.totalIconLandscape]}>🪙</Text>
+                                <RollingNumber value={reward.coinsEarned} prefix="+" style={[styles.totalValue, isLandscape && styles.totalValueLandscape]} />
+                                <Text style={styles.totalLabel}>Coins</Text>
                             </View>
-                        </Animated.View>
-                    ))}
+                            <View style={[styles.totalBox, isLandscape && styles.totalBoxLandscape]}>
+                                <Text style={[styles.totalIcon, isLandscape && styles.totalIconLandscape]}>⭐</Text>
+                                <RollingNumber value={reward.xpEarned} prefix="+" style={[styles.totalValue, isLandscape && styles.totalValueLandscape]} />
+                                <Text style={styles.totalLabel}>XP</Text>
+                            </View>
+                            {(reward.diamondsEarned > 0 || reward.leaguePointsEarned > 0) && (
+                                <View style={[styles.totalBox, isLandscape && styles.totalBoxLandscape]}>
+                                    <Text style={[styles.totalIcon, isLandscape && styles.totalIconLandscape]}>{reward.diamondsEarned > 0 ? '💎' : '🐷'}</Text>
+                                    <RollingNumber
+                                        value={reward.diamondsEarned > 0 ? reward.diamondsEarned : reward.leaguePointsEarned}
+                                        prefix="+"
+                                        style={[styles.totalValue, isLandscape && styles.totalValueLandscape, { color: reward.diamondsEarned > 0 ? '#60DCFF' : '#FF9800' }]}
+                                    />
+                                    <Text style={styles.totalLabel}>{reward.diamondsEarned > 0 ? 'Diamants' : 'Ligue'}</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+
+                    {/* Right Column (or Bottom in portrait) */}
+                    <View style={isLandscape ? styles.columnRight : styles.columnFull}>
+                        {/* Breakdown Details */}
+                        <View style={[styles.breakdownContainer, isLandscape && { flex: 1 }]}>
+                            <Text style={styles.breakdownTitle}>Détails des gains</Text>
+                            <ScrollView style={{ flexGrow: 0 }} showsVerticalScrollIndicator={false}>
+                                {reward.breakdown.map((item, index) => (
+                                    <Animated.View
+                                        key={item.id}
+                                        entering={FadeInDown.delay(1500 + (index * 200))}
+                                        style={styles.breakdownRow}
+                                    >
+                                        <Text style={styles.breakdownLabel}>{item.label}</Text>
+                                        <View style={styles.breakdownValues}>
+                                            {item.coins > 0 && <Text style={styles.breakdownValText}>+{item.coins}🪙</Text>}
+                                            {item.xp > 0 && <Text style={styles.breakdownValText}>+{item.xp}⭐</Text>}
+                                            {item.leaguePoints > 0 && <Text style={styles.breakdownValText}>+{item.leaguePoints}🐷</Text>}
+                                            {item.diamonds > 0 && <Text style={[styles.breakdownValText, { color: '#60DCFF' }]}>+{item.diamonds}💎</Text>}
+                                        </View>
+                                    </Animated.View>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    </View>
+
                 </View>
 
-                {/* Continue/Close Button */}
-                <Animated.View entering={FadeIn.delay(2500)} style={{ width: '100%', alignItems: 'center', marginTop: 30 }}>
+                {/* Continue/Close Button - Fixed Bottom */}
+                <Animated.View entering={FadeIn.delay(2500)} style={{ width: '100%', alignItems: 'center', marginTop: isLandscape ? 15 : 30 }}>
                     <TouchableOpacity style={styles.continueButton} onPress={onContinue} activeOpacity={0.8}>
                         <LinearGradient
                             colors={['#FFD700', '#FFA500']}
@@ -154,6 +167,10 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         zIndex: 10000,
         justifyContent: 'center',
         alignItems: 'center',
@@ -289,7 +306,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     continueGradient: {
-        paddingVertical: 16,
+        paddingVertical: 14, // Slightly slimmed for landscape
         alignItems: 'center',
     },
     continueText: {
@@ -297,5 +314,46 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         fontSize: 16,
         letterSpacing: 2,
+    },
+    // --- Layout & Responsive Helpers ---
+    modalContentLandscape: {
+        maxWidth: 750,
+        width: '95%',
+        padding: 20,
+        maxHeight: '90%',
+    },
+    contentWrapper: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    contentWrapperLandscape: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        justifyContent: 'space-between',
+        gap: 20,
+    },
+    columnFull: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    columnLeft: {
+        flex: 1.2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    columnRight: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    totalBoxLandscape: {
+        minWidth: 70,
+        padding: 10,
+    },
+    totalIconLandscape: {
+        fontSize: 22,
+        marginBottom: 4,
+    },
+    totalValueLandscape: {
+        fontSize: 18,
     },
 });

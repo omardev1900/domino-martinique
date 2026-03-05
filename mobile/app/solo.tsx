@@ -39,13 +39,8 @@ export default function SoloScreen() {
         }, [])
     );
 
-    const handleBack = () => {
-        if (user?.uid?.startsWith('guest_')) {
-            // Un utilisateur anonyme qui quitte le solo doit retourner au LoginScreen
-            router.replace('/login');
-        } else {
-            router.back();
-        }
+    const handleGoHome = () => {
+        router.replace('/home');
     };
 
     const startGame = async () => {
@@ -99,10 +94,10 @@ export default function SoloScreen() {
             <View style={styles.backContainer}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={handleBack}
+                    onPress={handleGoHome}
                     activeOpacity={0.7}
                 >
-                    <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                    <Ionicons name="home" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 {/* Economy pill - visible en haut de l'écran solo */}
                 <EconomyHeader refreshTrigger={economyRefresh} />
