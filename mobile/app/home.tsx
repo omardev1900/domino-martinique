@@ -18,8 +18,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInLeft, FadeInRight, ZoomIn } from 'react-native-reanimated';
 import { authService } from '../src/core/services/auth.service';
 import { statsService } from '../src/core/services/stats.service';
+import { economyService } from '../src/core/services/economy.service';
 import { PlayerProfile } from '../src/core/types';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../src/core/avatars';
+import { EconomyHeader } from '../src/components/EconomyHeader';
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -28,6 +30,7 @@ export default function HomeScreen() {
     const isLandscape = width > height;
     const [user, setUser] = useState<PlayerProfile | null>(null);
     const [reconnectRoomId, setReconnectRoomId] = useState<string | null>(null);
+    const [economyRefresh, setEconomyRefresh] = useState(0);
 
     useFocusEffect(
         useCallback(() => {
@@ -36,8 +39,10 @@ export default function HomeScreen() {
                 if (u && !u.uid.startsWith('guest_')) {
                     console.log('🔄 HomeScreen: Forcing stats sync for', u.displayName);
                     statsService.syncWithFirebase(u.uid);
+                    economyService.syncFromFirebase(u.uid).catch(console.error);
                 }
             });
+            setEconomyRefresh(v => v + 1); // force EconomyHeader refresh
         }, [])
     );
 
@@ -99,6 +104,9 @@ export default function HomeScreen() {
                         <Text style={styles.settingsIcon}>⚙️</Text>
                     </TouchableOpacity>
                 </Animated.View>
+
+                {/* Economy Header - Center */}
+                <EconomyHeader refreshTrigger={economyRefresh} />
 
                 {/* User Info - Top Right */}
                 <Animated.View entering={FadeInRight.duration(400)}>

@@ -45,7 +45,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
     };
 
     return (
-        <View style={styles.uiLayer} pointerEvents="box-none" testID="player-area">
+        <View style={styles.uiLayer} pointerEvents={isPaused ? 'none' : 'box-none'} testID="player-area">
             {/* First opponent (Next in turn order) -> Top-Right */}
             {opponents[0] && (
                 <Animated.View

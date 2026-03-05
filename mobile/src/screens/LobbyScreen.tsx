@@ -6,6 +6,7 @@ import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
+import { EconomyHeader } from '../components/EconomyHeader';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -176,8 +177,10 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
             style={styles.container}
             {...({ ref: rootRef, tabIndex: -1 } as any)}
         >
-            {/* Room Code - Top */}
             <Animated.View entering={FadeIn.delay(100)} style={styles.header}>
+                <View style={styles.headerTop}>
+                    <EconomyHeader />
+                </View>
                 <Text style={styles.roomCode}>Code : {roomData.roomId}</Text>
                 {roomData.isPrivate ? (
                     <Text style={styles.roomTypeBadge}>🔒 Privée</Text>
@@ -277,6 +280,11 @@ const styles = StyleSheet.create({
         paddingVertical: 40,
     },
     // ─── Header ─────────────────────────────────────────────────
+    headerTop: {
+        width: '100%',
+        alignItems: 'flex-start',
+        marginBottom: 8,
+    },
     header: {
         alignItems: 'center',
         marginBottom: 20,

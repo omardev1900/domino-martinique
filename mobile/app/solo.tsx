@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, ScrollView, useWindowDimensions, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft } from 'react-native-reanimated';
@@ -8,6 +8,10 @@ import { useFocusEffect } from 'expo-router';
 import { HAND_SIZE, TURN_DURATION_SECONDS } from '../src/core/constants';
 import { authService } from '../src/core/services/auth.service';
 import { PlayerProfile } from '../src/core/types';
+import { economyService } from '../src/core/services/economy.service';
+import { TABLE_CONFIGS } from '../src/core/economy.constants';
+import { TableTier } from '../src/core/economy.types';
+import { EconomyHeader } from '../src/components/EconomyHeader';
 
 type Difficulty = 'easy' | 'medium' | 'expert' | 'legend';
 type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
@@ -23,10 +27,15 @@ export default function SoloScreen() {
     const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
     const [startingHandSize, setStartingHandSize] = useState(HAND_SIZE);
     const [user, setUser] = useState<PlayerProfile | null>(null);
+    // Phase 7 : le sélecteur de table sera dans l'UI — fixé à DEBUTANT pour l'instant
+    const [tableTier] = useState<TableTier>('DEBUTANT');
+    const [economyRefresh, setEconomyRefresh] = useState(0);
+    const [debitFeedback, setDebitFeedback] = useState<string | null>(null);
 
     useFocusEffect(
         React.useCallback(() => {
             authService.getCurrentUser().then(setUser);
+            setEconomyRefresh(v => v + 1); // refresh EconomyHeader
         }, [])
     );
 
@@ -39,7 +48,30 @@ export default function SoloScreen() {
         }
     };
 
-    const startGame = () => {
+    const startGame = async () => {
+        const tableConfig = TABLE_CONFIGS[tableTier];
+
+        // ── ANTI-QUIT : Déduire le buy-in AVANT de lancer la partie ──
+        if (tableConfig.buyIn > 0) {
+            const success = await economyService.deductBuyIn(
+                tableConfig.buyIn,
+                user?.uid
+            );
+            if (!success) {
+                Alert.alert(
+                    'Coins insuffisants 🪙',
+                    `Il vous faut ${tableConfig.buyIn} coins pour jouer à la ${tableConfig.label}.\n\nVous n’en avez pas assez.`,
+                    [{ text: 'OK', style: 'cancel' }]
+                );
+                return; // ❌ Bloquer la navigation
+            }
+            // 💸 Feedback visuel de débit
+            setDebitFeedback(`-${tableConfig.buyIn} 🪙`);
+            setEconomyRefresh(v => v + 1); // met à jour le solde visible
+            setTimeout(() => setDebitFeedback(null), 1800);
+        }
+
+        // ✅ Buy-in débité, lancer la partie
         router.push({
             pathname: '/game/[id]',
             params: {
@@ -49,7 +81,8 @@ export default function SoloScreen() {
                 gameMode: gameMode,
                 winningCondition: winningCondition,
                 turnDuration: turnDuration,
-                startingHandSize: startingHandSize
+                startingHandSize: startingHandSize,
+                tableTier: tableTier,  // Passé pour le calcul des récompenses au MATCH_END
             }
         });
     };
@@ -71,6 +104,8 @@ export default function SoloScreen() {
                 >
                     <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
+                {/* Economy pill - visible en haut de l'écran solo */}
+                <EconomyHeader refreshTrigger={economyRefresh} />
             </View>
 
             <View style={styles.mainWrapper}>
@@ -179,7 +214,14 @@ export default function SoloScreen() {
 
                     <TouchableOpacity style={styles.startButton} onPress={startGame}>
                         <Text style={styles.startText}>JOUER MAINTENANT</Text>
+                        <Text style={styles.buyInBadge}>-{TABLE_CONFIGS[tableTier].buyIn} 🪙</Text>
                     </TouchableOpacity>
+                    {/* Feedback de débit (disparait après 1.8s) */}
+                    {debitFeedback && (
+                        <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
+                            {debitFeedback} débités
+                        </Animated.Text>
+                    )}
                 </Animated.View>
             </View>
         </LinearGradient>
@@ -193,8 +235,12 @@ const styles = StyleSheet.create({
     backContainer: {
         position: 'absolute',
         top: 20,
-        left: 20,
+        left: 16,
+        right: 16,
         zIndex: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     backButton: {
         width: 44,
@@ -402,6 +448,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         letterSpacing: 2,
+    },
+    buyInBadge: {
+        color: 'rgba(255, 215, 0, 0.8)',
+        fontSize: 11,
+        fontWeight: '600',
+        marginTop: 4,
+        letterSpacing: 0.5,
+    },
+    debitFeedback: {
+        color: '#FF6B6B',
+        fontSize: 13,
+        fontWeight: '700',
+        marginTop: 8,
+        textAlign: 'center',
+        letterSpacing: 0.5,
     },
 });
 

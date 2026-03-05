@@ -24,6 +24,10 @@ import { authService } from '../src/core/services/auth.service';
 import { FlatList } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { HAND_SIZE, TURN_DURATION_SECONDS } from '../src/core/constants';
+import { economyService } from '../src/core/services/economy.service';
+import { TABLE_CONFIGS } from '../src/core/economy.constants';
+import { TableTier } from '../src/core/economy.types';
+import { EconomyHeader } from '../src/components/EconomyHeader';
 
 type LobbyTab = 'CREATE' | 'JOIN' | 'PUBLIC';
 
@@ -61,6 +65,10 @@ export default function LobbyScreen() {
     const [winningCondition, setWinningCondition] = useState(6);
     const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
     const [startingHandSize, setStartingHandSize] = useState(HAND_SIZE);
+    // Phase 7 : le sélecteur de table sera dans l'UI — fixé à DEBUTANT pour l'instant
+    const [tableTier] = useState<TableTier>('DEBUTANT');
+    const [debitFeedback, setDebitFeedback] = useState<string | null>(null);
+    const [economyRefresh, setEconomyRefresh] = useState(0);
 
     // — PUBLIC tab state —
     const [publicRooms, setPublicRooms] = useState<GameRoom[]>([]);
@@ -80,6 +88,7 @@ export default function LobbyScreen() {
                         }
                         console.log('[Lobby] User loaded:', user.displayName, user.avatarId);
                         setCurrentUser(user);
+                        setEconomyRefresh(v => v + 1); // refresh EconomyHeader
                     } else {
                         // No user at all -> Login
                         router.replace('/login');
@@ -147,9 +156,38 @@ export default function LobbyScreen() {
         return true;
     };
 
+    /**
+     * Vérifie le solde et débite le buy-in avant le lancement.
+     * Anti-Quit : débit immédiat, avant toute navigation.
+     * @returns true si OK, false si solde insuffisant
+     */
+    const checkAndDeductBuyIn = async (): Promise<boolean> => {
+        const tableConfig = TABLE_CONFIGS[tableTier];
+        if (tableConfig.buyIn <= 0) return true;
+
+        const success = await economyService.deductBuyIn(
+            tableConfig.buyIn,
+            currentUser?.uid
+        );
+
+        if (!success) {
+            Alert.alert(
+                'Coins insuffisants 🪙',
+                `Il vous faut ${tableConfig.buyIn} coins pour la ${tableConfig.label}.`,
+                [{ text: 'OK', style: 'cancel' }]
+            );
+        } else {
+            setDebitFeedback(`-${tableConfig.buyIn} 🪙`);
+            setEconomyRefresh(v => v + 1);
+            setTimeout(() => setDebitFeedback(null), 1800);
+        }
+        return success;
+    };
+
     const handleCreateRoom = async () => {
         if (!requireAccountForMultiplayer()) return;
         if (!currentUser) return;
+        if (!await checkAndDeductBuyIn()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
             const options: RoomOptions = { gameMode, winningCondition, turnDuration, startingHandSize };
@@ -160,10 +198,12 @@ export default function LobbyScreen() {
                 undefined,
                 options
             );
-            // Navigate directly to game lobby (no intermediate screen)
-            router.push({ pathname: '/game/[id]', params: { id: newRoomId, userId: currentUser.uid } });
+            // ✅ Buy-in débité, naviguer vers la partie
+            router.push({ pathname: '/game/[id]', params: { id: newRoomId, userId: currentUser.uid, tableTier } });
         } catch (error) {
-            Alert.alert("Erreur", "Impossible de créer la table.");
+            // Buy-in remboursé en cas d'échec de création de salle
+            economyService.deductBuyIn(-(TABLE_CONFIGS[tableTier].buyIn), currentUser.uid).catch(() => { });
+            Alert.alert('Erreur', 'Impossible de créer la table.');
         } finally {
             setLoading(false);
         }
@@ -172,12 +212,13 @@ export default function LobbyScreen() {
     const handleJoinRoom = async () => {
         if (!requireAccountForMultiplayer()) return;
         if (!roomIdToJoin.trim() || !currentUser) return;
+        if (!await checkAndDeductBuyIn()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
             await joinRoom(roomIdToJoin.trim(), currentUser);
-            router.push({ pathname: '/game/[id]', params: { id: roomIdToJoin.trim(), userId: currentUser.uid } });
+            router.push({ pathname: '/game/[id]', params: { id: roomIdToJoin.trim(), userId: currentUser.uid, tableTier } });
         } catch (error: any) {
-            Alert.alert("Erreur", error.message || "Impossible de rejoindre.");
+            Alert.alert('Erreur', error.message || 'Impossible de rejoindre.');
         } finally {
             setLoading(false);
         }
@@ -186,12 +227,13 @@ export default function LobbyScreen() {
     const handleJoinPublicRoom = async (roomId: string) => {
         if (!requireAccountForMultiplayer()) return;
         if (!currentUser) return;
+        if (!await checkAndDeductBuyIn()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
             await joinRoom(roomId, currentUser);
-            router.push({ pathname: '/game/[id]', params: { id: roomId, userId: currentUser.uid } });
+            router.push({ pathname: '/game/[id]', params: { id: roomId, userId: currentUser.uid, tableTier } });
         } catch (error: any) {
-            Alert.alert("Erreur", error.message || "Impossible de rejoindre.");
+            Alert.alert('Erreur', error.message || 'Impossible de rejoindre.');
         } finally {
             setLoading(false);
         }
@@ -332,8 +374,15 @@ export default function LobbyScreen() {
 
             {/* Create Button */}
             <TouchableOpacity style={styles.startButton} onPress={handleCreateRoom}>
-                <Text style={styles.startText}>[ CRÉER LA TABLE ]</Text>
+                <Text style={styles.startText}>CRÉER LA TABLE</Text>
+                <Text style={styles.buyInBadge}>-{TABLE_CONFIGS[tableTier].buyIn} 🪙</Text>
             </TouchableOpacity>
+
+            {debitFeedback && (
+                <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
+                    {debitFeedback} débités
+                </Animated.Text>
+            )}
         </Animated.View>
     );
 
@@ -352,8 +401,15 @@ export default function LobbyScreen() {
                 autoCapitalize="none"
             />
             <TouchableOpacity style={styles.startButton} onPress={handleJoinRoom}>
-                <Text style={styles.startText}>[ REJOINDRE LA TABLE ]</Text>
+                <Text style={styles.startText}>REJOINDRE</Text>
+                <Text style={styles.buyInBadge}>-{TABLE_CONFIGS[tableTier].buyIn} 🪙</Text>
             </TouchableOpacity>
+
+            {debitFeedback && (
+                <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
+                    {debitFeedback} débités
+                </Animated.Text>
+            )}
         </Animated.View>
     );
 
@@ -433,11 +489,16 @@ export default function LobbyScreen() {
                 style={styles.container}
             >
 
-                <View style={[styles.header, { paddingTop: Math.max(insets.top, 5) }]}>
+                {/* Header Top Row (Economy) */}
+                <View style={[styles.headerTop, { paddingTop: Math.max(insets.top, 5) }]}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color="#FFF" />
                     </TouchableOpacity>
-                    <Text style={styles.title} numberOfLines={1}>Multi</Text>
+                    <EconomyHeader refreshTrigger={economyRefresh} />
+                </View>
+
+                {/* Tabs Row */}
+                <View style={styles.header}>
                     {renderTabs()}
                 </View>
                 <ScrollView
@@ -794,12 +855,35 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     modeBadge: {
-        backgroundColor: 'rgba(255,215,0,0.15)',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+        backgroundColor: 'rgba(255,215,0,0.3)',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        paddingVertical: 3,
         borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.3)',
+        minWidth: 50,
+        gap: 2,
+    },
+    buyInBadge: {
+        color: 'rgba(255, 215, 0, 0.8)',
+        fontSize: 11,
+        fontWeight: '600',
+        marginTop: 4,
+        letterSpacing: 0.5,
+    },
+    debitFeedback: {
+        color: '#FF6B6B',
+        fontSize: 13,
+        fontWeight: '700',
+        marginTop: 8,
+        textAlign: 'center',
+        letterSpacing: 0.5,
+    },
+    headerTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 15,
+        paddingBottom: 10,
     },
     modeBadgeText: {
         color: '#FFD700',

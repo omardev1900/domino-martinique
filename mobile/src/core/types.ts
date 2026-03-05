@@ -86,12 +86,19 @@ export enum RoomStatus {
 export interface PlayerProfile {
     uid: string;
     displayName: string;
-    email?: string; // NEW
-    avatarUrl?: string; // Legacy?
-    avatarId?: string; // NEW
-    isHost?: boolean; // NEW: Identify host in player list
+    email?: string;
+    avatarUrl?: string;
+    avatarId?: string;
+    isHost?: boolean;
     gamesPlayed: number;
     gamesWon: number;
+    // ─── Economy & Progression (optional — defaults applied by EconomyService) ───
+    coins?: number;          // 🪙 Monnaie de flux
+    xp?: number;             // ⭐ Expérience cumulée
+    level?: number;          // Niveau dérivé de l'XP
+    diamonds?: number;       // 💎 Monnaie premium
+    leaguePoints?: number;   // 🐷 Cochons totaux (alias de totalCochonsInflicted)
+    leagueGrade?: string;    // Grade de ligue ('APPRENTI' | 'MAITRE' | 'ROI' | 'LEGENDE')
 }
 
 export interface GameRoom {

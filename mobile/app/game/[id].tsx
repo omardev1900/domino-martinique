@@ -11,6 +11,7 @@ export default function GameRoute() {
         winningCondition?: string;
         turnDuration?: string;
         startingHandSize?: string;
+        tableTier?: string; // 🪙 Table tier pour le calcul du buy-in et des rewards
     }>();
 
     return (
@@ -23,6 +24,7 @@ export default function GameRoute() {
             winningCondition={params.winningCondition ? Number(params.winningCondition) : undefined}
             turnDuration={params.turnDuration ? Number(params.turnDuration) : undefined}
             startingHandSize={params.startingHandSize ? Number(params.startingHandSize) : undefined}
+            tableTier={params.tableTier}
         />
     );
 }

@@ -168,13 +168,6 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                         >
                             <Text style={styles.resumeButtonText}>REPRENDRE</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.quitButton}
-                            onPress={onLeaveRoom}
-                            testID="btn-quit"
-                        >
-                            <Text style={styles.quitButtonText}>QUITTER LA PARTIE</Text>
-                        </TouchableOpacity>
                     </Animated.View>
                 </View>
             )}
@@ -356,17 +349,16 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     quitButton: {
-        position: 'absolute',
-        top: 40,
-        right: 20,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        padding: 8,
-        borderRadius: 20,
-        zIndex: 100,
+        backgroundColor: 'rgba(255, 60, 60, 0.8)',
+        paddingHorizontal: 40,
+        paddingVertical: 15,
+        borderRadius: 30,
+        width: '100%',
+        alignItems: 'center',
     },
     quitButtonText: {
-        color: 'white',
-        fontSize: 12,
+        color: '#FFF',
+        fontSize: 16,
         fontWeight: 'bold',
     },
 });

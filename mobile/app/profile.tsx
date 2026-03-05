@@ -20,7 +20,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { authService } from '../src/core/services/auth.service';
 import { statsService, PlayerStats } from '../src/core/services/stats.service';
+import { economyService } from '../src/core/services/economy.service';
 import { PlayerProfile } from '../src/core/types';
+import { PlayerEconomy } from '../src/core/economy.types';
+import { xpRequiredForLevel } from '../src/core/RewardEngine';
+import { LEAGUE_LABELS, LEAGUE_ICONS } from '../src/core/economy.constants';
 import { AVAILABLE_AVATARS, getAvatarImage, AvatarId } from '../src/core/avatars';
 import { MatchHistory } from '../src/components/MatchHistory';
 
@@ -41,6 +45,10 @@ export default function ProfileScreen() {
         totalCochonsInflicted: 0,
         totalPointsAccumulated: 0,
         matchHistory: [],
+        coins: 0, xp: 0, level: 1, diamonds: 0, leaguePoints: 0, leagueGrade: 'APPRENTI',
+    });
+    const [economy, setEconomy] = useState<PlayerEconomy>({
+        coins: 0, xp: 0, level: 1, diamonds: 0, leaguePoints: 0, leagueGrade: 'APPRENTI',
     });
     const [activeTab, setActiveTab] = useState<'stats' | 'history'>('stats');
 
@@ -61,6 +69,9 @@ export default function ProfileScreen() {
     const loadPlayerStats = async () => {
         const stats = await statsService.getStats();
         setPlayerStats(stats);
+        // Also refresh economy from the same source
+        const eco = await economyService.getEconomy();
+        setEconomy(eco);
     };
 
     const loadUserProfile = async () => {
@@ -171,6 +182,51 @@ export default function ProfileScreen() {
             </View>
         </View>
     );
+
+    const renderEconomySection = () => {
+        const xpCurrent = economy.xp - xpRequiredForLevel(economy.level);
+        const xpNeeded = xpRequiredForLevel(economy.level + 1) - xpRequiredForLevel(economy.level);
+        const xpPct = xpNeeded > 0 ? Math.min(1, xpCurrent / xpNeeded) : 1;
+
+        const gradeLabel = LEAGUE_LABELS[economy.leagueGrade] || economy.leagueGrade;
+        const gradeIcon = LEAGUE_ICONS[economy.leagueGrade] || '🔰';
+
+        return (
+            <View style={styles.economySection}>
+                {/* Row: Coins + Diamonds */}
+                <View style={styles.economyRow}>
+                    <View style={styles.economyPill}>
+                        <Text style={styles.economyIcon}>🪙</Text>
+                        <Text style={styles.economyValue}>{economy.coins.toLocaleString()}</Text>
+                        <Text style={styles.economyLabel}>Coins</Text>
+                    </View>
+                    <View style={styles.economyPill}>
+                        <Text style={styles.economyIcon}>💎</Text>
+                        <Text style={[styles.economyValue, { color: '#60DCFF' }]}>{economy.diamonds}</Text>
+                        <Text style={styles.economyLabel}>Diamonds</Text>
+                    </View>
+                    <View style={styles.economyPill}>
+                        <Text style={styles.economyIcon}>{gradeIcon}</Text>
+                        <Text style={[styles.economyValue, { fontSize: 10 }]} numberOfLines={1}>{gradeLabel}</Text>
+                        <Text style={styles.economyLabel}>Ligue</Text>
+                    </View>
+                </View>
+                {/* XP Progress Bar */}
+                <View style={styles.xpContainer}>
+                    <View style={styles.xpHeader}>
+                        <Text style={styles.xpLabel}>⭐ Niveau {economy.level}</Text>
+                        <Text style={styles.xpValue}>{economy.xp.toLocaleString()} XP total</Text>
+                    </View>
+                    <View style={styles.xpBarBg}>
+                        <View style={[styles.xpBarFill, { width: `${Math.round(xpPct * 100)}%` }]} />
+                    </View>
+                    <Text style={styles.xpSubtext}>
+                        {xpCurrent.toLocaleString()} / {xpNeeded.toLocaleString()} XP vers niveau {economy.level + 1}
+                    </Text>
+                </View>
+            </View>
+        );
+    };
 
     const renderStatsGrid = () => {
         const winRate = playerStats.gamesPlayed > 0
@@ -309,6 +365,9 @@ export default function ProfileScreen() {
 
                         {/* RIGHT COLUMN: Statistics / History */}
                         <View style={styles.rightColumn}>
+                            {/* Economy Section - ABOVE tabs */}
+                            {renderEconomySection()}
+
                             {/* Tab Switcher */}
                             <View style={styles.tabBar}>
                                 <TouchableOpacity
@@ -616,5 +675,73 @@ const styles = StyleSheet.create({
         fontSize: 8,
         fontWeight: '900',
         color: '#1a0505',
+    },
+    // ─── Economy Section ──────────────────────────────────────────────────────
+    economySection: {
+        marginBottom: 12,
+        backgroundColor: 'rgba(0,0,0,0.25)',
+        borderRadius: 12,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.15)',
+    },
+    economyRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginBottom: 12,
+    },
+    economyPill: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    economyIcon: {
+        fontSize: 22,
+        marginBottom: 2,
+    },
+    economyValue: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#FFD700',
+    },
+    economyLabel: {
+        fontSize: 9,
+        color: 'rgba(255,255,255,0.5)',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginTop: 2,
+    },
+    xpContainer: {
+        gap: 5,
+    },
+    xpHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    xpLabel: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#FFD700',
+    },
+    xpValue: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.5)',
+    },
+    xpBarBg: {
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        overflow: 'hidden',
+    },
+    xpBarFill: {
+        height: '100%',
+        borderRadius: 4,
+        backgroundColor: '#FFD700',
+    },
+    xpSubtext: {
+        fontSize: 9,
+        color: 'rgba(255,255,255,0.4)',
+        textAlign: 'center',
     },
 });

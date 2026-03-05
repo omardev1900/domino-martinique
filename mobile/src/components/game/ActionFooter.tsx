@@ -17,6 +17,7 @@ export interface ActionFooterProps {
     onPassTurn?: () => void;
     showSideSelection?: boolean;
     onSelectSide?: (side: 'left' | 'right') => void;
+    isPaused?: boolean;
 }
 
 export const ActionFooter: React.FC<ActionFooterProps> = ({
@@ -30,7 +31,8 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
     canPassTurn = false,
     onPassTurn,
     showSideSelection = false,
-    onSelectSide
+    onSelectSide,
+    isPaused = false,
 }) => {
     if (!gameState || !localPlayer) return null;
 
@@ -41,7 +43,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
     const isHandDisabled = !isMyTurn || !isPlaying || bannerState !== 'NONE';
 
     return (
-        <View style={[styles.container, { paddingBottom: insets.bottom }]} pointerEvents="box-none" testID="action-footer">
+        <View style={[styles.container, { paddingBottom: insets.bottom }]} pointerEvents={isPaused ? 'none' : 'box-none'} testID="action-footer">
 
             {/* ACTION BUTTONS LAYER (Pass / Select Side) */}
             <View style={styles.actionButtonsContainer} pointerEvents="box-none">

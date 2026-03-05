@@ -19,6 +19,7 @@ import { ActionFooter } from '../components/game/ActionFooter';
 import { LobbyScreen } from './LobbyScreen';
 import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
 import { QuickChat } from '../components/QuickChat';
+import { RewardOverlay } from '../components/RewardOverlay';
 
 // Core
 import { determineFirstPlayer, dealGameSolo, getForcedOpeningDominoId, dealGame } from '../core/LogicEngine';
@@ -33,12 +34,16 @@ import { TableTheme } from '../core/themes/tableThemes';
 import { authService } from '../core/services/auth.service';
 import { AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
 import { GameTableRef } from '../components/GameTable';
+import { FlyingDominoData } from '../core/animations/AnimationTypes';
 import { FlyingDomino } from '../components/FlyingDomino';
 import { useConnectionStatus } from '../hooks/game/useConnectionStatus';
 import { useGameSync } from '../hooks/game/useGameSync';
 import { useGameTimers } from '../hooks/game/useGameTimers';
 import { useGameEngine } from '../hooks/game/useGameEngine';
 import { statsService } from '../core/services/stats.service';
+import { economyService } from '../core/services/economy.service';
+import { RewardEngine } from '../core/RewardEngine';
+import { MatchReward, TableTier } from '../core/economy.types';
 
 interface GameScreenProps {
     gameId?: string;
@@ -49,9 +54,10 @@ interface GameScreenProps {
     winningCondition?: number;
     turnDuration?: number;
     startingHandSize?: number;
+    tableTier?: string; // TableTier passé depuis solo.tsx / lobby.tsx
 }
 
-export default function GameScreen({ gameId, userId, mode, difficulty, gameMode, winningCondition, turnDuration, startingHandSize: propStartingHandSize }: GameScreenProps) {
+export default function GameScreen({ gameId, userId, mode, difficulty, gameMode, winningCondition, turnDuration, startingHandSize: propStartingHandSize, tableTier: propTableTier }: GameScreenProps) {
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const isLandscape = width > height;
@@ -62,6 +68,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [localPlayerId] = useState<PlayerId>(userId || 'p1');
     const [isSoloMode] = useState(mode === 'solo');
     const [startingHandSize] = useState(propStartingHandSize || HAND_SIZE);
+    const [activeTableTier] = useState<TableTier>((propTableTier as TableTier) || 'DEBUTANT');
 
     // -- 2. Connection Status --
     const { isRejoining, signalPlayerOnline, signalPlayerOffline } = useConnectionStatus({ gameId, localPlayerId, isSoloMode });
@@ -90,6 +97,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     const isLocalHost = isSoloMode || (roomData?.players[0]?.uid === localPlayerId);
 
+    const [isPaused, setIsPaused] = useState(false);
+
     let handleTimeoutCb = (pId: string) => {
         // Will be wired to the engine
     };
@@ -103,7 +112,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         clearAllTurnTimers
     } = useGameTimers({
         gameState,
-        isPaused: false,
+        isPaused,
         localPlayerId,
         onTimeout: (pId, turnId) => handleTimeoutCb(pId)
     });
@@ -157,7 +166,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         localPlayerId,
         isSoloMode,
         gameId,
-        isPaused: false,
+        isPaused,
         isLocalHost,
         roomData,
         userId,
@@ -181,7 +190,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     // -- 5. UI State remaining --
     const [showRoomInfo, setShowRoomInfo] = useState(false);
-    const [isPaused, setIsPaused] = useState(false);
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = useState(true);
@@ -267,14 +275,28 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
     const [profileLoaded, setProfileLoaded] = useState(false);
     const statsRecordedRef = useRef(false);
+    const [matchReward, setMatchReward] = useState<MatchReward | null>(null);
+    const [showRewardOverlay, setShowRewardOverlay] = useState(false);
+    // Economy context (loaded on mount, used for reward calculation)
+    const playerEconomyRef = useRef({ level: 1, xp: 0, leaguePoints: 0 });
 
-    // -- stats recording effect --
+    // Load economy on mount
+    useEffect(() => {
+        economyService.getEconomy().then(eco => {
+            playerEconomyRef.current = {
+                level: eco.level,
+                xp: eco.xp,
+                leaguePoints: eco.leaguePoints,
+            };
+        }).catch(console.error);
+    }, []);
+
+    // -- stats & economy recording effect --
     useEffect(() => {
         if (gameState?.phase === 'MATCH_END' && !statsRecordedRef.current) {
             const localPlayer = gameState.players.find(p => p.id === localPlayerId);
             if (localPlayer) {
                 // Determine Match Winner
-                // Priority: totalPoints (Le Camion), then totalCochons, then mancheWins
                 const sorted = [...gameState.players].sort((a, b) => {
                     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
                     if (b.totalCochons !== a.totalCochons) return b.totalCochons - a.totalCochons;
@@ -286,18 +308,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
                 const opponentsData = gameState.players
                     .filter(p => p.id !== localPlayerId)
-                    .map(p => ({
-                        name: p.name,
-                        avatarId: p.avatarId || 'avatar_default'
-                    }));
+                    .map(p => ({ name: p.name, avatarId: p.avatarId || 'avatar_default' }));
 
-                console.log('📊 GameScreen: Recording match result...', {
-                    result,
-                    cochons: localPlayer.totalCochons,
-                    points: localPlayer.totalPoints,
-                    mode: isSoloMode ? 'SOLO' : 'MULTIPLAYER'
-                });
-
+                // 1. Record basic match stats (existing system)
                 statsService.recordMatchResult({
                     result,
                     cochons: localPlayer.totalCochons || 0,
@@ -307,11 +320,40 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     userId: userId
                 }).catch(err => console.error('📊 Stats recording failed:', err));
 
+                // 2. Calculate & apply economy rewards (new system)
+                try {
+                    const rewardInput = RewardEngine.buildInputFromGameState({
+                        gameState,
+                        localPlayerId,
+                        currentLevel: playerEconomyRef.current.level,
+                        currentXP: playerEconomyRef.current.xp,
+                        currentLeaguePoints: playerEconomyRef.current.leaguePoints,
+                        tableTier: activeTableTier, // ✅ Vient du param de navigation
+                        isSoloMode,
+                    });
+
+                    const reward = RewardEngine.calculate(rewardInput);
+                    setMatchReward(reward);
+
+                    economyService.applyReward(reward, userId).catch(err =>
+                        console.error('[Economy] applyReward failed:', err)
+                    );
+
+                    console.log('💰 [GameScreen] Economy rewards applied:', {
+                        coins: reward.coinsEarned,
+                        xp: reward.xpEarned,
+                        leveledUp: reward.leveledUp,
+                        gradeUp: reward.gradeUp,
+                    });
+                } catch (err) {
+                    console.error('[Economy] RewardEngine calculation failed:', err);
+                }
+
                 statsRecordedRef.current = true;
             }
         } else if (gameState?.phase !== 'MATCH_END' && gameState?.phase !== 'MANCHE_END') {
-            // Reset the flag for the next match, but not during MANCHE_END as it might flicker
             statsRecordedRef.current = false;
+            setMatchReward(null); // Reset pour la prochaine partie
         }
     }, [gameState?.phase, localPlayerId, isSoloMode, userId]);
 
@@ -618,23 +660,34 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     // HELPERS & ACTIONS (UI-ONLY)
     // -------------------------------------------------------------------------
 
-    const handleLeaveRoom = async () => {
+    const handleLeaveRoom = useCallback(() => {
+        console.log("[QUIT] handleLeaveRoom called. isSoloMode:", isSoloMode, "gameId:", gameId);
+
+        // 1. Navigate FIRST — using router.back() as requested instead of replace
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace('/home');
+        }
+
+        // 2. Cleanup AFTER navigation is triggered (fire-and-forget)
         AsyncStorage.removeItem('active_roomId').catch(console.error);
-        if (isSoloMode || !gameId) {
-            router.replace('/home');
-            return;
+        if (!isSoloMode && gameId) {
+            leaveRoom(gameId, localPlayerId).catch(e => console.error("Error leaving room", e));
         }
-        try {
-            await leaveRoom(gameId, localPlayerId);
-            router.replace('/home');
-        } catch (e: any) {
-            console.error("Error leaving room", e);
-            router.replace('/home');
-        }
-    };
+    }, [isSoloMode, gameId, localPlayerId, router]);
 
     // -- 7. Action Handlers (Delegated) --
     // These are already extracted into useGameEngine and useGameSync
+
+    const interceptOverlayContinue = useCallback(() => {
+        if (gameState?.phase === 'MATCH_END' && matchReward) {
+            setShowScoreboard(false);
+            setShowRewardOverlay(true);
+        } else {
+            handleOverlayContinue();
+        }
+    }, [gameState?.phase, matchReward, handleOverlayContinue]);
 
     // Effect to trigger flying animation when a domino is added to the table
     useEffect(() => {
@@ -811,6 +864,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 forcedOpeningDominoId={forcedOpeningDominoId}
                 insets={insets}
                 onPlayDomino={handlePlayDomino}
+                isPaused={isPaused}
             />
 
             <GameOverlays
@@ -824,12 +878,23 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 onCloseRoomInfo={() => setShowRoomInfo(false)}
                 showScoreOverlay={showScoreOverlay}
                 localPlayerId={localPlayerId}
-                onOverlayContinue={handleOverlayContinue}
+                onOverlayContinue={interceptOverlayContinue}
                 onLeaveRoom={handleLeaveRoom}
                 roomData={roomData}
                 bannerState={bannerState}
                 isPaused={isPaused}
                 onResume={() => setIsPaused(false)}
+            />
+
+            {/* Dynamic Rewards Overlay (Phase 5B) */}
+            <RewardOverlay
+                visible={showRewardOverlay}
+                reward={matchReward}
+                isWinner={matchReward?.isWinner ?? (gameState?.players.find(p => p.id === localPlayerId)?.totalPoints === Math.min(...gameState.players.map(p => p.totalPoints)))}
+                onContinue={() => {
+                    setShowRewardOverlay(false);
+                    handleLeaveRoom(); // Les renvoyer au lobby/home après le résumé éco
+                }}
             />
 
             {/* ✅ FIX ANTI-ZOMBIE: Overlay temporaire pendant la reprise */}

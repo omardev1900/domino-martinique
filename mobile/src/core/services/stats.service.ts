@@ -20,6 +20,13 @@ export interface PlayerStats {
     totalCochonsInflicted: number;
     totalPointsAccumulated: number;
     matchHistory: MatchRecord[];
+    // ─── Economy & Progression ───
+    coins: number;
+    xp: number;
+    level: number;
+    diamonds: number;
+    leaguePoints: number;
+    leagueGrade: string;
 }
 
 const DEFAULT_STATS: PlayerStats = {
@@ -28,6 +35,13 @@ const DEFAULT_STATS: PlayerStats = {
     totalCochonsInflicted: 0,
     totalPointsAccumulated: 0,
     matchHistory: [],
+    // Economy defaults
+    coins: 0,
+    xp: 0,
+    level: 1,
+    diamonds: 0,
+    leaguePoints: 0,
+    leagueGrade: 'APPRENTI',
 };
 
 class StatsService {
@@ -49,6 +63,13 @@ class StatsService {
                     totalCochonsInflicted: parsed.totalCochonsInflicted ?? 0,
                     totalPointsAccumulated: parsed.totalPointsAccumulated ?? 0,
                     matchHistory: parsed.matchHistory ?? [],
+                    // Economy fields — fallback to 0/defaults for old persisted data
+                    coins: parsed.coins ?? 0,
+                    xp: parsed.xp ?? 0,
+                    level: parsed.level ?? 1,
+                    diamonds: parsed.diamonds ?? 0,
+                    leaguePoints: parsed.leaguePoints ?? 0,
+                    leagueGrade: parsed.leagueGrade ?? 'APPRENTI',
                 };
             } else {
                 this.cachedStats = { ...DEFAULT_STATS };
@@ -132,6 +153,13 @@ class StatsService {
                     totalCochonsInflicted: stats.totalCochonsInflicted,
                     totalPointsAccumulated: stats.totalPointsAccumulated,
                     matchHistory: stats.matchHistory,
+                    // Economy fields
+                    coins: stats.coins,
+                    xp: stats.xp,
+                    level: stats.level,
+                    diamonds: stats.diamonds,
+                    leaguePoints: stats.leaguePoints,
+                    leagueGrade: stats.leagueGrade,
                     lastSync: Date.now()
                 }
             }, { merge: true });
@@ -163,7 +191,14 @@ class StatsService {
                         gamesWon: Math.max(localStats.gamesWon, remoteData.gamesWon || 0),
                         totalCochonsInflicted: Math.max(localStats.totalCochonsInflicted, remoteData.totalCochonsInflicted || 0),
                         totalPointsAccumulated: Math.max(localStats.totalPointsAccumulated, remoteData.totalPointsAccumulated || 0),
-                        matchHistory: this.mergeMatchHistories(localStats.matchHistory, remoteData.matchHistory || [])
+                        matchHistory: this.mergeMatchHistories(localStats.matchHistory, remoteData.matchHistory || []),
+                        // Economy — take the max (server is source of truth if higher)
+                        coins: Math.max(localStats.coins, remoteData.coins || 0),
+                        xp: Math.max(localStats.xp, remoteData.xp || 0),
+                        level: Math.max(localStats.level, remoteData.level || 1),
+                        diamonds: Math.max(localStats.diamonds, remoteData.diamonds || 0),
+                        leaguePoints: Math.max(localStats.leaguePoints, remoteData.leaguePoints || 0),
+                        leagueGrade: remoteData.leagueGrade || localStats.leagueGrade,
                     };
 
                     this.cachedStats = mergedStats;
