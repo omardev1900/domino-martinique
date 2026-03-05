@@ -1,6 +1,28 @@
 import { finalizeRound } from '../core/ScoringEngine';
-import { GameState, Player, PlayerId } from '../core/types';
-import { createBaseGameState } from '../hooks/game/__tests__/testUtils';
+import { GameState, Player } from '../core/types';
+
+/** Factory locale — crée un GameState minimal sans dépendance externe */
+const createBaseGameState = (overrides: Partial<GameState>): GameState => ({
+    gameId: 'test-game',
+    players: [],
+    talonMort: [],
+    table: { sequence: [], leftValue: null, rightValue: null },
+    currentPlayerId: 'A',
+    phase: 'PLAYING',
+    firstPlayerOfRound: null,
+    history: [],
+    winningCondition: 3,
+    gameMode: 'COCHON',
+    mancheResult: null,
+    turnDuration: 15,
+    lastActionTimestamp: Date.now(),
+    turnId: 1,
+    mancheHistory: [],
+    roundNumber: 1,
+    mancheNumber: 1,
+    startingHandSize: 7,
+    ...overrides,
+});
 
 // Mocking some dependencies if needed, or using real logic as it's an integration test of logic + expected db behavior
 // We'll simulate the "Database" as an object that all "Clients" read/write to.
@@ -120,7 +142,8 @@ describe('Multiplayer Cochon Synchronization Integration', () => {
         expect(playerC_State.phase).toBe('MANCHE_END');
 
         expect(playerB_State.mancheHistory).toEqual(playerA_State.mancheHistory);
-        expect(playerB_State.players.find(p => p.id === 'A')?.totalPoints).toBe(12);
+        // A: 10 initial + 2 cochon bonus + 1 round win = 13
+        expect(playerB_State.players.find(p => p.id === 'A')?.totalPoints).toBe(13);
     });
 
     test('Validation de l\'Overlay : Tous les clients reçoivent le badge Cochon', async () => {

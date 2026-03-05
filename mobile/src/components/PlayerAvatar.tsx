@@ -26,6 +26,7 @@ interface PlayerAvatarProps {
     overtime?: number | null; // NEW: Explicit 5s Overtime
     isBotPlaying?: boolean; // NEW: Show bot indicator
     isDisconnected?: boolean; // NEW: Show disconnected indicator
+    gameMode?: string; // NEW: The current game mode to conditionally show specific stats
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -48,7 +49,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     chatContent,
     overtime = null,
     isBotPlaying = false,
-    isDisconnected = false
+    isDisconnected = false,
+    gameMode
 }) => {
     const strokeWidth = 4;
     const radius = (size - strokeWidth) / 2;
@@ -327,6 +329,12 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     ]}>
                         <Text style={styles.opponentNameText} numberOfLines={1}>{player.name}</Text>
                         <View style={styles.opponentStatsRow}>
+                            {gameMode === 'COCHON' && (
+                                <View style={styles.opponentStatCol}>
+                                    <Text style={styles.statLabelCochon}>🐷</Text>
+                                    <Text style={styles.statValueCochon}>{player.totalCochons || 0}</Text>
+                                </View>
+                            )}
                             <View style={styles.opponentStatCol}>
                                 <Text style={styles.statLabelV}>V</Text>
                                 <Text style={styles.statValueV}>{player.currentMancheStars || 0}</Text>
@@ -559,6 +567,15 @@ const styles = StyleSheet.create({
     },
     statValuePTS: {
         color: '#FFD700',
+        fontSize: 14,
+        fontWeight: '900',
+    },
+    statLabelCochon: {
+        fontSize: 9,
+        marginBottom: 2,
+    },
+    statValueCochon: {
+        color: '#FF9800',
         fontSize: 14,
         fontWeight: '900',
     }
