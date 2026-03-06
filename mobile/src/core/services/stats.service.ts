@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { PlayerInventory } from '../store.types';
+import { DEFAULT_INVENTORY } from '../store.constants';
 
 const STORAGE_KEY_PLAYER_STATS = '@player_stats';
 
@@ -27,6 +29,7 @@ export interface PlayerStats {
     diamonds: number;
     leaguePoints: number;
     leagueGrade: string;
+    inventory: PlayerInventory;
 }
 
 const DEFAULT_STATS: PlayerStats = {
@@ -42,6 +45,7 @@ const DEFAULT_STATS: PlayerStats = {
     diamonds: 0,
     leaguePoints: 0,
     leagueGrade: 'APPRENTI',
+    inventory: DEFAULT_INVENTORY,
 };
 
 class StatsService {
@@ -70,6 +74,7 @@ class StatsService {
                     diamonds: parsed.diamonds ?? 0,
                     leaguePoints: parsed.leaguePoints ?? 0,
                     leagueGrade: parsed.leagueGrade ?? 'APPRENTI',
+                    inventory: parsed.inventory ?? DEFAULT_INVENTORY,
                 };
             } else {
                 this.cachedStats = { ...DEFAULT_STATS };
@@ -199,6 +204,7 @@ class StatsService {
                         diamonds: Math.max(localStats.diamonds, remoteData.diamonds || 0),
                         leaguePoints: Math.max(localStats.leaguePoints, remoteData.leaguePoints || 0),
                         leagueGrade: remoteData.leagueGrade || localStats.leagueGrade,
+                        inventory: remoteData.inventory || localStats.inventory,
                     };
 
                     this.cachedStats = mergedStats;
@@ -240,6 +246,31 @@ class StatsService {
     async resetStats(): Promise<void> {
         this.cachedStats = { ...DEFAULT_STATS };
         await this.persistStats();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Inventory Updates
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Updates the player's inventory (owned items and equipped cosmetics).
+     */
+    async updateInventory(newInventory: PlayerInventory, uid?: string): Promise<void> {
+        if (!this.cachedStats) return;
+
+        this.cachedStats.inventory = newInventory;
+        await this.persistStats();
+
+        if (uid && !uid.startsWith('guest_')) {
+            try {
+                const userRef = doc(db, 'users', uid);
+                // We merge only the stats.inventory field
+                await setDoc(userRef, { stats: { inventory: newInventory } }, { merge: true });
+                console.log('🛍️ [StatsService] Inventory synced to Firebase.');
+            } catch (error) {
+                console.error('🛍️ [StatsService] Failed to sync inventory to Firebase', error);
+            }
+        }
     }
 }
 

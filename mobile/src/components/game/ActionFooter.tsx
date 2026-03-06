@@ -18,6 +18,7 @@ export interface ActionFooterProps {
     showSideSelection?: boolean;
     onSelectSide?: (side: 'left' | 'right') => void;
     isPaused?: boolean;
+    skinId?: string; // Cosmetic skin ID
 }
 
 export const ActionFooter: React.FC<ActionFooterProps> = ({
@@ -33,6 +34,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
     showSideSelection = false,
     onSelectSide,
     isPaused = false,
+    skinId,
 }) => {
     if (!gameState || !localPlayer) return null;
 
@@ -87,6 +89,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                 leftValue={gameState.table.leftValue as any}
                 rightValue={gameState.table.rightValue as any}
                 forcedPlayableDominoId={forcedOpeningDominoId}
+                skinId={skinId}
             />
         </View>
     );

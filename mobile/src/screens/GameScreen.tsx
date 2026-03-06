@@ -42,6 +42,7 @@ import { useGameTimers } from '../hooks/game/useGameTimers';
 import { useGameEngine } from '../hooks/game/useGameEngine';
 import { statsService } from '../core/services/stats.service';
 import { economyService } from '../core/services/economy.service';
+import { storeService } from '../core/services/store.service';
 import { RewardEngine } from '../core/RewardEngine';
 import { MatchReward, TableTier } from '../core/economy.types';
 
@@ -273,6 +274,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
+    const [playerSkinId, setPlayerSkinId] = useState<string | undefined>(undefined);
     const [profileLoaded, setProfileLoaded] = useState(false);
     const statsRecordedRef = useRef(false);
     const [matchReward, setMatchReward] = useState<MatchReward | null>(null);
@@ -387,6 +389,17 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         console.error('Error loading profile:', error);
                     }
                 }
+
+                // Load cosmetics like skin for both solo and multiplayer
+                try {
+                    const inventory = await storeService.getInventory();
+                    if (inventory?.equipped?.skin) {
+                        setPlayerSkinId(inventory.equipped.skin);
+                    }
+                } catch (e) {
+                    console.error('Error loading inventory cosmetics', e);
+                }
+
                 setProfileLoaded(true);
             };
             loadSettings();
@@ -821,6 +834,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     pendingDomino={pendingDomino}
                     onSideSelect={pendingDomino ? confirmSidePlay : undefined}
                     hiddenDominoId={hiddenDominoId}
+                    skinId={playerSkinId}
                 />
 
                 {flyingDomino && (
@@ -866,6 +880,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 insets={insets}
                 onPlayDomino={handlePlayDomino}
                 isPaused={isPaused}
+                skinId={playerSkinId}
             />
 
             <GameOverlays

@@ -15,6 +15,7 @@ interface DominoTileProps {
     entering?: any; // Reanimated entering prop
     noMargin?: boolean; // Remove margin for board tiles
     isPlayable?: boolean; // Should the tile glow?
+    skinId?: string; // Cosmetic skin ID
 }
 
 // Logic for pip positions
@@ -37,7 +38,8 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     disabled = false,
     entering,
     noMargin = false,
-    isPlayable = false
+    isPlayable = false,
+    skinId
 }) => {
     const isVertical = orientation === 'vertical';
     const width = isVertical ? size : size * 2;
@@ -60,6 +62,25 @@ export const DominoTile: React.FC<DominoTileProps> = ({
             glowValue.value = 0;
         }
     }, [isPlayable]);
+
+    // Apply skin aesthetics
+    let gradientColors = ['#f0e68c', '#eee8aa', '#bdb76b']; // Default Ivory
+    let pipColor = '#000000';
+    let dividerColor = 'rgba(0,0,0,0.15)';
+
+    if (skinId === 'skin_gold') {
+        gradientColors = ['#FFD700', '#FDB931', '#B8860B'];
+        pipColor = '#800000'; // Dark red pips
+        dividerColor = 'rgba(128,0,0,0.3)';
+    } else if (skinId === 'skin_obsidian') {
+        gradientColors = ['#2C3E50', '#1A252F', '#000000'];
+        pipColor = '#FFD700'; // Gold pips
+        dividerColor = 'rgba(255,215,0,0.3)';
+    } else if (skinId === 'skin_neon') {
+        gradientColors = ['#0F2027', '#203A43', '#2C5364'];
+        pipColor = '#00FFCC'; // Cyan neon pips
+        dividerColor = 'rgba(0,255,204,0.3)';
+    }
 
     const animatedGlowStyle = useAnimatedStyle(() => {
         return {
@@ -111,7 +132,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                         cx={x * 100}
                         cy={y * 100}
                         r={dotRadius * 2.5}
-                        fill="#000000" // Deep Black Pips
+                        fill={pipColor}
                     />
                 ))}
             </Svg>
@@ -137,10 +158,10 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                 <View style={StyleSheet.absoluteFill}>
                     <Svg width="100%" height="100%">
                         <Defs>
-                            <LinearGradient id="ivoryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <Stop offset="0%" stopColor="#f0e68c" />
-                                <Stop offset="50%" stopColor="#eee8aa" />
-                                <Stop offset="100%" stopColor="#bdb76b" />
+                            <LinearGradient id={`bgGradient_${skinId || 'default'}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                <Stop offset="0%" stopColor={gradientColors[0]} />
+                                <Stop offset="50%" stopColor={gradientColors[1]} />
+                                <Stop offset="100%" stopColor={gradientColors[2]} />
                             </LinearGradient>
                         </Defs>
                         <Rect
@@ -149,7 +170,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                             width="100%"
                             height="100%"
                             rx={8}
-                            fill="url(#ivoryGradient)"
+                            fill={`url(#bgGradient_${skinId || 'default'})`}
                         />
                     </Svg>
                 </View>
@@ -166,7 +187,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                         ? { width: size * 0.8, height: size * 0.05 }
                         : { width: size * 0.05, height: size * 0.8 }
                 ]}>
-                    <View style={styles.dividerLine} />
+                    <View style={[styles.dividerLine, { backgroundColor: dividerColor }]} />
                 </View>
 
                 {/* Right/Bottom Half */}

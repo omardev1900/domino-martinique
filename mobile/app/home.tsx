@@ -184,6 +184,23 @@ export default function HomeScreen() {
                             </LinearGradient>
                         </TouchableOpacity>
                     </Animated.View>
+
+                    <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.cardWrapper}>
+                        <TouchableOpacity
+                            style={styles.modeCard}
+                            onPress={() => router.push('/store')}
+                            activeOpacity={0.85}
+                        >
+                            <LinearGradient
+                                colors={['#9C27B0', '#6A1B9A']}
+                                style={styles.cardGradient}
+                            >
+                                <Text style={styles.cardIcon}>🛍️</Text>
+                                <Text style={styles.cardTitle}>La Boutique</Text>
+                                <Text style={styles.cardDesc}>Personnalisez votre jeu</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </Animated.View>
                 </View>
             </ScrollView>
 

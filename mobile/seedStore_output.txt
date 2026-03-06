@@ -1,0 +1,15 @@
+Seeding store_catalog to Firestore...
+✅ Injecté : Classique (avatar_classic)
+✅ Injecté : Cochon Masqué (avatar_pig_mask)
+✅ Injecté : Roi Domino (avatar_king)
+✅ Injecté : Légende Dorée (avatar_legend)
+✅ Injecté : Standard (skin_classic)
+✅ Injecté : Skin Royal (skin_royal)
+✅ Injecté : Obsidienne (skin_obsidian)
+✅ Injecté : Cyber Néon (skin_neon)
+✅ Injecté : Bois Sombre (skin_wood)
+✅ Injecté : Poignée de Coins (pack_coins_small)
+✅ Injecté : Sac de Coins (pack_coins_medium)
+✅ Injecté : Coffre de Coins (pack_coins_large)
+
+🎉 Injection terminée ! Succès: 12, Erreurs: 0

@@ -1,4 +1,5 @@
 export type DominoSide = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+import { PlayerInventory } from './store.types';
 
 export interface Domino {
     id: string;
@@ -99,6 +100,7 @@ export interface PlayerProfile {
     diamonds?: number;       // 💎 Monnaie premium
     leaguePoints?: number;   // 🐷 Cochons totaux (alias de totalCochonsInflicted)
     leagueGrade?: string;    // Grade de ligue ('APPRENTI' | 'MAITRE' | 'ROI' | 'LEGENDE')
+    inventory?: PlayerInventory; // Cosmétiques possédés et équipés
 }
 
 export interface GameRoom {

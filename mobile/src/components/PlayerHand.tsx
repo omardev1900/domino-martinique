@@ -14,6 +14,7 @@ interface PlayerHandProps {
     rightValue?: DominoSide | null;
     isLocked?: boolean;
     forcedPlayableDominoId?: string | null;
+    skinId?: string; // Cosmetic skin ID
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -24,6 +25,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
     rightValue = null,
     isLocked = false,
     forcedPlayableDominoId = null,
+    skinId,
 }) => {
     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
 
@@ -73,6 +75,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                                 disabled={disabled || !canPlay}
                                 isPlayable={canPlay}
                                 entering={FadeInDown.delay(index * 10).springify()}
+                                skinId={skinId}
                             />
                         </Animated.View>
                     );
