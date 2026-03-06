@@ -63,7 +63,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                             ref={(el) => (tileRefs.current[domino.id] = el as any)}
                             style={[
                                 styles.tileWrapper,
-                                canPlay ? { transform: [{ translateY: -20 }], zIndex: 10 } : { opacity: 0.6, transform: [{ scale: 0.95 }] },
+                                canPlay ? { transform: [{ translateY: -25 }], zIndex: 10, elevation: 15 } : { opacity: 0.6, transform: [{ scale: 0.95 }], zIndex: 1, elevation: 5 },
                             ]}
                             layout={LinearTransition.springify()}
                         >
@@ -93,27 +93,30 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         alignItems: 'center',
-        height: 120, // Increased to prevent clipping
+        height: 130, // Increased to account for paddingTop
         justifyContent: 'center',
         overflow: 'visible',
+        zIndex: 10,
     },
     scrollView: {
         flex: 1,
         width: '100%',
+        overflow: 'visible',
     },
     scrollContent: {
         alignItems: 'center',
         justifyContent: 'center',
         flexGrow: 1,
         paddingHorizontal: 20,
+        paddingTop: 30, // Make natural room for the elevated domino
+        paddingBottom: 10,
         gap: 8,
+        overflow: 'visible',
     },
     tileWrapper: {
-        // Floating tiles with slight shadow
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 6,
-        elevation: 8,
     },
 });

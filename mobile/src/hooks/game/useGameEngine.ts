@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GameState, Domino, GameRoom } from '../../core/types';
 import { useTurnManager } from './useTurnManager';
 import { useActionDispatcher } from './useActionDispatcher';
@@ -47,6 +47,12 @@ export const useGameEngine = ({
 
     // 1. Initialiser le TurnManager pour le contrôle des verrous
     const turnManager = useTurnManager({ gameState });
+
+    // Nettoyage automatique : annule le choix de côté si le tour ou la phase de jeu change
+    // (ex: le joueur met trop de temps, le bot joue à sa place)
+    useEffect(() => {
+        setPendingDomino(null);
+    }, [gameState?.currentPlayerId, gameState?.phase]);
 
     // 2. Initialiser le Dispatcher pour canaliser les mutations
     const { dispatch } = useActionDispatcher({
