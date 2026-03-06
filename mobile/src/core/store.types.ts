@@ -1,6 +1,13 @@
 export type StoreItemType = 'SKIN' | 'AVATAR' | 'CURRENCY_PACK' | 'EMOTE';
 export type StoreItemRarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
 
+export interface SkinConfig {
+    tableBackgroundColor: string;
+    dominoBackgroundColor: string;
+    dominoDotColor: string;
+    dominoLineColor: string;
+}
+
 export interface StoreItem {
     id: string;
     name: string;
@@ -19,6 +26,8 @@ export interface StoreItem {
     assetId: string;
     // Remote image URL from Firestore (takes precedence over assetId)
     imageUrl?: string;
+    // Configuration for dynamic rendering of skins
+    skinConfig?: SkinConfig;
 }
 
 export interface PlayerInventory {

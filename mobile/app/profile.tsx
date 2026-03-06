@@ -19,15 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { authService } from '../src/core/services/auth.service';
-import { statsService, PlayerStats } from '../src/core/services/stats.service';
-import { economyService } from '../src/core/services/economy.service';
 import { PlayerProfile } from '../src/core/types';
-import { PlayerEconomy } from '../src/core/economy.types';
-import { xpRequiredForLevel } from '../src/core/RewardEngine';
-import { LEAGUE_LABELS, LEAGUE_ICONS } from '../src/core/economy.constants';
 import { AVAILABLE_AVATARS, getAvatarImage, AvatarId } from '../src/core/avatars';
-import { MatchHistory } from '../src/components/MatchHistory';
-
 export default function ProfileScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
@@ -39,19 +32,6 @@ export default function ProfileScreen() {
     const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
     const [selectedAvatar, setSelectedAvatar] = useState<string | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
-    const [playerStats, setPlayerStats] = useState<PlayerStats>({
-        gamesPlayed: 0,
-        gamesWon: 0,
-        totalCochonsInflicted: 0,
-        totalPointsAccumulated: 0,
-        matchHistory: [],
-        coins: 0, xp: 0, level: 1, diamonds: 0, leaguePoints: 0, leagueGrade: 'APPRENTI',
-    });
-    const [economy, setEconomy] = useState<PlayerEconomy>({
-        coins: 0, xp: 0, level: 1, diamonds: 0, leaguePoints: 0, leagueGrade: 'APPRENTI',
-    });
-    const [activeTab, setActiveTab] = useState<'stats' | 'history'>('stats');
-
     const nameInputRef = useRef<TextInput>(null);
 
     const handleEditPress = () => {
@@ -62,17 +42,8 @@ export default function ProfileScreen() {
     useFocusEffect(
         useCallback(() => {
             loadUserProfile();
-            loadPlayerStats();
         }, [])
     );
-
-    const loadPlayerStats = async () => {
-        const stats = await statsService.getStats();
-        setPlayerStats(stats);
-        // Also refresh economy from the same source
-        const eco = await economyService.getEconomy();
-        setEconomy(eco);
-    };
 
     const loadUserProfile = async () => {
         console.log('[Profile] Loading user profile...');
@@ -183,77 +154,7 @@ export default function ProfileScreen() {
         </View>
     );
 
-    const renderEconomySection = () => {
-        const xpCurrent = economy.xp - xpRequiredForLevel(economy.level);
-        const xpNeeded = xpRequiredForLevel(economy.level + 1) - xpRequiredForLevel(economy.level);
-        const xpPct = xpNeeded > 0 ? Math.min(1, xpCurrent / xpNeeded) : 1;
 
-        const gradeLabel = LEAGUE_LABELS[economy.leagueGrade] || economy.leagueGrade;
-        const gradeIcon = LEAGUE_ICONS[economy.leagueGrade] || '🔰';
-
-        return (
-            <View style={styles.economySection}>
-                {/* Row: Coins + Diamonds */}
-                <View style={styles.economyRow}>
-                    <View style={styles.economyPill}>
-                        <Text style={styles.economyIcon}>🪙</Text>
-                        <Text style={styles.economyValue}>{economy.coins.toLocaleString()}</Text>
-                        <Text style={styles.economyLabel}>Coins</Text>
-                    </View>
-                    <View style={styles.economyPill}>
-                        <Text style={styles.economyIcon}>💎</Text>
-                        <Text style={[styles.economyValue, { color: '#60DCFF' }]}>{economy.diamonds}</Text>
-                        <Text style={styles.economyLabel}>Diamonds</Text>
-                    </View>
-                    <View style={styles.economyPill}>
-                        <Text style={styles.economyIcon}>{gradeIcon}</Text>
-                        <Text style={[styles.economyValue, { fontSize: 10 }]} numberOfLines={1}>{gradeLabel}</Text>
-                        <Text style={styles.economyLabel}>Ligue</Text>
-                    </View>
-                </View>
-                {/* XP Progress Bar */}
-                <View style={styles.xpContainer}>
-                    <View style={styles.xpHeader}>
-                        <Text style={styles.xpLabel}>⭐ Niveau {economy.level}</Text>
-                        <Text style={styles.xpValue}>{economy.xp.toLocaleString()} XP total</Text>
-                    </View>
-                    <View style={styles.xpBarBg}>
-                        <View style={[styles.xpBarFill, { width: `${Math.round(xpPct * 100)}%` }]} />
-                    </View>
-                    <Text style={styles.xpSubtext}>
-                        {xpCurrent.toLocaleString()} / {xpNeeded.toLocaleString()} XP vers niveau {economy.level + 1}
-                    </Text>
-                </View>
-            </View>
-        );
-    };
-
-    const renderStatsGrid = () => {
-        const winRate = playerStats.gamesPlayed > 0
-            ? Math.round((playerStats.gamesWon / playerStats.gamesPlayed) * 100)
-            : 0;
-
-        const statCards = [
-            { icon: '🎮', value: playerStats.gamesPlayed, label: 'Parties' },
-            { icon: '🏆', value: playerStats.gamesWon, label: `Victoires (${winRate}%)` },
-            { icon: '🐷', value: playerStats.totalCochonsInflicted, label: 'Cochons' },
-            { icon: '⚡', value: playerStats.totalPointsAccumulated, label: 'Points' },
-        ];
-
-        return (
-            <View style={styles.section}>
-                <View style={styles.statsGrid}>
-                    {statCards.map((card, index) => (
-                        <View key={index} style={styles.statCard}>
-                            <Text style={styles.statIcon}>{card.icon}</Text>
-                            <Text style={styles.statValue}>{card.value}</Text>
-                            <Text style={styles.statLabel}>{card.label}</Text>
-                        </View>
-                    ))}
-                </View>
-            </View>
-        );
-    };
 
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
@@ -311,87 +212,50 @@ export default function ProfileScreen() {
                     bounces={true}
                     showsVerticalScrollIndicator={true}
                 >
-                    {/* Main Split Layout Container */}
-                    <View style={styles.splitRow}>
-                        {/* LEFT COLUMN: Avatar + Info + Selection */}
-                        <View style={styles.leftColumn}>
-                            <View style={styles.avatarCircle}>
-                                <Image
-                                    source={getAvatarImage(selectedAvatar || 'avatar_default')}
-                                    style={styles.avatarCircleImage}
-                                    resizeMode="cover"
-                                />
-                            </View>
-                            <View style={styles.headerInfo}>
-                                <TextInput
-                                    ref={nameInputRef}
-                                    style={styles.headerDisplayNameInput}
-                                    value={displayName}
-                                    onChangeText={setDisplayName}
-                                    onBlur={async () => {
-                                        // Auto-save name when leaving the field
-                                        if (displayName.trim()) {
-                                            try {
-                                                console.log('[Profile] Auto-saving name:', displayName.trim());
-                                                await authService.updateProfile({
-                                                    displayName: displayName.trim(),
-                                                    photoURL: selectedAvatar
-                                                });
-                                                console.log('[Profile] Name auto-saved successfully');
-                                                setLastSaved(new Date());
-                                            } catch (error) {
-                                                console.error('[Profile] Error auto-saving name:', error);
-                                            }
-                                        }
-                                    }}
-                                    placeholder="Pseudo"
-                                    placeholderTextColor="rgba(255,255,255,0.3)"
-                                    maxLength={15}
-                                    returnKeyType="done"
-                                />
-                                <TouchableOpacity onPress={handleEditPress}>
-                                    <Ionicons name="pencil" size={14} color="#FFD700" style={styles.editIcon} />
-                                </TouchableOpacity>
-                            </View>
-                            {userEmail && <Text style={styles.emailTextCompact}>{userEmail}</Text>}
-
-                            <View style={styles.avatarSelectionSmall}>
-                                {renderAvatarGrid()}
-                            </View>
+                    {/* Main Container - Centered */}
+                    <View style={styles.centerColumn}>
+                        <View style={styles.avatarCircle}>
+                            <Image
+                                source={getAvatarImage(selectedAvatar || 'avatar_default')}
+                                style={styles.avatarCircleImage}
+                                resizeMode="cover"
+                            />
                         </View>
+                        <View style={styles.headerInfo}>
+                            <TextInput
+                                ref={nameInputRef}
+                                style={styles.headerDisplayNameInput}
+                                value={displayName}
+                                onChangeText={setDisplayName}
+                                onBlur={async () => {
+                                    // Auto-save name when leaving the field
+                                    if (displayName.trim()) {
+                                        try {
+                                            console.log('[Profile] Auto-saving name:', displayName.trim());
+                                            await authService.updateProfile({
+                                                displayName: displayName.trim(),
+                                                photoURL: selectedAvatar
+                                            });
+                                            console.log('[Profile] Name auto-saved successfully');
+                                            setLastSaved(new Date());
+                                        } catch (error) {
+                                            console.error('[Profile] Error auto-saving name:', error);
+                                        }
+                                    }
+                                }}
+                                placeholder="Pseudo"
+                                placeholderTextColor="rgba(255,255,255,0.3)"
+                                maxLength={15}
+                                returnKeyType="done"
+                            />
+                            <TouchableOpacity onPress={handleEditPress}>
+                                <Ionicons name="pencil" size={14} color="#FFD700" style={styles.editIcon} />
+                            </TouchableOpacity>
+                        </View>
+                        {userEmail && <Text style={styles.emailTextCompact}>{userEmail}</Text>}
 
-                        {/* VERTICAL SEPARATOR */}
-                        <View style={styles.verticalSeparator} />
-
-                        {/* RIGHT COLUMN: Statistics / History */}
-                        <View style={styles.rightColumn}>
-                            {/* Economy Section - ABOVE tabs */}
-                            {renderEconomySection()}
-
-                            {/* Tab Switcher */}
-                            <View style={styles.tabBar}>
-                                <TouchableOpacity
-                                    style={[styles.tabItem, activeTab === 'stats' && styles.activeTabItem]}
-                                    onPress={() => setActiveTab('stats')}
-                                >
-                                    <Text style={[styles.tabText, activeTab === 'stats' && styles.activeTabText]}>STATS</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.tabItem, activeTab === 'history' && styles.activeTabItem]}
-                                    onPress={() => setActiveTab('history')}
-                                >
-                                    <View style={styles.tabWithBadge}>
-                                        <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>MATCHS</Text>
-                                        {playerStats.matchHistory.length > 0 && (
-                                            <View style={styles.tabBadge}>
-                                                <Text style={styles.tabBadgeText}>{playerStats.matchHistory.length}</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                </TouchableOpacity>
-                            </View>
-
-                            {activeTab === 'stats' ? renderStatsGrid() : <MatchHistory history={playerStats.matchHistory} />}
+                        <View style={styles.avatarSelectionSmall}>
+                            {renderAvatarGrid()}
                         </View>
                     </View>
 
@@ -436,25 +300,12 @@ const styles = StyleSheet.create({
         gap: 20,
     },
     // ─── Main Content Layout ───
-    splitRow: {
-        flexDirection: 'row',
+    centerColumn: {
+        alignItems: 'center',
         width: '100%',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 15,
-        marginBottom: 5,
-    },
-    leftColumn: {
-        flex: 1.2,
-        alignItems: 'center',
-    },
-    rightColumn: {
-        flex: 1.8,
-    },
-    verticalSeparator: {
-        width: 1,
-        height: '70%',
-        backgroundColor: 'rgba(255,215,0,0.25)',
+        maxWidth: 400,
+        alignSelf: 'center',
+        marginBottom: 10,
     },
     // ─── Profile Info ───
     avatarCircle: {
@@ -548,41 +399,7 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 40,
     },
-    // ─── Statistics ───
-    statsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 10,
-        justifyContent: 'center',
-    },
-    statCard: {
-        width: '47%',
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 12,
-        paddingVertical: 10,
-        paddingHorizontal: 5,
-        alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: 'rgba(255,215,0,0.15)',
-    },
-    statIcon: {
-        fontSize: 32,
-        marginBottom: 2,
-    },
-    statValue: {
-        fontSize: 22,
-        fontWeight: '900',
-        color: '#FFFFFF',
-    },
-    statLabel: {
-        fontSize: 9,
-        color: '#FFD700',
-        fontWeight: 'bold',
-        marginTop: 2,
-        textAlign: 'center',
-        textTransform: 'uppercase',
-        opacity: 0.8,
-    },
+
     // ─── Actions ───
     formSection: {
         width: '100%',
@@ -630,118 +447,6 @@ const styles = StyleSheet.create({
         color: '#1a0505',
         letterSpacing: 2,
     },
-    // ─── Tabs ───
-    tabBar: {
-        flexDirection: 'row',
-        marginBottom: 15,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 10,
-        padding: 4,
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.1)',
-    },
-    tabItem: {
-        flex: 1,
-        paddingVertical: 8,
-        alignItems: 'center',
-        borderRadius: 8,
-    },
-    activeTabItem: {
-        backgroundColor: 'rgba(255,215,0,0.2)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.3)',
-    },
-    tabText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: 'rgba(255,255,255,0.5)',
-        letterSpacing: 1,
-    },
-    activeTabText: {
-        color: '#FFD700',
-    },
-    tabWithBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    tabBadge: {
-        backgroundColor: '#FFD700',
-        borderRadius: 8,
-        paddingHorizontal: 5,
-        paddingVertical: 1,
-        marginLeft: 6,
-    },
-    tabBadgeText: {
-        fontSize: 8,
-        fontWeight: '900',
-        color: '#1a0505',
-    },
-    // ─── Economy Section ──────────────────────────────────────────────────────
-    economySection: {
-        marginBottom: 12,
-        backgroundColor: 'rgba(0,0,0,0.25)',
-        borderRadius: 12,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.15)',
-    },
-    economyRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginBottom: 12,
-    },
-    economyPill: {
-        alignItems: 'center',
-        flex: 1,
-    },
-    economyIcon: {
-        fontSize: 22,
-        marginBottom: 2,
-    },
-    economyValue: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: '#FFD700',
-    },
-    economyLabel: {
-        fontSize: 9,
-        color: 'rgba(255,255,255,0.5)',
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginTop: 2,
-    },
-    xpContainer: {
-        gap: 5,
-    },
-    xpHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    xpLabel: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#FFD700',
-    },
-    xpValue: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.5)',
-    },
-    xpBarBg: {
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        overflow: 'hidden',
-    },
-    xpBarFill: {
-        height: '100%',
-        borderRadius: 4,
-        backgroundColor: '#FFD700',
-    },
-    xpSubtext: {
-        fontSize: 9,
-        color: 'rgba(255,255,255,0.4)',
-        textAlign: 'center',
-    },
+
+
 });

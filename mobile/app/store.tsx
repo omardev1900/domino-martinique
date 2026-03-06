@@ -117,11 +117,39 @@ export default function StoreScreen() {
 
                 {/* Graphic or Firestore Remote Image */}
                 <View style={[styles.cardImagePlaceholder, isLandscape && { height: 100 }]}>
-                    {item.imageUrl ? (
+                    {item.type === 'CURRENCY_PACK' && item.imageUrl ? (
+                        <>
+                            <Image source={{ uri: item.imageUrl }} style={styles.remoteImage} resizeMode="cover" />
+                            <Text style={styles.currencyOverlayText}>
+                                {item.rewards?.coins?.toLocaleString('fr-FR') || ''}
+                            </Text>
+                        </>
+                    ) : item.type === 'SKIN' ? (
+                        <View style={[styles.skinPreviewContainer, { backgroundColor: item.skinConfig ? item.skinConfig.tableBackgroundColor : '#555555' }]}>
+                            {item.skinConfig && (
+                                <View style={[styles.skinPreviewDomino, { backgroundColor: item.skinConfig.dominoBackgroundColor }]}>
+                                    {/* Top Half */}
+                                    <View style={styles.skinPreviewHalf}>
+                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
+                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
+                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
+                                    </View>
+                                    {/* Divider */}
+                                    <View style={[styles.skinPreviewDivider, { backgroundColor: item.skinConfig.dominoLineColor }]} />
+                                    {/* Bottom Half */}
+                                    <View style={styles.skinPreviewHalf}>
+                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
+                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
+                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    ) : item.imageUrl ? (
                         <Image source={{ uri: item.imageUrl }} style={styles.remoteImage} resizeMode="cover" />
                     ) : (
                         <Ionicons
-                            name={item.type === 'AVATAR' ? 'person' : item.type === 'SKIN' ? 'color-palette' : 'diamond'}
+                            name={item.type === 'AVATAR' ? 'person' : 'diamond'}
                             size={48}
                             color="rgba(255,255,255,0.5)"
                         />
@@ -347,6 +375,58 @@ const styles = StyleSheet.create({
     remoteImage: {
         width: '100%',
         height: '100%',
+    },
+    currencyOverlayText: {
+        position: 'absolute',
+        color: '#FFD700', // Yellow/Orange
+        fontSize: 32,
+        fontWeight: '900',
+        textShadowColor: 'rgba(0, 0, 0, 0.8)',
+        textShadowOffset: { width: 2, height: 2 },
+        textShadowRadius: 4,
+        letterSpacing: 1,
+    },
+    skinPreviewContainer: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    skinPreviewDomino: {
+        width: 30,
+        height: 60,
+        borderRadius: 4,
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 2,
+        elevation: 5,
+    },
+    skinPreviewHalf: {
+        flex: 1,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        alignContent: 'center',
+        gap: 2,
+        padding: 2,
+    },
+    skinPreviewDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    skinPreviewDivider: {
+        height: 2,
+        width: '100%',
+        marginVertical: 2,
     },
     cardDescription: {
         color: 'rgba(255,255,255,0.7)',

@@ -94,8 +94,27 @@ export default function HomeScreen() {
         >
             {/* Header Area */}
             <View style={[styles.header, { paddingTop: insets.top || 20 }]}>
-                {/* Settings Button - Top Left */}
+                {/* Economy Header - Top Left */}
                 <Animated.View entering={FadeInLeft.duration(400)}>
+                    <EconomyHeader refreshTrigger={economyRefresh} />
+                </Animated.View>
+
+                {/* User Info & Settings - Top Right */}
+                <Animated.View entering={FadeInRight.duration(400)} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                    <TouchableOpacity
+                        style={styles.settingsButton}
+                        onPress={() => router.push('/store')}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.settingsIcon}>🛒</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.settingsButton}
+                        onPress={() => router.push('/stats')}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.settingsIcon}>📈</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.settingsButton}
                         onPress={() => router.push('/modal')}
@@ -103,19 +122,11 @@ export default function HomeScreen() {
                     >
                         <Text style={styles.settingsIcon}>⚙️</Text>
                     </TouchableOpacity>
-                </Animated.View>
-
-                {/* Economy Header - Center */}
-                <EconomyHeader refreshTrigger={economyRefresh} />
-
-                {/* User Info - Top Right */}
-                <Animated.View entering={FadeInRight.duration(400)}>
                     <TouchableOpacity
                         style={styles.userBadge}
                         onPress={() => router.push('/profile')}
                         activeOpacity={0.8}
                     >
-                        <Text style={styles.userName} numberOfLines={1}>{user?.displayName || 'Invité'}</Text>
                         <View style={styles.avatarCircle}>
                             <Image
                                 source={getAvatarImage((user?.avatarUrl && (AVAILABLE_AVATARS.includes(user.avatarUrl as AvatarId) || user.avatarUrl === 'avatar_default')) ? user.avatarUrl : 'avatar_default')}
@@ -187,17 +198,17 @@ export default function HomeScreen() {
 
                     <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.cardWrapper}>
                         <TouchableOpacity
-                            style={styles.modeCard}
-                            onPress={() => router.push('/store')}
-                            activeOpacity={0.85}
+                            style={[styles.modeCard, { opacity: 0.7 }]}
+                            disabled={true}
+                            activeOpacity={1}
                         >
                             <LinearGradient
-                                colors={['#9C27B0', '#6A1B9A']}
+                                colors={['#FF9800', '#F57C00']}
                                 style={styles.cardGradient}
                             >
-                                <Text style={styles.cardIcon}>🛍️</Text>
-                                <Text style={styles.cardTitle}>La Boutique</Text>
-                                <Text style={styles.cardDesc}>Personnalisez votre jeu</Text>
+                                <Text style={styles.cardIcon}>🏆</Text>
+                                <Text style={styles.cardTitle}>Mode Tournoi</Text>
+                                <Text style={styles.cardDesc}>Prochainement</Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     </Animated.View>

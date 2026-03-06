@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { EdgeInsets } from 'react-native-safe-area-context';
 import { PlayerHand } from '../PlayerHand';
 import { Player, GameState, Domino } from '../../core/types';
+import { SkinConfig } from '../../core/store.types';
 
 export interface ActionFooterProps {
     localPlayer: Player | null;
@@ -18,7 +19,7 @@ export interface ActionFooterProps {
     showSideSelection?: boolean;
     onSelectSide?: (side: 'left' | 'right') => void;
     isPaused?: boolean;
-    skinId?: string; // Cosmetic skin ID
+    skinConfig?: SkinConfig; // Cosmetic skin configuration
 }
 
 export const ActionFooter: React.FC<ActionFooterProps> = ({
@@ -34,7 +35,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
     showSideSelection = false,
     onSelectSide,
     isPaused = false,
-    skinId,
+    skinConfig,
 }) => {
     if (!gameState || !localPlayer) return null;
 
@@ -89,7 +90,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                 leftValue={gameState.table.leftValue as any}
                 rightValue={gameState.table.rightValue as any}
                 forcedPlayableDominoId={forcedOpeningDominoId}
-                skinId={skinId}
+                skinConfig={skinConfig}
             />
         </View>
     );

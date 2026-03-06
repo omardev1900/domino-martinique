@@ -9,6 +9,7 @@ import { DominoTile } from './DominoTile';
 import { Ionicons } from '@expo/vector-icons';
 import { TableTheme } from '../core/themes/tableThemes';
 import { getValidMoves, ValidMove } from '../core/DominoEngine';
+import { SkinConfig } from '../core/store.types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  GRID CONSTANTS — Never change with screen size. Only 'scale' adapts.
@@ -48,7 +49,7 @@ interface GameTableProps {
     pendingDomino?: Domino | null;
     onSideSelect?: (side: 'left' | 'right') => void;
     hiddenDominoId?: string | null;
-    skinId?: string; // Cosmetic skin ID
+    skinConfig?: SkinConfig; // Cosmetic skin configuration
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -238,7 +239,7 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
 //  COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
-    { gameState, pendingDomino, onSideSelect, hiddenDominoId, skinId },
+    { gameState, pendingDomino, onSideSelect, hiddenDominoId, skinConfig },
     ref
 ) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -318,7 +319,7 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
     }, [placedTiles]);
 
     return (
-        <View style={[styles.container, isLandscape && styles.containerLandscape]}>
+        <View style={[styles.container, isLandscape && styles.containerLandscape, skinConfig ? { backgroundColor: skinConfig.tableBackgroundColor } : {}]}>
             {/* Outer wrapper at SCALED size to preserve document flow & auto-centering */}
             <View style={{ width: scaledW, height: scaledH, justifyContent: 'center', alignItems: 'center' }}>
                 {/* Inner canvas at NATURAL size but scaled via transform */}
@@ -358,7 +359,7 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
                                     disabled
                                     noMargin
                                     entering={FadeIn.delay(idx * 30).duration(300)}
-                                    skinId={skinId}
+                                    skinConfig={skinConfig}
                                 />
                             </View>
                         );

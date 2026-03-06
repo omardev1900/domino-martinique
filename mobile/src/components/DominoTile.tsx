@@ -4,6 +4,7 @@ import Animated, { FadeIn, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat,
 import Svg, { Circle, Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { DominoSide } from '../core/types';
 import HapticManager from '../core/audio/HapticManager';
+import { SkinConfig } from '../core/store.types';
 
 interface DominoTileProps {
     left: DominoSide;
@@ -15,7 +16,7 @@ interface DominoTileProps {
     entering?: any; // Reanimated entering prop
     noMargin?: boolean; // Remove margin for board tiles
     isPlayable?: boolean; // Should the tile glow?
-    skinId?: string; // Cosmetic skin ID
+    skinConfig?: SkinConfig; // Cosmetic skin configuration
 }
 
 // Logic for pip positions
@@ -39,7 +40,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     entering,
     noMargin = false,
     isPlayable = false,
-    skinId
+    skinConfig
 }) => {
     const isVertical = orientation === 'vertical';
     const width = isVertical ? size : size * 2;
@@ -64,22 +65,21 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     }, [isPlayable]);
 
     // Apply skin aesthetics
-    let gradientColors = ['#f0e68c', '#eee8aa', '#bdb76b']; // Default Ivory
+    // Base defaults if no config is available
+    let gradientColors = ['#f0e68c', '#eee8aa', '#bdb76b']; // Ivory
     let pipColor = '#000000';
     let dividerColor = 'rgba(0,0,0,0.15)';
 
-    if (skinId === 'skin_gold') {
-        gradientColors = ['#FFD700', '#FDB931', '#B8860B'];
-        pipColor = '#800000'; // Dark red pips
-        dividerColor = 'rgba(128,0,0,0.3)';
-    } else if (skinId === 'skin_obsidian') {
-        gradientColors = ['#2C3E50', '#1A252F', '#000000'];
-        pipColor = '#FFD700'; // Gold pips
-        dividerColor = 'rgba(255,215,0,0.3)';
-    } else if (skinId === 'skin_neon') {
-        gradientColors = ['#0F2027', '#203A43', '#2C5364'];
-        pipColor = '#00FFCC'; // Cyan neon pips
-        dividerColor = 'rgba(0,255,204,0.3)';
+    if (skinConfig) {
+        // If we have a skinConfig, we skip the hardcoded gradients and just use the uniform background color for now.
+        // We will fake a simple gradient based on the single background color.
+        gradientColors = [
+            skinConfig.dominoBackgroundColor,
+            skinConfig.dominoBackgroundColor,
+            skinConfig.dominoBackgroundColor
+        ];
+        pipColor = skinConfig.dominoDotColor;
+        dividerColor = skinConfig.dominoLineColor;
     }
 
     const animatedGlowStyle = useAnimatedStyle(() => {
@@ -158,7 +158,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                 <View style={StyleSheet.absoluteFill}>
                     <Svg width="100%" height="100%">
                         <Defs>
-                            <LinearGradient id={`bgGradient_${skinId || 'default'}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                            <LinearGradient id="bgGradient_dynamic" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <Stop offset="0%" stopColor={gradientColors[0]} />
                                 <Stop offset="50%" stopColor={gradientColors[1]} />
                                 <Stop offset="100%" stopColor={gradientColors[2]} />
@@ -170,7 +170,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                             width="100%"
                             height="100%"
                             rx={8}
-                            fill={`url(#bgGradient_${skinId || 'default'})`}
+                            fill="url(#bgGradient_dynamic)"
                         />
                     </Svg>
                 </View>

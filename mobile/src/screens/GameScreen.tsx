@@ -45,6 +45,7 @@ import { economyService } from '../core/services/economy.service';
 import { storeService } from '../core/services/store.service';
 import { RewardEngine } from '../core/RewardEngine';
 import { MatchReward, TableTier } from '../core/economy.types';
+import { SkinConfig } from '../core/store.types';
 
 interface GameScreenProps {
     gameId?: string;
@@ -275,6 +276,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
     const [playerSkinId, setPlayerSkinId] = useState<string | undefined>(undefined);
+    const [playerSkinConfig, setPlayerSkinConfig] = useState<SkinConfig | undefined>(undefined);
     const [profileLoaded, setProfileLoaded] = useState(false);
     const statsRecordedRef = useRef(false);
     const [matchReward, setMatchReward] = useState<MatchReward | null>(null);
@@ -394,7 +396,15 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 try {
                     const inventory = await storeService.getInventory();
                     if (inventory?.equipped?.skin) {
-                        setPlayerSkinId(inventory.equipped.skin);
+                        const skinIdToLoad = inventory.equipped.skin;
+                        setPlayerSkinId(skinIdToLoad);
+
+                        // Fetch catalog to get the config for the equipped skin
+                        const catalog = await storeService.getCatalog();
+                        const equippedSkinItem = catalog.find(item => item.id === skinIdToLoad);
+                        if (equippedSkinItem && equippedSkinItem.skinConfig) {
+                            setPlayerSkinConfig(equippedSkinItem.skinConfig);
+                        }
                     }
                 } catch (e) {
                     console.error('Error loading inventory cosmetics', e);
@@ -834,7 +844,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     pendingDomino={pendingDomino}
                     onSideSelect={pendingDomino ? confirmSidePlay : undefined}
                     hiddenDominoId={hiddenDominoId}
-                    skinId={playerSkinId}
+                    skinConfig={playerSkinConfig}
                 />
 
                 {flyingDomino && (

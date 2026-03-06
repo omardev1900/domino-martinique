@@ -5,6 +5,7 @@ import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated'
 import { Domino, DominoSide } from '../core/types';
 import { DominoTile } from './DominoTile';
 import { checkValidMove } from '../core/LogicEngine';
+import { SkinConfig } from '../core/store.types';
 
 interface PlayerHandProps {
     hand: Domino[];
@@ -14,7 +15,7 @@ interface PlayerHandProps {
     rightValue?: DominoSide | null;
     isLocked?: boolean;
     forcedPlayableDominoId?: string | null;
-    skinId?: string; // Cosmetic skin ID
+    skinConfig?: SkinConfig; // Cosmetic skin configuration
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -25,7 +26,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
     rightValue = null,
     isLocked = false,
     forcedPlayableDominoId = null,
-    skinId,
+    skinConfig,
 }) => {
     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
 
@@ -69,13 +70,13 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                             <DominoTile
                                 left={domino.left}
                                 right={domino.right}
-                                size={40}
+                                size={45}
                                 orientation="vertical"
-                                onPress={canPlay ? () => handleTilePress(domino) : undefined}
-                                disabled={disabled || !canPlay}
+                                onPress={() => handleTilePress(domino)}
+                                disabled={!canPlay || disabled}
+                                entering={FadeInDown.delay(index * 100).duration(300)}
+                                skinConfig={skinConfig}
                                 isPlayable={canPlay}
-                                entering={FadeInDown.delay(index * 10).springify()}
-                                skinId={skinId}
                             />
                         </Animated.View>
                     );

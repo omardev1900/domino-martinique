@@ -37,7 +37,8 @@ const STORE_CATALOG = [
         type: 'AVATAR',
         rarity: 'COMMON',
         priceCoins: 0,
-        assetId: 'default'
+        assetId: 'default',
+        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/domino-martinique-v1.firebasestorage.app/o/avatars%2Fclassic.jpg?alt=media'
     },
     {
         id: 'avatar_pig_mask',
@@ -46,7 +47,8 @@ const STORE_CATALOG = [
         type: 'AVATAR',
         rarity: 'RARE',
         priceCoins: 1500,
-        assetId: 'pig_mask'
+        assetId: 'pig_mask',
+        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/domino-martinique-v1.firebasestorage.app/o/avatars%2Fcochon_masquee.jpg?alt=media&token=ffde8d39-f41c-4275-b87e-71cf9ddffdd1'
     },
     {
         id: 'avatar_king',
@@ -55,7 +57,8 @@ const STORE_CATALOG = [
         type: 'AVATAR',
         rarity: 'EPIC',
         priceDiamonds: 50,
-        assetId: 'king'
+        assetId: 'king',
+        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/domino-martinique-v1.firebasestorage.app/o/avatars%2Froi_domino.jpg?alt=media&token=2b273d10-767c-4855-a439-8b5b9172125d'
     },
     {
         id: 'avatar_legend',
@@ -64,7 +67,18 @@ const STORE_CATALOG = [
         type: 'AVATAR',
         rarity: 'LEGENDARY',
         priceDiamonds: 250,
-        assetId: 'legend_gold'
+        assetId: 'legend_gold',
+        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/domino-martinique-v1.firebasestorage.app/o/avatars%2Flegende_doree.jpg?alt=media&token=5deb771e-a4b1-4e1f-991e-60c70089849c'
+    },
+    {
+        id: 'avatar_mystery',
+        name: 'Soldat Mystère',
+        description: 'Un joueur anonyme au regard perçant.',
+        type: 'AVATAR',
+        rarity: 'RARE',
+        priceDiamonds: 25,
+        assetId: 'mystery',
+        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/domino-martinique-v1.firebasestorage.app/o/avatars%2Fsoldat_mystere.jpg?alt=media&token=e778b05c-59c9-4cf0-a77e-884401f28db5'
     },
 
     // --- SKINS (Dominos) ---
@@ -75,7 +89,13 @@ const STORE_CATALOG = [
         type: 'SKIN',
         rarity: 'COMMON',
         priceCoins: 0,
-        assetId: 'classic'
+        assetId: 'classic',
+        skinConfig: {
+            tableBackgroundColor: '#105B3A', // Classic Green
+            dominoBackgroundColor: '#FFFFFF',
+            dominoDotColor: '#000000',
+            dominoLineColor: '#000000'
+        }
     },
     {
         id: 'skin_royal',
@@ -85,7 +105,13 @@ const STORE_CATALOG = [
         rarity: 'EPIC',
         priceCoins: 15000,
         priceDiamonds: 100,
-        assetId: 'royal'
+        assetId: 'royal',
+        skinConfig: {
+            tableBackgroundColor: '#4A1C40', // Deep Purple
+            dominoBackgroundColor: '#F8F1E5', // Ivory
+            dominoDotColor: '#D4AF37', // Gold
+            dominoLineColor: '#D4AF37'
+        }
     },
     {
         id: 'skin_obsidian',
@@ -94,7 +120,13 @@ const STORE_CATALOG = [
         type: 'SKIN',
         rarity: 'LEGENDARY',
         priceDiamonds: 300,
-        assetId: 'obsidian'
+        assetId: 'obsidian',
+        skinConfig: {
+            tableBackgroundColor: '#1A1A1D', // Very Dark Grey
+            dominoBackgroundColor: '#2C2C2C', // Obsidian
+            dominoDotColor: '#E0E0E0', // Light Grey/Silver
+            dominoLineColor: '#E0E0E0'
+        }
     },
     {
         id: 'skin_neon',
@@ -103,7 +135,13 @@ const STORE_CATALOG = [
         type: 'SKIN',
         rarity: 'RARE',
         priceCoins: 5000,
-        assetId: 'neon'
+        assetId: 'neon',
+        skinConfig: {
+            tableBackgroundColor: '#0D0221', // Deep Space Blue
+            dominoBackgroundColor: '#1E1E24', // Dark Grey
+            dominoDotColor: '#00FF41', // Neon Green
+            dominoLineColor: '#00FF41'
+        }
     },
     {
         id: 'skin_wood',
@@ -112,7 +150,13 @@ const STORE_CATALOG = [
         type: 'SKIN',
         rarity: 'RARE',
         priceCoins: 12000,
-        assetId: 'wood'
+        assetId: 'wood',
+        skinConfig: {
+            tableBackgroundColor: '#2C1B12', // Dark Wood Table
+            dominoBackgroundColor: '#8B5A2B', // Mahogany
+            dominoDotColor: '#F5DEB3', // Wheat/Light Wood
+            dominoLineColor: '#F5DEB3'
+        }
     },
 
     // --- PACKS DE DEVISE (Diamants -> Coins) ---
@@ -124,7 +168,8 @@ const STORE_CATALOG = [
         rarity: 'COMMON',
         priceDiamonds: 10,
         rewards: { coins: 1500 },
-        assetId: 'coins_pile'
+        assetId: 'coins_pile',
+        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/domino-martinique-v1.firebasestorage.app/o/Devises%2Fcoins.png?alt=media&token=e95a2934-2613-4f22-9a1c-676697204d97'
     },
     {
         id: 'pack_coins_medium',
@@ -134,7 +179,8 @@ const STORE_CATALOG = [
         rarity: 'RARE',
         priceDiamonds: 50,
         rewards: { coins: 8000 },
-        assetId: 'coins_bag'
+        assetId: 'coins_bag',
+        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/domino-martinique-v1.firebasestorage.app/o/Devises%2Fcoins.png?alt=media&token=e95a2934-2613-4f22-9a1c-676697204d97'
     },
     {
         id: 'pack_coins_large',
@@ -144,7 +190,8 @@ const STORE_CATALOG = [
         rarity: 'EPIC',
         priceDiamonds: 100,
         rewards: { coins: 20000 },
-        assetId: 'coins_chest'
+        assetId: 'coins_chest',
+        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/domino-martinique-v1.firebasestorage.app/o/Devises%2Fcoins.png?alt=media&token=e95a2934-2613-4f22-9a1c-676697204d97'
     }
 ];
 
