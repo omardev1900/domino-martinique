@@ -22,18 +22,21 @@ export default function StoreScreen() {
     const [activeTab, setActiveTab] = useState<TabType>('ALL');
     const [inventory, setInventory] = useState<PlayerInventory | null>(null);
     const [catalog, setCatalog] = useState<StoreItem[]>([]);
+    const [economy, setEconomy] = useState<any>(null); // Type formel ou any pour stocker economy
     const [loading, setLoading] = useState(true);
     const [processingPurchase, setProcessingPurchase] = useState<string | null>(null);
     const [economyRefresh, setEconomyRefresh] = useState(0);
 
     const loadData = async () => {
         try {
-            const [inv, cat] = await Promise.all([
+            const [inv, cat, eco] = await Promise.all([
                 storeService.getInventory(),
-                storeService.getCatalog()
+                storeService.getCatalog(),
+                economyService.getEconomy()
             ]);
             setInventory(inv);
             setCatalog(cat);
+            setEconomy(eco);
         } catch (error) {
             console.error('Failed to load store data', error);
         } finally {
@@ -107,6 +110,11 @@ export default function StoreScreen() {
             item.type === 'SKIN' ? inventory.equipped.skin === item.id : false;
 
         const isProcessing = processingPurchase === item.id;
+
+        // Validation des fonds
+        const canAffordCoins = item.priceCoins ? (economy?.coins ?? 0) >= item.priceCoins : true;
+        const canAffordDiamonds = item.priceDiamonds ? (economy?.diamonds ?? 0) >= item.priceDiamonds : true;
+        const canAfford = canAffordCoins && canAffordDiamonds;
 
         return (
             <Animated.View entering={FadeIn} key={item.id} style={[styles.card, isLandscape && styles.cardLandscape]}>
@@ -189,7 +197,11 @@ export default function StoreScreen() {
                             <Text style={styles.equipButtonText}>Équiper</Text>
                         </TouchableOpacity>
                     ) : (
-                        <TouchableOpacity style={styles.buyButton} onPress={() => handlePurchase(item)}>
+                        <TouchableOpacity
+                            style={[styles.buyButton, !canAfford && { opacity: 0.5 }]}
+                            onPress={() => handlePurchase(item)}
+                            disabled={!canAfford}
+                        >
                             <Text style={styles.buyButtonText}>Acheter</Text>
                         </TouchableOpacity>
                     )}

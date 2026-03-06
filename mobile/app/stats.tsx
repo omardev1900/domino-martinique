@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, useWindowDimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInUp, SlideInRight } from 'react-native-reanimated';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+
 import { statsService, PlayerStats } from '../src/core/services/stats.service';
 import { economyService } from '../src/core/services/economy.service';
 import { PlayerEconomy } from '../src/core/economy.types';
@@ -20,7 +22,8 @@ export default function StatsScreen() {
 
     const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'stats' | 'history'>('stats');
+    const [historyModalVisible, setHistoryModalVisible] = useState(false);
+
     const [economy, setEconomy] = useState<PlayerEconomy>({
         coins: 0, xp: 0, level: 1, diamonds: 0, leaguePoints: 0, leagueGrade: 'APPRENTI',
     });
@@ -54,7 +57,7 @@ export default function StatsScreen() {
     };
 
     const renderHeader = () => (
-        <View style={[styles.header, { paddingTop: insets.top || 20 }]}>
+        <View style={[styles.header, { paddingTop: insets.top || 10 }]}>
             <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => router.back()}
@@ -62,78 +65,100 @@ export default function StatsScreen() {
             >
                 <Text style={styles.backButtonText}>← Retour</Text>
             </TouchableOpacity>
+
             <Text style={styles.headerTitle}>Statistiques</Text>
-            <View style={styles.headerRight} />
+
+            <TouchableOpacity
+                style={styles.historyButton}
+                onPress={() => setHistoryModalVisible(true)}
+                activeOpacity={0.7}
+            >
+                <Text style={styles.historyIcon}>🕒</Text>
+                {playerStats?.matchHistory && playerStats.matchHistory.length > 0 && (
+                    <View style={styles.historyBadge}>
+                        <Text style={styles.historyBadgeText}>{playerStats.matchHistory.length}</Text>
+                    </View>
+                )}
+            </TouchableOpacity>
         </View>
     );
 
-    const renderStatsGrid = () => {
-        if (!playerStats) return null;
-
-        const winRate = playerStats.gamesPlayed > 0
-            ? Math.round((playerStats.gamesWon / playerStats.gamesPlayed) * 100)
-            : 0;
-
-        const statCards = [
-            { icon: '🎮', value: playerStats.gamesPlayed, label: 'Parties' },
-            { icon: '🏆', value: playerStats.gamesWon, label: `Victoires (${winRate}%)` },
-            { icon: '🐷', value: playerStats.totalCochonsInflicted, label: 'Cochons' },
-            { icon: '⚡', value: playerStats.totalPointsAccumulated, label: 'Points' },
-        ];
+    const renderBlocA = () => {
+        const xpCurrent = economy.xp - xpRequiredForLevel(economy.level);
+        const xpNeeded = xpRequiredForLevel(economy.level + 1) - xpRequiredForLevel(economy.level);
+        const xpPct = xpNeeded > 0 ? Math.min(1, xpCurrent / xpNeeded) : 1;
+        const gradeLabel = LEAGUE_LABELS[economy.leagueGrade] || economy.leagueGrade;
+        const gradeIcon = LEAGUE_ICONS[economy.leagueGrade] || '🔰';
 
         return (
-            <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.section}>
-                <View style={[styles.statsGrid, isLandscape && styles.statsGridLandscape]}>
-                    {statCards.map((card, index) => (
-                        <View key={index} style={[styles.statCard, isLandscape && styles.statCardLandscape]}>
-                            <Text style={styles.statIcon}>{card.icon}</Text>
-                            <Text style={styles.statValue}>{card.value}</Text>
-                            <Text style={styles.statLabel}>{card.label}</Text>
-                        </View>
-                    ))}
+            <Animated.View entering={FadeInUp.delay(100).duration(500)} style={[styles.bloc, styles.blocA]}>
+                {/* Devises Row */}
+                <View style={styles.devisesRow}>
+                    <View style={styles.deviseItem}>
+                        <Text style={styles.deviseIcon}>🪙</Text>
+                        <Text style={styles.deviseValue}>{economy.coins.toLocaleString()}</Text>
+                    </View>
+                    <View style={styles.deviseDivider} />
+                    <View style={styles.deviseItem}>
+                        <Text style={styles.deviseIcon}>💎</Text>
+                        <Text style={[styles.deviseValue, { color: '#60DCFF' }]}>{economy.diamonds.toLocaleString()}</Text>
+                    </View>
+                </View>
+
+                {/* Ligue Badge */}
+                <View style={styles.leagueContainer}>
+                    <Text style={styles.leagueIcon}>{gradeIcon}</Text>
+                    <Text style={styles.leagueName}>{gradeLabel}</Text>
+                </View>
+
+                {/* XP Bar */}
+                <View style={styles.xpBox}>
+                    <View style={styles.xpHeader}>
+                        <Text style={styles.xpLevel}>Niveau {economy.level}</Text>
+                        <Text style={styles.xpProgressTxt}>{xpCurrent.toLocaleString()} / {xpNeeded.toLocaleString()} XP</Text>
+                    </View>
+                    <View style={styles.xpBarBg}>
+                        <View style={[styles.xpBarFill, { width: `${Math.round(xpPct * 100)}%` }]} />
+                    </View>
                 </View>
             </Animated.View>
         );
     };
 
-    const renderEconomySection = () => {
-        const xpCurrent = economy.xp - xpRequiredForLevel(economy.level);
-        const xpNeeded = xpRequiredForLevel(economy.level + 1) - xpRequiredForLevel(economy.level);
-        const xpPct = xpNeeded > 0 ? Math.min(1, xpCurrent / xpNeeded) : 1;
-
-        const gradeLabel = LEAGUE_LABELS[economy.leagueGrade] || economy.leagueGrade;
-        const gradeIcon = LEAGUE_ICONS[economy.leagueGrade] || '🔰';
+    const renderBlocB = () => {
+        if (!playerStats) return null;
+        const winRate = playerStats.gamesPlayed > 0
+            ? Math.round((playerStats.gamesWon / playerStats.gamesPlayed) * 100)
+            : 0;
 
         return (
-            <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.economySection}>
-                <View style={styles.economyRow}>
-                    <View style={styles.economyPill}>
-                        <Text style={styles.economyIcon}>🪙</Text>
-                        <Text style={styles.economyValue}>{economy.coins.toLocaleString()}</Text>
-                        <Text style={styles.economyLabel}>Coins</Text>
-                    </View>
-                    <View style={styles.economyPill}>
-                        <Text style={styles.economyIcon}>💎</Text>
-                        <Text style={[styles.economyValue, { color: '#60DCFF' }]}>{economy.diamonds}</Text>
-                        <Text style={styles.economyLabel}>Diamonds</Text>
-                    </View>
-                    <View style={styles.economyPill}>
-                        <Text style={styles.economyIcon}>{gradeIcon}</Text>
-                        <Text style={[styles.economyValue, { fontSize: 10 }]} numberOfLines={1}>{gradeLabel}</Text>
-                        <Text style={styles.economyLabel}>Ligue</Text>
-                    </View>
+            <Animated.View entering={FadeInUp.delay(200).duration(500)} style={[styles.bloc, styles.blocB]}>
+                <View style={styles.statLine}>
+                    <Text style={styles.statLineIcon}>🎮</Text>
+                    <Text style={styles.statLineLabel}>PARTIES</Text>
+                    <View style={styles.statLineDotted} />
+                    <Text style={styles.statLineValue}>{playerStats.gamesPlayed.toLocaleString()}</Text>
                 </View>
-                <View style={styles.xpContainer}>
-                    <View style={styles.xpHeader}>
-                        <Text style={styles.xpLabel}>⭐ Niveau {economy.level}</Text>
-                        <Text style={styles.xpValue}>{economy.xp.toLocaleString()} XP total</Text>
-                    </View>
-                    <View style={styles.xpBarBg}>
-                        <View style={[styles.xpBarFill, { width: `${Math.round(xpPct * 100)}%` }]} />
-                    </View>
-                    <Text style={styles.xpSubtext}>
-                        {xpCurrent.toLocaleString()} / {xpNeeded.toLocaleString()} XP vers niveau {economy.level + 1}
-                    </Text>
+
+                <View style={styles.statLine}>
+                    <Text style={styles.statLineIcon}>🏆</Text>
+                    <Text style={styles.statLineLabel}>VICTOIRES</Text>
+                    <View style={styles.statLineDotted} />
+                    <Text style={styles.statLineValue}>{playerStats.gamesWon.toLocaleString()} <Text style={styles.statLineSubValue}>({winRate}%)</Text></Text>
+                </View>
+
+                <View style={styles.statLine}>
+                    <Text style={styles.statLineIcon}>🐷</Text>
+                    <Text style={styles.statLineLabel}>COCHONS</Text>
+                    <View style={styles.statLineDotted} />
+                    <Text style={styles.statLineValue}>{playerStats.totalCochonsInflicted.toLocaleString()}</Text>
+                </View>
+
+                <View style={styles.statLine}>
+                    <Text style={styles.statLineIcon}>✨</Text>
+                    <Text style={styles.statLineLabel}>POINTS</Text>
+                    <View style={styles.statLineDotted} />
+                    <Text style={[styles.statLineValue, { color: '#FFD700' }]}>{playerStats.totalPointsAccumulated.toLocaleString()}</Text>
                 </View>
             </Animated.View>
         );
@@ -141,48 +166,43 @@ export default function StatsScreen() {
 
     return (
         <View style={styles.container}>
-            <LinearGradient
-                colors={['#1a0505', '#2a0a0a']}
-                style={StyleSheet.absoluteFillObject}
-            />
+            <LinearGradient colors={['#1a0505', '#2a0a0a']} style={StyleSheet.absoluteFillObject} />
 
             {renderHeader()}
 
-            <View style={styles.content}>
-                {renderEconomySection()}
-
-                <View style={styles.tabBar}>
-                    <TouchableOpacity
-                        style={[styles.tabItem, activeTab === 'stats' && styles.activeTabItem]}
-                        onPress={() => setActiveTab('stats')}
-                    >
-                        <Text style={[styles.tabText, activeTab === 'stats' && styles.activeTabText]}>STATS</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tabItem, activeTab === 'history' && styles.activeTabItem]}
-                        onPress={() => setActiveTab('history')}
-                    >
-                        <View style={styles.tabWithBadge}>
-                            <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>MATCHS</Text>
-                            {playerStats && playerStats.matchHistory && playerStats.matchHistory.length > 0 && (
-                                <View style={styles.tabBadge}>
-                                    <Text style={styles.tabBadgeText}>{playerStats.matchHistory.length}</Text>
-                                </View>
-                            )}
-                        </View>
-                    </TouchableOpacity>
+            {isLoading ? (
+                <View style={styles.loadingContainer}>
+                    <Text style={styles.loadingText}>Chargement...</Text>
                 </View>
+            ) : (
+                <View style={[styles.contentLayout, !isLandscape && { flexDirection: 'column' }]}>
+                    {renderBlocA()}
+                    {renderBlocB()}
+                </View>
+            )}
 
-                {isLoading ? (
-                    <View style={styles.loadingContainer}>
-                        <Text style={styles.loadingText}>Chargement...</Text>
+            {/* History Modal */}
+            <Modal
+                visible={historyModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setHistoryModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, isLandscape && styles.modalContentLandscape]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Historique des Matchs</Text>
+                            <TouchableOpacity onPress={() => setHistoryModalVisible(false)} style={styles.modalCloseButton}>
+                                <Ionicons name="close-circle" size={30} color="#FFD700" />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <MatchHistory history={playerStats?.matchHistory || []} />
+                        </View>
                     </View>
-                ) : (
-                    <View style={styles.scrollContainer}>
-                        {activeTab === 'stats' ? renderStatsGrid() : <MatchHistory history={playerStats?.matchHistory || []} />}
-                    </View>
-                )}
-            </View>
+                </View>
+            </Modal>
+
         </View>
     );
 }
@@ -197,15 +217,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingBottom: 20,
+        paddingBottom: 10,
         backgroundColor: 'rgba(26,5,5,0.9)',
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,215,0,0.1)',
         zIndex: 10,
     },
     backButton: {
-        padding: 10,
-        marginLeft: -10,
+        padding: 5,
         width: 80,
     },
     backButtonText: {
@@ -214,7 +233,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: '900',
         color: '#FFFFFF',
         letterSpacing: 2,
@@ -222,15 +241,32 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'center',
     },
-    headerRight: {
+    historyButton: {
         width: 80,
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        paddingRight: 5,
+        position: 'relative',
     },
-    content: {
-        flex: 1,
-        padding: 20,
+    historyIcon: {
+        fontSize: 24,
     },
-    scrollContainer: {
-        flex: 1,
+    historyBadge: {
+        position: 'absolute',
+        top: -5,
+        right: 0,
+        backgroundColor: '#FF3366',
+        borderRadius: 10,
+        minWidth: 18,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+    },
+    historyBadgeText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
     loadingContainer: {
         flex: 1,
@@ -241,164 +277,186 @@ const styles = StyleSheet.create({
         color: '#FFD700',
         fontSize: 16,
     },
-    section: {
+    contentLayout: {
         flex: 1,
-    },
-    // ─── Statistics ───
-    statsGrid: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 15,
-        justifyContent: 'center',
+        padding: 10,
+        gap: 10,
     },
-    statsGridLandscape: {
-        flexWrap: 'nowrap',
-    },
-    statCard: {
-        width: '45%',
-        backgroundColor: 'rgba(255,255,255,0.08)',
+    bloc: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.3)',
         borderRadius: 16,
-        paddingVertical: 20,
-        paddingHorizontal: 10,
-        alignItems: 'center',
-        borderWidth: 1.5,
+        borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.15)',
+        padding: 12,
+        justifyContent: 'space-between',
     },
-    statCardLandscape: {
-        width: 'auto',
-        flex: 1,
-        paddingVertical: 12, // Compact vertical padding for landscape
+    blocA: {
+        // Optionnel : styles spécifiques au bloc A
     },
-    statIcon: {
-        fontSize: 40,
-        marginBottom: 8,
+    blocB: {
+        justifyContent: 'space-evenly', // Distribution égale des 4 lignes
     },
-    statValue: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#FFFFFF',
-    },
-    statLabel: {
-        fontSize: 12,
-        color: '#FFD700',
-        fontWeight: 'bold',
-        marginTop: 4,
-        textAlign: 'center',
-        textTransform: 'uppercase',
-        opacity: 0.8,
-    },
-    // ─── Tabs ───
-    tabBar: {
+
+    // --- BLOC A DETAILS ---
+    devisesRow: {
         flexDirection: 'row',
-        marginBottom: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: 'rgba(255,255,255,0.05)',
         borderRadius: 12,
-        padding: 4,
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.1)',
+        paddingVertical: 8,
+        marginBottom: 10,
     },
-    tabItem: {
-        flex: 1,
-        paddingVertical: 12,
+    deviseItem: {
+        flexDirection: 'row',
         alignItems: 'center',
-        borderRadius: 10,
+        justifyContent: 'center',
+        flex: 1,
+        gap: 6,
     },
-    activeTabItem: {
-        backgroundColor: 'rgba(255,215,0,0.2)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.3)',
+    deviseDivider: {
+        width: 1,
+        height: '70%',
+        backgroundColor: 'rgba(255,255,255,0.2)',
     },
-    tabText: {
-        fontSize: 12,
+    deviseIcon: {
+        fontSize: 18,
+    },
+    deviseValue: {
+        fontSize: 18,
         fontWeight: 'bold',
-        color: 'rgba(255,255,255,0.5)',
-        letterSpacing: 1,
-    },
-    activeTabText: {
         color: '#FFD700',
     },
-    tabWithBadge: {
-        flexDirection: 'row',
+    leagueContainer: {
         alignItems: 'center',
-    },
-    tabBadge: {
-        backgroundColor: '#FFD700',
-        borderRadius: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        marginLeft: 8,
-    },
-    tabBadgeText: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: '#1a0505',
-    },
-    // ─── Economy Section ───
-    economySection: {
-        marginBottom: 20,
-        backgroundColor: 'rgba(0,0,0,0.25)',
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.15)',
-    },
-    economyRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginBottom: 16,
-    },
-    economyPill: {
-        alignItems: 'center',
+        justifyContent: 'center',
         flex: 1,
     },
-    economyIcon: {
-        fontSize: 26,
+    leagueIcon: {
+        fontSize: 50,
         marginBottom: 4,
     },
-    economyValue: {
+    leagueName: {
         fontSize: 16,
+        color: '#FFF',
         fontWeight: '800',
-        color: '#FFD700',
-    },
-    economyLabel: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.5)',
-        fontWeight: '600',
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginTop: 2,
+        letterSpacing: 1,
     },
-    xpContainer: {
-        gap: 6,
+    xpBox: {
+        marginTop: 10,
     },
     xpHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        marginBottom: 6,
     },
-    xpLabel: {
-        fontSize: 14,
-        fontWeight: '700',
+    xpLevel: {
         color: '#FFD700',
+        fontWeight: 'bold',
+        fontSize: 12,
     },
-    xpValue: {
-        fontSize: 11,
-        color: 'rgba(255,255,255,0.5)',
+    xpProgressTxt: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
     xpBarBg: {
-        height: 10,
-        borderRadius: 5,
+        height: 6,
         backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 3,
         overflow: 'hidden',
     },
     xpBarFill: {
         height: '100%',
-        borderRadius: 5,
-        backgroundColor: '#FFD700',
+        backgroundColor: '#4CAF50',
+        borderRadius: 3,
     },
-    xpSubtext: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.4)',
+
+    // --- BLOC B DETAILS ---
+    statLine: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        paddingHorizontal: 15,
+        paddingVertical: 12,
+        borderRadius: 10,
+    },
+    statLineIcon: {
+        fontSize: 22,
+        marginRight: 10,
+        width: 30,
         textAlign: 'center',
+    },
+    statLineLabel: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.7)',
+        fontWeight: 'bold',
+        letterSpacing: 1,
+    },
+    statLineDotted: {
+        flex: 1,
+        borderBottomWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderStyle: 'dashed',
+        marginHorizontal: 10,
+        position: 'relative',
+        top: 6,
+    },
+    statLineValue: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#FFF',
+    },
+    statLineSubValue: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.5)',
+        fontWeight: 'normal',
+    },
+
+    // --- MODAL ---
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: '#1a0505',
+        width: '90%',
+        height: '80%',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#FFD700',
+        overflow: 'hidden',
+        elevation: 10,
+        shadowColor: '#FFD700',
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+    },
+    modalContentLandscape: {
+        width: '80%',
+        height: '90%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,215,0,0.2)',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    modalTitle: {
+        color: '#FFD700',
+        fontSize: 18,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    modalCloseButton: {
+        padding: 5,
     },
 });
