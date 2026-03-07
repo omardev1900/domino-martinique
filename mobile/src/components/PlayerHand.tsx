@@ -74,7 +74,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                                 orientation="vertical"
                                 onPress={() => handleTilePress(domino)}
                                 disabled={!canPlay || disabled}
-                                entering={FadeInDown.delay(index * 100).duration(300)}
+                                entering={FadeInDown.springify().damping(12).stiffness(100).delay(index * 120)}
                                 skinConfig={skinConfig}
                                 isPlayable={canPlay}
                             />

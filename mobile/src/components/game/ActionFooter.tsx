@@ -12,7 +12,7 @@ export interface ActionFooterProps {
     bannerState: 'NONE' | 'MANCHE' | 'ROUND';
     forcedOpeningDominoId: string | null;
     insets: EdgeInsets;
-    onPlayDomino: (domino: Domino) => void;
+    onPlayDomino: (domino: Domino, position?: { x: number, y: number }) => void;
     // Extra Action Buttons requested
     canPassTurn?: boolean;
     onPassTurn?: () => void;

@@ -60,8 +60,22 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
 
     const animatedProgress = useSharedValue(1);
     const breatheValue = useSharedValue(1);
+    const shakeOffset = useSharedValue(0);
     const [secondsLeft, setSecondsLeft] = useState(timerDuration);
     const scaleAnim = useRef(new RNAnimated.Value(1)).current;
+
+    // Shake effect for Boude
+    useEffect(() => {
+        if (isBoude) {
+            shakeOffset.value = withSequence(
+                withTiming(-10, { duration: 50 }),
+                withTiming(10, { duration: 50 }),
+                withTiming(-10, { duration: 50 }),
+                withTiming(10, { duration: 50 }),
+                withTiming(0, { duration: 50 })
+            );
+        }
+    }, [isBoude]);
 
     // Timer Countdown Effect
     useEffect(() => {
@@ -170,6 +184,11 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const imageScale = 1.8;
     const imageSize = size * imageScale;
     const imageOffset = -(imageSize - size) * 0.25;
+    const shakeAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ translateX: shakeOffset.value }]
+        };
+    });
 
     return (
         <RNAnimated.View style={[
@@ -178,137 +197,16 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             isHorizontal && position === 'top-right' && styles.containerRowReverse,
             { transform: [{ scale: scaleAnim }] }
         ]}>
-            {chatContent && (
-                <ChatBubble
-                    content={chatContent}
-                    position={position?.startsWith('top') ? 'bottom' : 'top'}
-                />
-            )}
-            {/* Name above avatar in vertical layout */}
-            {!isHorizontal && namePlacement === 'above' && (
-                <View style={styles.nameContainerVertical}>
-                    <Text style={[styles.playerName, styles.nameVertical]} numberOfLines={1}>{player.name}</Text>
-                    <Text style={styles.mancheZetwal}>{player.currentMancheStars || 0} ⭐</Text>
-                    {score && <Text style={styles.playerScore}>{score}</Text>}
-                    {showHandSize && (
-                        <View style={styles.handSizeBadge}>
-                            <Ionicons name="documents-outline" size={10} color="#FFF" style={{ opacity: 0.6 }} />
-                            <Text style={styles.handSizeText}>{player.handSize}/7</Text>
-                        </View>
-                    )}
-                </View>
-            )}
-
-            <Animated.View style={[{ width: size + 12, height: size + 12, alignItems: 'center', justifyContent: 'center' }, animatedAvatarStyle]}>
-                {/* Avatar Circle */}
-                <View
-                    style={[
-                        styles.avatar,
-                        {
-                            width: size,
-                            height: size,
-                            borderRadius: size / 2,
-                            borderWidth: isActive ? 3 : 2,
-                            borderColor: isActive ? '#FFD700' : 'rgba(255,255,255,0.3)',
-                            overflow: 'hidden',
-                            backgroundColor: (isActive && (secondsLeft === 0 || overtime !== null)) ? '#FF0000' : 'rgba(50,50,50,0.9)'
-                        },
-                        isActive && styles.activeGlow,
-                    ]}
-                >
-                    {showTimer && isActive ? (
-                        <Text style={[
-                            styles.countdown,
-                            { fontSize: size / 2.2 },
-                            (secondsLeft === 0 || overtime !== null) && {
-                                color: (overtime !== null && overtime > 0) ? '#FFFFFF' : '#FFD700',
-                                fontWeight: 'bold',
-                                fontSize: (size / 2.2) * 1.2
-                            }
-                        ]}>
-                            {overtime !== null ? overtime : secondsLeft}
-                        </Text>
-                    ) : (
-                        <Image
-                            source={avatarImage}
-                            style={{
-                                width: imageSize,
-                                height: imageSize,
-                                position: 'absolute',
-                                top: imageOffset,
-                                left: (size - imageSize) / 2,
-                            }}
-                            resizeMode="cover"
-                        />
-                    )}
-
-                    {/* BOUDE OVERLAY */}
-                    {isBoude && (
-                        <View style={styles.boudeOverlay}>
-                            <Text style={styles.boudeText}>BOUDÉ</Text>
-                        </View>
-                    )}
-
-                    {/* DISCONNECTED OVERLAY (Priorité sur Bot) */}
-                    {isDisconnected ? (
-                        <View style={styles.disconnectedOverlay}>
-                            <Ionicons name="wifi" size={24} color="#FFF" style={{ opacity: 0.5, marginBottom: -8 }} />
-                            <Text style={styles.disconnectedIcon}>/</Text>
-                            <Text style={styles.disconnectedText}>DÉCONNECTÉ</Text>
-                        </View>
-                    ) : isBotPlaying && (
-                        <View style={styles.botOverlay}>
-                            <Text style={styles.botText}>BOT...</Text>
-                        </View>
-                    )}
-                </View>
-
-                {/* Timer Ring */}
-                {showTimer && isActive && (
-                    <Svg
-                        width={size + 12}
-                        height={size + 12}
-                        style={styles.timerSvg}
-                    >
-                        <Circle
-                            cx={(size + 12) / 2}
-                            cy={(size + 12) / 2}
-                            r={radius + 4}
-                            stroke="rgba(255,255,255,0.2)"
-                            strokeWidth={strokeWidth}
-                            fill="none"
-                        />
-                        <AnimatedCircle
-                            cx={(size + 12) / 2}
-                            cy={(size + 12) / 2}
-                            r={radius + 4}
-                            stroke="#4CAF50"
-                            strokeWidth={strokeWidth}
-                            fill="none"
-                            strokeDasharray={circumference}
-                            strokeDashoffset={circumference}
-                            strokeLinecap="round"
-                            animatedProps={animatedProps}
-                            transform={`rotate(-90, ${(size + 12) / 2}, ${(size + 12) / 2})`}
-                        />
-                    </Svg>
+            <Animated.View style={shakeAnimatedStyle}>
+                {chatContent && (
+                    <ChatBubble
+                        content={chatContent}
+                        position={position?.startsWith('top') ? 'bottom' : 'top'}
+                    />
                 )}
-
-                {/* Overlaid Hand Size Badge for Horizontal Layout */}
-                {showHandSize && isHorizontal && (
-                    <View style={[
-                        styles.handBadgeOverlaid,
-                        position === 'top-right' ? styles.handBadgeBottomRight : styles.handBadgeBottomLeft
-                    ]}>
-                        <Text style={styles.handBadgeText}>{player.handSize}</Text>
-                    </View>
-                )}
-            </Animated.View>
-
-            {/* Name below avatar in vertical layout */}
-            {
-                !isHorizontal && namePlacement === 'below' && (
-                    <View style={styles.nameContainerVerticalBelow}>
+                {/* Name above avatar in vertical layout */}
+                {!isHorizontal && namePlacement === 'above' && (
+                    <View style={styles.nameContainerVertical}>
                         <Text style={[styles.playerName, styles.nameVertical]} numberOfLines={1}>{player.name}</Text>
                         <Text style={styles.mancheZetwal}>{player.currentMancheStars || 0} ⭐</Text>
                         {score && <Text style={styles.playerScore}>{score}</Text>}
@@ -319,36 +217,159 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             </View>
                         )}
                     </View>
-                )
-            }
+                )}
 
-            {/* Info Block for Horizontal Layout */}
-            {
-                isHorizontal && (
-                    <View style={[
-                        styles.opponentInfoBlock,
-                        position === 'top-right' ? styles.opponentInfoBlockRight : styles.opponentInfoBlockLeft
-                    ]}>
-                        <Text style={styles.opponentNameText} numberOfLines={1}>{player.name}</Text>
-                        <View style={styles.opponentStatsRow}>
-                            {gameMode === 'COCHON' && (
-                                <View style={styles.opponentStatCol}>
-                                    <Text style={styles.statLabelCochon}>🐷</Text>
-                                    <Text style={styles.statValueCochon}>{player.totalCochons || 0}</Text>
+                <Animated.View style={[{ width: size + 12, height: size + 12, alignItems: 'center', justifyContent: 'center' }, animatedAvatarStyle]}>
+                    {/* Avatar Circle */}
+                    <View
+                        style={[
+                            styles.avatar,
+                            {
+                                width: size,
+                                height: size,
+                                borderRadius: size / 2,
+                                borderWidth: isActive ? 3 : 2,
+                                borderColor: isActive ? '#FFD700' : 'rgba(255,255,255,0.3)',
+                                overflow: 'hidden',
+                                backgroundColor: (isActive && (secondsLeft === 0 || overtime !== null)) ? '#FF0000' : 'rgba(50,50,50,0.9)'
+                            },
+                            isActive && styles.activeGlow,
+                        ]}
+                    >
+                        {showTimer && isActive ? (
+                            <Text style={[
+                                styles.countdown,
+                                { fontSize: size / 2.2 },
+                                (secondsLeft === 0 || overtime !== null) && {
+                                    color: (overtime !== null && overtime > 0) ? '#FFFFFF' : '#FFD700',
+                                    fontWeight: 'bold',
+                                    fontSize: (size / 2.2) * 1.2
+                                }
+                            ]}>
+                                {overtime !== null ? overtime : secondsLeft}
+                            </Text>
+                        ) : (
+                            <Image
+                                source={avatarImage}
+                                style={{
+                                    width: imageSize,
+                                    height: imageSize,
+                                    position: 'absolute',
+                                    top: imageOffset,
+                                    left: (size - imageSize) / 2,
+                                }}
+                                resizeMode="cover"
+                            />
+                        )}
+
+                        {/* BOUDE OVERLAY */}
+                        {isBoude && (
+                            <View style={styles.boudeOverlay}>
+                                <Text style={styles.boudeText}>BOUDÉ</Text>
+                            </View>
+                        )}
+
+                        {/* DISCONNECTED OVERLAY (Priorité sur Bot) */}
+                        {isDisconnected ? (
+                            <View style={styles.disconnectedOverlay}>
+                                <Ionicons name="wifi" size={24} color="#FFF" style={{ opacity: 0.5, marginBottom: -8 }} />
+                                <Text style={styles.disconnectedIcon}>/</Text>
+                                <Text style={styles.disconnectedText}>DÉCONNECTÉ</Text>
+                            </View>
+                        ) : isBotPlaying && (
+                            <View style={styles.botOverlay}>
+                                <Text style={styles.botText}>BOT...</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Timer Ring */}
+                    {showTimer && isActive && (
+                        <Svg
+                            width={size + 12}
+                            height={size + 12}
+                            style={styles.timerSvg}
+                        >
+                            <Circle
+                                cx={(size + 12) / 2}
+                                cy={(size + 12) / 2}
+                                r={radius + 4}
+                                stroke="rgba(255,255,255,0.2)"
+                                strokeWidth={strokeWidth}
+                                fill="none"
+                            />
+                            <AnimatedCircle
+                                cx={(size + 12) / 2}
+                                cy={(size + 12) / 2}
+                                r={radius + 4}
+                                stroke="#4CAF50"
+                                strokeWidth={strokeWidth}
+                                fill="none"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={circumference}
+                                strokeLinecap="round"
+                                animatedProps={animatedProps}
+                                transform={`rotate(-90, ${(size + 12) / 2}, ${(size + 12) / 2})`}
+                            />
+                        </Svg>
+                    )}
+
+                    {/* Overlaid Hand Size Badge for Horizontal Layout */}
+                    {showHandSize && isHorizontal && (
+                        <View style={[
+                            styles.handBadgeOverlaid,
+                            position === 'top-right' ? styles.handBadgeBottomRight : styles.handBadgeBottomLeft
+                        ]}>
+                            <Text style={styles.handBadgeText}>{player.handSize}</Text>
+                        </View>
+                    )}
+                </Animated.View>
+
+                {/* Name below avatar in vertical layout */}
+                {
+                    !isHorizontal && namePlacement === 'below' && (
+                        <View style={styles.nameContainerVerticalBelow}>
+                            <Text style={[styles.playerName, styles.nameVertical]} numberOfLines={1}>{player.name}</Text>
+                            <Text style={styles.mancheZetwal}>{player.currentMancheStars || 0} ⭐</Text>
+                            {score && <Text style={styles.playerScore}>{score}</Text>}
+                            {showHandSize && (
+                                <View style={styles.handSizeBadge}>
+                                    <Ionicons name="documents-outline" size={10} color="#FFF" style={{ opacity: 0.6 }} />
+                                    <Text style={styles.handSizeText}>{player.handSize}/7</Text>
                                 </View>
                             )}
-                            <View style={styles.opponentStatCol}>
-                                <Text style={styles.statLabelV}>V</Text>
-                                <Text style={styles.statValueV}>{player.currentMancheStars || 0}</Text>
-                            </View>
-                            <View style={styles.opponentStatCol}>
-                                <Text style={styles.statLabelPTS}>PTS</Text>
-                                <Text style={styles.statValuePTS}>{ptsScore}</Text>
+                        </View>
+                    )
+                }
+
+                {/* Info Block for Horizontal Layout */}
+                {
+                    isHorizontal && (
+                        <View style={[
+                            styles.opponentInfoBlock,
+                            position === 'top-right' ? styles.opponentInfoBlockRight : styles.opponentInfoBlockLeft
+                        ]}>
+                            <Text style={styles.opponentNameText} numberOfLines={1}>{player.name}</Text>
+                            <View style={styles.opponentStatsRow}>
+                                {gameMode === 'COCHON' && (
+                                    <View style={styles.opponentStatCol}>
+                                        <Text style={styles.statLabelCochon}>🐷</Text>
+                                        <Text style={styles.statValueCochon}>{player.totalCochons || 0}</Text>
+                                    </View>
+                                )}
+                                <View style={styles.opponentStatCol}>
+                                    <Text style={styles.statLabelV}>V</Text>
+                                    <Text style={styles.statValueV}>{player.currentMancheStars || 0}</Text>
+                                </View>
+                                <View style={styles.opponentStatCol}>
+                                    <Text style={styles.statLabelPTS}>PTS</Text>
+                                    <Text style={styles.statValuePTS}>{ptsScore}</Text>
+                                </View>
                             </View>
                         </View>
-                    </View>
-                )
-            }
+                    )
+                }
+            </Animated.View>
         </RNAnimated.View >
     );
 };

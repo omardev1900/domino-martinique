@@ -202,12 +202,12 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
         return (
             <View style={styles.container} pointerEvents="box-none" aria-modal={true}>
-                {/* No full backdrop for Boude to keep board completely visible, just a slight dim */}
-                <Animated.View style={[{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' }, { opacity: opacityValue }]} />
+                <Animated.View style={[{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)' }, { opacity: opacityValue }]} />
 
                 <Animated.View style={[
                     styles.boudeBanner,
-                    { transform: [{ scale: scaleValue }], opacity: opacityValue }
+                    styles.matchBannerXL,
+                    { transform: [{ scale: scaleValue }], opacity: opacityValue, padding: isLandscape ? 10 : 20 }
                 ]}>
                     <View style={styles.boudeBannerContent}>
                         {/* HEADER: Icon, Title, Action */}
@@ -240,13 +240,13 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
                         {/* PLAYERS HANDS */}
                         <View style={styles.boudePlayersList}>
-                            {gameState.players.map(p => {
+                            {gameState.players.map((p, index) => {
                                 const isMin = p.id === boudeWinnerId;
                                 const pts = calculateHandPoints(p.hand);
                                 const totalPts = gameState.gameMode === 'SCORE' ? p.totalPoints : gameState.gameMode === 'COCHON' ? p.totalCochons : p.totalPoints;
 
                                 return (
-                                    <View key={p.id} style={[styles.boudePlayerItem, isMin && styles.boudePlayerItemWinner]}>
+                                    <Animated.View entering={ZoomIn.delay(index * 400).springify()} key={p.id} style={[styles.boudePlayerItem, isMin && styles.boudePlayerItemWinner, { transform: [{ scale: 1.1 }] }]}>
                                         {/* 1. HEADER: Nom + Etoiles */}
                                         <View style={styles.boudePlayerHeader}>
                                             <Image source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')} style={[styles.boudeMicroAvatar, isMin && styles.boudeAvatarWinner]} />
@@ -283,7 +283,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                                 <Text style={styles.cochonBonusText}>+ Bonus 🐷</Text>
                                             )}
                                         </View>
-                                    </View>
+                                    </Animated.View>
                                 );
                             })}
                         </View>

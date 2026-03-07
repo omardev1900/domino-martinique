@@ -703,6 +703,17 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     // -- 7. Action Handlers (Delegated) --
     // These are already extracted into useGameEngine and useGameSync
 
+    const wrappedHandlePlayDomino = useCallback(
+        (domino: Domino, pos?: { x: number, y: number }) => {
+            if (pos) {
+                lastPlayStartPos.current = pos;
+                setHiddenDominoId(domino.id); // Trigger flying domino
+            }
+            handlePlayDomino(domino);
+        },
+        [handlePlayDomino]
+    );
+
     const interceptOverlayContinue = useCallback(() => {
         if (gameState?.phase === 'MATCH_END' && matchReward) {
             console.log("Déclenchement de l'Overlay de Récompenses", { matchReward });
@@ -888,7 +899,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 bannerState={bannerState}
                 forcedOpeningDominoId={forcedOpeningDominoId}
                 insets={insets}
-                onPlayDomino={handlePlayDomino}
+                onPlayDomino={wrappedHandlePlayDomino}
                 isPaused={isPaused}
                 skinConfig={playerSkinConfig}
             />
