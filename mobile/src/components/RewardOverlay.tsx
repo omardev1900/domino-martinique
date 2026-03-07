@@ -204,110 +204,107 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
             {/* Pluie de Richesse si Victoire */}
             {isWinner && <WealthRain />}
 
-            {/* Bouton Info (Coin Supérieur Droit) */}
-            <TouchableOpacity
-                style={[styles.infoButton, { top: isLandscape ? 15 : 40, right: isLandscape ? 15 : 20 }]}
-                onPress={() => setInfoModalVisible(true)}
-                activeOpacity={0.7}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-                <Ionicons name="information-circle-outline" size={32} color="#rgba(255,255,255,0.8)" />
-            </TouchableOpacity>
+            {/* Commandes du haut (Coin Supérieur Droit) */}
+            <View style={[styles.headerControls, { top: isLandscape ? 15 : 40, right: isLandscape ? 15 : 20 }]}>
+                {/* Bouton Détails */}
+                <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => setInfoModalVisible(true)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                    <Ionicons name="information-circle-outline" size={32} color="#rgba(255,255,255,0.8)" />
+                </TouchableOpacity>
+
+                {/* Bouton SUIVANT (Flèche) */}
+                <TouchableOpacity
+                    style={styles.nextButton}
+                    onPress={onContinue}
+                    activeOpacity={0.8}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 20 }}
+                >
+                    <LinearGradient
+                        colors={['#FFD700', '#FFA500']}
+                        style={styles.nextGradient}
+                    >
+                        <Ionicons name="arrow-forward" size={28} color="#1A0E2E" />
+                    </LinearGradient>
+                </TouchableOpacity>
+            </View>
 
             <Animated.View
                 entering={ZoomIn.duration(600).springify()}
                 exiting={ZoomOut}
                 style={[styles.mainContent, isLandscape && styles.mainContentLandscape]}
             >
-                <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={[
-                        styles.scrollContent,
-                        isLandscape && styles.scrollContentLandscape
-                    ]}
-                    style={{ width: '100%' }}
-                >
-                    {/* Header = Winner Only */}
-                    {isWinner && (
-                        <Text style={[styles.title, isLandscape && styles.titleLandscape, { color: '#FFD700' }]}>
-                            🏆 VICTOIRE 🏆
-                        </Text>
+                {/* Header = Winner Only */}
+                {isWinner && (
+                    <Text style={[styles.title, isLandscape && styles.titleLandscape, { color: '#FFD700' }]}>
+                        🏆 VICTOIRE 🏆
+                    </Text>
+                )}
+
+                {/* Level Up & Grade Up Banners */}
+                <View style={[styles.bannersContainer, isLandscape && styles.bannersContainerLandscape]}>
+                    {isLevelUp && (
+                        <Animated.View entering={FadeInDown.delay(600)} style={styles.levelUpBanner}>
+                            <Text style={styles.levelUpText}>⭐ NIVEAU SUPÉRIEUR : {reward.newLevel} ! ⭐</Text>
+                        </Animated.View>
                     )}
 
-                    {/* Level Up & Grade Up Banners */}
-                    <View style={[styles.bannersContainer, isLandscape && styles.bannersContainerLandscape]}>
-                        {isLevelUp && (
-                            <Animated.View entering={FadeInDown.delay(600)} style={styles.levelUpBanner}>
-                                <Text style={styles.levelUpText}>⭐ NIVEAU SUPÉRIEUR : {reward.newLevel} ! ⭐</Text>
-                            </Animated.View>
-                        )}
-
-                        {isGradeUp && (
-                            <Animated.View entering={FadeInDown.delay(800)} style={styles.gradeUpBanner}>
-                                <Text style={styles.gradeUpText}>
-                                    🐷 PROMOTION : {LEAGUE_LABELS[reward.newGrade]} ! 🐷
-                                </Text>
-                            </Animated.View>
-                        )}
-                    </View>
-
-                    {/* Totals Section */}
-                    <View style={[styles.totalsContainer, isLandscape && styles.totalsContainerLandscape]}>
-                        <Animated.View entering={FadeInDown.delay(1000)} style={styles.totalBox}>
-                            <LinearGradient colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
-                                <Text style={styles.totalIcon}>🪙</Text>
-                                <RollingNumber value={reward.coinsEarned} prefix="+" style={styles.totalValue} />
-                                <Text style={styles.totalLabel}>Coins</Text>
-                            </LinearGradient>
+                    {isGradeUp && (
+                        <Animated.View entering={FadeInDown.delay(800)} style={styles.gradeUpBanner}>
+                            <Text style={styles.gradeUpText}>
+                                🐷 PROMOTION : {LEAGUE_LABELS[reward.newGrade]} ! 🐷
+                            </Text>
                         </Animated.View>
-
-                        <Animated.View entering={FadeInDown.delay(1200)} style={styles.totalBox}>
-                            <LinearGradient colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
-                                <View style={{ marginBottom: 4, height: 32, justifyContent: 'center' }}>
-                                    <XPIcon size={30} />
-                                </View>
-                                <RollingNumber value={reward.xpEarned} prefix="+" style={styles.totalValue} />
-                                <Text style={styles.totalLabel}>XP</Text>
-                            </LinearGradient>
-                        </Animated.View>
-
-                        {(reward.diamondsEarned > 0 || reward.leaguePointsEarned > 0) && (
-                            <Animated.View entering={FadeInDown.delay(1400)} style={styles.totalBox}>
-                                <LinearGradient colors={['rgba(96,220,255,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
-                                    <Text style={styles.totalIcon}>{reward.diamondsEarned > 0 ? '💎' : '🐷'}</Text>
-                                    <RollingNumber
-                                        value={reward.diamondsEarned > 0 ? reward.diamondsEarned : reward.leaguePointsEarned}
-                                        prefix="+"
-                                        style={[styles.totalValue, { color: reward.diamondsEarned > 0 ? '#60DCFF' : '#FF9800' }]}
-                                    />
-                                    <Text style={styles.totalLabel}>{reward.diamondsEarned > 0 ? 'Diamants' : 'Ligue'}</Text>
-                                </LinearGradient>
-                            </Animated.View>
-                        )}
-                    </View>
-
-                    {/* XP Progression Bar */}
-                    {reward.xpEarned > 0 && (
-                        <XPProgressBar
-                            previousXP={reward.previousXP}
-                            newXP={reward.newXP}
-                            previousLevel={reward.previousLevel}
-                            newLevel={reward.newLevel}
-                        />
                     )}
+                </View>
 
-                    {/* Continue Button */}
-                    <Animated.View entering={FadeIn.delay(1800)} style={styles.buttonContainer}>
-                        <TouchableOpacity style={styles.continueButton} onPress={onContinue} activeOpacity={0.8}>
-                            <LinearGradient
-                                colors={['#FFD700', '#FFA500']}
-                                style={styles.continueGradient}
-                            >
-                                <Text style={styles.continueText}>CONTINUER</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
+                {/* Totals Section */}
+                <View style={[styles.totalsContainer, isLandscape && styles.totalsContainerLandscape]}>
+                    <Animated.View entering={FadeInDown.delay(1000)} style={styles.totalBox}>
+                        <LinearGradient colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
+                            <Text style={styles.totalIcon}>🪙</Text>
+                            <RollingNumber value={reward.coinsEarned} prefix="+" style={styles.totalValue} />
+                            <Text style={styles.totalLabel}>Coins</Text>
+                        </LinearGradient>
                     </Animated.View>
-                </ScrollView>
+
+                    <Animated.View entering={FadeInDown.delay(1200)} style={styles.totalBox}>
+                        <LinearGradient colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
+                            <View style={{ marginBottom: 4, height: 32, justifyContent: 'center' }}>
+                                <XPIcon size={30} />
+                            </View>
+                            <RollingNumber value={reward.xpEarned} prefix="+" style={styles.totalValue} />
+                            <Text style={styles.totalLabel}>XP</Text>
+                        </LinearGradient>
+                    </Animated.View>
+
+                    {(reward.diamondsEarned > 0 || reward.leaguePointsEarned > 0) && (
+                        <Animated.View entering={FadeInDown.delay(1400)} style={styles.totalBox}>
+                            <LinearGradient colors={['rgba(96,220,255,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
+                                <Text style={styles.totalIcon}>{reward.diamondsEarned > 0 ? '💎' : '🐷'}</Text>
+                                <RollingNumber
+                                    value={reward.diamondsEarned > 0 ? reward.diamondsEarned : reward.leaguePointsEarned}
+                                    prefix="+"
+                                    style={[styles.totalValue, { color: reward.diamondsEarned > 0 ? '#60DCFF' : '#FF9800' }]}
+                                />
+                                <Text style={styles.totalLabel}>{reward.diamondsEarned > 0 ? 'Diamants' : 'Ligue'}</Text>
+                            </LinearGradient>
+                        </Animated.View>
+                    )}
+                </View>
+
+                {/* XP Progression Bar */}
+                {reward.xpEarned > 0 && (
+                    <XPProgressBar
+                        previousXP={reward.previousXP}
+                        newXP={reward.newXP}
+                        previousLevel={reward.previousLevel}
+                        newLevel={reward.newLevel}
+                    />
+                )}
             </Animated.View>
 
             {/* Modal Détails des Gains */}
@@ -367,9 +364,29 @@ const styles = StyleSheet.create({
             web: { backdropFilter: 'blur(10px)' }
         })
     },
-    infoButton: {
+    headerControls: {
         position: 'absolute',
         zIndex: 10001,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    iconButton: {
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    nextButton: {
+        borderRadius: 22,
+        overflow: 'hidden',
+        shadowColor: '#FFA500',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 6,
+    },
+    nextGradient: {
         width: 44,
         height: 44,
         justifyContent: 'center',
@@ -380,36 +397,30 @@ const styles = StyleSheet.create({
         maxWidth: 600,
         alignItems: 'center',
         zIndex: 10,
-        maxHeight: '95%',
+        paddingBottom: 20,
     },
     mainContentLandscape: {
         width: '100%',
         maxWidth: 800,
-    },
-    scrollContent: {
-        alignItems: 'center',
-        paddingVertical: 20,
-    },
-    scrollContentLandscape: {
-        paddingVertical: 10,
+        paddingBottom: 10,
     },
     title: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: '900',
         letterSpacing: 2,
-        marginBottom: 10,
+        marginBottom: 8,
         textAlign: 'center',
         textShadowColor: 'rgba(0,0,0,0.8)',
         textShadowOffset: { width: 0, height: 4 },
         textShadowRadius: 8,
     },
     titleLandscape: {
-        fontSize: 24,
-        marginBottom: 5,
+        fontSize: 22,
+        marginBottom: 4,
     },
     bannersContainer: {
         alignItems: 'center',
-        marginBottom: 15,
+        marginBottom: 10,
         minHeight: 30,
         width: '100%',
     },
@@ -417,7 +428,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         gap: 10,
-        marginBottom: 10,
+        marginBottom: 5,
     },
     levelUpBanner: {
         backgroundColor: 'rgba(76, 175, 80, 0.9)',
@@ -465,10 +476,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
         gap: 10,
-        marginBottom: 20,
+        marginBottom: 15,
     },
     totalsContainerLandscape: {
-        marginBottom: 15,
+        marginBottom: 10,
     },
     totalBox: {
         flex: 1,
@@ -507,32 +518,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textTransform: 'uppercase',
         letterSpacing: 1,
-    },
-    buttonContainer: {
-        width: '100%',
-        maxWidth: 300,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    continueButton: {
-        width: '100%',
-        borderRadius: 25,
-        overflow: 'hidden',
-        shadowColor: '#FFA500',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-        elevation: 6,
-    },
-    continueGradient: {
-        paddingVertical: 14,
-        alignItems: 'center',
-    },
-    continueText: {
-        color: '#1A0E2E',
-        fontWeight: '900',
-        fontSize: 16,
-        letterSpacing: 2,
     },
     // --- Modale Détails ---
     modalOverlay: {
@@ -591,7 +576,7 @@ const styles = StyleSheet.create({
     xpContainer: {
         width: '100%',
         maxWidth: 400,
-        marginBottom: 20,
+        marginBottom: 10,
         backgroundColor: 'rgba(255,255,255,0.05)',
         padding: 12,
         borderRadius: 12,
