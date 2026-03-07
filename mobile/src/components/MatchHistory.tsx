@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { Image } from 'expo-image';
 import { MatchRecord } from '../core/services/stats.service';
 import { getAvatarImage, AvatarId } from '../core/avatars';
 import { BlurView } from 'expo-blur';
@@ -42,6 +43,8 @@ const MatchHistoryItem: React.FC<{ record: MatchRecord }> = ({ record }) => {
                                 <Image
                                     source={getAvatarImage(opp.avatarId as AvatarId)}
                                     style={styles.miniAvatarImg}
+                                    contentFit="cover"
+                                    cachePolicy="memory-disk"
                                 />
                             </View>
                         ))}

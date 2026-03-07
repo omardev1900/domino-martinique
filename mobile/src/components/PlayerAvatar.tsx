@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, Text, Image, Animated as RNAnimated } from 'react-native';
+import { Image } from 'expo-image';
+import { View, StyleSheet, Text, Animated as RNAnimated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedProps, useAnimatedStyle, withTiming, Easing, withRepeat, withSequence } from 'react-native-reanimated';
 import { Player } from '../core/types';
@@ -258,7 +259,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                     top: imageOffset,
                                     left: (size - imageSize) / 2,
                                 }}
-                                resizeMode="cover"
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
                             />
                         )}
 

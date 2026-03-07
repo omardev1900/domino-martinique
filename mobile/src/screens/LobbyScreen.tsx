@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { GameRoom, GameMode } from '../core/types';
 import { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Animated from 'react-native-reanimated';
@@ -142,7 +143,8 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                         position: 'absolute',
                                         top: -(80 * 1.6 - 80) * 0.25,
                                     }}
-                                    resizeMode="cover"
+                                    contentFit="cover"
+                                    cachePolicy="memory-disk"
                                 />
                             </View>
                             <Text style={styles.playerName}>

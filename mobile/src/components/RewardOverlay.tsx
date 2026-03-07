@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ScrollView, Modal } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut, ZoomIn, ZoomOut, useSharedValue, useAnimatedStyle, withDelay, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, ZoomIn, ZoomOut, useSharedValue, useAnimatedStyle, withDelay, withRepeat, withTiming, withSequence, withSpring, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
@@ -132,10 +132,15 @@ const XPProgressBar: React.FC<{ previousXP: number; newXP: number; previousLevel
 
         if (newLevel > previousLevel) {
             // Fill to 100%, then reset and fill to newXP
+            const nextLevelXP = xpRequiredForLevel(newLevel + 1);
+            const currentLevelXP = xpRequiredForLevel(newLevel);
+            const levelRange = nextLevelXP - currentLevelXP;
+            const newPct = levelRange > 0 ? ((newXP - currentLevelXP) / levelRange) * 100 : 100;
+
             width.value = withSequence(
                 withTiming(100, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
                 withTiming(0, { duration: 0 }),
-                withTiming(((newXP - xpRequiredForLevel(newLevel)) / (xpRequiredForLevel(newLevel + 1) - xpRequiredForLevel(newLevel))) * 100, { duration: 1000, easing: Easing.out(Easing.ease) })
+                withTiming(newPct, { duration: 1000, easing: Easing.out(Easing.ease) })
             );
 
             // Change display level text at the exact moment of level up
@@ -146,7 +151,11 @@ const XPProgressBar: React.FC<{ previousXP: number; newXP: number; previousLevel
 
         } else if (newXP > previousXP) {
             // Just fill to new percent
-            let endPct = ((newXP - baseXP) / levelRange) * 100;
+            const nextLevelXP = xpRequiredForLevel(previousLevel + 1);
+            const currentLevelXP = xpRequiredForLevel(previousLevel);
+            const levelRange = nextLevelXP - currentLevelXP;
+            const endPct = levelRange > 0 ? ((newXP - currentLevelXP) / levelRange) * 100 : 100;
+
             width.value = withTiming(endPct, { duration: 2000, easing: Easing.out(Easing.ease) });
         }
     }, [previousXP, newXP, previousLevel, newLevel]);

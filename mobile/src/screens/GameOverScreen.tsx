@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import { GameState, Player, PlayerId } from '../core/types';
 import Animated, { FadeIn, ZoomIn, SlideInDown, ZoomInEasyUp } from 'react-native-reanimated';
 import { WINS_TO_WIN_MATCH } from '../core/constants';
@@ -170,7 +171,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                         <Image
                                             source={getAvatarImage(roundWinner.avatarId || 'avatar_default')}
                                             style={styles.avatarImageLandscape}
-                                            resizeMode="cover"
+                                            contentFit="cover"
+                                            cachePolicy="memory-disk"
                                         />
                                     </View>
                                     <Text style={styles.winnerNameLandscape}>
@@ -280,7 +282,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                         <Image
                                             source={getAvatarImage(roundWinner.avatarId || 'avatar_default')}
                                             style={[styles.winnerAvatarImage, isLandscape && { width: 60 * 1.6, height: 60 * 1.6, top: -(60 * 1.6 - 60) * 0.25 }]}
-                                            resizeMode="cover"
+                                            contentFit="cover"
+                                            cachePolicy="memory-disk"
                                         />
                                     </View>
                                     {gameState.mancheResult !== 'CHIRE' && (

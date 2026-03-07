@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, Image, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, Alert, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -118,7 +119,12 @@ export default function CollectionScreen() {
                             )}
                         </View>
                     ) : item.imageUrl ? (
-                        <Image source={{ uri: item.imageUrl }} style={styles.remoteImage} resizeMode="cover" />
+                        <Image
+                            source={{ uri: item.imageUrl }}
+                            style={styles.remoteImage}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                        />
                     ) : (
                         <Ionicons
                             name={item.type === 'AVATAR' ? 'person' : 'color-palette'}

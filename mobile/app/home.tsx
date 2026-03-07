@@ -7,10 +7,10 @@ import {
     TouchableOpacity,
     ScrollView,
     useWindowDimensions,
-    Image,
     Alert,
     Modal
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -145,7 +145,8 @@ export default function HomeScreen() {
                             <Image
                                 source={getAvatarImage(user?.avatarUrl)}
                                 style={styles.avatarImage}
-                                resizeMode="cover"
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
                             />
                         </View>
                     </TouchableOpacity>

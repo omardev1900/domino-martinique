@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, RefreshControl, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { leaderboardService, LeaderboardEntry, LeaderboardCategory } from '../src/core/services/leaderboard.service';
 import { authService } from '../src/core/services/auth.service';
-import { getAvatarImage, AvatarId, AVAILABLE_AVATARS } from '../src/core/avatars';
+import { getAvatarImage, AvatarId } from '../src/core/avatars';
 import { LEAGUE_LABELS, LEAGUE_ICONS } from '../src/core/economy.constants';
 
 export default function LeaderboardScreen() {
@@ -60,7 +61,7 @@ export default function LeaderboardScreen() {
     const renderItem = ({ item, index }: { item: LeaderboardEntry; index: number }) => {
         const isCurrentUser = item.uid === currentUserId;
         const rankColor = getRankColor(item.rank);
-        const avatarSrc = getAvatarImage(item.avatarUrl && AVAILABLE_AVATARS.includes(item.avatarUrl as AvatarId) ? item.avatarUrl : 'avatar_default');
+        const avatarSrc = getAvatarImage(item.avatarUrl || 'avatar_default');
 
         return (
             <Animated.View entering={FadeInUp.delay(50 + index * 50)} style={[styles.playerRow, isCurrentUser && styles.currentUserRow]}>
@@ -72,7 +73,12 @@ export default function LeaderboardScreen() {
 
                 {/* Avatar */}
                 <View style={styles.avatarContainer}>
-                    <Image source={avatarSrc} style={styles.avatarImage} />
+                    <Image
+                        source={avatarSrc}
+                        style={styles.avatarImage}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                    />
                 </View>
 
                 {/* Nom et Ligue */}

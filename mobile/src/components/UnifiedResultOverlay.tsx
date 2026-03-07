@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Image, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, { FadeIn, SlideInDown, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withSpring, Easing, runOnJS, interpolate, Extrapolate } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { GameState, Player, PlayerId, GameMode, MancheResult } from '@/core/types';
-import { getAvatarImage, AvatarId, AVAILABLE_AVATARS } from '@/core/avatars';
+import { getAvatarImage, AvatarId } from '@/core/avatars';
 import SoundManager from '@/core/audio/SoundManager';
 import HapticManager from '@/core/audio/HapticManager';
 import { DominoTile } from './DominoTile';
@@ -249,7 +250,12 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                     <Animated.View entering={ZoomIn.delay(index * 400).springify()} key={p.id} style={[styles.boudePlayerItem, isMin && styles.boudePlayerItemWinner, { transform: [{ scale: 1.1 }] }]}>
                                         {/* 1. HEADER: Nom + Etoiles */}
                                         <View style={styles.boudePlayerHeader}>
-                                            <Image source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')} style={[styles.boudeMicroAvatar, isMin && styles.boudeAvatarWinner]} />
+                                            <Image
+                                                source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')}
+                                                style={[styles.boudeMicroAvatar, isMin && styles.boudeAvatarWinner]}
+                                                contentFit="cover"
+                                                cachePolicy="memory-disk"
+                                            />
                                             <Text style={[styles.boudePlayerName, isMin && styles.boudePlayerNameWinner]} numberOfLines={1}>{p.name}</Text>
                                             <Text style={styles.boudePlayerStars}>{p.currentMancheStars || 0}⭐</Text>
                                             {isMin && <Text style={styles.boudeCrownSmall}>👑</Text>}
@@ -435,7 +441,12 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
                                         {/* Avatar & Identité avec Flex Shrink */}
                                         <View style={[styles.podiumRoyalAvatarBlock, { alignItems: 'center', marginBottom: 6 }]}>
-                                            <Image source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')} style={[styles.podiumRoyalAvatar, isWin ? styles.podiumRoyalAvatarWinner : styles.podiumRoyalAvatarLoser]} />
+                                            <Image
+                                                source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')}
+                                                style={[styles.podiumRoyalAvatar, isWin ? styles.podiumRoyalAvatarWinner : styles.podiumRoyalAvatarLoser]}
+                                                contentFit="cover"
+                                                cachePolicy="memory-disk"
+                                            />
                                             {isWin && <Text style={styles.podiumCrownWinner}>👑</Text>}
                                         </View>
 
@@ -532,7 +543,12 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                 <View key={p.id} style={[styles.boudePlayerItem, isWin && styles.boudePlayerItemWinner]}>
                                     {/* 1. HEADER: Nom + Etoiles */}
                                     <View style={styles.boudePlayerHeader}>
-                                        <Image source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')} style={[styles.boudeMicroAvatar, isWin && styles.boudeAvatarWinner]} />
+                                        <Image
+                                            source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')}
+                                            style={[styles.boudeMicroAvatar, isWin && styles.boudeAvatarWinner]}
+                                            contentFit="cover"
+                                            cachePolicy="memory-disk"
+                                        />
                                         <Text style={[styles.boudePlayerName, isWin && styles.boudePlayerNameWinner]} numberOfLines={1}>{p.name}</Text>
                                         <Text style={styles.boudePlayerStars}>{p.currentMancheStars || 0}⭐</Text>
                                         {isWin && <Text style={styles.boudeCrownSmall}>👑</Text>}

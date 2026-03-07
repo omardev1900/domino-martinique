@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, useWindowDimensions, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -153,7 +154,12 @@ export default function StoreScreen() {
                 <View style={[styles.cardImagePlaceholder, isLandscape && { height: 100 }]}>
                     {item.type === 'CURRENCY_PACK' && item.imageUrl ? (
                         <>
-                            <Image source={{ uri: item.imageUrl }} style={styles.remoteImage} resizeMode="cover" />
+                            <Image
+                                source={{ uri: item.imageUrl }}
+                                style={styles.remoteImage}
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                            />
                             <Text style={styles.currencyOverlayText}>
                                 {item.rewards?.coins?.toLocaleString('fr-FR') || ''}
                             </Text>
@@ -180,7 +186,12 @@ export default function StoreScreen() {
                             )}
                         </View>
                     ) : item.imageUrl ? (
-                        <Image source={{ uri: item.imageUrl }} style={styles.remoteImage} resizeMode="cover" />
+                        <Image
+                            source={{ uri: item.imageUrl }}
+                            style={styles.remoteImage}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                        />
                     ) : (
                         <Ionicons
                             name={item.type === 'AVATAR' ? 'person' : 'diamond'}

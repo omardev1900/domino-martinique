@@ -11,8 +11,8 @@ import {
     useWindowDimensions,
     KeyboardAvoidingView,
     Platform,
-    Image
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -146,7 +146,8 @@ export default function ProfileScreen() {
                         <Image
                             source={getAvatarImage(avatarId)}
                             style={styles.avatarImageSmall}
-                            resizeMode="cover"
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
                         />
                     </TouchableOpacity>
                 ))}
@@ -218,7 +219,8 @@ export default function ProfileScreen() {
                             <Image
                                 source={getAvatarImage(selectedAvatar || 'avatar_default')}
                                 style={styles.avatarCircleImage}
-                                resizeMode="cover"
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
                             />
                         </View>
                         <View style={styles.headerInfo}>
