@@ -1,66 +1,62 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, useWindowDimensions, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, Image, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { EconomyHeader } from '../src/components/EconomyHeader';
 import { storeService } from '../src/core/services/store.service';
-import { economyService } from '../src/core/services/economy.service';
 import { StoreItem, StoreItemType, PlayerInventory } from '../src/core/store.types';
 import { useFocusEffect } from '@react-navigation/native';
-import { PurchaseSuccessModal } from '../src/components/PurchaseSuccessModal';
 
 type TabType = 'ALL' | StoreItemType;
 
-export default function StoreScreen() {
+export default function CollectionScreen() {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
 
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<TabType>('ALL');
     const [inventory, setInventory] = useState<PlayerInventory | null>(null);
-    const [catalog, setCatalog] = useState<StoreItem[]>([]);
-    const [economy, setEconomy] = useState<any>(null); // Type formel ou any pour stocker economy
+    const [ownedItems, setOwnedItems] = useState<StoreItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [processingPurchase, setProcessingPurchase] = useState<string | null>(null);
-    const [economyRefresh, setEconomyRefresh] = useState(0);
-
-    const [purchaseSuccessItem, setPurchaseSuccessItem] = useState<{ id: string, name: string } | null>(null);
+    const [processingEquip, setProcessingEquip] = useState<string | null>(null);
 
     const loadData = async () => {
         try {
-            const [inv, cat, eco] = await Promise.all([
+            const [inv, cat] = await Promise.all([
                 storeService.getInventory(),
                 storeService.getCatalog(),
-                economyService.getEconomy()
             ]);
             setInventory(inv);
-            setCatalog(cat);
-            setEconomy(eco);
+
+            // Filter catalog to only show items the player owns
+            const filteredItems = cat.filter(item =>
+                item.type !== 'CURRENCY_PACK' && inv.ownedItems.includes(item.id)
+            );
+            setOwnedItems(filteredItems);
+
         } catch (error) {
-            console.error('Failed to load store data', error);
+            console.error('Failed to load collection data', error);
         } finally {
             setLoading(false);
         }
     };
 
-    // Génération dynamique des onglets basée sur les données reçues
+    // Génération dynamique des onglets basée sur les données possédées reçues
     const dynamicTabs = useMemo(() => {
-        const types = Array.from(new Set(catalog.map(item => item.type)));
+        const types = Array.from(new Set(ownedItems.map(item => item.type)));
         const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-            { id: 'ALL', label: 'À la une', icon: 'star' }
+            { id: 'ALL', label: 'Tout', icon: 'grid' }
         ];
 
         if (types.includes('AVATAR')) tabs.push({ id: 'AVATAR', label: 'Avatars', icon: 'person' });
         if (types.includes('SKIN')) tabs.push({ id: 'SKIN', label: 'Skins', icon: 'color-palette' });
-        if (types.includes('CURRENCY_PACK')) tabs.push({ id: 'CURRENCY_PACK', label: 'Devises', icon: 'diamond' });
         if (types.includes('EMOTE')) tabs.push({ id: 'EMOTE', label: 'Emotions', icon: 'happy' });
 
         return tabs;
-    }, [catalog]);
+    }, [ownedItems]);
 
     useFocusEffect(
         useCallback(() => {
@@ -68,56 +64,11 @@ export default function StoreScreen() {
         }, [])
     );
 
-    const handlePurchase = async (item: StoreItem) => {
-        const processPurchase = async () => {
-            setProcessingPurchase(item.id);
-            const result = await storeService.purchaseItem(item.id);
-            if (result.success) {
-                setEconomyRefresh(prev => prev + 1); // Trigger header refresh
-                await loadData(); // Refresh inventory
-                // Show Celebration modal if not a currency pack
-                if (item.type !== 'CURRENCY_PACK') {
-                    setPurchaseSuccessItem({ id: item.id, name: item.name });
-                } else {
-                    if (Platform.OS === 'web') {
-                        window.alert("Devises ajoutées avec succès !");
-                    } else {
-                        Alert.alert("Succès", "Devises ajoutées avec succès !");
-                    }
-                }
-            } else {
-                if (Platform.OS === 'web') {
-                    window.alert(result.message || "Une erreur est survenue.");
-                } else {
-                    Alert.alert("Erreur", result.message || "Une erreur est survenue.");
-                }
-            }
-            setProcessingPurchase(null);
-        };
-
-        if (Platform.OS === 'web') {
-            const confirmed = window.confirm(`Voulez-vous acheter ${item.name} ?`);
-            if (confirmed) {
-                await processPurchase();
-            }
-        } else {
-            Alert.alert(
-                "Confirmer l'achat",
-                `Voulez-vous acheter ${item.name} ?`,
-                [
-                    { text: "Annuler", style: "cancel" },
-                    { text: "Acheter", style: "default", onPress: processPurchase }
-                ]
-            );
-        }
-    };
-
     const handleEquip = async (itemId: string) => {
-        setProcessingPurchase(itemId);
+        setProcessingEquip(itemId);
         const result = await storeService.equipItem(itemId);
         if (result.success) {
             await loadData(); // Refresh inventory to show equipped status
-            setPurchaseSuccessItem(null); // Close modal if open
         } else {
             if (Platform.OS === 'web') {
                 window.alert(result.message || "Impossible d'équiper cet objet.");
@@ -125,25 +76,19 @@ export default function StoreScreen() {
                 Alert.alert("Erreur", result.message || "Impossible d'équiper cet objet.");
             }
         }
-        setProcessingPurchase(null);
+        setProcessingEquip(null);
     };
 
     const renderItemCard = (item: StoreItem) => {
         if (!inventory) return null;
 
-        const isOwned = item.type !== 'CURRENCY_PACK' && inventory.ownedItems.includes(item.id);
         const isEquipped = item.type === 'AVATAR' ? inventory.equipped.avatar === item.id :
             item.type === 'SKIN' ? inventory.equipped.skin === item.id : false;
 
-        const isProcessing = processingPurchase === item.id;
-
-        // Validation des fonds
-        const canAffordCoins = item.priceCoins ? (economy?.coins ?? 0) >= item.priceCoins : true;
-        const canAffordDiamonds = item.priceDiamonds ? (economy?.diamonds ?? 0) >= item.priceDiamonds : true;
-        const canAfford = canAffordCoins && canAffordDiamonds;
+        const isProcessing = processingEquip === item.id;
 
         return (
-            <Animated.View entering={FadeIn} key={item.id} style={[styles.card, isLandscape && styles.cardLandscape]}>
+            <Animated.View entering={FadeIn} key={item.id} style={[styles.card, isLandscape && styles.cardLandscape, isEquipped && styles.cardEquipped]}>
                 <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>{item.name}</Text>
                     <Text style={styles.cardRarity}>{item.rarity}</Text>
@@ -151,14 +96,7 @@ export default function StoreScreen() {
 
                 {/* Graphic or Firestore Remote Image */}
                 <View style={[styles.cardImagePlaceholder, isLandscape && { height: 100 }]}>
-                    {item.type === 'CURRENCY_PACK' && item.imageUrl ? (
-                        <>
-                            <Image source={{ uri: item.imageUrl }} style={styles.remoteImage} resizeMode="cover" />
-                            <Text style={styles.currencyOverlayText}>
-                                {item.rewards?.coins?.toLocaleString('fr-FR') || ''}
-                            </Text>
-                        </>
-                    ) : item.type === 'SKIN' ? (
+                    {item.type === 'SKIN' ? (
                         <View style={[styles.skinPreviewContainer, { backgroundColor: item.skinConfig ? item.skinConfig.tableBackgroundColor : '#555555' }]}>
                             {item.skinConfig && (
                                 <View style={[styles.skinPreviewDomino, { backgroundColor: item.skinConfig.dominoBackgroundColor }]}>
@@ -183,7 +121,7 @@ export default function StoreScreen() {
                         <Image source={{ uri: item.imageUrl }} style={styles.remoteImage} resizeMode="cover" />
                     ) : (
                         <Ionicons
-                            name={item.type === 'AVATAR' ? 'person' : 'diamond'}
+                            name={item.type === 'AVATAR' ? 'person' : 'color-palette'}
                             size={48}
                             color="rgba(255,255,255,0.5)"
                         />
@@ -193,42 +131,16 @@ export default function StoreScreen() {
                 <Text style={styles.cardDescription}>{item.description}</Text>
 
                 <View style={styles.cardFooter}>
-                    {!isOwned && (
-                        <View style={styles.priceContainer}>
-                            {item.priceCoins !== undefined && item.priceCoins > 0 && (
-                                <Text style={styles.priceText}>
-                                    🪙 {item.priceCoins}
-                                </Text>
-                            )}
-                            {item.priceDiamonds !== undefined && item.priceDiamonds > 0 && (
-                                <Text style={[styles.priceText, { color: '#60DCFF' }]}>
-                                    💎 {item.priceDiamonds}
-                                </Text>
-                            )}
-                            {item.priceCoins === 0 && item.priceDiamonds === undefined && (
-                                <Text style={[styles.priceText, { color: '#4CAF50' }]}>GRATUIT</Text>
-                            )}
-                        </View>
-                    )}
-
                     {isProcessing ? (
                         <ActivityIndicator color="#FFD700" />
                     ) : isEquipped ? (
                         <View style={styles.equippedBadge}>
                             <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                            <Text style={styles.equippedText}>Équipé</Text>
+                            <Text style={styles.equippedText}>Actuellement utilisé</Text>
                         </View>
-                    ) : isOwned ? (
+                    ) : (
                         <TouchableOpacity style={styles.equipButton} onPress={() => handleEquip(item.id)}>
                             <Text style={styles.equipButtonText}>UTILISER</Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <TouchableOpacity
-                            style={[styles.buyButton, !canAfford && { opacity: 0.5 }]}
-                            onPress={() => handlePurchase(item)}
-                            disabled={!canAfford}
-                        >
-                            <Text style={styles.buyButtonText}>Acheter</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -236,14 +148,14 @@ export default function StoreScreen() {
         );
     };
 
-    const filteredCatalog = activeTab === 'ALL'
-        ? catalog
-        : catalog.filter(item => item.type === activeTab);
+    const filteredItems = activeTab === 'ALL'
+        ? ownedItems
+        : ownedItems.filter(item => item.type === activeTab);
 
     return (
         <SafeAreaView style={styles.container}>
             <LinearGradient
-                colors={['#1A0E2E', '#0A0514']}
+                colors={['#0F2027', '#203A43', '#2C5364']} // A different elegant gradient for the collection
                 style={StyleSheet.absoluteFillObject}
             />
 
@@ -252,10 +164,11 @@ export default function StoreScreen() {
                 <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/home')}>
                     <Ionicons name="home" size={24} color="#FFF" />
                 </TouchableOpacity>
-                <EconomyHeader refreshTrigger={economyRefresh} />
+                <Text style={styles.headerTitle}>VESTIAIRE</Text>
+                <View style={{ width: 44 }} /> {/* Spacer to center title */}
             </View>
 
-            <Text style={styles.pageTitle}>LA BOUTIQUE</Text>
+            <Text style={styles.pageTitle}>MA COLLECTION</Text>
 
             {/* Tabs */}
             <View style={styles.tabsContainer}>
@@ -278,32 +191,26 @@ export default function StoreScreen() {
                 </ScrollView>
             </View>
 
-            <PurchaseSuccessModal
-                visible={!!purchaseSuccessItem}
-                itemName={purchaseSuccessItem?.name || ''}
-                onClose={() => setPurchaseSuccessItem(null)}
-                onEquip={() => purchaseSuccessItem && handleEquip(purchaseSuccessItem.id)}
-            />
-
             {/* Content */}
             {loading ? (
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color="#FFD700" />
                 </View>
+            ) : ownedItems.length === 0 ? (
+                <View style={styles.centerContainer}>
+                    <Ionicons name="sad-outline" size={64} color="rgba(255,255,255,0.5)" />
+                    <Text style={styles.emptyText}>Votre vestiaire est vide.</Text>
+                    <Text style={styles.emptySubText}>Visitez la boutique pour acquérir de nouveaux objets !</Text>
+                    <TouchableOpacity style={styles.goToStoreButton} onPress={() => router.push('/store')}>
+                        <Text style={styles.goToStoreText}>Aller à la Boutique</Text>
+                    </TouchableOpacity>
+                </View>
             ) : (
                 <ScrollView
-                    horizontal={isLandscape}
-                    contentContainerStyle={[styles.catalogGrid, isLandscape && styles.catalogGridLandscape]}
+                    contentContainerStyle={[styles.grid, isLandscape && styles.gridLandscape]}
                     showsVerticalScrollIndicator={false}
-                    showsHorizontalScrollIndicator={false}
-                    snapToInterval={isLandscape ? 280 + 20 : undefined}
-                    decelerationRate="fast"
                 >
-                    {filteredCatalog.length > 0 ? (
-                        filteredCatalog.map(item => renderItemCard(item))
-                    ) : (
-                        <Text style={styles.emptyText}>Aucun article dans cette catégorie pour le moment.</Text>
-                    )}
+                    {filteredItems.map(renderItemCard)}
                 </ScrollView>
             )}
         </SafeAreaView>
@@ -313,32 +220,40 @@ export default function StoreScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1A0E2E',
+        backgroundColor: '#0F2027',
     },
     header: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingTop: 10,
-        paddingBottom: 20,
-        zIndex: 10,
+        paddingBottom: 5,
     },
     backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: 'rgba(255,255,255,0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 10, // Give some space before economy header
+    },
+    headerTitle: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+        letterSpacing: 2,
     },
     pageTitle: {
-        fontSize: 28,
-        fontWeight: '900',
         color: '#FFD700',
-        letterSpacing: 2,
-        textAlign: 'center',
-        marginBottom: 20,
+        fontSize: 32,
+        fontWeight: '900',
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: 20,
+        textShadowColor: 'rgba(255, 215, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     tabsContainer: {
         marginBottom: 20,
@@ -350,18 +265,22 @@ const styles = StyleSheet.create({
     tab: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)',
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
         gap: 8,
     },
     activeTab: {
         backgroundColor: '#FFD700',
+        borderColor: '#FFD700',
     },
     tabText: {
         color: '#FFF',
-        fontWeight: 'bold',
+        fontWeight: '600',
+        fontSize: 14,
     },
     activeTabText: {
         color: '#1A0E2E',
@@ -370,16 +289,41 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        padding: 40,
     },
-    catalogGrid: {
+    emptyText: {
+        color: '#FFF',
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginTop: 20,
+    },
+    emptySubText: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 16,
+        textAlign: 'center',
+        marginTop: 10,
+        marginBottom: 30,
+    },
+    goToStoreButton: {
+        backgroundColor: '#FFD700',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 25,
+    },
+    goToStoreText: {
+        color: '#1A0E2E',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    grid: {
         paddingHorizontal: 20,
         paddingBottom: 40,
-        gap: 20,
+        gap: 16,
     },
-    catalogGridLandscape: {
-        paddingHorizontal: 40,
-        gap: 20,
-        alignItems: 'center',
+    gridLandscape: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
     },
     card: {
         backgroundColor: 'rgba(255,255,255,0.05)',
@@ -387,9 +331,14 @@ const styles = StyleSheet.create({
         padding: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
+        overflow: 'hidden',
+    },
+    cardEquipped: {
+        borderColor: '#4CAF50',
+        backgroundColor: 'rgba(76, 175, 80, 0.1)',
     },
     cardLandscape: {
-        width: 280,
+        width: '48%',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -401,16 +350,17 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 18,
         fontWeight: 'bold',
+        flex: 1,
     },
     cardRarity: {
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: 10,
+        color: '#A020F0', // Or anything custom
+        fontSize: 12,
         fontWeight: 'bold',
         textTransform: 'uppercase',
     },
     cardImagePlaceholder: {
-        height: 120,
-        backgroundColor: 'rgba(0,0,0,0.2)',
+        height: 140,
+        backgroundColor: 'rgba(0,0,0,0.3)',
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
@@ -421,37 +371,64 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
-    currencyOverlayText: {
-        position: 'absolute',
-        color: '#FFD700', // Yellow/Orange
-        fontSize: 32,
-        fontWeight: '900',
-        textShadowColor: 'rgba(0, 0, 0, 0.8)',
-        textShadowOffset: { width: 2, height: 2 },
-        textShadowRadius: 4,
-        letterSpacing: 1,
+    cardDescription: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 14,
+        marginBottom: 16,
+        lineHeight: 20,
+    },
+    cardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.1)',
+        paddingTop: 12,
+        minHeight: 48,
+    },
+    equipButton: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#FFD700',
+    },
+    equipButtonText: {
+        color: '#FFD700',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    equippedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(76, 175, 80, 0.2)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        gap: 6,
+    },
+    equippedText: {
+        color: '#4CAF50',
+        fontWeight: 'bold',
+        fontSize: 14,
     },
     skinPreviewContainer: {
         width: '100%',
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.1)',
     },
     skinPreviewDomino: {
-        width: 30,
-        height: 60,
-        borderRadius: 4,
-        flexDirection: 'column',
+        width: 40,
+        height: 80,
+        borderRadius: 6,
+        padding: 4,
         justifyContent: 'space-between',
-        paddingVertical: 4,
-        paddingHorizontal: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 2,
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
         elevation: 5,
     },
     skinPreviewHalf: {
@@ -461,75 +438,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignContent: 'center',
         gap: 2,
-        padding: 2,
-    },
-    skinPreviewDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
     },
     skinPreviewDivider: {
         height: 2,
         width: '100%',
         marginVertical: 2,
     },
-    cardDescription: {
-        color: 'rgba(255,255,255,0.7)',
-        fontSize: 14,
-        marginBottom: 16,
-        lineHeight: 20,
+    skinPreviewDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        margin: 1,
     },
-    cardFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
-        paddingTop: 16,
-    },
-    priceContainer: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    priceText: {
-        color: '#FFD700',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    buyButton: {
-        backgroundColor: '#4CAF50',
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-        borderRadius: 20,
-    },
-    buyButtonText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-    },
-    equipButton: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-        borderRadius: 20,
-    },
-    equipButtonText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-    },
-    equippedBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-    },
-    equippedText: {
-        color: '#4CAF50',
-        fontWeight: 'bold',
-    },
-    emptyText: {
-        color: 'rgba(255,255,255,0.5)',
-        textAlign: 'center',
-        marginTop: 40,
-    }
 });

@@ -134,29 +134,16 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                     ) : (
                         <>
                             <View style={[styles.avatar, slot.isCurrentUser && styles.avatarHighlight, { overflow: 'hidden' }]}>
-                                {slot.player?.avatarId && (AVAILABLE_AVATARS.includes(slot.player.avatarId as AvatarId) || slot.player.avatarId === 'avatar_default') ? (
-                                    <Image
-                                        source={getAvatarImage(slot.player.avatarId)}
-                                        style={{
-                                            width: 80 * 1.6,
-                                            height: 80 * 1.6,
-                                            position: 'absolute',
-                                            top: -(80 * 1.6 - 80) * 0.25,
-                                        }}
-                                        resizeMode="cover"
-                                    />
-                                ) : (
-                                    <Image
-                                        source={getAvatarImage('avatar_default')}
-                                        style={{
-                                            width: 80 * 1.6,
-                                            height: 80 * 1.6,
-                                            position: 'absolute',
-                                            top: -(80 * 1.6 - 80) * 0.25,
-                                        }}
-                                        resizeMode="cover"
-                                    />
-                                )}
+                                <Image
+                                    source={getAvatarImage(slot.player?.avatarId || 'avatar_default')}
+                                    style={{
+                                        width: 80 * 1.6,
+                                        height: 80 * 1.6,
+                                        position: 'absolute',
+                                        top: -(80 * 1.6 - 80) * 0.25,
+                                    }}
+                                    resizeMode="cover"
+                                />
                             </View>
                             <Text style={styles.playerName}>
                                 {slot.player!.displayName}

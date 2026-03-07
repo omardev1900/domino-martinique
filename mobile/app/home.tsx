@@ -110,6 +110,13 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.settingsButton}
+                        onPress={() => router.push('/collection')}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.settingsIcon}>🎒</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.settingsButton}
                         onPress={() => router.push('/leaderboard')}
                         activeOpacity={0.7}
                     >
@@ -136,7 +143,7 @@ export default function HomeScreen() {
                     >
                         <View style={styles.avatarCircle}>
                             <Image
-                                source={getAvatarImage((user?.avatarUrl && (AVAILABLE_AVATARS.includes(user.avatarUrl as AvatarId) || user.avatarUrl === 'avatar_default')) ? user.avatarUrl : 'avatar_default')}
+                                source={getAvatarImage(user?.avatarUrl)}
                                 style={styles.avatarImage}
                                 resizeMode="cover"
                             />

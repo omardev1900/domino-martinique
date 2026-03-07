@@ -146,6 +146,18 @@ class EconomyService {
     }
 
     /**
+     * Set the player's full economy explicitly (used for store purchases etc.)
+     */
+    async setEconomy(newEconomy: PlayerEconomy, userId?: string): Promise<void> {
+        this.cached = { ...newEconomy };
+        await this.persistLocal();
+        
+        if (userId && !userId.startsWith('guest_')) {
+            await this.pushToFirebase(userId, newEconomy);
+        }
+    }
+
+    /**
      * Déduit le buy-in avant le début d'une partie.
      * Retourne `false` si le joueur n'a pas assez de coins.
      */

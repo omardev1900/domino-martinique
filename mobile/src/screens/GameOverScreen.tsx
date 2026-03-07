@@ -168,7 +168,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                 <View style={styles.winnerSpotlightLandscape}>
                                     <View style={styles.avatarCircleLandscape}>
                                         <Image
-                                            source={getAvatarImage((roundWinner.avatarId as AvatarId) || 'avatar_default')}
+                                            source={getAvatarImage(roundWinner.avatarId || 'avatar_default')}
                                             style={styles.avatarImageLandscape}
                                             resizeMode="cover"
                                         />
@@ -277,19 +277,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                             <Animated.View entering={ZoomInEasyUp.duration(600).delay(200)} style={[styles.winnerSpotlight, isLandscape && { marginBottom: 10 }]}>
                                 <View style={styles.avatarGlow}>
                                     <View style={[styles.avatarCircleBig, isLandscape && { width: 60, height: 60 }]}>
-                                        {roundWinner.avatarId && AVAILABLE_AVATARS.includes(roundWinner.avatarId as AvatarId) ? (
-                                            <Image
-                                                source={getAvatarImage(roundWinner.avatarId)}
-                                                style={[styles.winnerAvatarImage, isLandscape && { width: 60 * 1.6, height: 60 * 1.6, top: -(60 * 1.6 - 60) * 0.25 }]}
-                                                resizeMode="cover"
-                                            />
-                                        ) : (
-                                            <Image
-                                                source={getAvatarImage('avatar_default')}
-                                                style={[styles.winnerAvatarImage, isLandscape && { width: 60 * 1.6, height: 60 * 1.6, top: -(60 * 1.6 - 60) * 0.25 }]}
-                                                resizeMode="cover"
-                                            />
-                                        )}
+                                        <Image
+                                            source={getAvatarImage(roundWinner.avatarId || 'avatar_default')}
+                                            style={[styles.winnerAvatarImage, isLandscape && { width: 60 * 1.6, height: 60 * 1.6, top: -(60 * 1.6 - 60) * 0.25 }]}
+                                            resizeMode="cover"
+                                        />
                                     </View>
                                     {gameState.mancheResult !== 'CHIRE' && (
                                         <View style={styles.winnerBadge}>

@@ -381,8 +381,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         const profile = await authService.refreshUserFromStorage();
                         if (profile) {
                             setPlayerDisplayName(profile.displayName || 'Moi');
-                            const avatar = profile.avatarId || profile.avatarUrl;
-                            if (avatar && (AVAILABLE_AVATARS.includes(avatar as AvatarId) || avatar === 'avatar_default')) {
+                            const avatar = profile.avatarUrl || profile.avatarId;
+                            if (avatar) {
                                 setPlayerAvatarId(avatar);
                             } else {
                                 setPlayerAvatarId('avatar_default');

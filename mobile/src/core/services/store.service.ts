@@ -118,8 +118,9 @@ export class StoreService {
         const newInventory = JSON.parse(JSON.stringify(inventory)) as PlayerInventory;
         if (item.type === 'AVATAR') {
             newInventory.equipped.avatar = itemId;
-            // Sync with global auth profile to update everywhere
-            await authService.updateProfile({ photoURL: item.assetId });
+            // Sync with global auth profile to update everywhere. Prefer imageUrl if available (remote), fallback to assetId (local string)
+            const photoToSync = item.imageUrl ? item.imageUrl : item.assetId;
+            await authService.updateProfile({ photoURL: photoToSync });
         } else if (item.type === 'SKIN') {
             newInventory.equipped.skin = itemId;
         } else {

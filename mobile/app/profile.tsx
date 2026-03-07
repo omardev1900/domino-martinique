@@ -64,14 +64,14 @@ export default function ProfileScreen() {
                 setUserEmail(currentUser.email);
             }
 
-            // Set avatar from avatarId (which is the source of truth)
-            const currentAvatar = currentUser.avatarId || currentUser.avatarUrl;
-            if (currentAvatar && AVAILABLE_AVATARS.includes(currentAvatar as AvatarId)) {
+            // Set avatar from avatarUrl (which is the source of truth for remote) or avatarId (local)
+            const currentAvatar = currentUser.avatarUrl || currentUser.avatarId;
+            if (currentAvatar) {
                 console.log('[Profile] Setting avatar:', currentAvatar);
                 setSelectedAvatar(currentAvatar);
             } else {
-                // Default to default avatar if invalid
-                console.log('[Profile] Using default avatar, invalid:', currentAvatar);
+                // Default to default avatar if none exist
+                console.log('[Profile] Using default avatar, none found');
                 setSelectedAvatar('avatar_default');
             }
         } else {

@@ -38,8 +38,18 @@ export const AVAILABLE_AVATARS: AvatarId[] = [
  * Get the image source for an avatar ID
  */
 export const getAvatarImage = (avatarId: string | null | undefined) => {
-    if (!avatarId || !(avatarId in AVATAR_IMAGES)) {
-        return AVATAR_IMAGES.avatar_default; // Default avatar
+    if (!avatarId) {
+        return AVATAR_IMAGES.avatar_default;
     }
+
+    // Check if the avatarId is actually a remote URL (like Firebase Storage)
+    if (avatarId.startsWith('http://') || avatarId.startsWith('https://')) {
+        return { uri: avatarId };
+    }
+
+    if (!(avatarId in AVATAR_IMAGES)) {
+        return AVATAR_IMAGES.avatar_default; // Default avatar fallback
+    }
+
     return AVATAR_IMAGES[avatarId as AvatarId];
 };
