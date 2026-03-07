@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 12, // Identité visuelle plus aérée
     },
     card: {
         flexDirection: 'row',

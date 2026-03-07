@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ScrollView, useWindowDimensions, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, StyleSheet, Text, TouchableOpacity, ScrollView, useWindowDimensions, Alert, Platform } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HAND_SIZE, TURN_DURATION_SECONDS } from '../src/core/constants';
 import { authService } from '../src/core/services/auth.service';
 import { PlayerProfile } from '../src/core/types';
@@ -12,6 +12,30 @@ import { economyService } from '../src/core/services/economy.service';
 import { TABLE_CONFIGS } from '../src/core/economy.constants';
 import { TableTier } from '../src/core/economy.types';
 import { EconomyHeader } from '../src/components/EconomyHeader';
+import Svg, { Rect, Defs, Pattern } from 'react-native-svg';
+
+const MadrasPattern = () => (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg width="100%" height="100%" opacity={0.07}>
+            <Defs>
+                <Pattern
+                    id="madras"
+                    width="40"
+                    height="40"
+                    patternUnits="userSpaceOnUse"
+                >
+                    {/* Horizontal lines */}
+                    <Rect x="0" y="5" width="40" height="2" fill="#000" />
+                    <Rect x="0" y="25" width="40" height="1" fill="#000" />
+                    {/* Vertical lines */}
+                    <Rect x="5" y="0" width="2" height="40" fill="#000" />
+                    <Rect x="25" y="0" width="1" height="40" fill="#000" />
+                </Pattern>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#madras)" />
+        </Svg>
+    </View>
+);
 
 type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
 type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
@@ -19,6 +43,7 @@ type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
 export default function SoloScreen() {
     const router = useRouter();
     const { width, height } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
     const isLandscape = width > height;
 
     const [difficulty, setDifficulty] = useState<Difficulty>('MAPIPI');
@@ -89,134 +114,180 @@ export default function SoloScreen() {
     return (
         <LinearGradient
             colors={['#2D1B4E', '#1A0E2E']}
-            style={styles.container}
+            style={[styles.container, { minHeight: height }]}
         >
-            <View style={styles.backContainer}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={handleGoHome}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name="home" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-                {/* Economy pill - visible en haut de l'écran solo */}
+            <MadrasPattern />
+            <View style={[styles.backContainer, { top: insets.top + (Platform.OS === 'ios' ? 0 : 10) }]}>
+                <View style={styles.headerLeft}>
+                    <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/home')}>
+                        <Ionicons name="home" size={24} color="#FFF" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Solo Mode</Text>
+                </View>
+
                 <EconomyHeader refreshTrigger={economyRefresh} />
             </View>
 
-            <View style={styles.mainWrapper}>
-                <Animated.View entering={FadeInUp.duration(600)} style={styles.contentContainer}>
-                    <Text style={styles.title}>SOLO MODE</Text>
-
+            <Animated.View entering={FadeInUp.delay(200)} style={[styles.mainWrapper, isLandscape && { paddingTop: 60 }]}>
+                <View style={styles.contentContainer}>
                     {/* Game Mode Selection */}
-                    <View style={styles.gameModeContainer}>
+                    {/* Mode Cards */}
+                    <View style={[styles.gameModeContainer, isLandscape && styles.gameModeContainerLandscape]}>
+                        {/* SCORE */}
                         <TouchableOpacity
-                            style={[styles.gameModeTile, gameMode === 'SCORE' && styles.gameModeTileActive]}
+                            style={[styles.gameModeTile, isLandscape && styles.gameModeTileLandscape, gameMode === 'SCORE' && styles.gameModeTileActive]}
                             onPress={() => { setGameMode('SCORE'); setWinningCondition(6); }}
+                            activeOpacity={0.8}
                         >
-                            <Text style={[styles.gameModeTitle, gameMode === 'SCORE' && styles.gameModeTitleActive]}>
-                                <Text style={styles.gameModeIcon}>🎯</Text> SCORE
-                            </Text>
-                            <Text style={[styles.gameModeSubtitle, gameMode === 'SCORE' && styles.gameModeSubtitleActive]}>
-                                Le premier à X points
-                            </Text>
+                            <LinearGradient colors={['#0288D1', '#26C6DA']} style={[styles.modeGradient, isLandscape && styles.modeGradientLandscape]}>
+                                <Text style={[styles.modeIllustration, isLandscape && styles.modeIllustrationLandscape]}>🎯</Text>
+                                <Text style={[styles.gameModeTitle, isLandscape && styles.gameModeTitleLandscape]}>Score</Text>
+                                <Text style={[styles.gameModeSubtitle, isLandscape && styles.gameModeSubtitleLandscape]}>Atteindre le but</Text>
+                            </LinearGradient>
                         </TouchableOpacity>
+
+                        {/* COCHON */}
                         <TouchableOpacity
-                            style={[styles.gameModeTile, gameMode === 'COCHON' && styles.gameModeTileActive]}
+                            style={[styles.gameModeTile, isLandscape && styles.gameModeTileLandscape, gameMode === 'COCHON' && styles.gameModeTileActive]}
                             onPress={() => { setGameMode('COCHON'); setWinningCondition(3); }}
+                            activeOpacity={0.8}
                         >
-                            <Text style={[styles.gameModeTitle, gameMode === 'COCHON' && styles.gameModeTitleActive]}>
-                                <Text style={styles.gameModeIcon}>🐷</Text> COCHON
-                            </Text>
-                            <Text style={[styles.gameModeSubtitle, gameMode === 'COCHON' && styles.gameModeSubtitleActive]}>
-                                Évitez le zéro
-                            </Text>
+                            <LinearGradient colors={['#EC407A', '#FF7043']} style={[styles.modeGradient, isLandscape && styles.modeGradientLandscape]}>
+                                <Text style={[styles.modeIllustration, isLandscape && styles.modeIllustrationLandscape]}>🐷</Text>
+                                <Text style={[styles.gameModeTitle, isLandscape && styles.gameModeTitleLandscape]}>Cochons</Text>
+                                <Text style={[styles.gameModeSubtitle, isLandscape && styles.gameModeSubtitleLandscape]}>Éviter le zéro</Text>
+                            </LinearGradient>
                         </TouchableOpacity>
+
+                        {/* MANCHE */}
                         <TouchableOpacity
-                            style={[styles.gameModeTile, gameMode === 'MANCHE' && styles.gameModeTileActive]}
+                            style={[styles.gameModeTile, isLandscape && styles.gameModeTileLandscape, gameMode === 'MANCHE' && styles.gameModeTileActive]}
                             onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); }}
+                            activeOpacity={0.8}
                         >
-                            <Text style={[styles.gameModeTitle, gameMode === 'MANCHE' && styles.gameModeTitleActive]}>
-                                <Text style={styles.gameModeIcon}>🏆</Text> MANCHE
-                            </Text>
-                            <Text style={[styles.gameModeSubtitle, gameMode === 'MANCHE' && styles.gameModeSubtitleActive]}>
-                                Le meilleur à X manches
-                            </Text>
+                            <LinearGradient colors={['#FFA000', '#FFD54F']} style={[styles.modeGradient, isLandscape && styles.modeGradientLandscape]}>
+                                <Text style={[styles.modeIllustration, isLandscape && styles.modeIllustrationLandscape]}>🏆</Text>
+                                <Text style={[styles.gameModeTitle, isLandscape && styles.gameModeTitleLandscape]}>Manches</Text>
+                                <Text style={[styles.gameModeSubtitle, isLandscape && styles.gameModeSubtitleLandscape]}>X manches gagnées</Text>
+                            </LinearGradient>
                         </TouchableOpacity>
                     </View>
 
-                    {/* Options Bar */}
-                    <View style={styles.optionsBar}>
-                        {/* Niveau */}
-                        <View style={styles.optionGroup}>
-                            <Text style={styles.optionLabel}>Niveau: <Text style={styles.diffValue}>{
-                                difficulty === 'TI_MANMAY' ? 'DÉBUTANT' :
-                                    difficulty === 'MAPIPI' ? 'NORMAL' : 'EXPERT'
-                            }</Text></Text>
-                            <View style={styles.optionRow}>
-                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'TI_MANMAY' && styles.activeDiffBtn]} onPress={() => setDifficulty('TI_MANMAY')}><Text style={[styles.compactIcon, difficulty === 'TI_MANMAY' && styles.activeCompactIcon]}>🌱</Text></TouchableOpacity>
-                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'MAPIPI' && styles.activeDiffBtn]} onPress={() => setDifficulty('MAPIPI')}><Text style={[styles.compactIcon, difficulty === 'MAPIPI' && styles.activeCompactIcon]}>🔥</Text></TouchableOpacity>
-                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'GRAN_MOUN' && styles.activeDiffBtn]} onPress={() => setDifficulty('GRAN_MOUN')}><Text style={[styles.compactIcon, difficulty === 'GRAN_MOUN' && styles.activeCompactIcon]}>🦁</Text></TouchableOpacity>
+                    {/* Parameters Bar (Premium & Optimized for Landscape) */}
+                    <View style={[styles.paramsContainer, isLandscape && styles.paramsContainerLandscape]}>
+                        {/* 1. Difficulté */}
+                        <View style={[styles.paramCol, isLandscape && styles.paramColLandscape]}>
+                            <Text style={styles.paramLabel}>Difficulté</Text>
+                            <View style={styles.diffToggle}>
+                                <TouchableOpacity
+                                    style={[styles.diffBtn, difficulty === 'TI_MANMAY' && styles.activeDiffBtn]}
+                                    onPress={() => setDifficulty('TI_MANMAY')}
+                                >
+                                    <Text style={styles.diffIcon}>🌱</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.diffBtn, difficulty === 'MAPIPI' && styles.activeDiffBtn]}
+                                    onPress={() => setDifficulty('MAPIPI')}
+                                >
+                                    <Text style={styles.diffIcon}>🌶️</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.diffBtn, difficulty === 'GRAN_MOUN' && styles.activeDiffBtn]}
+                                    onPress={() => setDifficulty('GRAN_MOUN')}
+                                >
+                                    <Text style={styles.diffIcon}>👑</Text>
+                                </TouchableOpacity>
                             </View>
+                            <Text style={styles.paramValueSmall}>
+                                {difficulty === 'TI_MANMAY' ? 'MANMAY' : difficulty === 'MAPIPI' ? 'MAPIPI' : 'GRAN MOUN'}
+                            </Text>
                         </View>
 
-                        <Text style={styles.optionSeparator}>|</Text>
-
-                        {/* But */}
-                        <View style={styles.optionGroup}>
-                            <Text style={styles.optionLabel}>But: </Text>
-                            <View style={styles.optionRow}>
-                                <TouchableOpacity onPress={() => updateTarget(-1)} style={styles.compactBtn}><Ionicons name="remove" size={12} color="#000" /></TouchableOpacity>
-                                <Text style={styles.optionValue}>{winningCondition}</Text>
-                                <TouchableOpacity onPress={() => updateTarget(1)} style={styles.compactBtn}><Ionicons name="add" size={12} color="#000" /></TouchableOpacity>
+                        {/* 2. But */}
+                        <View style={[styles.paramCol, isLandscape && styles.paramColLandscape]}>
+                            <Text style={styles.paramLabel}>Objectif Match</Text>
+                            <View style={styles.stepper}>
+                                <TouchableOpacity onPress={() => updateTarget(-1)} style={styles.stepBtn}>
+                                    <Ionicons name="remove" size={isLandscape ? 16 : 20} color="#FFF" />
+                                </TouchableOpacity>
+                                <Text style={[styles.stepValue, isLandscape && styles.stepValueLandscape]}>{winningCondition}</Text>
+                                <TouchableOpacity onPress={() => updateTarget(1)} style={styles.stepBtn}>
+                                    <Ionicons name="add" size={isLandscape ? 16 : 20} color="#FFF" />
+                                </TouchableOpacity>
                             </View>
+                            <Text style={styles.paramValueSmall}>
+                                {gameMode === 'MANCHE' ? 'Manches' : gameMode === 'COCHON' ? 'Cochons' : 'Points'}
+                            </Text>
                         </View>
 
-                        <Text style={styles.optionSeparator}>|</Text>
-
-                        {/* Durée */}
-                        <View style={styles.optionGroup}>
-                            <Text style={styles.optionLabel}>Durée: {turnDuration === 0 ? 'Off' : `${turnDuration}s`} </Text>
-                            <View style={styles.optionRow}>
+                        {/* 3. Durée du Tour */}
+                        <View style={[styles.paramCol, isLandscape && styles.paramColLandscape]}>
+                            <Text style={styles.paramLabel}>Vitesse réflexion</Text>
+                            <View style={styles.stepper}>
                                 <TouchableOpacity onPress={() => setTurnDuration(prev => {
                                     const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
                                     const idx = steps.indexOf(prev);
                                     return idx > 0 ? steps[idx - 1] : steps[0];
-                                })} style={styles.compactBtn}><Ionicons name="remove" size={12} color="#000" /></TouchableOpacity>
+                                })} style={styles.stepBtn}>
+                                    <Ionicons name="remove" size={isLandscape ? 16 : 20} color="#FFF" />
+                                </TouchableOpacity>
+                                <Text style={[styles.stepValue, isLandscape && styles.stepValueLandscape]}>{turnDuration === 0 ? '∞' : turnDuration}</Text>
                                 <TouchableOpacity onPress={() => setTurnDuration(prev => {
                                     const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
                                     const idx = steps.indexOf(prev);
                                     return idx < steps.length - 1 ? steps[idx + 1] : steps[steps.length - 1];
-                                })} style={styles.compactBtn}><Ionicons name="add" size={12} color="#000" /></TouchableOpacity>
+                                })} style={styles.stepBtn}>
+                                    <Ionicons name="add" size={isLandscape ? 16 : 20} color="#FFF" />
+                                </TouchableOpacity>
                             </View>
+                            <Text style={styles.paramValueSmall}>
+                                {turnDuration === 0 ? 'Illimité' : `secondes`}
+                            </Text>
                         </View>
 
-                        <Text style={styles.optionSeparator}>|</Text>
-
-                        {/* Main */}
-                        <View style={styles.optionGroup}>
-                            <Text style={styles.optionLabel}>Main: </Text>
-                            <View style={styles.optionRow}>
+                        {/* 4. Main de départ */}
+                        <View style={[styles.paramCol, isLandscape && styles.paramColLandscape, { borderRightWidth: 0 }]}>
+                            <Text style={styles.paramLabel}>Main de départ</Text>
+                            <View style={styles.handToggle}>
                                 {[3, 5, 7].map(size => (
-                                    <TouchableOpacity key={size} onPress={() => setStartingHandSize(size)} style={[styles.mainBtn, startingHandSize === size && styles.activeMainBtn]}>
-                                        <Text style={[styles.mainBtnText, startingHandSize === size && styles.activeMainBtnText]}>{size}</Text>
+                                    <TouchableOpacity
+                                        key={size}
+                                        onPress={() => setStartingHandSize(size)}
+                                        style={[styles.handBtn, isLandscape && styles.handBtnLandscape, startingHandSize === size && styles.activeHandBtn]}
+                                    >
+                                        <Text style={[styles.handText, isLandscape && styles.handTextLandscape, startingHandSize === size && styles.activeHandText]}>
+                                            {size}
+                                        </Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
+                            <Text style={styles.paramValueSmall}>Dominos</Text>
                         </View>
                     </View>
 
-                    <TouchableOpacity style={styles.startButton} onPress={startGame}>
-                        <Text style={styles.startText}>JOUER MAINTENANT</Text>
-                        <Text style={styles.buyInBadge}>-{TABLE_CONFIGS[tableTier].buyIn} 🪙</Text>
-                    </TouchableOpacity>
-                    {/* Feedback de débit (disparait après 1.8s) */}
-                    {debitFeedback && (
-                        <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
-                            {debitFeedback} débités
-                        </Animated.Text>
-                    )}
-                </Animated.View>
-            </View>
+                    {/* Play Button */}
+                    <View style={[styles.playButtonWrapper, isLandscape && styles.playButtonWrapperLandscape]}>
+                        <TouchableOpacity style={[styles.playButton, isLandscape && styles.playButtonLandscape]} onPress={startGame} activeOpacity={0.8}>
+                            <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.playGradient}>
+                                <View style={styles.playContent}>
+                                    <View style={styles.costContainer}>
+                                        <Text style={{ fontSize: isLandscape ? 14 : 18 }}>🪙</Text>
+                                        <Text style={[styles.costText, isLandscape && styles.costTextLandscape]}>-{TABLE_CONFIGS[tableTier].buyIn}</Text>
+                                    </View>
+                                    <View style={styles.playDivider} />
+                                    <Text style={[styles.playText, isLandscape && styles.playTextLandscape]}>JOUER MAINTENANT</Text>
+                                </View>
+                            </LinearGradient>
+                        </TouchableOpacity>
+
+                        {debitFeedback && (
+                            <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
+                                {debitFeedback} débités
+                            </Animated.Text>
+                        )}
+                    </View>
+                </View>
+            </Animated.View>
         </LinearGradient>
     );
 }
@@ -227,7 +298,7 @@ const styles = StyleSheet.create({
     },
     backContainer: {
         position: 'absolute',
-        top: 20,
+        top: 40,
         left: 16,
         right: 16,
         zIndex: 10,
@@ -243,219 +314,358 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: '#FFF',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
+    },
     mainWrapper: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 10,
+        paddingHorizontal: 16,
+        paddingTop: 80,
     },
     contentContainer: {
         width: '100%',
         maxWidth: 800,
         alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 20,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
     },
     title: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: '900',
         color: '#FFF',
-        marginBottom: 20,
+        marginBottom: 30,
         textAlign: 'center',
         textTransform: 'uppercase',
-        letterSpacing: 2,
+        letterSpacing: 3,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     gameModeContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         width: '100%',
-        marginBottom: 20,
-        gap: 10,
+        marginBottom: 30,
+        gap: 12,
+    },
+    gameModeContainerLandscape: {
+        marginBottom: 10,
+        gap: 8,
     },
     gameModeTile: {
         flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 12,
-        paddingVertical: 35,
-        paddingHorizontal: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 20,
+        height: 160,
         overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: 'transparent',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+    },
+    gameModeTileLandscape: {
+        height: 100, // ~38% reduction (from 160)
     },
     gameModeTileActive: {
-        borderWidth: 2,
         borderColor: '#FFD700',
+        borderWidth: 3,
+        transform: [{ scale: 1.02 }],
     },
-    prochainementBadge: {
-        position: 'absolute',
-        top: -10,
-        right: -10,
-        backgroundColor: '#D11C1C',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        transform: [{ rotate: '15deg' }],
-        zIndex: 10,
+    modeGradient: {
+        flex: 1,
+        padding: 15,
+        alignItems: 'center',
+        justifyContent: 'center',
         borderWidth: 1,
-        borderColor: '#FFD700',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 2,
+        borderColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 20,
     },
-    prochainementText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+    modeGradientLandscape: {
+        padding: 5,
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+    },
+    modeIllustration: {
+        fontSize: 40,
+        marginBottom: 8,
+    },
+    modeIllustrationLandscape: {
+        fontSize: 30,
+        marginBottom: 0,
     },
     gameModeTitle: {
         color: '#FFF',
-        fontSize: 16,
+        fontSize: 22,
         fontWeight: '900',
-        marginBottom: 8,
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 3,
     },
-    gameModeTitleActive: {
-        color: '#000',
+    gameModeTitleLandscape: {
+        fontSize: 16,
     },
     gameModeSubtitle: {
-        color: 'rgba(255,255,255,0.6)',
+        color: 'rgba(255,255,255,0.8)',
         fontSize: 12,
         textAlign: 'center',
+        marginTop: 4,
+        fontWeight: '600',
     },
-    gameModeSubtitleActive: {
-        color: '#333',
-        fontWeight: 'bold',
+    gameModeSubtitleLandscape: {
+        display: 'none', // Hide subtitle in landscape to save space
     },
-    gameModeIcon: {
-        fontSize: 16,
+    // --- Barre de Paramètres ---
+    paramsContainer: {
+        width: '100%',
+        backgroundColor: 'rgba(30, 20, 50, 0.7)',
+        borderRadius: 25,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        marginBottom: 20,
     },
-    optionsBar: {
+    paramsContainerLandscape: {
+        flexDirection: 'row',
+        padding: 10,
+        marginBottom: 10,
+        flexWrap: 'nowrap',
+        justifyContent: 'space-between',
+    },
+    paramCol: {
+        flex: 1,
+        alignItems: 'center',
+        borderRightWidth: 1,
+        borderRightColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: 5,
+    },
+    paramColLandscape: {
+        borderRightWidth: 1,
+    },
+    paramLabelContainer: {
+        flex: 1,
+    },
+    paramLabel: {
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 11,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 8,
+    },
+    paramValueDisplay: {
+        color: '#FFF',
+        fontSize: 14,
+        fontWeight: '900',
+        marginTop: 2,
+    },
+    paramValueSmall: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: '700',
+        marginTop: 5,
+        opacity: 0.6,
+        textTransform: 'uppercase',
+    },
+    // --- Sélecteurs ---
+    stepper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        padding: 4,
+        borderRadius: 15,
+        gap: 4,
+    },
+    stepBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    stepValue: {
+        color: '#FFD700',
+        fontSize: 22,
+        fontWeight: '900',
+        marginHorizontal: 15,
+        minWidth: 25,
+        textAlign: 'center',
+        width: 40,
+    },
+    stepValueLandscape: {
+        fontSize: 18,
+        width: 30,
+    },
+    // --- Sélecteur de Difficulté ---
+    diffToggle: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        padding: 4,
+        borderRadius: 15,
+        gap: 8,
+    },
+    diffBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    activeDiffBtn: {
+        backgroundColor: 'rgba(255,215,0,0.2)',
+        borderWidth: 1,
+        borderColor: '#FFD700',
+    },
+    diffIcon: {
+        fontSize: 18,
+    },
+    // --- Sélecteur de Main ---
+    handToggle: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        padding: 4,
+        borderRadius: 15,
+        gap: 8,
+    },
+    handBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        paddingVertical: 4,
+    },
+    handBtnLandscape: {
+        width: 30,
+        height: 30,
+    },
+    activeHandBtn: {
+        backgroundColor: '#FFD700',
+        borderColor: '#FFF',
+        elevation: 5,
+    },
+    dominoTop: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    dominoDivider: {
+        width: '80%',
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        marginVertical: 4,
+    },
+    activeDominoDivider: {
+        backgroundColor: 'rgba(0,0,0,0.2)',
+    },
+    handText: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: '900',
+    },
+    handTextLandscape: {
+        fontSize: 14,
+    },
+    activeHandText: {
+        color: '#000',
+    },
+    // --- Bouton JOUER ---
+    playButtonWrapper: {
+        width: '100%',
+        alignItems: 'center',
+        marginTop: 'auto',
+    },
+    playButtonWrapperLandscape: {
+        marginTop: 0,
+    },
+    playButton: {
+        width: '100%',
+        maxWidth: 400,
+        height: 64,
+        borderRadius: 32,
+        overflow: 'hidden',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
+    },
+    playButtonLandscape: {
+        height: 44,
+        maxWidth: 300,
+    },
+    playGradient: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#FFF',
-        borderRadius: 8,
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        width: '100%',
-        marginBottom: 20,
-        flexWrap: 'wrap',
+        paddingHorizontal: 20,
     },
-    optionGroup: {
+    playContent: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
     },
-    optionLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#333',
-        marginRight: 6,
-    },
-    optionRow: {
+    costContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        backgroundColor: 'rgba(0,0,0,0.15)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
     },
-    compactIcon: {
+    costText: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: '900',
+        marginLeft: 4,
+    },
+    costTextLandscape: {
         fontSize: 14,
-        opacity: 0.5,
     },
-    activeCompactIcon: {
-        opacity: 1,
+    playDivider: {
+        width: 2,
+        height: 24,
+        backgroundColor: 'rgba(255,255,255,0.3)',
+        marginHorizontal: 15,
     },
-    diffValue: {
-        color: '#ff9800',
-        fontWeight: 'bold',
-        fontSize: 10,
-    },
-    diffBtn: {
-        borderWidth: 1,
-        borderColor: 'transparent',
-        borderRadius: 6,
-        paddingHorizontal: 4,
-        paddingVertical: 2,
-    },
-    activeDiffBtn: {
-        borderColor: '#ff9800',
-        backgroundColor: 'rgba(255, 152, 0, 0.1)',
-    },
-    optionSeparator: {
-        color: '#CCC',
-        fontSize: 16,
-        marginHorizontal: 12,
-    },
-    compactBtn: {
-        borderWidth: 1,
-        borderColor: '#CCC',
-        borderRadius: 4,
-        padding: 2,
-        backgroundColor: '#F5F5F5',
-    },
-    optionValue: {
-        fontSize: 13,
-        fontWeight: 'bold',
-        color: '#000',
-        minWidth: 16,
-        textAlign: 'center',
-    },
-    mainBtn: {
-        borderWidth: 1,
-        borderColor: '#CCC',
-        borderRadius: 4,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        backgroundColor: '#F5F5F5',
-    },
-    activeMainBtn: {
-        backgroundColor: '#333',
-        borderColor: '#333',
-    },
-    mainBtnText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    activeMainBtnText: {
+    playText: {
         color: '#FFF',
+        fontSize: 18,
+        fontWeight: '900',
+        letterSpacing: 1,
     },
-    startButton: {
-        width: '100%',
-        paddingVertical: 16,
-        borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.3)',
-    },
-    startText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-        letterSpacing: 2,
-    },
-    buyInBadge: {
-        color: 'rgba(255, 215, 0, 0.8)',
-        fontSize: 11,
-        fontWeight: '600',
-        marginTop: 4,
-        letterSpacing: 0.5,
+    playTextLandscape: {
+        fontSize: 14,
     },
     debitFeedback: {
-        color: '#FF6B6B',
-        fontSize: 13,
-        fontWeight: '700',
-        marginTop: 8,
+        color: '#FFD700',
+        position: 'absolute',
+        top: -30,
+        fontWeight: 'bold',
+        fontSize: 16,
+        marginTop: 12,
         textAlign: 'center',
-        letterSpacing: 0.5,
     },
 });
-
