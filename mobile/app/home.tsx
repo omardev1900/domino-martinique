@@ -8,10 +8,12 @@ import {
     ScrollView,
     useWindowDimensions,
     Alert,
-    Modal
+    Modal,
+    Platform
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,6 +33,7 @@ export default function HomeScreen() {
     const [user, setUser] = useState<PlayerProfile | null>(null);
     const [reconnectRoomId, setReconnectRoomId] = useState<string | null>(null);
     const [economyRefresh, setEconomyRefresh] = useState(0);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
@@ -87,6 +90,29 @@ export default function HomeScreen() {
         }
     };
 
+    // Fullscreen API (web only)
+    useFocusEffect(
+        useCallback(() => {
+            if (Platform.OS !== 'web') return;
+            const handleChange = () => {
+                setIsFullscreen(!!document.fullscreenElement);
+            };
+            document.addEventListener('fullscreenchange', handleChange);
+            return () => document.removeEventListener('fullscreenchange', handleChange);
+        }, [])
+    );
+
+    const toggleFullscreen = useCallback(() => {
+        if (Platform.OS !== 'web') return;
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.warn('Fullscreen request failed:', err);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }, []);
+
     return (
         <LinearGradient
             colors={['#2D1B4E', '#1A0E2E']}
@@ -101,6 +127,19 @@ export default function HomeScreen() {
 
                 {/* User Info & Settings - Top Right */}
                 <Animated.View entering={FadeInRight.duration(400)} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                    {Platform.OS === 'web' && (
+                        <TouchableOpacity
+                            style={styles.settingsButton}
+                            onPress={toggleFullscreen}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name={isFullscreen ? "contract-outline" : "expand-outline"}
+                                size={22}
+                                color="#FFFFFF"
+                            />
+                        </TouchableOpacity>
+                    )}
                     <TouchableOpacity
                         style={styles.settingsButton}
                         onPress={() => router.push('/store')}
@@ -285,7 +324,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        height: 100,
+        height: 60, // Reduced from 100 for better landscape fit
         zIndex: 10,
     },
     scrollContent: {
@@ -367,11 +406,11 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
     },
     cardGradient: {
-        paddingVertical: 24,
+        paddingVertical: 12, // Reduced from 24
         paddingHorizontal: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 140,
+        minHeight: 120, // Reduced from 140
     },
     cardIcon: {
         fontSize: 40,

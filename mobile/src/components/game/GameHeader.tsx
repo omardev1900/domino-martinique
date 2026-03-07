@@ -81,35 +81,6 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
                         <Ionicons name="information-circle-outline" size={24} color="#FFD700" />
                     </TouchableOpacity>
                 )}
-
-                <TouchableOpacity
-                    onPress={onToggleSound}
-                    activeOpacity={0.7}
-                    style={styles.controlBtn}
-                    testID="btn-sound"
-                >
-                    <Ionicons name={isSoundEnabled ? "volume-high" : "volume-mute"} size={20} color="#FFD700" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    onPress={onOpenSettings}
-                    activeOpacity={0.7}
-                    style={styles.controlBtn}
-                    testID="btn-settings"
-                >
-                    <Ionicons name="settings-outline" size={20} color="#FFD700" />
-                </TouchableOpacity>
-
-                {Platform.OS === 'web' && (
-                    <TouchableOpacity
-                        onPress={onToggleFullscreen}
-                        activeOpacity={0.7}
-                        style={styles.controlBtn}
-                        testID="btn-fullscreen"
-                    >
-                        <Ionicons name={isFullscreen ? "contract-outline" : "expand-outline"} size={20} color="#FFD700" />
-                    </TouchableOpacity>
-                )}
             </View>
         </View>
     );

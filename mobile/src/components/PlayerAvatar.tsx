@@ -55,7 +55,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     isDisconnected = false,
     gameMode
 }) => {
-    const strokeWidth = 4;
+    const strokeWidth = 3; // Reduced from 4
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
 
@@ -198,7 +198,11 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             isHorizontal && position === 'top-right' && styles.containerRowReverse,
             { transform: [{ scale: scaleAnim }] }
         ]}>
-            <Animated.View style={shakeAnimatedStyle}>
+            <Animated.View style={[
+                shakeAnimatedStyle,
+                isHorizontal && position !== 'top-right' && styles.containerRow,
+                isHorizontal && position === 'top-right' && styles.containerRowReverse,
+            ]}>
                 {chatContent && (
                     <ChatBubble
                         content={chatContent}
@@ -421,26 +425,26 @@ const styles = StyleSheet.create({
     },
     playerName: {
         color: '#FFFFFF',
-        fontSize: 12,
+        fontSize: 10, // Reduced from 12
         fontWeight: 'bold',
         textAlign: 'center',
     },
     nameVertical: {
-        maxWidth: 80,
+        maxWidth: 65, // Reduced from 80
     },
     playerScore: {
         color: '#FFD700',
-        fontSize: 10,
+        fontSize: 9, // Reduced from 10
         fontWeight: 'bold',
         textAlign: 'center',
         marginTop: 1,
     },
     mancheZetwal: {
         color: '#FFD700',
-        fontSize: 11,
+        fontSize: 10, // Reduced from 11
         fontWeight: '900',
         textAlign: 'center',
-        marginTop: 2,
+        marginTop: 1, // Reduced from 2
         textShadowColor: 'rgba(0,0,0,0.5)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,
@@ -542,28 +546,28 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     opponentInfoBlock: {
-        backgroundColor: 'rgba(40, 30, 30, 0.95)',
-        borderRadius: 8,
-        padding: 6,
-        paddingVertical: 8,
-        minWidth: 80,
+        backgroundColor: 'rgba(40, 30, 30, 0.8)', // More discrete
+        borderRadius: 6,
+        padding: 5,
+        paddingVertical: 6,
+        minWidth: 70, // Reduced from 80
     },
     opponentInfoBlockLeft: {
-        marginLeft: 8,
+        marginLeft: 6,
     },
     opponentInfoBlockRight: {
-        marginRight: 8,
+        marginRight: 6,
     },
     opponentNameText: {
         color: '#FFFFFF',
-        fontSize: 11,
+        fontSize: 9, // Reduced from 11
         fontWeight: 'bold',
         textTransform: 'uppercase',
-        marginBottom: 6,
+        marginBottom: 4,
         textAlign: 'center',
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,255,255,0.1)',
-        paddingBottom: 4,
+        paddingBottom: 2,
     },
     opponentStatsRow: {
         flexDirection: 'row',
@@ -581,7 +585,7 @@ const styles = StyleSheet.create({
     },
     statValueV: {
         color: '#4CAF50',
-        fontSize: 14,
+        fontSize: 11, // Reduced from 14
         fontWeight: '900',
     },
     statLabelPTS: {
@@ -592,7 +596,7 @@ const styles = StyleSheet.create({
     },
     statValuePTS: {
         color: '#FFD700',
-        fontSize: 14,
+        fontSize: 11, // Reduced from 14
         fontWeight: '900',
     },
     statLabelCochon: {
@@ -601,7 +605,7 @@ const styles = StyleSheet.create({
     },
     statValueCochon: {
         color: '#FF9800',
-        fontSize: 14,
+        fontSize: 11, // Reduced from 14
         fontWeight: '900',
     }
 });

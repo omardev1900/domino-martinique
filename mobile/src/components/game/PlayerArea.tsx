@@ -65,7 +65,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                         showTimer={gameState.currentPlayerId === opponents[0]?.id && !isGameOver && isPlaying && gameState.turnDuration > 0}
                         isPaused={isPaused}
                         timerDuration={gameState.turnDuration}
-                        size={52}
+                        size={42}
                         layout="horizontal"
                         score={getPlayerScore(opponents[0])}
                         ptsScore={getCamionScore(opponents[0]?.id)}
@@ -99,7 +99,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                         showTimer={gameState.currentPlayerId === opponents[1]?.id && !isGameOver && isPlaying && gameState.turnDuration > 0}
                         isPaused={isPaused}
                         timerDuration={gameState.turnDuration}
-                        size={52}
+                        size={42}
                         layout="horizontal"
                         score={getPlayerScore(opponents[1])}
                         ptsScore={getCamionScore(opponents[1]?.id)}
@@ -132,7 +132,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                         showTimer={gameState.currentPlayerId === localPlayerId && !isGameOver && isPlaying && gameState.turnDuration > 0}
                         isPaused={isPaused}
                         timerDuration={gameState.turnDuration}
-                        size={60}
+                        size={48} // Reduced from 60
                         layout="horizontal"
                         score={getPlayerScore(localPlayer)}
                         ptsScore={getCamionScore(localPlayer.id)}

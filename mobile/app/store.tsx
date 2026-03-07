@@ -151,7 +151,7 @@ export default function StoreScreen() {
                 </View>
 
                 {/* Graphic or Firestore Remote Image */}
-                <View style={[styles.cardImagePlaceholder, isLandscape && { height: 100 }]}>
+                <View style={[styles.cardImagePlaceholder, isLandscape && { height: 80 }]}>
                     {item.type === 'CURRENCY_PACK' && item.imageUrl ? (
                         <>
                             <Image
@@ -335,21 +335,21 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        width: 36, // Reduced from 40
+        height: 36, // Reduced from 40
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,254,0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 10, // Give some space before economy header
+        marginRight: 10,
     },
     pageTitle: {
-        fontSize: 28,
+        fontSize: 24, // Reduced from 28
         fontWeight: '900',
         color: '#FFD700',
         letterSpacing: 2,
         textAlign: 'center',
-        marginBottom: 20,
+        marginBottom: 10, // Reduced from 20
     },
     tabsContainer: {
         marginBottom: 20,
