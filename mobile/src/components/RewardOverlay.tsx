@@ -214,86 +214,100 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                 <Ionicons name="information-circle-outline" size={32} color="#rgba(255,255,255,0.8)" />
             </TouchableOpacity>
 
-            <Animated.View entering={ZoomIn.duration(600).springify()} exiting={ZoomOut} style={styles.mainContent}>
-
-                {/* Header = Winner/Loser */}
-                <Text style={[styles.title, { color: isWinner ? '#FFD700' : '#FFF' }]}>
-                    {isWinner ? '🏆 VICTOIRE 🏆' : 'FIN DE LA PARTIE'}
-                </Text>
-
-                {/* Level Up & Grade Up Banners */}
-                <View style={styles.bannersContainer}>
-                    {isLevelUp && (
-                        <Animated.View entering={FadeInDown.delay(600)} style={styles.levelUpBanner}>
-                            <Text style={styles.levelUpText}>⭐ NIVEAU SUPÉRIEUR : {reward.newLevel} ! ⭐</Text>
-                        </Animated.View>
+            <Animated.View
+                entering={ZoomIn.duration(600).springify()}
+                exiting={ZoomOut}
+                style={[styles.mainContent, isLandscape && styles.mainContentLandscape]}
+            >
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        isLandscape && styles.scrollContentLandscape
+                    ]}
+                    style={{ width: '100%' }}
+                >
+                    {/* Header = Winner Only */}
+                    {isWinner && (
+                        <Text style={[styles.title, isLandscape && styles.titleLandscape, { color: '#FFD700' }]}>
+                            🏆 VICTOIRE 🏆
+                        </Text>
                     )}
 
-                    {isGradeUp && (
-                        <Animated.View entering={FadeInDown.delay(800)} style={styles.gradeUpBanner}>
-                            <Text style={styles.gradeUpText}>
-                                🐷 PROMOTION : {LEAGUE_LABELS[reward.newGrade]} ! 🐷
-                            </Text>
-                        </Animated.View>
-                    )}
-                </View>
+                    {/* Level Up & Grade Up Banners */}
+                    <View style={[styles.bannersContainer, isLandscape && styles.bannersContainerLandscape]}>
+                        {isLevelUp && (
+                            <Animated.View entering={FadeInDown.delay(600)} style={styles.levelUpBanner}>
+                                <Text style={styles.levelUpText}>⭐ NIVEAU SUPÉRIEUR : {reward.newLevel} ! ⭐</Text>
+                            </Animated.View>
+                        )}
 
-                {/* Totals Section Centered */}
-                <View style={styles.totalsContainer}>
-                    <Animated.View entering={FadeInDown.delay(1000)} style={styles.totalBox}>
-                        <LinearGradient colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
-                            <Text style={styles.totalIcon}>🪙</Text>
-                            <RollingNumber value={reward.coinsEarned} prefix="+" style={styles.totalValue} />
-                            <Text style={styles.totalLabel}>Coins</Text>
-                        </LinearGradient>
-                    </Animated.View>
+                        {isGradeUp && (
+                            <Animated.View entering={FadeInDown.delay(800)} style={styles.gradeUpBanner}>
+                                <Text style={styles.gradeUpText}>
+                                    🐷 PROMOTION : {LEAGUE_LABELS[reward.newGrade]} ! 🐷
+                                </Text>
+                            </Animated.View>
+                        )}
+                    </View>
 
-                    <Animated.View entering={FadeInDown.delay(1200)} style={styles.totalBox}>
-                        <LinearGradient colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
-                            <View style={{ marginBottom: 8, height: 38, justifyContent: 'center' }}>
-                                <XPIcon size={36} />
-                            </View>
-                            <RollingNumber value={reward.xpEarned} prefix="+" style={styles.totalValue} />
-                            <Text style={styles.totalLabel}>XP</Text>
-                        </LinearGradient>
-                    </Animated.View>
-
-                    {(reward.diamondsEarned > 0 || reward.leaguePointsEarned > 0) && (
-                        <Animated.View entering={FadeInDown.delay(1400)} style={styles.totalBox}>
-                            <LinearGradient colors={['rgba(96,220,255,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
-                                <Text style={styles.totalIcon}>{reward.diamondsEarned > 0 ? '💎' : '🐷'}</Text>
-                                <RollingNumber
-                                    value={reward.diamondsEarned > 0 ? reward.diamondsEarned : reward.leaguePointsEarned}
-                                    prefix="+"
-                                    style={[styles.totalValue, { color: reward.diamondsEarned > 0 ? '#60DCFF' : '#FF9800' }]}
-                                />
-                                <Text style={styles.totalLabel}>{reward.diamondsEarned > 0 ? 'Diamants' : 'Ligue'}</Text>
+                    {/* Totals Section */}
+                    <View style={[styles.totalsContainer, isLandscape && styles.totalsContainerLandscape]}>
+                        <Animated.View entering={FadeInDown.delay(1000)} style={styles.totalBox}>
+                            <LinearGradient colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
+                                <Text style={styles.totalIcon}>🪙</Text>
+                                <RollingNumber value={reward.coinsEarned} prefix="+" style={styles.totalValue} />
+                                <Text style={styles.totalLabel}>Coins</Text>
                             </LinearGradient>
                         </Animated.View>
+
+                        <Animated.View entering={FadeInDown.delay(1200)} style={styles.totalBox}>
+                            <LinearGradient colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
+                                <View style={{ marginBottom: 4, height: 32, justifyContent: 'center' }}>
+                                    <XPIcon size={30} />
+                                </View>
+                                <RollingNumber value={reward.xpEarned} prefix="+" style={styles.totalValue} />
+                                <Text style={styles.totalLabel}>XP</Text>
+                            </LinearGradient>
+                        </Animated.View>
+
+                        {(reward.diamondsEarned > 0 || reward.leaguePointsEarned > 0) && (
+                            <Animated.View entering={FadeInDown.delay(1400)} style={styles.totalBox}>
+                                <LinearGradient colors={['rgba(96,220,255,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
+                                    <Text style={styles.totalIcon}>{reward.diamondsEarned > 0 ? '💎' : '🐷'}</Text>
+                                    <RollingNumber
+                                        value={reward.diamondsEarned > 0 ? reward.diamondsEarned : reward.leaguePointsEarned}
+                                        prefix="+"
+                                        style={[styles.totalValue, { color: reward.diamondsEarned > 0 ? '#60DCFF' : '#FF9800' }]}
+                                    />
+                                    <Text style={styles.totalLabel}>{reward.diamondsEarned > 0 ? 'Diamants' : 'Ligue'}</Text>
+                                </LinearGradient>
+                            </Animated.View>
+                        )}
+                    </View>
+
+                    {/* XP Progression Bar */}
+                    {reward.xpEarned > 0 && (
+                        <XPProgressBar
+                            previousXP={reward.previousXP}
+                            newXP={reward.newXP}
+                            previousLevel={reward.previousLevel}
+                            newLevel={reward.newLevel}
+                        />
                     )}
-                </View>
 
-                {/* XP Progression Bar */}
-                {reward.xpEarned > 0 && (
-                    <XPProgressBar
-                        previousXP={reward.previousXP}
-                        newXP={reward.newXP}
-                        previousLevel={reward.previousLevel}
-                        newLevel={reward.newLevel}
-                    />
-                )}
-
-                {/* Continue Button */}
-                <Animated.View entering={FadeIn.delay(1800)} style={styles.buttonContainer}>
-                    <TouchableOpacity style={styles.continueButton} onPress={onContinue} activeOpacity={0.8}>
-                        <LinearGradient
-                            colors={['#FFD700', '#FFA500']}
-                            style={styles.continueGradient}
-                        >
-                            <Text style={styles.continueText}>CONTINUER</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-                </Animated.View>
+                    {/* Continue Button */}
+                    <Animated.View entering={FadeIn.delay(1800)} style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.continueButton} onPress={onContinue} activeOpacity={0.8}>
+                            <LinearGradient
+                                colors={['#FFD700', '#FFA500']}
+                                style={styles.continueGradient}
+                            >
+                                <Text style={styles.continueText}>CONTINUER</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </ScrollView>
             </Animated.View>
 
             {/* Modal Détails des Gains */}
@@ -343,14 +357,12 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
 
 const styles = StyleSheet.create({
     container: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 10000,
-        justifyContent: 'center',
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(10, 5, 20, 0.95)',
+        justifyContent: 'flex-start',
         alignItems: 'center',
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        zIndex: 10000,
         ...Platform.select({
             web: { backdropFilter: 'blur(10px)' }
         })
@@ -364,226 +376,242 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     mainContent: {
-        width: '90%',
+        width: '95%',
         maxWidth: 600,
         alignItems: 'center',
         zIndex: 10,
+        maxHeight: '95%',
+    },
+    mainContentLandscape: {
+        width: '100%',
+        maxWidth: 800,
+    },
+    scrollContent: {
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    scrollContentLandscape: {
+        paddingVertical: 10,
     },
     title: {
-        fontSize: 36,
+        fontSize: 32,
         fontWeight: '900',
-        letterSpacing: 4,
+        letterSpacing: 2,
         marginBottom: 10,
+        textAlign: 'center',
         textShadowColor: 'rgba(0,0,0,0.8)',
         textShadowOffset: { width: 0, height: 4 },
         textShadowRadius: 8,
     },
+    titleLandscape: {
+        fontSize: 24,
+        marginBottom: 5,
+    },
     bannersContainer: {
         alignItems: 'center',
-        marginBottom: 20,
-        minHeight: 40,
+        marginBottom: 15,
+        minHeight: 30,
+        width: '100%',
+    },
+    bannersContainerLandscape: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 10,
+        marginBottom: 10,
     },
     levelUpBanner: {
         backgroundColor: 'rgba(76, 175, 80, 0.9)',
-        borderWidth: 2,
+        borderWidth: 1.5,
         borderColor: '#81C784',
-        paddingHorizontal: 24,
-        paddingVertical: 10,
-        borderRadius: 20,
-        marginBottom: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 15,
+        marginBottom: 5,
         shadowColor: '#4CAF50',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+        elevation: 5,
     },
     levelUpText: {
         color: '#FFF',
         fontWeight: '900',
-        fontSize: 16,
-        letterSpacing: 2,
+        fontSize: 14,
+        letterSpacing: 1,
     },
     gradeUpBanner: {
         backgroundColor: 'rgba(255, 152, 0, 0.9)',
-        borderWidth: 2,
+        borderWidth: 1.5,
         borderColor: '#FFB74D',
-        paddingHorizontal: 24,
-        paddingVertical: 10,
-        borderRadius: 20,
-        marginBottom: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 15,
+        marginBottom: 5,
         shadowColor: '#FF9800',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+        elevation: 5,
     },
     gradeUpText: {
         color: '#FFF',
         fontWeight: '900',
-        fontSize: 16,
-        letterSpacing: 2,
+        fontSize: 14,
+        letterSpacing: 1,
     },
     totalsContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
-        gap: 15,
-        marginBottom: 30,
+        gap: 10,
+        marginBottom: 20,
+    },
+    totalsContainerLandscape: {
+        marginBottom: 15,
     },
     totalBox: {
         flex: 1,
-        maxWidth: 160,
-        borderRadius: 16,
+        maxWidth: 140,
+        borderRadius: 12,
         overflow: 'hidden',
-        borderWidth: 1.5,
+        borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.3)',
-        shadowColor: 'rgba(255,215,0,0.3)',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 1,
-        shadowRadius: 10,
-        elevation: 5,
+        shadowColor: 'rgba(255,215,0,0.2)',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 6,
+        elevation: 3,
     },
     totalBoxGradient: {
         alignItems: 'center',
-        paddingVertical: 20,
-        paddingHorizontal: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
     },
     totalIcon: {
-        fontSize: 34,
-        marginBottom: 8,
-        textShadowColor: 'rgba(255,255,255,0.3)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
+        fontSize: 28,
+        marginBottom: 4,
     },
     totalValue: {
-        fontSize: 28,
+        fontSize: 22,
         fontWeight: '900',
         color: '#FFD700',
-        marginBottom: 4,
+        marginBottom: 2,
         textShadowColor: 'rgba(0,0,0,0.8)',
-        textShadowOffset: { width: 1, height: 2 },
-        textShadowRadius: 4,
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 2,
     },
     totalLabel: {
-        fontSize: 12,
+        fontSize: 10,
         color: 'rgba(255,255,255,0.7)',
         fontWeight: 'bold',
         textTransform: 'uppercase',
-        letterSpacing: 1.5,
+        letterSpacing: 1,
     },
     buttonContainer: {
         width: '100%',
-        maxWidth: 400,
+        maxWidth: 300,
         alignItems: 'center',
+        marginTop: 10,
     },
     continueButton: {
         width: '100%',
-        borderRadius: 30,
+        borderRadius: 25,
         overflow: 'hidden',
         shadowColor: '#FFA500',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.6,
-        shadowRadius: 12,
-        elevation: 8,
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 6,
     },
     continueGradient: {
-        paddingVertical: 18,
+        paddingVertical: 14,
         alignItems: 'center',
     },
     continueText: {
         color: '#1A0E2E',
         fontWeight: '900',
-        fontSize: 18,
-        letterSpacing: 3,
+        fontSize: 16,
+        letterSpacing: 2,
     },
     // --- Modale Détails ---
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.7)',
+        backgroundColor: 'rgba(0,0,0,0.8)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     breakdownModalContent: {
-        width: '85%',
-        maxWidth: 500,
-        backgroundColor: 'rgba(30, 15, 50, 0.95)',
-        borderRadius: 20,
-        padding: 20,
+        width: '90%',
+        maxWidth: 450,
+        backgroundColor: 'rgba(30, 15, 50, 0.98)',
+        borderRadius: 16,
+        padding: 15,
         borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.3)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.8,
-        shadowRadius: 20,
-        elevation: 15,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 15,
+        marginBottom: 10,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,255,255,0.1)',
-        paddingBottom: 10,
+        paddingBottom: 8,
     },
     breakdownTitle: {
         color: '#FFD700',
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '900',
         textTransform: 'uppercase',
-        letterSpacing: 1.5,
     },
     breakdownRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 8,
         backgroundColor: 'rgba(255,255,255,0.05)',
-        padding: 10,
-        borderRadius: 8,
+        padding: 8,
+        borderRadius: 6,
     },
     breakdownLabel: {
         color: '#FFF',
-        fontSize: 14,
-        fontWeight: '500',
-        flex: 1,
+        fontSize: 13,
     },
     breakdownValues: {
         flexDirection: 'row',
-        gap: 10,
+        gap: 8,
     },
     breakdownValText: {
         color: '#FFD700',
         fontWeight: 'bold',
-        fontSize: 15,
+        fontSize: 14,
     },
     // --- XP Bar ---
     xpContainer: {
         width: '100%',
         maxWidth: 400,
-        marginBottom: 30,
+        marginBottom: 20,
         backgroundColor: 'rgba(255,255,255,0.05)',
-        padding: 15,
-        borderRadius: 16,
+        padding: 12,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
     },
     xpHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     xpLevelText: {
         color: '#FFF',
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 'bold',
-        letterSpacing: 1,
     },
     xpBarBackground: {
-        height: 12,
+        height: 10,
         backgroundColor: 'rgba(0,0,0,0.5)',
-        borderRadius: 6,
+        borderRadius: 5,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.2)',
@@ -591,7 +619,6 @@ const styles = StyleSheet.create({
     xpBarFill: {
         height: '100%',
         backgroundColor: '#4CAF50',
-        borderRadius: 6,
-        // Gradiant can't be added directly to animated view style without an inner element, but a solid color looks good
+        borderRadius: 5,
     },
 });
