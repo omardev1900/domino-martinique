@@ -86,6 +86,7 @@ export interface RoomOptions {
     winningCondition?: number;
     turnDuration?: number;
     startingHandSize?: number;
+    buyIn?: number;
 }
 
 /**
@@ -123,6 +124,7 @@ export const createRoom = async (
             winningCondition: options?.winningCondition || 6,
             turnDuration: options?.turnDuration ?? 1,
             startingHandSize: options?.startingHandSize || 3,
+            buyIn: options?.buyIn || 50, // Default to 50 Coins MVP
         };
 
         // SAFETY: Remove undefined fields which crash Firestore

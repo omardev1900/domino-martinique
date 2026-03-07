@@ -5,7 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import { MatchReward, RewardBreakdown } from '../core/economy.types';
-import { LEAGUE_LABELS, LEAGUE_ICONS } from '../core/economy.constants';
+import { LEAGUE_LABELS, LEAGUE_ICONS, MAX_LEVEL } from '../core/economy.constants';
+import { xpRequiredForLevel } from '../core/RewardEngine';
 
 interface RewardOverlayProps {
     visible: boolean;
@@ -114,6 +115,61 @@ const RollingNumber: React.FC<{ value: number; duration?: number; prefix?: strin
     );
 };
 
+// ─── Progression XP Bar ────────────────────────────────────────────────────────
+const XPProgressBar: React.FC<{ previousXP: number; newXP: number; previousLevel: number; newLevel: number }> = ({ previousXP, newXP, previousLevel, newLevel }) => {
+    const width = useSharedValue(0); // 0 to 100%
+    const [displayLevel, setDisplayLevel] = useState(previousLevel);
+    const [isMaxLevel, setIsMaxLevel] = useState(previousLevel >= MAX_LEVEL);
+
+    useEffect(() => {
+        let baseXP = xpRequiredForLevel(previousLevel);
+        let nextLevelXP = xpRequiredForLevel(previousLevel + 1);
+        let levelRange = nextLevelXP - baseXP;
+
+        // Start percentage
+        let startPct = ((previousXP - baseXP) / levelRange) * 100;
+        width.value = startPct;
+
+        if (newLevel > previousLevel) {
+            // Fill to 100%, then reset and fill to newXP
+            width.value = withSequence(
+                withTiming(100, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+                withTiming(0, { duration: 0 }),
+                withTiming(((newXP - xpRequiredForLevel(newLevel)) / (xpRequiredForLevel(newLevel + 1) - xpRequiredForLevel(newLevel))) * 100, { duration: 1000, easing: Easing.out(Easing.ease) })
+            );
+
+            // Change display level text at the exact moment of level up
+            setTimeout(() => {
+                setDisplayLevel(newLevel);
+                setIsMaxLevel(newLevel >= MAX_LEVEL);
+            }, 1500);
+
+        } else if (newXP > previousXP) {
+            // Just fill to new percent
+            let endPct = ((newXP - baseXP) / levelRange) * 100;
+            width.value = withTiming(endPct, { duration: 2000, easing: Easing.out(Easing.ease) });
+        }
+    }, [previousXP, newXP, previousLevel, newLevel]);
+
+    const barStyle = useAnimatedStyle(() => {
+        return {
+            width: `${width.value}%`,
+        };
+    });
+
+    return (
+        <Animated.View entering={FadeInDown.delay(1600)} style={styles.xpContainer}>
+            <View style={styles.xpHeader}>
+                <Text style={styles.xpLevelText}>Niveau {displayLevel}</Text>
+                <Text style={styles.xpLevelText}>{isMaxLevel ? 'MAX' : `Niveau ${displayLevel + 1}`}</Text>
+            </View>
+            <View style={styles.xpBarBackground}>
+                <Animated.View style={[styles.xpBarFill, barStyle]} />
+            </View>
+        </Animated.View>
+    );
+};
+
 // ─── Main Overlay ───────────────────────────────────────────────────────────
 export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardOverlayProps) {
     const { width, height } = useWindowDimensions();
@@ -207,6 +263,16 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                         </Animated.View>
                     )}
                 </View>
+
+                {/* XP Progression Bar */}
+                {reward.xpEarned > 0 && (
+                    <XPProgressBar
+                        previousXP={reward.previousXP}
+                        newXP={reward.newXP}
+                        previousLevel={reward.previousLevel}
+                        newLevel={reward.newLevel}
+                    />
+                )}
 
                 {/* Continue Button */}
                 <Animated.View entering={FadeIn.delay(1800)} style={styles.buttonContainer}>
@@ -482,5 +548,41 @@ const styles = StyleSheet.create({
         color: '#FFD700',
         fontWeight: 'bold',
         fontSize: 15,
+    },
+    // --- XP Bar ---
+    xpContainer: {
+        width: '100%',
+        maxWidth: 400,
+        marginBottom: 30,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        padding: 15,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    xpHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    xpLevelText: {
+        color: '#FFF',
+        fontSize: 14,
+        fontWeight: 'bold',
+        letterSpacing: 1,
+    },
+    xpBarBackground: {
+        height: 12,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 6,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    xpBarFill: {
+        height: '100%',
+        backgroundColor: '#4CAF50',
+        borderRadius: 6,
+        // Gradiant can't be added directly to animated view style without an inner element, but a solid color looks good
     },
 });

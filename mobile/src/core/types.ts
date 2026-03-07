@@ -121,5 +121,6 @@ export interface GameRoom {
     turnDuration?: number; // NEW: Durée du tour
     difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN'; // NEW: Difficulté des bots
     startingHandSize?: number;
+    buyIn?: number; // 🪙 Quantité de coins nécessaires pour entrer
     quickChats?: { [playerId: string]: { content: string; timestamp: number } | null }; // NEW: Decoupled chat
 }

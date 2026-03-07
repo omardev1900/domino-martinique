@@ -110,6 +110,13 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.settingsButton}
+                        onPress={() => router.push('/leaderboard')}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.settingsIcon}>🏆</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.settingsButton}
                         onPress={() => router.push('/stats')}
                         activeOpacity={0.7}
                     >
