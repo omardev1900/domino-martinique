@@ -87,8 +87,6 @@ export const finalizeRound = (
 
         // ✅ FIX 2: Use MANCHE_END so handleNextRound increments mancheNumber
         newState.phase = 'MANCHE_END';
-
-        return newState;
     }
 
     // --- ETAPE 3 : DÉTECTION VICTOIRE MANCHE (PRIORITÉ 2) ---
@@ -163,8 +161,15 @@ export const finalizeRound = (
     let isMatchOver = false;
     if (mancheWinner || isChire) {
         if (newState.gameMode === 'MANCHE') {
-            // Match ends ONLY when fixed number of manches played
-            isMatchOver = newState.mancheHistory && newState.mancheHistory.length >= newState.winningCondition;
+            // Match ends ONLY when fixed number of manches played AND tie-breaker is resolved
+            if (newState.mancheHistory && newState.mancheHistory.length >= newState.winningCondition) {
+                const maxPoints = Math.max(...newState.players.map(p => p.totalPoints || 0));
+                const leaders = newState.players.filter(p => (p.totalPoints || 0) === maxPoints);
+                isMatchOver = leaders.length === 1;
+                if (leaders.length > 1) {
+                    console.log(`TIE AT MANCHE THRESHOLD (Points: ${maxPoints})! Continuing for another manche...`);
+                }
+            }
         } else if (newState.gameMode === 'SCORE') {
             const maxPoints = Math.max(...newState.players.map(p => p.totalPoints));
             if (maxPoints >= newState.winningCondition) {
