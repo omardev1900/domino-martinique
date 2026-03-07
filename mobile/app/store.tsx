@@ -129,114 +129,107 @@ export default function StoreScreen() {
         setProcessingPurchase(null);
     };
 
-    const renderItemCard = (item: StoreItem) => {
-        if (!inventory) return null;
-
+    const StoreItemCard = ({
+        item,
+        inventory,
+        economy,
+        onPurchase,
+        onEquip,
+        isProcessing
+    }: {
+        item: StoreItem;
+        inventory: PlayerInventory;
+        economy: any;
+        onPurchase: (item: StoreItem) => void;
+        onEquip: (id: string) => void;
+        isProcessing: boolean;
+    }) => {
+        const { width, height } = useWindowDimensions();
+        const isLandscape = width > height;
+        const [isExpanded, setIsExpanded] = useState(false);
         const isOwned = item.type !== 'CURRENCY_PACK' && inventory.ownedItems.includes(item.id);
         const isEquipped = item.type === 'AVATAR' ? inventory.equipped.avatar === item.id :
             item.type === 'SKIN' ? inventory.equipped.skin === item.id : false;
 
-        const isProcessing = processingPurchase === item.id;
-
-        // Validation des fonds
         const canAffordCoins = item.priceCoins ? (economy?.coins ?? 0) >= item.priceCoins : true;
         const canAffordDiamonds = item.priceDiamonds ? (economy?.diamonds ?? 0) >= item.priceDiamonds : true;
         const canAfford = canAffordCoins && canAffordDiamonds;
 
         return (
-            <Animated.View entering={FadeIn} key={item.id} style={[styles.card, isLandscape && styles.cardLandscape]}>
-                <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>{item.name}</Text>
-                    <Text style={styles.cardRarity}>{item.rarity}</Text>
-                </View>
+            <Animated.View entering={FadeIn} key={item.id} style={[styles.card, isLandscape && styles.cardLandscape, isLandscape && { width: width * 0.24 }]}>
+                <View style={{ flex: 1 }}>
+                    <View style={styles.cardHeader}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+                        <Text style={styles.cardRarity}>{item.rarity}</Text>
+                    </View>
 
-                {/* Graphic or Firestore Remote Image */}
-                <View style={[styles.cardImagePlaceholder, isLandscape && { height: 80 }]}>
-                    {item.type === 'CURRENCY_PACK' && item.imageUrl ? (
-                        <>
-                            <Image
-                                source={{ uri: item.imageUrl }}
-                                style={styles.remoteImage}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                            />
-                            <Text style={styles.currencyOverlayText}>
-                                {item.rewards?.coins?.toLocaleString('fr-FR') || ''}
-                            </Text>
-                        </>
-                    ) : item.type === 'SKIN' ? (
-                        <View style={[styles.skinPreviewContainer, { backgroundColor: item.skinConfig ? item.skinConfig.tableBackgroundColor : '#555555' }]}>
-                            {item.skinConfig && (
-                                <View style={[styles.skinPreviewDomino, { backgroundColor: item.skinConfig.dominoBackgroundColor }]}>
-                                    {/* Top Half */}
-                                    <View style={styles.skinPreviewHalf}>
-                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
-                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
-                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
+                    <View style={styles.cardImagePlaceholder}>
+                        {item.type === 'CURRENCY_PACK' && item.imageUrl ? (
+                            <>
+                                <Image source={{ uri: item.imageUrl }} style={styles.remoteImage} contentFit="cover" cachePolicy="memory-disk" />
+                                <Text style={styles.currencyOverlayText}>{item.rewards?.coins?.toLocaleString('fr-FR') || ''}</Text>
+                            </>
+                        ) : item.type === 'SKIN' ? (
+                            <View style={[styles.skinPreviewContainer, { backgroundColor: item.skinConfig ? item.skinConfig.tableBackgroundColor : '#555555' }]}>
+                                {item.skinConfig && (
+                                    <View style={[styles.skinPreviewDomino, { backgroundColor: item.skinConfig.dominoBackgroundColor }]}>
+                                        <View style={styles.skinPreviewHalf}>
+                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
+                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
+                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
+                                        </View>
+                                        <View style={[styles.skinPreviewDivider, { backgroundColor: item.skinConfig.dominoLineColor }]} />
+                                        <View style={styles.skinPreviewHalf}>
+                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
+                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
+                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
+                                        </View>
                                     </View>
-                                    {/* Divider */}
-                                    <View style={[styles.skinPreviewDivider, { backgroundColor: item.skinConfig.dominoLineColor }]} />
-                                    {/* Bottom Half */}
-                                    <View style={styles.skinPreviewHalf}>
-                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
-                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
-                                        <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
-                                    </View>
-                                </View>
-                            )}
-                        </View>
-                    ) : item.imageUrl ? (
-                        <Image
-                            source={{ uri: item.imageUrl }}
-                            style={styles.remoteImage}
-                            contentFit="cover"
-                            cachePolicy="memory-disk"
-                        />
-                    ) : (
-                        <Ionicons
-                            name={item.type === 'AVATAR' ? 'person' : 'diamond'}
-                            size={48}
-                            color="rgba(255,255,255,0.5)"
-                        />
-                    )}
-                </View>
+                                )}
+                            </View>
+                        ) : item.imageUrl ? (
+                            <Image source={{ uri: item.imageUrl }} style={styles.remoteImage} contentFit="cover" cachePolicy="memory-disk" />
+                        ) : (
+                            <Ionicons name={item.type === 'AVATAR' ? 'person' : 'diamond'} size={40} color="rgba(255,255,255,0.5)" />
+                        )}
+                    </View>
 
-                <Text style={styles.cardDescription}>{item.description}</Text>
+                    <View style={styles.descriptionRow}>
+                        <Text style={styles.cardDescription} numberOfLines={isExpanded ? undefined : 2}>
+                            {item.description}
+                        </Text>
+                        {item.description && item.description.length > 35 && (
+                            <TouchableOpacity onPress={() => setIsExpanded(!isExpanded)} style={styles.collapseBtn}>
+                                <Text style={styles.collapseBtnText}>{isExpanded ? '<<' : '>>'}</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
 
                 <View style={styles.cardFooter}>
                     {!isOwned && (
                         <View style={styles.priceContainer}>
-                            {item.priceCoins !== undefined && item.priceCoins > 0 && (
-                                <Text style={styles.priceText}>
-                                    🪙 {item.priceCoins}
-                                </Text>
-                            )}
-                            {item.priceDiamonds !== undefined && item.priceDiamonds > 0 && (
-                                <Text style={[styles.priceText, { color: '#60DCFF' }]}>
-                                    💎 {item.priceDiamonds}
-                                </Text>
-                            )}
-                            {item.priceCoins === 0 && item.priceDiamonds === undefined && (
-                                <Text style={[styles.priceText, { color: '#4CAF50' }]}>GRATUIT</Text>
-                            )}
+                            {item.priceCoins !== undefined && item.priceCoins > 0 && <Text style={styles.priceText}>🪙 {item.priceCoins}</Text>}
+                            {item.priceDiamonds !== undefined && item.priceDiamonds > 0 && <Text style={[styles.priceText, { color: '#60DCFF' }]}>💎 {item.priceDiamonds}</Text>}
+                            {item.priceCoins === 0 && item.priceDiamonds === undefined && <Text style={[styles.priceText, { color: '#4CAF50' }]}>GRATUIT</Text>}
                         </View>
                     )}
 
                     {isProcessing ? (
-                        <ActivityIndicator color="#FFD700" />
+                        <ActivityIndicator color="#FFD700" size="small" />
                     ) : isEquipped ? (
                         <View style={styles.equippedBadge}>
-                            <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                            <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
                             <Text style={styles.equippedText}>Équipé</Text>
                         </View>
                     ) : isOwned ? (
-                        <TouchableOpacity style={styles.equipButton} onPress={() => handleEquip(item.id)}>
+                        <TouchableOpacity style={styles.equipButton} onPress={() => onEquip(item.id)}>
                             <Text style={styles.equipButtonText}>UTILISER</Text>
                         </TouchableOpacity>
                     ) : (
                         <TouchableOpacity
                             style={[styles.buyButton, !canAfford && { opacity: 0.5 }]}
-                            onPress={() => handlePurchase(item)}
+                            onPress={() => onPurchase(item)}
                             disabled={!canAfford}
                         >
                             <Text style={styles.buyButtonText}>Acheter</Text>
@@ -261,33 +254,35 @@ export default function StoreScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/home')}>
-                    <Ionicons name="home" size={24} color="#FFF" />
+                    <Ionicons name="home" size={20} color="#FFF" />
                 </TouchableOpacity>
-                <EconomyHeader refreshTrigger={economyRefresh} />
-            </View>
+                <Text style={styles.headerTitle}>BOUTIQUE</Text>
 
-            <Text style={styles.pageTitle}>LA BOUTIQUE</Text>
+                <View style={styles.headerTabsContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.headerTabsScroll}>
+                        {dynamicTabs.map(tab => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <TouchableOpacity
+                                    key={tab.id}
+                                    style={[styles.headerTab, isActive && styles.activeHeaderTab]}
+                                    onPress={() => setActiveTab(tab.id)}
+                                >
+                                    <Ionicons name={tab.icon} size={14} color={isActive ? '#1A0E2E' : '#FFF'} />
+                                    {isLandscape && (
+                                        <Text style={[styles.headerTabText, isActive && styles.activeHeaderTabText]}>
+                                            {tab.label}
+                                        </Text>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
+                <EconomyHeader refreshTrigger={economyRefresh} hideXp={true} />
+            </View>
 
             {/* Tabs */}
-            <View style={styles.tabsContainer}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
-                    {dynamicTabs.map(tab => {
-                        const isActive = activeTab === tab.id;
-                        return (
-                            <TouchableOpacity
-                                key={tab.id}
-                                style={[styles.tab, isActive && styles.activeTab]}
-                                onPress={() => setActiveTab(tab.id)}
-                            >
-                                <Ionicons name={tab.icon} size={16} color={isActive ? '#1A0E2E' : '#FFF'} />
-                                <Text style={[styles.tabText, isActive && styles.activeTabText]}>
-                                    {tab.label}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </ScrollView>
-            </View>
 
             <PurchaseSuccessModal
                 visible={!!purchaseSuccessItem}
@@ -303,15 +298,27 @@ export default function StoreScreen() {
                 </View>
             ) : (
                 <ScrollView
-                    horizontal={isLandscape}
-                    contentContainerStyle={[styles.catalogGrid, isLandscape && styles.catalogGridLandscape]}
-                    showsVerticalScrollIndicator={false}
+                    horizontal
                     showsHorizontalScrollIndicator={false}
-                    snapToInterval={isLandscape ? 280 + 20 : undefined}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={[styles.catalogGrid, isLandscape && styles.catalogGridLandscape]}
+                    snapToInterval={width * 0.24 + 16}
                     decelerationRate="fast"
                 >
                     {filteredCatalog.length > 0 ? (
-                        filteredCatalog.map(item => renderItemCard(item))
+                        filteredCatalog.map(item => (
+                            inventory && (
+                                <StoreItemCard
+                                    key={item.id}
+                                    item={item}
+                                    inventory={inventory}
+                                    economy={economy}
+                                    onPurchase={handlePurchase}
+                                    onEquip={handleEquip}
+                                    isProcessing={processingPurchase === item.id}
+                                />
+                            )
+                        ))
                     ) : (
                         <Text style={styles.emptyText}>Aucun article dans cette catégorie pour le moment.</Text>
                     )}
@@ -335,46 +342,49 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     backButton: {
-        width: 36, // Reduced from 40
-        height: 36, // Reduced from 40
-        borderRadius: 18,
-        backgroundColor: 'rgba(255,255,254,0.1)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 10,
     },
-    pageTitle: {
-        fontSize: 24, // Reduced from 28
-        fontWeight: '900',
-        color: '#FFD700',
-        letterSpacing: 2,
-        textAlign: 'center',
-        marginBottom: 10, // Reduced from 20
+    headerTitle: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+        letterSpacing: 1,
+        marginHorizontal: 12,
     },
-    tabsContainer: {
-        marginBottom: 20,
+    headerTabsContainer: {
+        flex: 1,
+        marginHorizontal: 10,
     },
-    tabsScroll: {
-        paddingHorizontal: 20,
-        gap: 12,
+    headerTabsScroll: {
+        gap: 8,
+        alignItems: 'center',
     },
-    tab: {
+    headerTab: {
         flexDirection: 'row',
         alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 15,
         backgroundColor: 'rgba(255,255,255,0.1)',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 20,
-        gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        gap: 6,
     },
-    activeTab: {
+    activeHeaderTab: {
         backgroundColor: '#FFD700',
+        borderColor: '#FFD700',
     },
-    tabText: {
+    headerTabText: {
         color: '#FFF',
-        fontWeight: 'bold',
+        fontWeight: '600',
+        fontSize: 12,
     },
-    activeTabText: {
+    activeHeaderTabText: {
         color: '#1A0E2E',
     },
     centerContainer: {
@@ -384,12 +394,12 @@ const styles = StyleSheet.create({
     },
     catalogGrid: {
         paddingHorizontal: 20,
-        paddingBottom: 40,
-        gap: 20,
+        paddingBottom: 20,
+        gap: 16,
     },
     catalogGridLandscape: {
-        paddingHorizontal: 40,
-        gap: 20,
+        flexDirection: 'row',
+        flexWrap: 'nowrap',
         alignItems: 'center',
     },
     card: {
@@ -400,7 +410,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.1)',
     },
     cardLandscape: {
-        width: 280,
+        height: 280,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -410,22 +420,23 @@ const styles = StyleSheet.create({
     },
     cardTitle: {
         color: '#FFF',
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: 'bold',
+        flex: 1,
     },
     cardRarity: {
         color: 'rgba(255,255,255,0.5)',
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: 'bold',
         textTransform: 'uppercase',
     },
     cardImagePlaceholder: {
-        height: 120,
+        height: 100,
         backgroundColor: 'rgba(0,0,0,0.2)',
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 8,
         overflow: 'hidden',
     },
     remoteImage: {
@@ -486,9 +497,23 @@ const styles = StyleSheet.create({
     },
     cardDescription: {
         color: 'rgba(255,255,255,0.7)',
-        fontSize: 14,
-        marginBottom: 16,
-        lineHeight: 20,
+        fontSize: 13,
+        marginBottom: 8,
+        lineHeight: 18,
+    },
+    descriptionRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 4,
+    },
+    collapseBtn: {
+        paddingHorizontal: 4,
+    },
+    collapseBtnText: {
+        color: '#FFD700',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
     cardFooter: {
         flexDirection: 'row',
@@ -496,7 +521,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderTopWidth: 1,
         borderTopColor: 'rgba(255,255,255,0.1)',
-        paddingTop: 16,
+        paddingTop: 12,
+        minHeight: 48,
     },
     priceContainer: {
         flexDirection: 'row',
@@ -537,6 +563,7 @@ const styles = StyleSheet.create({
     equippedText: {
         color: '#4CAF50',
         fontWeight: 'bold',
+        fontSize: 13,
     },
     emptyText: {
         color: 'rgba(255,255,255,0.5)',

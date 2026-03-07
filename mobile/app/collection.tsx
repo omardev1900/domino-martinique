@@ -80,18 +80,32 @@ export default function CollectionScreen() {
         setProcessingEquip(null);
     };
 
-    const CollectionItem = ({ item, inventory, onEquip, isProcessing }: {
+    const CollectionItem = ({
+        item,
+        isEquipped,
+        onEquip,
+        isProcessing
+    }: {
         item: StoreItem;
-        inventory: PlayerInventory;
+        isEquipped: boolean;
         onEquip: (id: string) => void;
         isProcessing: boolean;
     }) => {
+        const { width, height } = useWindowDimensions();
+        const isLandscape = width > height;
         const [isExpanded, setIsExpanded] = useState(false);
-        const isEquipped = item.type === 'AVATAR' ? inventory.equipped.avatar === item.id :
-            item.type === 'SKIN' ? inventory.equipped.skin === item.id : false;
 
         return (
-            <Animated.View entering={FadeIn} key={item.id} style={[styles.card, isLandscape && styles.cardLandscape, isEquipped && styles.cardEquipped]}>
+            <Animated.View
+                entering={FadeIn}
+                key={item.id}
+                style={[
+                    styles.card,
+                    isLandscape && styles.cardLandscape,
+                    isEquipped && styles.cardEquipped,
+                    isLandscape && { width: width * 0.24 }
+                ]}
+            >
                 <View style={{ flex: 1 }}> {/* Main content flex to push footer down */}
                     <View style={styles.cardHeader}>
                         <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
@@ -230,18 +244,24 @@ export default function CollectionScreen() {
                     showsHorizontalScrollIndicator={false}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[styles.grid, isLandscape && styles.gridLandscape]}
-                    snapToInterval={width * 0.29 + 16} // Increased card dimension + gap
+                    snapToInterval={width * 0.24 + 16} // Standardized card dimension + gap
                     decelerationRate="fast"
                 >
-                    {filteredItems.map(item => (
-                        <CollectionItem
-                            key={item.id}
-                            item={item}
-                            inventory={inventory}
-                            onEquip={handleEquip}
-                            isProcessing={processingEquip === item.id}
-                        />
-                    ))}
+                    {filteredItems.map(item => {
+                        const isEquipped = inventory && (
+                            item.type === 'AVATAR' ? inventory.equipped.avatar === item.id :
+                                item.type === 'SKIN' ? inventory.equipped.skin === item.id : false
+                        );
+                        return (
+                            <CollectionItem
+                                key={item.id}
+                                item={item}
+                                isEquipped={!!isEquipped}
+                                onEquip={handleEquip}
+                                isProcessing={processingEquip === item.id}
+                            />
+                        );
+                    })}
                 </ScrollView>
             )}
         </SafeAreaView>
@@ -391,7 +411,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(76, 175, 80, 0.1)',
     },
     cardLandscape: {
-        width: '29%', // ~30% each (+20% size increase from previous 24%)
         height: 250, // Force same height
     },
     cardHeader: {
