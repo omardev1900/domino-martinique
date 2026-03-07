@@ -12,6 +12,7 @@ import {
     Platform
 } from 'react-native';
 import { Image } from 'expo-image';
+import Svg, { Rect, Path, Defs, Pattern } from 'react-native-svg';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,6 +25,29 @@ import { economyService } from '../src/core/services/economy.service';
 import { PlayerProfile } from '../src/core/types';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../src/core/avatars';
 import { EconomyHeader } from '../src/components/EconomyHeader';
+
+const MadrasPattern = () => (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg width="100%" height="100%" opacity={0.07}>
+            <Defs>
+                <Pattern
+                    id="madras"
+                    width="40"
+                    height="40"
+                    patternUnits="userSpaceOnUse"
+                >
+                    {/* Horizontal lines */}
+                    <Rect x="0" y="5" width="40" height="2" fill="#000" />
+                    <Rect x="0" y="25" width="40" height="1" fill="#000" />
+                    {/* Vertical lines */}
+                    <Rect x="5" y="0" width="2" height="40" fill="#000" />
+                    <Rect x="25" y="0" width="1" height="40" fill="#000" />
+                </Pattern>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#madras)" />
+        </Svg>
+    </View>
+);
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -118,77 +142,83 @@ export default function HomeScreen() {
             colors={['#2D1B4E', '#1A0E2E']}
             style={[styles.container, { minHeight: height }]}
         >
+            {/* Madras Pattern Overlay */}
+            <MadrasPattern />
+
             {/* Header Area */}
             <View style={[styles.header, { paddingTop: insets.top || 20 }]}>
-                {/* Economy Header - Top Left */}
-                <Animated.View entering={FadeInLeft.duration(400)}>
-                    <EconomyHeader refreshTrigger={economyRefresh} />
-                </Animated.View>
-
-                {/* User Info & Settings - Top Right */}
-                <Animated.View entering={FadeInRight.duration(400)} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                {/* Left Side: Fullscreen Toggle */}
+                <View style={styles.headerLeft}>
                     {Platform.OS === 'web' && (
                         <TouchableOpacity
-                            style={styles.settingsButton}
+                            style={styles.fullscreenButton}
                             onPress={toggleFullscreen}
                             activeOpacity={0.7}
                         >
                             <Ionicons
                                 name={isFullscreen ? "contract-outline" : "expand-outline"}
-                                size={22}
-                                color="#FFFFFF"
+                                size={20}
+                                color="#FFD700"
                             />
                         </TouchableOpacity>
                     )}
-                    <TouchableOpacity
-                        style={styles.settingsButton}
-                        onPress={() => router.push('/store')}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.settingsIcon}>🛒</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.settingsButton}
-                        onPress={() => router.push('/collection')}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.settingsIcon}>🎒</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.settingsButton}
-                        onPress={() => router.push('/leaderboard')}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.settingsIcon}>🏆</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.settingsButton}
-                        onPress={() => router.push('/stats')}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.settingsIcon}>📈</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.settingsButton}
-                        onPress={() => router.push('/modal')}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.settingsIcon}>⚙️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.userBadge}
-                        onPress={() => router.push('/profile')}
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.avatarCircle}>
-                            <Image
-                                source={getAvatarImage(user?.avatarUrl)}
-                                style={styles.avatarImage}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                            />
-                        </View>
-                    </TouchableOpacity>
+                </View>
+
+                {/* Right Side: Economy & User Info */}
+                <Animated.View entering={FadeInRight.duration(400)} style={styles.headerRight}>
+                    <EconomyHeader refreshTrigger={economyRefresh} />
+
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity
+                            style={styles.settingsButton}
+                            onPress={() => router.push('/store')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.settingsIcon}>🛒</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.settingsButton}
+                            onPress={() => router.push('/collection')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.settingsIcon}>🎒</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.settingsButton}
+                            onPress={() => router.push('/leaderboard')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.settingsIcon}>🏆</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.settingsButton}
+                            onPress={() => router.push('/stats')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.settingsIcon}>📈</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.settingsButton}
+                            onPress={() => router.push('/modal')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.settingsIcon}>⚙️</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.userBadge}
+                            onPress={() => router.push('/profile')}
+                            activeOpacity={0.8}
+                        >
+                            <View style={styles.avatarCircle}>
+                                <Image
+                                    source={getAvatarImage(user?.avatarUrl)}
+                                    style={styles.avatarImage}
+                                    contentFit="cover"
+                                    cachePolicy="memory-disk"
+                                />
+                            </View>
+                        </TouchableOpacity>
+                    </View>
                 </Animated.View>
             </View>
 
@@ -201,7 +231,7 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.cardsContainer, isLandscape && styles.cardsContainerLandscape]}>
-                    <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.cardWrapper}>
+                    <Animated.View entering={FadeInUp.delay(200).duration(500)} style={[styles.cardWrapper, isLandscape && styles.cardWrapperLandscape]}>
                         <TouchableOpacity
                             style={styles.modeCard}
                             onPress={() => router.push('/solo')}
@@ -218,9 +248,9 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </Animated.View>
 
-                    <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.cardWrapper}>
+                    <Animated.View entering={FadeInUp.delay(400).duration(500)} style={[styles.cardWrapper, isLandscape && styles.cardWrapperLandscape]}>
                         <TouchableOpacity
-                            style={[styles.modeCard, user?.uid?.startsWith('guest_') && { opacity: 0.7 }]}
+                            style={styles.modeCard}
                             onPress={() => {
                                 if (user?.uid?.startsWith('guest_')) {
                                     Alert.alert(
@@ -238,19 +268,22 @@ export default function HomeScreen() {
                             activeOpacity={0.85}
                         >
                             <LinearGradient
-                                colors={user?.uid?.startsWith('guest_') ? ['#424242', '#212121'] : ['#2196F3', '#1565C0']}
+                                colors={['#1565C0', '#42A5F5']}
                                 style={styles.cardGradient}
                             >
                                 <Text style={styles.cardIcon}>{user?.uid?.startsWith('guest_') ? '🔒' : '👥'}</Text>
-                                <Text style={styles.cardTitle}>Mode Multijoueurs</Text>
+                                <Text style={styles.cardTitle}>Multijoueurs</Text>
                                 <Text style={styles.cardDesc}>
                                     {user?.uid?.startsWith('guest_') ? 'Nécessite un compte' : 'Jouer contre des amis'}
                                 </Text>
+                                {user?.uid?.startsWith('guest_') && (
+                                    <View style={styles.lockOverlay} />
+                                )}
                             </LinearGradient>
                         </TouchableOpacity>
                     </Animated.View>
 
-                    <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.cardWrapper}>
+                    <Animated.View entering={FadeInUp.delay(600).duration(500)} style={[styles.cardWrapper, isLandscape && styles.cardWrapperLandscape]}>
                         <TouchableOpacity
                             style={[styles.modeCard, { opacity: 0.7 }]}
                             disabled={true}
@@ -261,7 +294,7 @@ export default function HomeScreen() {
                                 style={styles.cardGradient}
                             >
                                 <Text style={styles.cardIcon}>🏆</Text>
-                                <Text style={styles.cardTitle}>Mode Tournoi</Text>
+                                <Text style={styles.cardTitle}>Tournoi</Text>
                                 <Text style={styles.cardDesc}>Prochainement</Text>
                             </LinearGradient>
                         </TouchableOpacity>
@@ -324,8 +357,32 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        height: 60, // Reduced from 100 for better landscape fit
+        height: 60,
         zIndex: 10,
+    },
+    headerLeft: {
+        flex: 1,
+        alignItems: 'flex-start',
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    fullscreenButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,215,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     scrollContent: {
         flexGrow: 1,
@@ -390,11 +447,17 @@ const styles = StyleSheet.create({
     cardsContainerLandscape: {
         flexDirection: 'row',
         justifyContent: 'center',
-        paddingHorizontal: 40,
+        paddingHorizontal: '6%',
+        gap: 16,
     },
     cardWrapper: {
         width: '100%',
         maxWidth: 280,
+    },
+    cardWrapperLandscape: {
+        flex: 1,
+        maxWidth: 300,
+        minWidth: 160,
     },
     modeCard: {
         borderRadius: 16,
@@ -425,8 +488,12 @@ const styles = StyleSheet.create({
     },
     cardDesc: {
         fontSize: 13,
-        color: 'rgba(255,255,255,0.8)',
+        color: 'rgba(255,255,255,0.85)',
         textAlign: 'center',
+    },
+    lockOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.25)',
     },
     // Modal Styles
     modalOverlay: {
