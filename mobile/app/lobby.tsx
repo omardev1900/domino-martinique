@@ -28,6 +28,28 @@ import { economyService } from '../src/core/services/economy.service';
 import { TABLE_CONFIGS } from '../src/core/economy.constants';
 import { TableTier } from '../src/core/economy.types';
 import { EconomyHeader } from '../src/components/EconomyHeader';
+import Svg, { Rect, Defs, Pattern } from 'react-native-svg';
+
+const MadrasPattern = () => (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg width="100%" height="100%" opacity={0.07}>
+            <Defs>
+                <Pattern
+                    id="madras"
+                    width="40"
+                    height="40"
+                    patternUnits="userSpaceOnUse"
+                >
+                    <Rect x="0" y="5" width="40" height="2" fill="#000" />
+                    <Rect x="0" y="25" width="40" height="1" fill="#000" />
+                    <Rect x="5" y="0" width="2" height="40" fill="#000" />
+                    <Rect x="25" y="0" width="1" height="40" fill="#000" />
+                </Pattern>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#madras)" />
+        </Svg>
+    </View>
+);
 
 type LobbyTab = 'CREATE' | 'JOIN' | 'PUBLIC';
 
@@ -242,147 +264,201 @@ export default function LobbyScreen() {
     // ─── Tabs ───────────────────────────────────────────────────────
 
     const renderTabs = () => (
-        <View style={styles.tabWrapper}>
-            <View style={styles.tabContainer}>
-                {([
-                    { key: 'CREATE' as LobbyTab, label: 'Créer' },
-                    { key: 'JOIN' as LobbyTab, label: 'Rejoindre' },
-                    { key: 'PUBLIC' as LobbyTab, label: 'Publiques' },
-                ]).map(tab => (
-                    <TouchableOpacity
-                        key={tab.key}
-                        style={[styles.tabButton, activeTab === tab.key && styles.activeTab]}
-                        onPress={() => setActiveTab(tab.key)}
-                    >
-                        <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]} numberOfLines={1}>
-                            {tab.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
+        <View style={styles.tabContainer}>
+            {([
+                { key: 'CREATE' as LobbyTab, label: 'Créer' },
+                { key: 'JOIN' as LobbyTab, label: 'Rejoindre' },
+                { key: 'PUBLIC' as LobbyTab, label: 'Publiques' },
+            ]).map(tab => (
+                <TouchableOpacity
+                    key={tab.key}
+                    style={[styles.tabButton, activeTab === tab.key && styles.activeTab]}
+                    onPress={() => setActiveTab(tab.key)}
+                >
+                    <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]} numberOfLines={1}>
+                        {tab.label}
+                    </Text>
+                </TouchableOpacity>
+            ))}
         </View>
     );
 
     // ─── CREATE Tab ─────────────────────────────────────────────────
 
     const renderCreateTab = () => (
-        <Animated.View entering={FadeIn.delay(200)} style={styles.card}>
-            <TextInput
-                style={styles.input}
-                placeholder="Nom de la table (optionnel)"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={roomNameInput}
-                onChangeText={setRoomNameInput}
-                maxLength={20}
-            />
+        <Animated.View entering={FadeIn.delay(200)} style={styles.createContent}>
+            {/* Table Name Input */}
+            <View style={styles.inputWrapper}>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Nom de la table (optionnel)"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    value={roomNameInput}
+                    onChangeText={setRoomNameInput}
+                    maxLength={20}
+                />
+                <View style={[styles.privateToggle, isPrivateRoom && styles.privateToggleActive]}>
+                    <TouchableOpacity
+                        style={styles.toggleClickArea}
+                        onPress={() => setIsPrivateRoom(!isPrivateRoom)}
+                    >
+                        <Ionicons
+                            name={isPrivateRoom ? "lock-closed" : "earth"}
+                            size={18}
+                            color={isPrivateRoom ? "#FFD700" : "rgba(255,255,255,0.6)"}
+                        />
+                        <Text style={[styles.privateToggleText, isPrivateRoom && styles.privateToggleTextActive]}>
+                            {isPrivateRoom ? 'Privée' : 'Publique'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
 
-            {/* Game Mode Selection */}
-            <View style={styles.gameModeContainer}>
+            {/* Mode Cards */}
+            <View style={[styles.gameModeContainer, isLandscape && styles.gameModeContainerLandscape]}>
+                {/* SCORE */}
                 <TouchableOpacity
-                    style={[styles.gameModeTile, gameMode === 'SCORE' && styles.gameModeTileActive]}
+                    style={[styles.gameModeTile, isLandscape && styles.gameModeTileLandscape, gameMode === 'SCORE' && styles.gameModeTileActive]}
                     onPress={() => { setGameMode('SCORE'); setWinningCondition(6); }}
+                    activeOpacity={0.8}
                 >
-                    <Text style={[styles.gameModeTitle, gameMode === 'SCORE' && styles.gameModeTitleActive]}>
-                        <Text style={styles.gameModeIcon}>🎯</Text> SCORE
-                    </Text>
-                    <Text style={[styles.gameModeSubtitle, gameMode === 'SCORE' && styles.gameModeSubtitleActive]}>
-                        Le premier à X points
-                    </Text>
+                    <LinearGradient colors={['#0288D1', '#26C6DA']} style={[styles.modeGradient, isLandscape && styles.modeGradientLandscape]}>
+                        <Text style={[styles.modeIllustration, isLandscape && styles.modeIllustrationLandscape]}>🎯</Text>
+                        <Text style={[styles.gameModeTitle, isLandscape && styles.gameModeTitleLandscape]}>Score</Text>
+                        <Text style={[styles.gameModeSubtitle, isLandscape && styles.gameModeSubtitleLandscape]}>Atteindre le but</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
+
+                {/* COCHON */}
                 <TouchableOpacity
-                    style={[styles.gameModeTile, gameMode === 'COCHON' && styles.gameModeTileActive]}
+                    style={[styles.gameModeTile, isLandscape && styles.gameModeTileLandscape, gameMode === 'COCHON' && styles.gameModeTileActive]}
                     onPress={() => { setGameMode('COCHON'); setWinningCondition(3); }}
+                    activeOpacity={0.8}
                 >
-                    <Text style={[styles.gameModeTitle, gameMode === 'COCHON' && styles.gameModeTitleActive]}>
-                        <Text style={styles.gameModeIcon}>🐷</Text> COCHON
-                    </Text>
-                    <Text style={[styles.gameModeSubtitle, gameMode === 'COCHON' && styles.gameModeSubtitleActive]}>
-                        Évitez le zéro
-                    </Text>
+                    <LinearGradient colors={['#EC407A', '#FF7043']} style={[styles.modeGradient, isLandscape && styles.modeGradientLandscape]}>
+                        <Text style={[styles.modeIllustration, isLandscape && styles.modeIllustrationLandscape]}>🐷</Text>
+                        <Text style={[styles.gameModeTitle, isLandscape && styles.gameModeTitleLandscape]}>Cochons</Text>
+                        <Text style={[styles.gameModeSubtitle, isLandscape && styles.gameModeSubtitleLandscape]}>Éviter le zéro</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
+
+                {/* MANCHE */}
                 <TouchableOpacity
-                    style={[styles.gameModeTile, gameMode === 'MANCHE' && styles.gameModeTileActive]}
+                    style={[styles.gameModeTile, isLandscape && styles.gameModeTileLandscape, gameMode === 'MANCHE' && styles.gameModeTileActive]}
                     onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); }}
+                    activeOpacity={0.8}
                 >
-                    <Text style={[styles.gameModeTitle, gameMode === 'MANCHE' && styles.gameModeTitleActive]}>
-                        <Text style={styles.gameModeIcon}>🏆</Text> MANCHE
-                    </Text>
-                    <Text style={[styles.gameModeSubtitle, gameMode === 'MANCHE' && styles.gameModeSubtitleActive]}>
-                        Le meilleur à X manches
-                    </Text>
+                    <LinearGradient colors={['#FFA000', '#FFD54F']} style={[styles.modeGradient, isLandscape && styles.modeGradientLandscape]}>
+                        <Text style={[styles.modeIllustration, isLandscape && styles.modeIllustrationLandscape]}>🏆</Text>
+                        <Text style={[styles.gameModeTitle, isLandscape && styles.gameModeTitleLandscape]}>Manches</Text>
+                        <Text style={[styles.gameModeSubtitle, isLandscape && styles.gameModeSubtitleLandscape]}>X manches gagnées</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
 
-            {/* Options Bar */}
-            <View style={styles.optionsBar}>
-                {/* Type de Table */}
-                <View style={styles.optionGroup}>
-                    <Text style={styles.optionLabel}>Table: <Text style={styles.diffValue}>{
-                        isPrivateRoom ? 'PRIVÉE' : 'PUBLIQUE'
-                    }</Text></Text>
-                    <View style={styles.optionRow}>
-                        <TouchableOpacity style={[styles.diffBtn, !isPrivateRoom && styles.activeDiffBtn]} onPress={() => setIsPrivateRoom(false)}><Text style={[styles.compactIconText, !isPrivateRoom && styles.activeCompactIconText]}>🌍 Public</Text></TouchableOpacity>
-                        <TouchableOpacity style={[styles.diffBtn, isPrivateRoom && styles.activeDiffBtn]} onPress={() => setIsPrivateRoom(true)}><Text style={[styles.compactIconText, isPrivateRoom && styles.activeCompactIconText]}>🔒 Privé</Text></TouchableOpacity>
+            {/* Parameters Bar */}
+            <View style={[styles.paramsContainer, isLandscape && styles.paramsContainerLandscape]}>
+                {/* 1. Difficulté (Table Type in Multiplayer) */}
+                <View style={[styles.paramCol, isLandscape && styles.paramColLandscape]}>
+                    <Text style={styles.paramLabel}>Visibilité</Text>
+                    <View style={styles.diffToggle}>
+                        <TouchableOpacity
+                            style={[styles.diffBtn, !isPrivateRoom && styles.activeDiffBtn]}
+                            onPress={() => setIsPrivateRoom(false)}
+                        >
+                            <Ionicons name="earth" size={18} color={!isPrivateRoom ? "#000" : "#FFF"} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.diffBtn, isPrivateRoom && styles.activeDiffBtn]}
+                            onPress={() => setIsPrivateRoom(true)}
+                        >
+                            <Ionicons name="lock-closed" size={18} color={isPrivateRoom ? "#000" : "#FFF"} />
+                        </TouchableOpacity>
                     </View>
+                    <Text style={styles.paramValueSmall}>{isPrivateRoom ? 'PRIVÉE' : 'PUBLIQUE'}</Text>
                 </View>
 
-                <Text style={styles.optionSeparator}>|</Text>
-
-                {/* But */}
-                <View style={styles.optionGroup}>
-                    <Text style={styles.optionLabel}>But: </Text>
-                    <View style={styles.optionRow}>
-                        <TouchableOpacity onPress={() => setWinningCondition(Math.max(1, winningCondition - 1))} style={styles.compactBtn}><Ionicons name="remove" size={12} color="#000" /></TouchableOpacity>
-                        <Text style={styles.optionValue}>{winningCondition}</Text>
-                        <TouchableOpacity onPress={() => setWinningCondition(Math.min(100, winningCondition + 1))} style={styles.compactBtn}><Ionicons name="add" size={12} color="#000" /></TouchableOpacity>
+                {/* 2. But */}
+                <View style={[styles.paramCol, isLandscape && styles.paramColLandscape]}>
+                    <Text style={styles.paramLabel}>Objectif Match</Text>
+                    <View style={styles.stepper}>
+                        <TouchableOpacity onPress={() => setWinningCondition(prev => Math.max(1, prev - 1))} style={styles.stepBtn}>
+                            <Ionicons name="remove" size={isLandscape ? 16 : 20} color="#FFF" />
+                        </TouchableOpacity>
+                        <Text style={[styles.stepValue, isLandscape && styles.stepValueLandscape]}>{winningCondition}</Text>
+                        <TouchableOpacity onPress={() => setWinningCondition(prev => Math.min(100, prev + 1))} style={styles.stepBtn}>
+                            <Ionicons name="add" size={isLandscape ? 16 : 20} color="#FFF" />
+                        </TouchableOpacity>
                     </View>
+                    <Text style={styles.paramValueSmall}>
+                        {gameMode === 'MANCHE' ? 'Manches' : gameMode === 'COCHON' ? 'Cochons' : 'Points'}
+                    </Text>
                 </View>
 
-                <Text style={styles.optionSeparator}>|</Text>
-
-                {/* Durée */}
-                <View style={styles.optionGroup}>
-                    <Text style={styles.optionLabel}>Durée: {turnDuration === 0 ? 'Off' : `${turnDuration}s`} </Text>
-                    <View style={styles.optionRow}>
-                        <TouchableOpacity onPress={() => {
+                {/* 3. Durée */}
+                <View style={[styles.paramCol, isLandscape && styles.paramColLandscape]}>
+                    <Text style={styles.paramLabel}>Vitesse réflexion</Text>
+                    <View style={styles.stepper}>
+                        <TouchableOpacity onPress={() => setTurnDuration(prev => {
                             const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
-                            const idx = steps.indexOf(turnDuration);
-                            if (idx > 0) setTurnDuration(steps[idx - 1]);
-                        }} style={styles.compactBtn}><Ionicons name="remove" size={12} color="#000" /></TouchableOpacity>
-                        <TouchableOpacity onPress={() => {
+                            const idx = steps.indexOf(prev);
+                            return idx > 0 ? steps[idx - 1] : steps[0];
+                        })} style={styles.stepBtn}>
+                            <Ionicons name="remove" size={isLandscape ? 16 : 20} color="#FFF" />
+                        </TouchableOpacity>
+                        <Text style={[styles.stepValue, isLandscape && styles.stepValueLandscape]}>{turnDuration === 0 ? '∞' : turnDuration}</Text>
+                        <TouchableOpacity onPress={() => setTurnDuration(prev => {
                             const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
-                            const idx = steps.indexOf(turnDuration);
-                            if (idx < steps.length - 1) setTurnDuration(steps[idx + 1]);
-                        }} style={styles.compactBtn}><Ionicons name="add" size={12} color="#000" /></TouchableOpacity>
+                            const idx = steps.indexOf(prev);
+                            return idx < steps.length - 1 ? steps[idx + 1] : steps[steps.length - 1];
+                        })} style={styles.stepBtn}>
+                            <Ionicons name="add" size={isLandscape ? 16 : 20} color="#FFF" />
+                        </TouchableOpacity>
                     </View>
+                    <Text style={styles.paramValueSmall}>{turnDuration === 0 ? 'Illimité' : `secondes`}</Text>
                 </View>
 
-                <Text style={styles.optionSeparator}>|</Text>
-
-                {/* Main */}
-                <View style={styles.optionGroup}>
-                    <Text style={styles.optionLabel}>Main: </Text>
-                    <View style={styles.optionRow}>
+                {/* 4. Main */}
+                <View style={[styles.paramCol, isLandscape && styles.paramColLandscape, { borderRightWidth: 0 }]}>
+                    <Text style={styles.paramLabel}>Main de départ</Text>
+                    <View style={styles.handToggle}>
                         {[3, 5, 7].map(size => (
-                            <TouchableOpacity key={size} onPress={() => setStartingHandSize(size)} style={[styles.mainBtn, startingHandSize === size && styles.activeMainBtn]}>
-                                <Text style={[styles.mainBtnText, startingHandSize === size && styles.activeMainBtnText]}>{size}</Text>
+                            <TouchableOpacity
+                                key={size}
+                                onPress={() => setStartingHandSize(size)}
+                                style={[styles.handBtn, isLandscape && styles.handBtnLandscape, startingHandSize === size && styles.activeHandBtn]}
+                            >
+                                <Text style={[styles.handText, isLandscape && styles.handTextLandscape, startingHandSize === size && styles.activeHandText]}>
+                                    {size}
+                                </Text>
                             </TouchableOpacity>
                         ))}
                     </View>
+                    <Text style={styles.paramValueSmall}>Dominos</Text>
                 </View>
             </View>
 
             {/* Create Button */}
-            <TouchableOpacity style={styles.startButton} onPress={handleCreateRoom}>
-                <Text style={styles.startText}>CRÉER LA TABLE</Text>
-                <Text style={styles.buyInBadge}>-{TABLE_CONFIGS[tableTier].buyIn} 🪙</Text>
-            </TouchableOpacity>
+            <View style={[styles.playButtonWrapper, isLandscape && styles.playButtonWrapperLandscape]}>
+                <TouchableOpacity style={[styles.playButton, isLandscape && styles.playButtonLandscape]} onPress={handleCreateRoom} activeOpacity={0.8}>
+                    <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.playGradient}>
+                        <View style={styles.playContent}>
+                            <View style={styles.costContainer}>
+                                <Text style={{ fontSize: isLandscape ? 14 : 18 }}>🪙</Text>
+                                <Text style={[styles.costText, isLandscape && styles.costTextLandscape]}>-{TABLE_CONFIGS[tableTier].buyIn}</Text>
+                            </View>
+                            <View style={styles.playDivider} />
+                            <Text style={[styles.playText, isLandscape && styles.playTextLandscape]}>CRÉER LA TABLE</Text>
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
 
-            {debitFeedback && (
-                <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
-                    {debitFeedback} débités
-                </Animated.Text>
-            )}
+                {debitFeedback && (
+                    <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
+                        {debitFeedback} débités
+                    </Animated.Text>
+                )}
+            </View>
         </Animated.View>
     );
 
@@ -400,10 +476,20 @@ export default function LobbyScreen() {
                 onChangeText={setRoomIdToJoin}
                 autoCapitalize="none"
             />
-            <TouchableOpacity style={styles.startButton} onPress={handleJoinRoom}>
-                <Text style={styles.startText}>REJOINDRE</Text>
-                <Text style={styles.buyInBadge}>-{TABLE_CONFIGS[tableTier].buyIn} 🪙</Text>
-            </TouchableOpacity>
+            <View style={styles.playButtonWrapper}>
+                <TouchableOpacity style={styles.playButton} onPress={handleJoinRoom} activeOpacity={0.8}>
+                    <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.playGradient}>
+                        <View style={styles.playContent}>
+                            <View style={styles.costContainer}>
+                                <Text style={{ fontSize: 18 }}>🪙</Text>
+                                <Text style={styles.costText}>-{TABLE_CONFIGS[tableTier].buyIn}</Text>
+                            </View>
+                            <View style={styles.playDivider} />
+                            <Text style={styles.playText}>REJOINDRE</Text>
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
+            </View>
 
             {debitFeedback && (
                 <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
@@ -488,26 +574,31 @@ export default function LobbyScreen() {
                 colors={['#2D1B4E', '#1A0E2E']}
                 style={styles.container}
             >
+                <MadrasPattern />
 
-                {/* Header Top Row (Economy) */}
-                <View style={[styles.headerTop, { paddingTop: Math.max(insets.top, 5) }]}>
+                {/* Header Top Row (Integrated Back + Tabs + Economy) */}
+                <View style={[styles.headerRow, { paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 0 : 10) }]}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color="#FFF" />
                     </TouchableOpacity>
+
+                    <View style={styles.tabsWrapper}>
+                        {renderTabs()}
+                    </View>
+
                     <EconomyHeader refreshTrigger={economyRefresh} />
                 </View>
 
-                {/* Tabs Row */}
-                <View style={styles.header}>
-                    {renderTabs()}
-                </View>
                 <ScrollView
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
                     showsVerticalScrollIndicator={false}
+                    scrollEnabled={!isLandscape}
                 >
-                    {activeTab === 'CREATE' && renderCreateTab()}
-                    {activeTab === 'JOIN' && renderJoinTab()}
-                    {activeTab === 'PUBLIC' && renderPublicTab()}
+                    <Animated.View entering={FadeInUp.delay(200)} style={[styles.mainWrapper, isLandscape && styles.mainWrapperLandscape]}>
+                        {activeTab === 'CREATE' && renderCreateTab()}
+                        {activeTab === 'JOIN' && renderJoinTab()}
+                        {activeTab === 'PUBLIC' && renderPublicTab()}
+                    </Animated.View>
                 </ScrollView>
             </LinearGradient>
         </View>
@@ -530,37 +621,38 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     // ─── Header ─────────────────────────────────────────────────
-    header: {
+    headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 15,
+        paddingHorizontal: 16,
         paddingBottom: 10,
+        justifyContent: 'space-between',
+        zIndex: 10,
     },
     backButton: {
-        paddingVertical: 10,
-        paddingRight: 10,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    title: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#FFF',
-        marginRight: 10,
-    },
-    // ─── Tabs ───────────────────────────────────────────────────
-    tabWrapper: {
+    tabsWrapper: {
         flex: 1,
+        marginHorizontal: 12,
+        maxWidth: 400,
     },
     tabContainer: {
         flexDirection: 'row',
         backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 20,
-        padding: 4,
+        borderRadius: 15,
+        padding: 3,
     },
     tabButton: {
         flex: 1,
-        paddingVertical: 8,
+        paddingVertical: 6,
         alignItems: 'center',
-        borderRadius: 16,
+        borderRadius: 12,
     },
     activeTab: {
         backgroundColor: '#FFD700',
@@ -568,7 +660,7 @@ const styles = StyleSheet.create({
     tabText: {
         color: 'rgba(255,255,255,0.6)',
         fontWeight: 'bold',
-        fontSize: 11,
+        fontSize: 10,
     },
     activeTabText: {
         color: '#1A0E2E',
@@ -576,228 +668,345 @@ const styles = StyleSheet.create({
     // ─── Scroll ─────────────────────────────────────────────────
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: 15,
+    },
+    mainWrapper: {
+        paddingHorizontal: 16,
+        paddingTop: 10,
+        alignItems: 'center',
+    },
+    mainWrapperLandscape: {
+        paddingTop: 5,
+    },
+    // ─── Create Content ──────────────────────────────────────────
+    createContent: {
+        width: '100%',
+        maxWidth: 800,
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 15,
+        alignItems: 'center',
+    },
+    input: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 12,
+        padding: 12,
+        color: '#FFF',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        fontSize: 14,
+    },
+    privateToggle: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        overflow: 'hidden',
+    },
+    privateToggleActive: {
+        borderColor: '#FFD700',
+        backgroundColor: 'rgba(255,215,0,0.1)',
+    },
+    toggleClickArea: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        gap: 6,
+    },
+    privateToggleText: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    privateToggleTextActive: {
+        color: '#FFD700',
     },
     // ─── Card ───────────────────────────────────────────────────
     card: {
         backgroundColor: 'rgba(255,255,255,0.05)',
         borderRadius: 20,
-        padding: 15,
+        padding: 20,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
+        width: '100%',
     },
     cardTitle: {
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: 'bold',
         color: '#FFD700',
         marginBottom: 6,
+        textAlign: 'center',
     },
     cardSubtitle: {
-        fontSize: 13,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.5)',
-        marginBottom: 18,
+        marginBottom: 20,
+        textAlign: 'center',
     },
-    // ─── Inputs ─────────────────────────────────────────────────
-    input: {
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        borderRadius: 12,
-        padding: 14,
-        color: '#FFF',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        marginBottom: 15,
-        fontSize: 15,
-    },
-    // ─── Toggle Public/Private ──────────────────────────────────
-    toggleRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 18,
-    },
-    toggleButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 14,
-        borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    // ─── Game Mode Section ───────────────────────────────────────
+    // ─── Game Mode Cards (Solo Copy) ─────────────────────────────
     gameModeContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         width: '100%',
         marginBottom: 20,
-        gap: 10,
+        gap: 12,
+    },
+    gameModeContainerLandscape: {
+        marginBottom: 10,
+        gap: 8,
     },
     gameModeTile: {
         flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 12,
-        paddingVertical: 25,
-        paddingHorizontal: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 20,
+        height: 140,
         overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: 'transparent',
+        elevation: 8,
+    },
+    gameModeTileLandscape: {
+        height: 90,
     },
     gameModeTileActive: {
-        borderWidth: 2,
         borderColor: '#FFD700',
+        borderWidth: 3,
+        transform: [{ scale: 1.02 }],
     },
-    prochainementBadge: {
-        position: 'absolute',
-        top: -10,
-        right: -10,
-        backgroundColor: '#D11C1C',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        transform: [{ rotate: '15deg' }],
-        zIndex: 10,
+    modeGradient: {
+        flex: 1,
+        padding: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
         borderWidth: 1,
-        borderColor: '#FFD700',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 2,
+        borderColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 20,
     },
-    prochainementText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+    modeGradientLandscape: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+    },
+    modeIllustration: {
+        fontSize: 32,
+        marginBottom: 4,
+    },
+    modeIllustrationLandscape: {
+        fontSize: 24,
+        marginBottom: 0,
     },
     gameModeTitle: {
         color: '#FFF',
-        fontSize: 14,
+        fontSize: 18,
         fontWeight: '900',
-        marginBottom: 8,
         textAlign: 'center',
+        textTransform: 'uppercase',
     },
-    gameModeTitleActive: {
-        color: '#000',
+    gameModeTitleLandscape: {
+        fontSize: 14,
     },
     gameModeSubtitle: {
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: 11,
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 10,
+        textAlign: 'center',
+        marginTop: 2,
+        fontWeight: '600',
+    },
+    gameModeSubtitleLandscape: {
+        display: 'none',
+    },
+    // --- Parameters Bar (Solo Mode Layout) ---
+    paramsContainer: {
+        width: '100%',
+        backgroundColor: 'rgba(30, 20, 50, 0.7)',
+        borderRadius: 20,
+        padding: 15,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        marginBottom: 20,
+    },
+    paramsContainerLandscape: {
+        flexDirection: 'row',
+        padding: 10,
+        marginBottom: 10,
+        justifyContent: 'space-between',
+    },
+    paramCol: {
+        flex: 1,
+        alignItems: 'center',
+        borderRightWidth: 1,
+        borderRightColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: 5,
+    },
+    paramColLandscape: {
+        borderRightWidth: 1,
+    },
+    paramLabel: {
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 10,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        marginBottom: 6,
+    },
+    paramValueSmall: {
+        color: '#FFF',
+        fontSize: 9,
+        fontWeight: '700',
+        marginTop: 4,
+        opacity: 0.6,
+        textTransform: 'uppercase',
+    },
+    stepper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        padding: 3,
+        borderRadius: 12,
+        gap: 3,
+    },
+    stepBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    stepValue: {
+        color: '#FFD700',
+        fontSize: 18,
+        fontWeight: '900',
+        minWidth: 30,
         textAlign: 'center',
     },
-    gameModeSubtitleActive: {
-        color: '#333',
-        fontWeight: 'bold',
+    stepValueLandscape: {
+        fontSize: 16,
     },
-    gameModeIcon: {
+    diffToggle: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        padding: 3,
+        borderRadius: 12,
+        gap: 4,
+    },
+    diffBtn: {
+        width: 30,
+        height: 30,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    activeDiffBtn: {
+        backgroundColor: '#FFD700',
+    },
+    handToggle: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        padding: 3,
+        borderRadius: 12,
+        gap: 4,
+    },
+    handBtn: {
+        width: 30,
+        height: 30,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    handBtnLandscape: {
+        width: 26,
+        height: 26,
+    },
+    activeHandBtn: {
+        backgroundColor: '#FFD700',
+    },
+    handText: {
+        color: '#FFF',
         fontSize: 14,
+        fontWeight: '900',
     },
-    // ─── Options Bar ─────────────────────────────────────────────
-    optionsBar: {
+    handTextLandscape: {
+        fontSize: 12,
+    },
+    activeHandText: {
+        color: '#000',
+    },
+    // --- Play Button ---
+    playButtonWrapper: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    playButtonWrapperLandscape: {
+        marginTop: 0,
+    },
+    playButton: {
+        width: '100%',
+        maxWidth: 400,
+        height: 54,
+        borderRadius: 27,
+        overflow: 'hidden',
+        elevation: 8,
+    },
+    playButtonLandscape: {
+        height: 40,
+        maxWidth: 280,
+    },
+    playGradient: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#FFF',
-        borderRadius: 8,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        width: '100%',
-        marginBottom: 20,
-        flexWrap: 'wrap',
+        paddingHorizontal: 20,
     },
-    optionGroup: {
+    playContent: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
     },
-    optionLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#333',
-        marginRight: 6,
-    },
-    optionRow: {
+    costContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        backgroundColor: 'rgba(0,0,0,0.15)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 15,
     },
-    compactIconText: {
-        fontSize: 12,
-        color: '#888',
-        fontWeight: 'bold',
-    },
-    activeCompactIconText: {
-        color: '#ff9800',
-    },
-    diffValue: {
-        color: '#ff9800',
-        fontWeight: 'bold',
-        fontSize: 10,
-    },
-    diffBtn: {
-        borderWidth: 1,
-        borderColor: 'transparent',
-        borderRadius: 6,
-        paddingHorizontal: 4,
-        paddingVertical: 2,
-    },
-    activeDiffBtn: {
-        borderColor: '#ff9800',
-        backgroundColor: 'rgba(255, 152, 0, 0.1)',
-    },
-    optionSeparator: {
-        color: '#CCC',
+    costText: {
+        color: '#FFF',
         fontSize: 16,
-        marginHorizontal: 8,
+        fontWeight: '900',
+        marginLeft: 4,
     },
-    compactBtn: {
-        borderWidth: 1,
-        borderColor: '#CCC',
-        borderRadius: 4,
-        padding: 2,
-        backgroundColor: '#F5F5F5',
+    costTextLandscape: {
+        fontSize: 12,
     },
-    optionValue: {
-        fontSize: 13,
+    playDivider: {
+        width: 1,
+        height: 20,
+        backgroundColor: 'rgba(255,255,255,0.3)',
+        marginHorizontal: 10,
+    },
+    playText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '900',
+        letterSpacing: 0.5,
+    },
+    playTextLandscape: {
+        fontSize: 12,
+    },
+    debitFeedback: {
+        color: '#FFD700',
+        position: 'absolute',
+        top: -25,
         fontWeight: 'bold',
-        color: '#000',
-        minWidth: 16,
+        fontSize: 14,
         textAlign: 'center',
     },
-    mainBtn: {
-        borderWidth: 1,
-        borderColor: '#CCC',
-        borderRadius: 4,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        backgroundColor: '#F5F5F5',
-    },
-    activeMainBtn: {
-        backgroundColor: '#333',
-        borderColor: '#333',
-    },
-    mainBtnText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    activeMainBtnText: {
-        color: '#FFF',
-    },
-    // ─── Buttons ────────────────────────────────────────────────
-    startButton: {
-        width: '100%',
-        paddingVertical: 16,
-        borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.3)',
-    },
+    // ─── List Rooms (Public) ─────────────────────────────────────
     startText: {
         color: '#FFF',
         fontSize: 16,
@@ -806,6 +1015,8 @@ const styles = StyleSheet.create({
     },
     // ─── Public Rooms List ──────────────────────────────────────
     listContainer: {
+        width: '100%',
+        maxWidth: 800,
         flex: 1,
     },
     roomItem: {
@@ -868,14 +1079,6 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '600',
         marginTop: 4,
-        letterSpacing: 0.5,
-    },
-    debitFeedback: {
-        color: '#FF6B6B',
-        fontSize: 13,
-        fontWeight: '700',
-        marginTop: 8,
-        textAlign: 'center',
         letterSpacing: 0.5,
     },
     headerTop: {
