@@ -46,12 +46,12 @@ export const calculateHandPoints = (hand: Domino[]): number => {
     return hand.reduce((sum, tile) => sum + tile.left + tile.right, 0);
 };
 
-// --- IA SPECIALE : VALOU LE REDOUTABLE (CONFIRMÉ : NIVEAU MAX) ---
-export const getValouMove = (hand: Domino[], ends: { left: DominoSide | null; right: DominoSide | null } | null): ValidMove | null => {
+// --- IA MAX : GRAN_MOUN (Fusion Valou & Man'X) ---
+export const getGranMounMove = (hand: Domino[], ends: { left: DominoSide | null; right: DominoSide | null } | null): ValidMove | null => {
     const validMoves = getValidMoves(hand, ends);
     if (validMoves.length === 0) return null;
 
-    // Si c'est le début de la manche (ends est null ou les deux côtés sont null)
+    // Si c'est le début de la manche (premier à jouer)
     if (!ends || (ends.left === null && ends.right === null)) {
         const sorted = [...validMoves].sort((a, b) => {
             const ta = a.tile;
@@ -67,45 +67,7 @@ export const getValouMove = (hand: Domino[], ends: { left: DominoSide | null; ri
         return sorted[0];
     }
 
-    // Analyse de la main pour connaître ses forces (fréquence des valeurs)
-    const counts: Record<number, number> = {};
-    hand.forEach(t => {
-        counts[t.left] = (counts[t.left] || 0) + 1;
-        counts[t.right] = (counts[t.right] || 0) + 1;
-    });
-
-    const scoredMoves = validMoves.map(move => {
-        let score = 0;
-        const t = move.tile;
-        const tilePoints = t.left + t.right;
-
-        // PRINCIPE 1 : "Tuer les Cochons" (Les gros doubles doivent sortir vite)
-        if (t.isDouble) {
-            score += tilePoints * 3.0;
-        } else {
-            score += tilePoints * 0.5;
-        }
-
-        // PRINCIPE 2 : "Garder la Main" (Poser une valeur qu'on domine)
-        const nextOpenValue = move.side === 'left'
-            ? (t.left === ends.left ? t.right : t.left)
-            : (t.left === ends.right ? t.right : t.left);
-
-        const myCountOfOpenValue = (counts[nextOpenValue] || 0) - 1;
-        score += myCountOfOpenValue * 25;
-
-        // PRINCIPE 3 : FINISSEUR
-        if (hand.length === 1) score += 10000;
-
-        return { move, score };
-    });
-
-    scoredMoves.sort((a, b) => b.score - a.score);
-    return scoredMoves[0].move;
-};
-
-// --- LOGIQUE MAN'X (STRATEGIE AVANCEE) ---
-export const getManXMove = (hand: Domino[], ends: { left: DominoSide | null; right: DominoSide | null } | null): ValidMove | null => {
+    // Analyse de la main
     const counts: Record<number, number> = {};
     hand.forEach(t => {
         counts[t.left] = (counts[t.left] || 0) + 1;
@@ -121,19 +83,34 @@ export const getManXMove = (hand: Domino[], ends: { left: DominoSide | null; rig
             key = val;
         }
     });
-
     const isStrongKey = maxCount >= 4;
-    const validMoves = getValidMoves(hand, ends);
-    if (validMoves.length === 0) return null;
 
     const scoredMoves = validMoves.map(move => {
         let score = 0;
         const t = move.tile;
+        const tilePoints = t.left + t.right;
 
+        // PRINCIPE 1 : Tuer les Cochons (sortir les lourds)
+        if (t.isDouble) {
+            score += tilePoints * 3.0;
+        } else {
+            score += tilePoints * 0.5;
+        }
+
+        // PRINCIPE 2 : Garder la Main (poser une valeur qu'on domine)
+        const nextOpenValue = move.side === 'left'
+            ? (t.left === ends.left ? t.right : t.left)
+            : (t.left === ends.right ? t.right : t.left);
+
+        const myCountOfOpenValue = (counts[nextOpenValue] || 0) - 1;
+        score += myCountOfOpenValue * 25;
+
+        // PRINCIPE 3 : Favoriser la clé dominante
         if (t.left === key || t.right === key) {
             score += 25;
         }
 
+        // PRINCIPE 4 : Protection du jeu (ne pas fermer sa propre clé)
         if (t.isDouble) {
             if (t.left === key && isStrongKey && maxCount >= 5) {
                 // Règle : Ne jamais commencer par un double si tu as une clé de 5 (tu te coupes)
@@ -142,6 +119,10 @@ export const getManXMove = (hand: Domino[], ends: { left: DominoSide | null; rig
                 score += 35;
             }
         }
+
+        // PRINCIPE 5 : Finisseur
+        if (hand.length === 1) score += 10000;
+
         score += Math.random() * 5;
         return { move, score };
     });
@@ -156,18 +137,16 @@ export const getManXMove = (hand: Domino[], ends: { left: DominoSide | null; rig
 export const getBotMove = (
     hand: Domino[],
     ends: { left: DominoSide | null; right: DominoSide | null } | null,
-    difficulty: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend'
+    difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN'
 ): ValidMove | null => {
     const validMoves = getValidMoves(hand, ends);
     if (validMoves.length === 0) return null;
 
-    if (difficulty === 'easy') return validMoves[Math.floor(Math.random() * validMoves.length)];
-
-    if (difficulty === 'medium') {
-        return [...validMoves].sort((a, b) => (b.tile.left + b.tile.right) - (a.tile.left + a.tile.right))[0];
+    if (difficulty === 'TI_MANMAY') {
+        return validMoves[Math.floor(Math.random() * validMoves.length)];
     }
 
-    if (difficulty === 'expert') {
+    if (difficulty === 'MAPIPI') {
         const scoredMoves = validMoves.map(move => {
             let score = 0;
             const tile = move.tile;
@@ -195,12 +174,8 @@ export const getBotMove = (
         return scoredMoves[0].move;
     }
 
-    if (difficulty === 'valou_legend') {
-        return getValouMove(hand, ends);
-    }
-
-    if (difficulty === 'legend') {
-        return getManXMove(hand, ends);
+    if (difficulty === 'GRAN_MOUN') {
+        return getGranMounMove(hand, ends);
     }
 
     return validMoves[0];

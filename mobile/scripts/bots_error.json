@@ -1,0 +1,6 @@
+{
+  "stack": "FirebaseError: Missing or insufficient permissions.",
+  "message": "Missing or insufficient permissions.",
+  "code": "permission-denied",
+  "name": "FirebaseError"
+}

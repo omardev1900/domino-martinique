@@ -9,6 +9,8 @@ import { authService } from '../src/core/services/auth.service';
 import SettingsManager, { BgmTheme } from '../src/core/SettingsManager';
 import SoundManager from '../src/core/audio/SoundManager';
 import { TABLE_THEMES, TableTheme } from '../src/core/themes/tableThemes';
+import { botService } from '../src/core/services/bot.service';
+import { Alert } from 'react-native';
 
 const THEME_OPTIONS: { theme: TableTheme; label: string; icon: string }[] = [
   { theme: 'classic', label: 'Classique', icon: '🟢' },
@@ -93,6 +95,23 @@ export default function ModalScreen() {
     await authService.logout();
     router.dismissAll();
     router.replace('/login');
+  };
+
+  const handleSeedDatabase = async () => {
+    Alert.alert(
+      "Peupler Firebase",
+      "Voulez-vous vraiment synchroniser les bots par défaut vers Firestore ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Oui, injecter",
+          onPress: async () => {
+            const count = await botService.seedDatabase();
+            Alert.alert("Succès", `${count} bots ajoutés à Firebase !`);
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -257,6 +276,10 @@ export default function ModalScreen() {
 
             {activeTab === 'account' && (
               <View style={styles.section}>
+                <TouchableOpacity style={[styles.logoutButton, { backgroundColor: 'rgba(76, 175, 80, 0.15)', borderColor: 'rgba(76, 175, 80, 0.3)', marginBottom: 20 }]} onPress={handleSeedDatabase}>
+                  <Text style={[styles.logoutText, { color: '#4CAF50' }]}>🤖 Peupler les Bots (Admin)</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                   <Text style={styles.logoutText}>🚪 Se déconnecter</Text>
                 </TouchableOpacity>

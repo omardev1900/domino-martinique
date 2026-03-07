@@ -13,7 +13,7 @@ import { TABLE_CONFIGS } from '../src/core/economy.constants';
 import { TableTier } from '../src/core/economy.types';
 import { EconomyHeader } from '../src/components/EconomyHeader';
 
-type Difficulty = 'easy' | 'medium' | 'expert' | 'legend';
+type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
 type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
 
 export default function SoloScreen() {
@@ -21,7 +21,7 @@ export default function SoloScreen() {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
 
-    const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+    const [difficulty, setDifficulty] = useState<Difficulty>('MAPIPI');
     const [gameMode, setGameMode] = useState<GameMode>('SCORE');
     const [winningCondition, setWinningCondition] = useState(6);
     const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
@@ -149,15 +149,13 @@ export default function SoloScreen() {
                         {/* Niveau */}
                         <View style={styles.optionGroup}>
                             <Text style={styles.optionLabel}>Niveau: <Text style={styles.diffValue}>{
-                                difficulty === 'easy' ? 'DÉBUTANT' :
-                                    difficulty === 'medium' ? 'NORMAL' :
-                                        difficulty === 'expert' ? 'EXPERT' : 'LÉGENDE'
+                                difficulty === 'TI_MANMAY' ? 'DÉBUTANT' :
+                                    difficulty === 'MAPIPI' ? 'NORMAL' : 'EXPERT'
                             }</Text></Text>
                             <View style={styles.optionRow}>
-                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'easy' && styles.activeDiffBtn]} onPress={() => setDifficulty('easy')}><Text style={[styles.compactIcon, difficulty === 'easy' && styles.activeCompactIcon]}>🌱</Text></TouchableOpacity>
-                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'medium' && styles.activeDiffBtn]} onPress={() => setDifficulty('medium')}><Text style={[styles.compactIcon, difficulty === 'medium' && styles.activeCompactIcon]}>🔥</Text></TouchableOpacity>
-                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'expert' && styles.activeDiffBtn]} onPress={() => setDifficulty('expert')}><Text style={[styles.compactIcon, difficulty === 'expert' && styles.activeCompactIcon]}>🦁</Text></TouchableOpacity>
-                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'legend' && styles.activeDiffBtn]} onPress={() => setDifficulty('legend')}><Text style={[styles.compactIcon, difficulty === 'legend' && styles.activeCompactIcon]}>👑</Text></TouchableOpacity>
+                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'TI_MANMAY' && styles.activeDiffBtn]} onPress={() => setDifficulty('TI_MANMAY')}><Text style={[styles.compactIcon, difficulty === 'TI_MANMAY' && styles.activeCompactIcon]}>🌱</Text></TouchableOpacity>
+                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'MAPIPI' && styles.activeDiffBtn]} onPress={() => setDifficulty('MAPIPI')}><Text style={[styles.compactIcon, difficulty === 'MAPIPI' && styles.activeCompactIcon]}>🔥</Text></TouchableOpacity>
+                                <TouchableOpacity style={[styles.diffBtn, difficulty === 'GRAN_MOUN' && styles.activeDiffBtn]} onPress={() => setDifficulty('GRAN_MOUN')}><Text style={[styles.compactIcon, difficulty === 'GRAN_MOUN' && styles.activeCompactIcon]}>🦁</Text></TouchableOpacity>
                             </View>
                         </View>
 

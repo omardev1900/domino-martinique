@@ -103,36 +103,30 @@ export const dealGame = (playerNames: string[], handSize: number = HAND_SIZE): P
 /**
  * Distribution pour Solo Mode : 3 joueurs (1 humain + 2 bots) x 7 dominos
  */
-export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'easy' | 'medium' | 'expert' | 'legend' = 'medium', handSize: number = HAND_SIZE): Partial<GameState> => {
+export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' = 'MAPIPI', handSize: number = HAND_SIZE): Partial<GameState> => {
     const deck = shuffleDeck();
 
     const getBots = (diff: string) => {
         switch (diff) {
-            case 'easy':
+            case 'TI_MANMAY':
                 return [
-                    { name: 'Chip_1', avatarId: 'Chip_1', diff: 'easy' },
-                    { name: 'Spark_2', avatarId: 'Spark_2', diff: 'medium' }
+                    { name: 'Ti-Sonson', avatarId: 'avatar_bot_01', diff: 'TI_MANMAY' },
+                    { name: 'Man-Yaya', avatarId: 'avatar_bot_02', diff: 'TI_MANMAY' }
                 ];
-            case 'medium':
+            case 'MAPIPI':
                 return [
-                    { name: 'Spark_2', avatarId: 'Spark_2', diff: 'medium' },
-                    { name: 'Atlas_3', avatarId: 'Atlas_3', diff: 'expert' }
+                    { name: 'Dédé', avatarId: 'avatar_bot_03', diff: 'MAPIPI' },
+                    { name: 'Maxime', avatarId: 'avatar_bot_04', diff: 'MAPIPI' }
                 ];
-            case 'expert':
+            case 'GRAN_MOUN':
                 return [
-                    { name: 'Atlas_3', avatarId: 'Atlas_3', diff: 'expert' },
-                    { name: 'Zenith_4', avatarId: 'Zenith_4', diff: 'legend' }
-                ];
-            case 'legend':
-            case 'valou_legend':
-                return [
-                    { name: 'Zenith_4', avatarId: 'Zenith_4', diff: 'legend' },
-                    { name: 'Zenith_4', avatarId: 'Zenith_4', diff: 'valou_legend' } // Note: fallback on same avatar
+                    { name: 'Tonton-Léon', avatarId: 'avatar_bot_05', diff: 'GRAN_MOUN' },
+                    { name: 'Eudorge', avatarId: 'avatar_bot_06', diff: 'GRAN_MOUN' }
                 ];
             default:
                 return [
-                    { name: 'Spark_2', avatarId: 'Spark_2', diff: 'medium' },
-                    { name: 'Atlas_3', avatarId: 'Atlas_3', diff: 'expert' }
+                    { name: 'Dédé', avatarId: 'avatar_bot_03', diff: 'MAPIPI' },
+                    { name: 'Maxime', avatarId: 'avatar_bot_04', diff: 'MAPIPI' }
                 ];
         }
     };

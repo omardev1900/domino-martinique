@@ -43,6 +43,7 @@ import { useGameEngine } from '../hooks/game/useGameEngine';
 import { statsService } from '../core/services/stats.service';
 import { economyService } from '../core/services/economy.service';
 import { storeService } from '../core/services/store.service';
+import { botService } from '../core/services/bot.service';
 import { RewardEngine } from '../core/RewardEngine';
 import { MatchReward, TableTier } from '../core/economy.types';
 import { SkinConfig } from '../core/store.types';
@@ -51,7 +52,7 @@ interface GameScreenProps {
     gameId?: string;
     userId?: string;
     mode?: 'solo' | 'multiplayer';
-    difficulty?: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend';
+    difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
     gameMode?: GameMode;
     winningCondition?: number;
     turnDuration?: number;
@@ -548,22 +549,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     // In solo mode, the game state is local-first; Firebase sync is best-effort.
     // In multiplayer, errors are re-thrown so they can be handled normally.
     // -------------------------------------------------------------------------
-    const getBotsForDifficulty = (diff: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend') => {
-        const configs = [
-            { name: 'Bot 1', avatarId: 'avatar_02', difficulty: diff },
-            { name: 'Bot 2', avatarId: 'avatar_03', difficulty: diff },
-            { name: 'Bot 3', avatarId: 'avatar_04', difficulty: diff }
-        ];
-        return configs;
-    };
 
     const startSoloGame = useCallback(async () => {
         if (isStarting) return;
         setIsStarting(true);
         try {
-            const botDifficulty = (difficulty || 'medium') as any;
-            const botConfigs = getBotsForDifficulty(botDifficulty);
-            const playerNames = [playerDisplayName, ...botConfigs.map(b => b.name)];
+            const botDifficulty = difficulty || 'MAPIPI';
+
+            // Fetch bot profiles from Firestore (or fallback)
+            const botProfiles = await botService.getBotsForLevel(botDifficulty, 2);
+            const playerNames = [playerDisplayName, ...botProfiles.map(b => b.name)];
 
             const fullState = dealGameSolo(
                 localPlayerId,
@@ -575,10 +570,14 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
             // Configure local player and bots avatars
             fullState.players[0].avatarId = playerAvatarId as AvatarId;
-            fullState.players[1].avatarId = botConfigs[0].avatarId as AvatarId;
+
+            fullState.players[1].name = botProfiles[0].name;
+            fullState.players[1].avatarId = botProfiles[0].avatarId as AvatarId;
             fullState.players[1].difficulty = botDifficulty;
+
             if (fullState.players.length > 2) {
-                fullState.players[2].avatarId = botConfigs[1].avatarId as AvatarId;
+                fullState.players[2].name = botProfiles[1].name;
+                fullState.players[2].avatarId = botProfiles[1].avatarId as AvatarId;
                 fullState.players[2].difficulty = botDifficulty;
             }
 
@@ -617,7 +616,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         try {
             const playerNames = roomData.players.map(p => p.displayName);
-            const botConfigs = getBotsForDifficulty(roomData.difficulty || 'medium');
+            const botDifficulty = (roomData.difficulty || 'MAPIPI') as any;
+            const botConfigs = await botService.getBotsForLevel(botDifficulty, 3);
             let botIndex = 0;
 
             while (playerNames.length < 3) {
@@ -890,7 +890,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 insets={insets}
                 onPlayDomino={handlePlayDomino}
                 isPaused={isPaused}
-                skinId={playerSkinId}
+                skinConfig={playerSkinConfig}
             />
 
             <GameOverlays

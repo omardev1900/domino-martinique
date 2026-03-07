@@ -13,7 +13,7 @@ import { getBotMove } from '../core/BotEngine';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
 
-export const useSoloGame = (userId: string, difficulty: 'beginner' | 'intermediate' = 'beginner') => {
+export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' = 'MAPIPI') => {
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [localPlayerId] = useState<PlayerId>(userId);
 

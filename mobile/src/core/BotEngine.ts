@@ -18,7 +18,7 @@ export const getBotMove = (
     hand: Domino[],
     leftValue: DominoSide | null,
     rightValue: DominoSide | null,
-    difficulty: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend' = 'medium'
+    difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' = 'MAPIPI'
 ): BotDecision | null => {
     // SECURITY: Ensure we are passing actual values or null, not an object
     if (typeof leftValue === 'object' && leftValue !== null) {
@@ -72,6 +72,6 @@ export const computeBotDecision = (gameState: GameState, playerId: string): BotD
         player.hand,
         gameState.table.leftValue,
         gameState.table.rightValue,
-        (player.difficulty as any) || 'medium'
+        (player.difficulty as any) || 'MAPIPI'
     );
 };

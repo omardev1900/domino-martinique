@@ -1,0 +1,15 @@
+﻿Starting to seed bots into Firestore...
+node.exe : Error seeding bots: [FirebaseError: Missing or insufficient 
+permissions.] {
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error seeding b...permissi 
+   ons.] {:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  code: 'permission-denied',
+  customData: undefined,
+  toString: [Function (anonymous)]
+}

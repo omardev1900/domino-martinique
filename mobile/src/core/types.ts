@@ -36,7 +36,7 @@ export interface Player {
     isCochon: boolean;
     totalCochons: number;
     isBot: boolean;
-    difficulty?: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend'; // NEW: Niveau spécifique du bot
+    difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN'; // NEW: Niveau spécifique du bot
     isDisconnected?: boolean; // NEW: Track if remote player is offline
 }
 
@@ -119,7 +119,7 @@ export interface GameRoom {
     gameMode?: GameMode; // NEW: Mode de jeu choisi par l'hôte
     winningCondition?: number; // Condition de victoire
     turnDuration?: number; // NEW: Durée du tour
-    difficulty?: 'easy' | 'medium' | 'expert' | 'legend' | 'valou_legend'; // NEW: Difficulté des bots
+    difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN'; // NEW: Difficulté des bots
     startingHandSize?: number;
     quickChats?: { [playerId: string]: { content: string; timestamp: number } | null }; // NEW: Decoupled chat
 }
