@@ -339,7 +339,6 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
                         return (
                             <View
                                 key={item.domino.id}
-                                ref={(el) => (tileRefs.current[item.domino.id] = el as any)}
                                 style={[
                                     styles.tileAbsolute,
                                     {
@@ -351,16 +350,21 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
                                     isHidden && { opacity: 0 },
                                 ]}
                             >
-                                <DominoTile
-                                    left={item.visualFlip ? logicalRight : logicalLeft}
-                                    right={item.visualFlip ? logicalLeft : logicalRight}
-                                    orientation={item.orientation}
-                                    size={T}
-                                    disabled
-                                    noMargin
-                                    entering={FadeIn.delay(idx * 30).duration(300)}
-                                    skinConfig={skinConfig}
-                                />
+                                <View
+                                    ref={(el) => (tileRefs.current[item.domino.id] = el as any)}
+                                    style={StyleSheet.absoluteFill}
+                                >
+                                    <DominoTile
+                                        left={item.visualFlip ? logicalRight : logicalLeft}
+                                        right={item.visualFlip ? logicalLeft : logicalRight}
+                                        orientation={item.orientation}
+                                        size={T}
+                                        disabled
+                                        noMargin
+                                        entering={FadeIn.delay(idx * 30).duration(300)}
+                                        skinConfig={skinConfig}
+                                    />
+                                </View>
                             </View>
                         );
                     })}

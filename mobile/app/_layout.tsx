@@ -52,6 +52,13 @@ export default function RootLayout() {
         console.warn(e);
       } finally {
         setAppReady(true);
+        // FORCE HIDE: If the app is ready, don't wait for onLayout
+        // which might never fire if the first render has issues.
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          console.warn('Splash hide failed:', e);
+        }
       }
     }
     prepare();

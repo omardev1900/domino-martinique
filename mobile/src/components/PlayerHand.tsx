@@ -58,27 +58,30 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                     const canPlayByBoardRule = !disabled && checkValidMove(domino, leftValue, rightValue).canPlay;
                     const canPlay = canPlayByBoardRule && (!forcedPlayableDominoId || domino.id === forcedPlayableDominoId);
                     return (
-                        <Animated.View
+                        <View
                             key={domino.id}
                             ref={(el) => (tileRefs.current[domino.id] = el as any)}
-                            style={[
-                                styles.tileWrapper,
-                                canPlay ? { transform: [{ translateY: -25 }], zIndex: 10, elevation: 15 } : { opacity: 0.6, transform: [{ scale: 0.95 }], zIndex: 1, elevation: 5 },
-                            ]}
-                            layout={LinearTransition.springify()}
                         >
-                            <DominoTile
-                                left={domino.left}
-                                right={domino.right}
-                                size={45}
-                                orientation="vertical"
-                                onPress={() => handleTilePress(domino)}
-                                disabled={!canPlay || disabled}
+                            <Animated.View
                                 entering={FadeInDown.springify().damping(12).stiffness(100).delay(index * 120)}
-                                skinConfig={skinConfig}
-                                isPlayable={canPlay}
-                            />
-                        </Animated.View>
+                                // 🚨 RADICAL FIX: On retire 'layout' car il cause des mutations sur objets gelés en React 19
+                                style={[
+                                    styles.tileWrapper,
+                                    canPlay ? { transform: [{ translateY: -25 }], zIndex: 10, elevation: 15 } : { opacity: 0.6, transform: [{ scale: 0.95 }], zIndex: 1, elevation: 5 },
+                                ]}
+                            >
+                                <DominoTile
+                                    left={domino.left}
+                                    right={domino.right}
+                                    size={45}
+                                    orientation="vertical"
+                                    onPress={() => handleTilePress(domino)}
+                                    disabled={!canPlay || disabled}
+                                    skinConfig={skinConfig}
+                                    isPlayable={canPlay}
+                                />
+                            </Animated.View>
+                        </View>
                     );
                 })}
             </ScrollView>

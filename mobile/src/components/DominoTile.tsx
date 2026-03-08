@@ -30,6 +30,8 @@ const DOT_POSITIONS: Record<number, number[][]> = {
     6: [[0.25, 0.25], [0.25, 0.5], [0.25, 0.75], [0.75, 0.25], [0.75, 0.5], [0.75, 0.75]],
 };
 
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
 export const DominoTile: React.FC<DominoTileProps> = ({
     left,
     right,
@@ -141,7 +143,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
 
     return (
         <Animated.View entering={entering || ZoomIn.duration(400)} style={{ opacity: disabled ? 0.9 : 1 }}>
-            <TouchableOpacity
+            <AnimatedTouchableOpacity
                 activeOpacity={0.9}
                 onPress={onPress}
                 onPressIn={handlePressIn}
@@ -197,7 +199,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
 
                 {/* Bevel Overlay for 3D look */}
                 <View style={styles.bevelOverlay} pointerEvents="none" />
-            </TouchableOpacity>
+            </AnimatedTouchableOpacity>
         </Animated.View>
     );
 };
