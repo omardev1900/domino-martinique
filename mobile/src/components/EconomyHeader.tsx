@@ -128,17 +128,17 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: 'rgba(0,0,0,0.35)',
         borderRadius: 20,
         paddingHorizontal: 12,
-        paddingVertical: 5,
+        height: 32, // Hauteur fixe pour éviter le crop et assurer l'uniformité
         borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.25)',
         gap: 6,
     },
     pillIcon: {
         fontSize: 14,
-        lineHeight: 18,
     },
     pillValue: {
         fontSize: 14,

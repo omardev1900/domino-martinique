@@ -128,7 +128,9 @@ const styles = StyleSheet.create({
     },
     sideSelectionContainer: {
         flexDirection: 'row',
-        gap: 20,
+        justifyContent: 'space-between',
+        width: '100%',
+        paddingHorizontal: '20%',
         marginBottom: 20, // ++ increased from 10 to give more space from system nav
     },
     sideButton: {
