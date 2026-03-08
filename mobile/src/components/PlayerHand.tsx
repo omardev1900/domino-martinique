@@ -73,7 +73,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                                 <DominoTile
                                     left={domino.left}
                                     right={domino.right}
-                                    size={45}
+                                    size={34}
                                     orientation="vertical"
                                     onPress={() => handleTilePress(domino)}
                                     disabled={!canPlay || disabled}

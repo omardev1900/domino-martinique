@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     },
     actionButtonsContainer: {
         alignItems: 'center',
-        paddingBottom: 20,
+        paddingBottom: 25, // ++ increased from 20
     },
     passButton: {
         backgroundColor: '#c0392b',
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.4,
         shadowRadius: 5,
-        marginBottom: 10,
+        marginBottom: 15, // ++ increased from 10
     },
     passButtonText: {
         color: '#fff',
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     sideSelectionContainer: {
         flexDirection: 'row',
         gap: 20,
-        marginBottom: 10,
+        marginBottom: 20, // ++ increased from 10 to give more space from system nav
     },
     sideButton: {
         paddingHorizontal: 20,

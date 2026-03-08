@@ -2,7 +2,7 @@ import React, { useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, useWindowDimensions, TouchableOpacity } from 'react-native';
 import Animated, {
     useAnimatedStyle, useSharedValue,
-    FadeIn, ZoomIn, withRepeat, withTiming, withSequence
+    ZoomIn, withRepeat, withTiming, withSequence
 } from 'react-native-reanimated';
 import { GameState, Domino } from '../core/types';
 import { DominoTile } from './DominoTile';
@@ -48,7 +48,6 @@ interface GameTableProps {
     theme?: TableTheme;
     pendingDomino?: Domino | null;
     onSideSelect?: (side: 'left' | 'right') => void;
-    hiddenDominoId?: string | null;
     skinConfig?: SkinConfig; // Cosmetic skin configuration
 }
 
@@ -239,7 +238,7 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
 //  COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
-    { gameState, pendingDomino, onSideSelect, hiddenDominoId, skinConfig },
+    { gameState, pendingDomino, onSideSelect, skinConfig },
     ref
 ) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -333,7 +332,6 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
                 ]}>
                     {/* DOMINO TILES */}
                     {placedTiles.map((item, idx) => {
-                        const isHidden = item.domino.id === hiddenDominoId;
                         const logicalLeft = item.isReversed ? item.domino.right : item.domino.left;
                         const logicalRight = item.isReversed ? item.domino.left : item.domino.right;
                         return (
@@ -347,7 +345,6 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
                                         width: item.width,
                                         height: item.height,
                                     },
-                                    isHidden && { opacity: 0 },
                                 ]}
                             >
                                 <View
@@ -361,7 +358,6 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
                                         size={T}
                                         disabled
                                         noMargin
-                                        entering={FadeIn.delay(idx * 30).duration(300)}
                                         skinConfig={skinConfig}
                                     />
                                 </View>

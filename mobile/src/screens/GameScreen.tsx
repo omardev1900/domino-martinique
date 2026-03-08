@@ -122,15 +122,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     // -- 5. The Façade Game Engine --
     const onTilePlayedEffect = (tile: Domino) => {
-        if (!gameState?.currentPlayerId) return;
-        const pId = gameState.currentPlayerId;
-        const avatarRef = avatarRefs.current[pId];
-        if (avatarRef) {
-            avatarRef.measure((_x, _y, _width, _height, pageX, pageY) => {
-                lastPlayStartPos.current = { x: pageX, y: pageY };
-                setHiddenDominoId(tile.id);
-            });
-        }
+        // RADICAL: Animation de vol supprimée
     };
 
     const handleReplay = async () => {
@@ -704,11 +696,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     // These are already extracted into useGameEngine and useGameSync
 
     const wrappedHandlePlayDomino = useCallback(
-        (domino: Domino, pos?: { x: number, y: number }) => {
-            if (pos) {
-                lastPlayStartPos.current = pos;
-                setHiddenDominoId(domino.id); // Trigger flying domino
-            }
+        (domino: Domino) => {
             handlePlayDomino(domino);
         },
         [handlePlayDomino]
@@ -724,38 +712,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     }, [gameState?.phase, matchReward, handleOverlayContinue]);
 
-    // Effect to trigger flying animation when a domino is added to the table
-    useEffect(() => {
-        if (!hiddenDominoId || !gameState) return;
-
-        // Give a tiny bit of time for GameTable to render the invisible tile in its new position
-        const timeout = setTimeout(() => {
-            const dominoOnTable = gameState.table.sequence.find(s => s.domino.id === hiddenDominoId);
-            if (!dominoOnTable) {
-                setHiddenDominoId(null);
-                return;
-            }
-
-            const startPos = lastPlayStartPos.current;
-            if (!startPos) {
-                setHiddenDominoId(null);
-                return;
-            }
-
-            tableRef.current?.measureTile(hiddenDominoId, (x, y, width, height) => {
-                setFlyingDomino({
-                    domino: dominoOnTable.domino,
-                    startPoint: startPos,
-                    endPoint: { x, y },
-                    orientation: dominoOnTable.domino.isDouble ? 'vertical' : 'horizontal',
-                    isReversed: dominoOnTable.isReversed
-                });
-                lastPlayStartPos.current = null; // Clear after use
-            });
-        }, 50);
-
-        return () => clearTimeout(timeout);
-    }, [hiddenDominoId, gameState?.table.sequence.length]);
 
 
 
@@ -854,20 +810,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     theme={tableTheme}
                     pendingDomino={pendingDomino}
                     onSideSelect={pendingDomino ? confirmSidePlay : undefined}
-                    hiddenDominoId={hiddenDominoId}
                     skinConfig={playerSkinConfig}
                 />
-
-                {flyingDomino && (
-                    <FlyingDomino
-                        data={flyingDomino}
-                        onFinished={() => {
-                            setFlyingDomino(null);
-                            setHiddenDominoId(null);
-                        }}
-                    />
-                )}
-
                 <PlayerArea
                     opponents={opponents}
                     localPlayer={localPlayer as any}
