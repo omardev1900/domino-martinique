@@ -101,6 +101,7 @@ export interface PlayerProfile {
     leaguePoints?: number;   // 🐷 Cochons totaux (alias de totalCochonsInflicted)
     leagueGrade?: string;    // Grade de ligue ('APPRENTI' | 'MAITRE' | 'ROI' | 'LEGENDE')
     inventory?: PlayerInventory; // Cosmétiques possédés et équipés
+    hasBeenDebited?: boolean; // NEW: Persistant buy-in check
 }
 
 export interface GameRoom {

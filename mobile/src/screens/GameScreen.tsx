@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, SafeAreaView, useWindowDimensions, Image, Platform, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn, ZoomIn, FadeOut } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn, ZoomIn, FadeOut, FadeInUp } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -25,7 +25,7 @@ import { RewardOverlay } from '../components/RewardOverlay';
 import { determineFirstPlayer, dealGameSolo, getForcedOpeningDominoId, dealGame } from '../core/LogicEngine';
 import { getValidMoves } from '../core/DominoEngine';
 import { GameState, Player, PlayerId, GamePhase, Domino, GameRoom, GameMode } from '@/core/types';
-import { leaveRoom, startGame, clearRematchVotes, updatePlayerChat, resetRoomToLobby } from '../core/services/firebase';
+import { leaveRoom, startGame, clearRematchVotes, updatePlayerChat, resetRoomToLobby, markPlayerAsDebited } from '../core/services/firebase';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
 import { HAND_SIZE } from '../core/constants';
@@ -46,6 +46,7 @@ import { storeService } from '../core/services/store.service';
 import { botService } from '../core/services/bot.service';
 import { RewardEngine } from '../core/RewardEngine';
 import { MatchReward, TableTier } from '../core/economy.types';
+import { TABLE_CONFIGS } from '../core/economy.constants';
 import { SkinConfig } from '../core/store.types';
 
 interface GameScreenProps {
@@ -97,6 +98,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     const [timeLeftState, setTimeLeftState] = useState<number | null>(null);
     const [overtimeState, setOvertimeState] = useState<number | null>(null);
+
+    const hasBeenDebited = useRef(false);
+    const [debitFeedback, setDebitFeedback] = useState<string | null>(null);
 
     const isLocalHost = isSoloMode || (roomData?.players[0]?.uid === localPlayerId);
 
@@ -448,6 +452,41 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     }, [gameState?.roundNumber, gameState?.mancheNumber]);
 
     // Audio & Firebase Subscription
+    // Buy-in Deduction (Delayed)
+    useEffect(() => {
+        if (isSoloMode || !gameId || !gameState || gameState.phase !== 'PLAYING') return;
+        if (hasBeenDebited.current) return;
+
+        const deductBuyInAction = async () => {
+            const tableConfig = TABLE_CONFIGS[activeTableTier];
+            if (!tableConfig || tableConfig.buyIn <= 0) return;
+
+            // PERSISTENCE CHECK: Check if Firestore already knows we were debited
+            const meInRoom = roomData?.players.find(p => p.uid === localPlayerId);
+            if (meInRoom?.hasBeenDebited) {
+                console.log("[ECONOMY] Player already debited (found in Firestore), skipping.");
+                hasBeenDebited.current = true;
+                return;
+            }
+
+            console.log(`[ECONOMY] Deducting buy-in of ${tableConfig.buyIn} for room ${gameId}`);
+            const success = await economyService.deductBuyIn(tableConfig.buyIn, localPlayerId);
+
+            if (success) {
+                hasBeenDebited.current = true;
+                await markPlayerAsDebited(gameId, localPlayerId);
+                setDebitFeedback(`-${tableConfig.buyIn} 🪙`);
+                setTimeout(() => setDebitFeedback(null), 2500);
+            } else {
+                console.error("[ECONOMY] Failed to deduct buy-in at game start!");
+            }
+        };
+
+        // Only guests deduct here. Host deducts in handleStartGame for atomic transition.
+        if (!isLocalHost) {
+            deductBuyInAction();
+        }
+    }, [gameState?.phase, isLocalHost, isSoloMode, gameId, activeTableTier, localPlayerId]);
     useEffect(() => {
         // Preload sounds
         SoundManager.preloadSounds();
@@ -604,6 +643,23 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const handleStartGame = async () => {
         SoundManager.unlockAudio();
         if (!gameId || !roomData) return;
+
+        // 1. Débit immédiat pour l'hôte
+        const tableConfig = TABLE_CONFIGS[activeTableTier];
+        const meInRoom = roomData.players.find(p => p.uid === localPlayerId);
+
+        if (tableConfig && tableConfig.buyIn > 0 && !hasBeenDebited.current && !meInRoom?.hasBeenDebited) {
+            const success = await economyService.deductBuyIn(tableConfig.buyIn, localPlayerId);
+            if (!success) {
+                Alert.alert("Solde insuffisant", "Vous n'avez plus assez de coins pour lancer cette table.");
+                return;
+            }
+            hasBeenDebited.current = true;
+            await markPlayerAsDebited(gameId, localPlayerId);
+            setDebitFeedback(`-${tableConfig.buyIn} 🪙`);
+            setTimeout(() => setDebitFeedback(null), 2500);
+        }
+
         setIsStarting(true);
 
         try {
@@ -785,6 +841,27 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 />
 
                 <StatusBar barStyle="light-content" translucent />
+
+                {debitFeedback && (
+                    <Animated.View
+                        entering={FadeInUp}
+                        exiting={FadeOut}
+                        style={{
+                            position: 'absolute',
+                            top: insets.top + 60,
+                            alignSelf: 'center',
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            paddingHorizontal: 20,
+                            paddingVertical: 10,
+                            borderRadius: 20,
+                            zIndex: 9999,
+                            borderWidth: 1,
+                            borderColor: '#FFD700',
+                        }}
+                    >
+                        <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 18 }}>{debitFeedback}</Text>
+                    </Animated.View>
+                )}
 
                 <GameHeader
                     gameState={gameState}

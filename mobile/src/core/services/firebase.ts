@@ -249,39 +249,60 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
         // ROBUST REMOVAL: Filter out by UID explicitly
         const updatedPlayers = roomData.players.filter(p => p.uid !== userId);
 
-        // 1. If room is empty, delete it (Ghost Room Fix)
+        // 1. If room empty, delete it
         if (updatedPlayers.length === 0) {
+            console.log("Room empty, deleting: ", roomId);
             await deleteDoc(roomRef);
-            console.log(`Room ${roomId} deleted (empty)`);
             return;
         }
 
-        // 2. If Host left, reassign host or close room
-        // Check if the player leaving was the host
-        if (playerToRemove?.isHost) {
-            // Reassign host to the next player (first in the list)
-            if (updatedPlayers.length > 0) {
-                updatedPlayers[0].isHost = true;
-                console.log(`Host left. New host assigned: ${updatedPlayers[0].displayName}`);
-            }
+        // 2. If Host left, reassign host
+        if (playerToRemove?.isHost && updatedPlayers.length > 0) {
+            updatedPlayers[0].isHost = true;
+            console.log(`Host left. New host assigned: ${updatedPlayers[0].displayName}`);
         }
 
-        // Force update of players list
-        // Note: Persistence ensures this will sync even if currently offline
         await updateDoc(roomRef, {
-            players: updatedPlayers
+            players: updatedPlayers,
+            lastActivity: Date.now()
         });
+
         console.log(`Player ${userId} left room ${roomId}`);
+
     } catch (e: any) {
         // Specifically check for offline error to log a cleaner message
         if (e.code === 'unavailable' || (e.message && e.message.includes('offline'))) {
             console.warn(`[Firebase] User leaving room while offline. Move queued for sync.`, roomId);
             return;
         }
+        console.error("Error leaving room:", e);
+    }
+};
 
-        console.error("Error leaving room (swallowed for safety):", e);
-        // We swallow the error here because the UI should still proceed to home
-        // even if Firestore update fails (e.g. room already deleted by host)
+/**
+ * Mark a player as debited in the room document for persistence
+ */
+export const markPlayerAsDebited = async (roomId: string, userId: string): Promise<void> => {
+    if (!roomId || !userId) return;
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    try {
+        await runTransaction(db, async (transaction) => {
+            const roomSnap = await transaction.get(roomRef);
+            if (!roomSnap.exists()) return;
+
+            const roomData = roomSnap.data() as GameRoom;
+            const updatedPlayers = roomData.players.map(p => {
+                if (p.uid === userId) {
+                    return { ...p, hasBeenDebited: true };
+                }
+                return p;
+            });
+
+            transaction.update(roomRef, { players: updatedPlayers });
+        });
+        console.log(`✅ Player ${userId} marked as debited in room ${roomId}`);
+    } catch (e) {
+        console.error("Error marking player as debited: ", e);
     }
 };
 

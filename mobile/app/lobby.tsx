@@ -179,37 +179,31 @@ export default function LobbyScreen() {
     };
 
     /**
-     * Vérifie le solde et débite le buy-in avant le lancement.
-     * Anti-Quit : débit immédiat, avant toute navigation.
+     * Vérifie uniquement si le solde est suffisant sans débiter.
+     * Le débit réel se fera au lancement de la partie dans GameScreen.
      * @returns true si OK, false si solde insuffisant
      */
-    const checkAndDeductBuyIn = async (): Promise<boolean> => {
+    const checkBalanceOnly = async (): Promise<boolean> => {
         const tableConfig = TABLE_CONFIGS[tableTier];
         if (tableConfig.buyIn <= 0) return true;
 
-        const success = await economyService.deductBuyIn(
-            tableConfig.buyIn,
-            currentUser?.uid
-        );
+        const economy = await economyService.getEconomy();
+        const hasEnough = economy.coins >= tableConfig.buyIn;
 
-        if (!success) {
+        if (!hasEnough) {
             Alert.alert(
                 'Coins insuffisants 🪙',
                 `Il vous faut ${tableConfig.buyIn} coins pour la ${tableConfig.label}.`,
                 [{ text: 'OK', style: 'cancel' }]
             );
-        } else {
-            setDebitFeedback(`-${tableConfig.buyIn} 🪙`);
-            setEconomyRefresh(v => v + 1);
-            setTimeout(() => setDebitFeedback(null), 1800);
         }
-        return success;
+        return hasEnough;
     };
 
     const handleCreateRoom = async () => {
         if (!requireAccountForMultiplayer()) return;
         if (!currentUser) return;
-        if (!await checkAndDeductBuyIn()) return; // ❌ Solde insuffisant
+        if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
             const options: RoomOptions = { gameMode, winningCondition, turnDuration, startingHandSize };
@@ -220,11 +214,9 @@ export default function LobbyScreen() {
                 undefined,
                 options
             );
-            // ✅ Buy-in débité, naviguer vers la partie
+            // ✅ Navigation vers la salle (le débit se fera au Start)
             router.push({ pathname: '/game/[id]', params: { id: newRoomId, userId: currentUser.uid, tableTier } });
         } catch (error) {
-            // Buy-in remboursé en cas d'échec de création de salle
-            economyService.deductBuyIn(-(TABLE_CONFIGS[tableTier].buyIn), currentUser.uid).catch(() => { });
             Alert.alert('Erreur', 'Impossible de créer la table.');
         } finally {
             setLoading(false);
@@ -234,7 +226,7 @@ export default function LobbyScreen() {
     const handleJoinRoom = async () => {
         if (!requireAccountForMultiplayer()) return;
         if (!roomIdToJoin.trim() || !currentUser) return;
-        if (!await checkAndDeductBuyIn()) return; // ❌ Solde insuffisant
+        if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
             await joinRoom(roomIdToJoin.trim(), currentUser);
@@ -249,7 +241,7 @@ export default function LobbyScreen() {
     const handleJoinPublicRoom = async (roomId: string) => {
         if (!requireAccountForMultiplayer()) return;
         if (!currentUser) return;
-        if (!await checkAndDeductBuyIn()) return; // ❌ Solde insuffisant
+        if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
             await joinRoom(roomId, currentUser);
