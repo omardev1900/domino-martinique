@@ -255,9 +255,9 @@ const styles = StyleSheet.create({
     },
     infoCardCode: {
         color: '#FFFFFF',
-        fontSize: 24,
+        fontSize: 18,
         fontWeight: '900',
-        letterSpacing: 4,
+        letterSpacing: 2,
     },
     infoCardDivider: {
         width: '100%',

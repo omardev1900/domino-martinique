@@ -39,19 +39,6 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
 
     return (
         <View style={[styles.unifiedHeader, { top: Math.max(insets.top, 10) }]} testID="game-header">
-            {/* Block 1: Game Mode + Objective */}
-            <View style={styles.headerBadge}>
-                <Text style={styles.headerText}>
-                    {gameState.gameMode === 'MANCHE' ? '🏆 Manche' : gameState.gameMode === 'SCORE' ? '🎯 Score' : '🐷 Cochon'}
-                    {' · Obj: '}
-                    {gameState.gameMode === 'MANCHE'
-                        ? `${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
-                        : gameState.gameMode === 'SCORE'
-                            ? `${gameState.winningCondition} pts`
-                            : `${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
-                    }
-                </Text>
-            </View>
 
             {/* Block 2: Manche + Round */}
             <View style={styles.headerBadge}>
@@ -62,6 +49,21 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
 
             {/* Block 3: Controls Icons */}
             <View style={styles.headerControls}>
+                {Platform.OS === 'web' && (
+                    <TouchableOpacity
+                        onPress={onToggleFullscreen}
+                        activeOpacity={0.7}
+                        style={styles.controlBtn}
+                        testID="btn-fullscreen"
+                    >
+                        <Ionicons
+                            name={isFullscreen ? "contract-outline" : "expand-outline"}
+                            size={24}
+                            color="#FFD700"
+                        />
+                    </TouchableOpacity>
+                )}
+
                 {isSoloMode ? (
                     <TouchableOpacity
                         onPress={onTogglePause}
