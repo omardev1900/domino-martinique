@@ -8,11 +8,11 @@ interface HighestDoubleInfo {
 }
 
 const isVeryFirstTurnOfMatch = (gameState: GameState): boolean => {
-    const isFirstRoundOfFirstManche = gameState.roundNumber === 1 && gameState.mancheNumber === 1;
+    const isFirstRoundOfManche = gameState.roundNumber === 1;
     const isTableEmpty = gameState.table.sequence.length === 0
         && gameState.table.leftValue === null
         && gameState.table.rightValue === null;
-    return isFirstRoundOfFirstManche && isTableEmpty;
+    return isFirstRoundOfManche && isTableEmpty;
 };
 
 const findHighestDouble = (players: Player[]): HighestDoubleInfo | null => {

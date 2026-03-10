@@ -350,6 +350,25 @@ export const resetRoomToLobby = async (roomId: string): Promise<void> => {
 };
 
 /**
+ * Marks a room as finished (match ended)
+ * @param roomId 
+ */
+export const markRoomAsFinished = async (roomId: string): Promise<void> => {
+    if (!roomId) return;
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    try {
+        await updateDoc(roomRef, {
+            status: RoomStatus.FINISHED,
+            lastActivity: Date.now()
+        });
+        console.log(`✅ Room ${roomId} marked as FINISHED`);
+    } catch (e) {
+        console.error("Error marking room as finished: ", e);
+        throw e;
+    }
+};
+
+/**
  * Updates the game state (sync moves)
  * @param roomId 
  * @param newGameState 
@@ -467,6 +486,45 @@ export const subscribeToRoom = (
         console.error("Room subscription error:", error);
         if (onError) onError(error);
     });
+};
+
+/**
+ * Checks if the user is already hosting a WAITING room.
+ * Used to prevent a host from creating duplicate tables.
+ * @param userId The user ID to check
+ * @returns The roomId of the hosted waiting room, or null
+ */
+export const findHostedWaitingRoom = async (userId: string): Promise<string | null> => {
+    try {
+        const q = query(
+            collection(db, ROOMS_COLLECTION),
+            where("createdBy", "==", userId),
+            where("status", "==", RoomStatus.WAITING)
+        );
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null;
+
+        const TEN_MINUTES = 10 * 60 * 1000;
+        const now = Date.now();
+
+        for (const roomDoc of snapshot.docs) {
+            const roomData = roomDoc.data() as GameRoom;
+            const lastSeen = roomData.lastActivity || roomData.createdAt || 0;
+            const isStale = (now - lastSeen) > TEN_MINUTES;
+
+            if (isStale) {
+                // Nettoyage automatique : room abandonnée (app fermée avant démarrage)
+                await deleteDoc(roomDoc.ref);
+                console.log(`🧹 Stale hosted room deleted: ${roomDoc.id}`);
+            } else {
+                return roomDoc.id; // Room récente → bloquer la création
+            }
+        }
+        return null; // Toutes les rooms trouvées étaient abandonnées
+    } catch (e) {
+        console.error("Error finding hosted waiting room:", e);
+        return null; // Fail-open : autoriser la création en cas d'erreur
+    }
 };
 
 /**

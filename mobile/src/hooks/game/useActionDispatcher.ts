@@ -102,6 +102,7 @@ export const useActionDispatcher = ({
                     break;
                 }
                 case 'NEXT_ROUND': {
+                    if (!isLocalHost) break; // Seul l'hôte pilote la transition
                     const activeState = command.stateOverride || gameState;
                     newState = computeNextRoundState(activeState, startingHandSize);
 
@@ -112,12 +113,15 @@ export const useActionDispatcher = ({
                     break;
                 }
                 case 'RESOLVE_BOUDE': {
+                    if (!isLocalHost) break; // Seul l'hôte pilote la transition
                     if (gameState.phase !== 'BOUDE') break;
                     const { newState: resolvedState, isTie } = resolveBoude(gameState);
                     if (isTie) {
-                        // ACTION ATOMIQUE : En cas d'égalité, on re-deal immédiatement
-                        // pour éviter le deadlock du verrou (cycle interne).
-                        newState = computeNextRoundState(resolvedState, startingHandSize);
+                        // TIE = même manche, étoiles inchangées, nouveau round (nouvelle donne)
+                        // On force la phase à PARTIE_END pour que computeNextRoundState
+                        // préserve les étoiles et ne change pas le mancheNumber.
+                        const stateForRedeal = { ...resolvedState, phase: 'PARTIE_END' as GamePhase };
+                        newState = computeNextRoundState(stateForRedeal, startingHandSize);
                     } else {
                         newState = resolvedState;
                     }

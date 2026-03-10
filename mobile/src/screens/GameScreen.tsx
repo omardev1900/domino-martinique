@@ -25,7 +25,7 @@ import { RewardOverlay } from '../components/RewardOverlay';
 import { determineFirstPlayer, dealGameSolo, getForcedOpeningDominoId, dealGame } from '../core/LogicEngine';
 import { getValidMoves } from '../core/DominoEngine';
 import { GameState, Player, PlayerId, GamePhase, Domino, GameRoom, GameMode } from '@/core/types';
-import { leaveRoom, startGame, clearRematchVotes, updatePlayerChat, resetRoomToLobby, markPlayerAsDebited } from '../core/services/firebase';
+import { leaveRoom, startGame, clearRematchVotes, updatePlayerChat, resetRoomToLobby, markPlayerAsDebited, markRoomAsFinished } from '../core/services/firebase';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
 import { HAND_SIZE } from '../core/constants';
@@ -145,7 +145,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     Alert.alert("Erreur", "Impossible de réinitialiser la salle : " + e.message);
                 }
             } else {
-                Alert.alert("Attente", "Seul l'hôte peut ramener tout le monde au lobby.");
+                // Non-hôte : quitter directement sans bloquer
+                handleLeaveRoom();
             }
         }
     };
@@ -233,6 +234,20 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }, 5000);
     }, []);
 
+    // Synchronise les messages chat des adversaires depuis Firebase
+    useEffect(() => {
+        if (!roomData?.quickChats || isSoloMode) return;
+        Object.entries(roomData.quickChats).forEach(([pId, chatData]) => {
+            if (pId === localPlayerId) return;
+            if (!chatData?.content) return;
+            const lastSeen = lastSeenChatTimestamps.current[pId] ?? 0;
+            if (chatData.timestamp > lastSeen) {
+                lastSeenChatTimestamps.current[pId] = chatData.timestamp;
+                triggerOpponentChat(pId, chatData.content);
+            }
+        });
+    }, [roomData?.quickChats]);
+
     // Fullscreen API (web only)
     useEffect(() => {
         if (Platform.OS !== 'web') return;
@@ -293,6 +308,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     }, []);
 
     // -- stats & economy recording effect --
+    // Mark room as FINISHED when match ends (Multiplayer only)
+    useEffect(() => {
+        if (!isSoloMode && gameId && isLocalHost && gameState?.phase === 'MATCH_END') {
+            console.log(`[GameScreen] Match ended, marking room ${gameId} as FINISHED`);
+            markRoomAsFinished(gameId).catch(err => {
+                console.error("Error marking room as finished", err);
+            });
+        }
+    }, [gameState?.phase, isSoloMode, gameId, isLocalHost]);
+
     useEffect(() => {
         if (gameState?.phase === 'MATCH_END' && !statsRecordedRef.current) {
             const localPlayer = gameState.players.find(p => p.id === localPlayerId);
@@ -413,12 +438,32 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }, [isSoloMode])
     );
 
-    // Automatically show scoreboard when a round/manche/match ends or game is blocked
+    // Automatically show scoreboard when a round/manche/match ends (Excluding BOUDE for intro delay)
     useEffect(() => {
         if (!gameState) return;
-        const endPhases: GamePhase[] = ['PARTIE_END', 'MANCHE_END', 'MATCH_END', 'BOUDE'];
+        const endPhases: GamePhase[] = ['PARTIE_END', 'MANCHE_END', 'MATCH_END'];
         setShowScoreboard(endPhases.includes(gameState.phase));
     }, [gameState?.phase]);
+
+    // Handle BOUDE phase: automatically proceed after 5 seconds (Host only)
+    useEffect(() => {
+        if (gameState?.phase === 'BOUDE' && isLocalHost) {
+            const timer = setTimeout(() => {
+                handleOverlayContinue();
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [gameState?.phase, isLocalHost, handleOverlayContinue]);
+
+    // Auto-redirect non-hôtes quand l'hôte reset la room après le match
+    useEffect(() => {
+        if (isSoloMode || isLocalHost) return;
+        if (!roomData) return;
+        const hostReset = roomData.status === 'WAITING' && !roomData.gameState;
+        if (hostReset && gameState?.phase === 'MATCH_END') {
+            handleLeaveRoom();
+        }
+    }, [roomData?.status, roomData?.gameState]);
 
     // Show Round/Manche Banner when a new round starts
     useEffect(() => {
@@ -734,12 +779,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const handleLeaveRoom = useCallback(() => {
         console.log("[QUIT] handleLeaveRoom called. isSoloMode:", isSoloMode, "gameId:", gameId);
 
-        // 1. Navigate FIRST — using router.back() as requested instead of replace
-        if (router.canGoBack()) {
-            router.back();
-        } else {
-            router.replace('/home');
-        }
+        // 1. Navigate FIRST — Force redirect to /home for all players
+        router.replace('/home');
 
         // 2. Cleanup AFTER navigation is triggered (fire-and-forget)
         AsyncStorage.removeItem('active_roomId').catch(console.error);
@@ -902,6 +943,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     insets={insets}
                     avatarRefs={avatarRefs}
                     getPlayerScore={getPlayerScore as any}
+                    skinConfig={playerSkinConfig}
                 />
 
                 {/* QUICK CHAT UI */}
@@ -948,7 +990,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             <RewardOverlay
                 visible={showRewardOverlay}
                 reward={matchReward}
-                isWinner={matchReward?.isWinner ?? (gameState?.players.find(p => p.id === localPlayerId)?.totalPoints === Math.min(...gameState.players.map(p => p.totalPoints)))}
+                isWinner={matchReward?.isWinner ?? (gameState?.players.find(p => p.id === localPlayerId)?.totalPoints === Math.max(...gameState.players.map(p => p.totalPoints)))}
                 onContinue={() => {
                     setShowRewardOverlay(false);
                     handleLeaveRoom(); // Les renvoyer au lobby/home après le résumé éco

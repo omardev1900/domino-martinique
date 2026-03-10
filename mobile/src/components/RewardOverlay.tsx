@@ -174,16 +174,30 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                             </LinearGradient>
                         </Animated.View>
 
-                        {(reward.diamondsEarned > 0 || reward.leaguePointsEarned > 0) && (
+                        {reward.diamondsEarned > 0 && (
                             <Animated.View entering={FadeInDown.delay(1400)} style={styles.totalBox}>
                                 <LinearGradient colors={['rgba(96,220,255,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
-                                    <Text style={styles.totalIcon}>{reward.diamondsEarned > 0 ? '💎' : '🐷'}</Text>
+                                    <Text style={styles.totalIcon}>💎</Text>
                                     <RollingNumber
-                                        value={reward.diamondsEarned > 0 ? reward.diamondsEarned : reward.leaguePointsEarned}
+                                        value={reward.diamondsEarned}
                                         prefix="+"
-                                        style={[styles.totalValue, { color: reward.diamondsEarned > 0 ? '#60DCFF' : '#FF9800' }]}
+                                        style={[styles.totalValue, { color: '#60DCFF' }]}
                                     />
-                                    <Text style={styles.totalLabel}>{reward.diamondsEarned > 0 ? 'Diamants' : 'Ligue'}</Text>
+                                    <Text style={styles.totalLabel}>Diamants</Text>
+                                </LinearGradient>
+                            </Animated.View>
+                        )}
+
+                        {reward.leaguePointsEarned > 0 && (
+                            <Animated.View entering={FadeInDown.delay(1600)} style={styles.totalBox}>
+                                <LinearGradient colors={['rgba(255,152,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
+                                    <Text style={styles.totalIcon}>🐷</Text>
+                                    <RollingNumber
+                                        value={reward.leaguePointsEarned}
+                                        prefix="+"
+                                        style={[styles.totalValue, { color: '#FF9800' }]}
+                                    />
+                                    <Text style={styles.totalLabel}>Ligue</Text>
                                 </LinearGradient>
                             </Animated.View>
                         )}
@@ -390,10 +404,11 @@ const styles = StyleSheet.create({
     },
     totalsContainer: {
         flexDirection: 'row',
+        flexWrap: 'wrap', // Allow wrapping if 4 boxes are too wide
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
-        maxWidth: 450,
+        maxWidth: 580, // Increased to fit 4 boxes better
         gap: 10,
         marginBottom: 15,
     },

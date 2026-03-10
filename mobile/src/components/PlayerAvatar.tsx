@@ -2,10 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Image } from 'expo-image';
 import { View, StyleSheet, Text, Animated as RNAnimated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import Animated, { useSharedValue, useAnimatedProps, useAnimatedStyle, withTiming, Easing, withRepeat, withSequence } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedProps, useAnimatedStyle, withTiming, Easing, withRepeat, withSequence, FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
 import { Player } from '../core/types';
 import { getAvatarImage, AvatarId } from '../core/avatars';
 import { Ionicons } from '@expo/vector-icons';
+import { DominoTile } from './DominoTile';
+import { SkinConfig } from '../core/store.types';
 import { ChatBubble } from './ChatBubble';
 
 interface PlayerAvatarProps {
@@ -29,6 +31,8 @@ interface PlayerAvatarProps {
     isBotPlaying?: boolean; // NEW: Show bot indicator
     isDisconnected?: boolean; // NEW: Show disconnected indicator
     gameMode?: string; // NEW: The current game mode to conditionally show specific stats
+    showHandDominoes?: boolean; // NEW: Reveal remaining dominoes in hand
+    skinConfig?: SkinConfig; // NEW: Skin configuration for dominoes
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -53,7 +57,9 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     overtime = null,
     isBotPlaying = false,
     isDisconnected = false,
-    gameMode
+    gameMode,
+    showHandDominoes = false,
+    skinConfig
 }) => {
     const strokeWidth = 3; // Reduced from 4
     const radius = (size - strokeWidth) / 2;
@@ -375,6 +381,29 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         </View>
                     )
                 }
+                {/* RENDER REMAINING HAND ON BOUDE */}
+                {showHandDominoes && player.hand && player.hand.length > 0 && (
+                    <Animated.View
+                        entering={FadeIn.delay(300)}
+                        style={[
+                            styles.handRevealContainer,
+                            isHorizontal && (position === 'top-right' ? styles.handRevealRight : styles.handRevealLeft)
+                        ]}
+                    >
+                        {player.hand.map((domino) => (
+                            <DominoTile
+                                key={domino.id}
+                                left={domino.left}
+                                right={domino.right}
+                                size={18}
+                                noMargin
+                                skinConfig={skinConfig}
+                                orientation="vertical"
+                                entering={ZoomIn.delay(400)}
+                            />
+                        ))}
+                    </Animated.View>
+                )}
             </Animated.View>
         </RNAnimated.View >
     );
@@ -607,5 +636,33 @@ const styles = StyleSheet.create({
         color: '#FF9800',
         fontSize: 11, // Reduced from 14
         fontWeight: '900',
-    }
+    },
+    handRevealContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 4,
+        marginTop: 10,
+        maxWidth: 140,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        padding: 6,
+        borderRadius: 10,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,215,0,0.5)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 6,
+        elevation: 10,
+    },
+    handRevealLeft: {
+        position: 'absolute',
+        top: 60,
+        left: -10,
+    },
+    handRevealRight: {
+        position: 'absolute',
+        top: 60,
+        right: -10,
+    },
 });

@@ -23,8 +23,10 @@ import { authService } from '../src/core/services/auth.service';
 import { statsService } from '../src/core/services/stats.service';
 import { economyService } from '../src/core/services/economy.service';
 import { PlayerProfile } from '../src/core/types';
+import { DAILY_REWARD_COINS } from '../src/core/economy.constants';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../src/core/avatars';
 import { EconomyHeader } from '../src/components/EconomyHeader';
+import { DailyRewardModal } from '../src/components/DailyRewardModal';
 
 const MadrasPattern = () => (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -58,6 +60,8 @@ export default function HomeScreen() {
     const [reconnectRoomId, setReconnectRoomId] = useState<string | null>(null);
     const [economyRefresh, setEconomyRefresh] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [showDailyReward, setShowDailyReward] = useState(false);
+    const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
 
     useFocusEffect(
         useCallback(() => {
@@ -66,7 +70,14 @@ export default function HomeScreen() {
                 if (u && !u.uid.startsWith('guest_')) {
                     console.log('🔄 HomeScreen: Forcing stats sync for', u.displayName);
                     statsService.syncWithFirebase(u.uid);
-                    economyService.syncFromFirebase(u.uid).catch(console.error);
+                    economyService.syncFromFirebase(u.uid).then(async () => {
+                        // Vérification du cadeau quotidien (sans le créditer — le modal s'en charge)
+                        const isAvailable = await economyService.isDailyRewardAvailable();
+                        if (isAvailable) {
+                            setDailyRewardAmount(DAILY_REWARD_COINS);
+                            setShowDailyReward(true);
+                        }
+                    }).catch(console.error);
                 }
             });
             setEconomyRefresh(v => v + 1); // force EconomyHeader refresh
@@ -91,6 +102,12 @@ export default function HomeScreen() {
             return () => clearTimeout(timer);
         }, [])
     );
+
+    const handleClaimDailyReward = async () => {
+        await economyService.checkAndClaimDailyReward(user?.uid);
+        setShowDailyReward(false);
+        setEconomyRefresh(v => v + 1);
+    };
 
     const handleReconnect = useCallback(() => {
         if (reconnectRoomId) {
@@ -301,6 +318,13 @@ export default function HomeScreen() {
                     </Animated.View>
                 </View>
             </ScrollView>
+
+            {/* Daily Reward Modal — affiché uniquement si aucun modal de reconnexion */}
+            <DailyRewardModal
+                visible={showDailyReward && !reconnectRoomId}
+                amount={dailyRewardAmount}
+                onClaim={handleClaimDailyReward}
+            />
 
             {/* Reconnection Modal */}
             <Modal

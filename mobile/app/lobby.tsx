@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft, FadeIn } from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { createRoom, joinRoom, listenToPublicRooms, RoomOptions, auth } from '../src/core/services/firebase';
+import { createRoom, joinRoom, listenToPublicRooms, findHostedWaitingRoom, findActiveRoomForUser, RoomOptions, auth } from '../src/core/services/firebase';
 import { PlayerProfile, GameMode, GameRoom } from '../src/core/types';
 import { authService } from '../src/core/services/auth.service';
 import { FlatList } from 'react-native-gesture-handler';
@@ -203,6 +203,41 @@ export default function LobbyScreen() {
     const handleCreateRoom = async () => {
         if (!requireAccountForMultiplayer()) return;
         if (!currentUser) return;
+
+        // ❌ Vérification : l'utilisateur héberge déjà une table en attente
+        const hostedRoom = await findHostedWaitingRoom(currentUser.uid);
+        if (hostedRoom) {
+            Alert.alert(
+                'Table existante',
+                'Vous êtes déjà l\'hôte d\'une table en attente. Rejoignez-la ou attendez qu\'elle soit fermée.',
+                [
+                    { text: 'Annuler', style: 'cancel' },
+                    {
+                        text: 'Rejoindre ma table',
+                        onPress: () => router.push({ pathname: '/game/[id]', params: { id: hostedRoom, userId: currentUser.uid, tableTier } })
+                    }
+                ]
+            );
+            return;
+        }
+
+        // ❌ Vérification : l'utilisateur est déjà dans une partie active
+        const activeRoom = await findActiveRoomForUser(currentUser.uid);
+        if (activeRoom) {
+            Alert.alert(
+                'Partie en cours',
+                'Vous êtes déjà dans une partie active. Terminez-la avant d\'en créer une nouvelle.',
+                [
+                    { text: 'Annuler', style: 'cancel' },
+                    {
+                        text: 'Rejoindre la partie',
+                        onPress: () => router.push({ pathname: '/game/[id]', params: { id: activeRoom, userId: currentUser.uid, tableTier } })
+                    }
+                ]
+            );
+            return;
+        }
+
         if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);

@@ -18,6 +18,7 @@ export interface PlayerAreaProps {
     insets: EdgeInsets;
     avatarRefs: React.MutableRefObject<Record<string, any>>;
     getPlayerScore: (player: Player) => string;
+    skinConfig?: any;
 }
 
 export const PlayerArea: React.FC<PlayerAreaProps> = ({
@@ -33,6 +34,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
     insets,
     avatarRefs,
     getPlayerScore,
+    skinConfig,
 }) => {
     if (!gameState) return null;
 
@@ -78,6 +80,8 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             isBotPlaying={gameState.currentPlayerId === opponents[0]?.id ? isBotPlaying : false}
                             isDisconnected={opponents[0]?.isDisconnected}
                             gameMode={gameState.gameMode}
+                            showHandDominoes={gameState.phase === 'BOUDE'}
+                            skinConfig={skinConfig}
                         />
                     </Animated.View>
                 </View>
@@ -115,6 +119,8 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             isBotPlaying={gameState.currentPlayerId === opponents[1]?.id ? isBotPlaying : false}
                             isDisconnected={opponents[1]?.isDisconnected}
                             gameMode={gameState.gameMode}
+                            showHandDominoes={gameState.phase === 'BOUDE'}
+                            skinConfig={skinConfig}
                         />
                     </Animated.View>
                 </View>
@@ -151,6 +157,8 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             isBotPlaying={gameState.currentPlayerId === localPlayerId ? isBotPlaying : false}
                             isDisconnected={localPlayer.isDisconnected}
                             gameMode={gameState.gameMode}
+                            showHandDominoes={gameState.phase === 'BOUDE'}
+                            skinConfig={skinConfig}
                         />
                     </Animated.View>
                 </View>

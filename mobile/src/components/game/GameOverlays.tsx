@@ -137,7 +137,21 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                 />
             )}
 
-            {/* ROUND BANNER */}
+            {/* BOUDE OVERLAY (Blocked Game) */}
+            {gameState?.phase === 'BOUDE' && (
+                <Animated.View
+                    entering={FadeIn.duration(500)}
+                    exiting={FadeOut.duration(500)}
+                    style={styles.boudeOverlay}
+                    pointerEvents="none"
+                    testID="boude-overlay"
+                >
+                    <View style={styles.boudeContent}>
+                        <Text style={styles.boudeTitle}>BLOQUÉ</Text>
+                        <Text style={styles.boudeSubtitle}>Calcul des points...</Text>
+                    </View>
+                </Animated.View>
+            )}
             {bannerState !== 'NONE' && gameState && (
                 <Animated.View
                     key={bannerState}
@@ -359,6 +373,46 @@ const styles = StyleSheet.create({
     quitButtonText: {
         color: '#FFF',
         fontSize: 16,
+        fontWeight: 'bold',
+    },
+    boudeOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    boudeContent: {
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        paddingHorizontal: 60,
+        paddingVertical: 30,
+        borderRadius: 40,
+        borderWidth: 3,
+        borderColor: '#FFD700',
+        alignItems: 'center',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 30,
+        elevation: 20,
+    },
+    boudeTitle: {
+        color: '#FFD700',
+        fontSize: 42,
+        fontWeight: '900',
+        letterSpacing: 6,
+        textShadowColor: 'rgba(255, 215, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 15,
+        textTransform: 'uppercase',
+    },
+    boudeSubtitle: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        marginTop: 12,
+        opacity: 0.9,
+        letterSpacing: 3,
+        textTransform: 'uppercase',
         fontWeight: 'bold',
     },
 });

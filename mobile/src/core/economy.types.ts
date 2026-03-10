@@ -16,6 +16,7 @@ export interface PlayerEconomy {
     diamonds: number;      // 💎 Monnaie premium
     leaguePoints: number;  // 🐷 Total cochons infligés (source de la ligue)
     leagueGrade: LeagueGrade;
+    lastDailyRewardTimestamp?: number; // 📅 Dernier cadeau reçu (pour check quotidien)
 }
 
 export type LeagueGrade = 'APPRENTI' | 'MAITRE' | 'ROI' | 'LEGENDE';

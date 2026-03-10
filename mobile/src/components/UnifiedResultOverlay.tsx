@@ -157,10 +157,10 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
     const renderMainTitle = () => {
         if (isMatchOver) return { main: "VAINQUEUR DU MATCH", sub: matchOverallWinner?.name || "" };
-        if (isBoude) return { main: "BOUDÉ !", sub: boudeWinnerId ? `${gameState.players.find(p => p.id === boudeWinnerId)?.name} gagne !` : "Personne ne gagne." };
-        if (mancheResult === 'CHIRE') return { main: "CHIRÉ !!", sub: "Tout le monde perd !" };
+        if (isBoude) return { main: "Partie Bloquée !", sub: boudeWinnerId ? `${gameState.players.find(p => p.id === boudeWinnerId)?.name} gagne !` : "Personne ne gagne." };
+        if (mancheResult === 'CHIRE') return { main: "CHIRÉ !!", sub: "Pas de cochon cette fois !" };
         if (mancheResult === 'COCHON') return { main: "COCHON !", sub: "Une manche de prestige !" };
-        return { main: "VICTOIRE !", sub: "Manche terminée." };
+        return { main: "VICTOIRE !", sub: "Partie terminée." };
     };
 
     const titles = renderMainTitle();
@@ -202,15 +202,26 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
                 {/* ZONE 3: FOOTER (Actions & Gains) */}
                 <View style={styles.flexFooterZone}>
-                    {isHost ? (
+                    {isHost || isMatchOver ? (
                         <TouchableOpacity style={styles.flexActionBtn} onPress={onContinue}>
-                            <Text style={styles.flexActionBtnText}>CONTINUER</Text>
+                            <Text style={styles.flexActionBtnText}>
+                                {isMatchOver ? "VOIR MES GAINS" : "CONTINUER"}
+                            </Text>
                             <Ionicons name="arrow-forward" size={20} color="white" />
                         </TouchableOpacity>
                     ) : (
-                        <View style={[styles.flexActionBtn, { backgroundColor: '#666', opacity: 0.8 }]}>
+                        <View style={[styles.flexActionBtn, { backgroundColor: '#444', opacity: 0.8 }]}>
                             <Text style={styles.flexActionBtnText}>En attente de l'hôte...</Text>
                         </View>
+                    )}
+
+                    {!isHost && isMatchOver && (
+                        <TouchableOpacity
+                            style={[styles.flexActionBtn, { backgroundColor: '#8B0000', marginTop: 12 }]}
+                            onPress={onLeave}
+                        >
+                            <Text style={styles.flexActionBtnText}>QUITTER</Text>
+                        </TouchableOpacity>
                     )}
                 </View>
 

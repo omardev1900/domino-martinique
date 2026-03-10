@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { PlayerEconomy, MatchReward, LeagueGrade } from '../economy.types';
-import { NEW_PLAYER_COINS } from '../economy.constants';
+import { NEW_PLAYER_COINS, DAILY_REWARD_COINS } from '../economy.constants';
 import { getLevelFromXP, getLeagueGrade } from '../RewardEngine';
 
 const STORAGE_KEY_ECONOMY = '@player_economy';
@@ -145,17 +145,6 @@ class EconomyService {
         return { ...updated };
     }
 
-    /**
-     * Set the player's full economy explicitly (used for store purchases etc.)
-     */
-    async setEconomy(newEconomy: PlayerEconomy, userId?: string): Promise<void> {
-        this.cached = { ...newEconomy };
-        await this.persistLocal();
-        
-        if (userId && !userId.startsWith('guest_')) {
-            await this.pushToFirebase(userId, newEconomy);
-        }
-    }
 
     /**
      * Déduit le buy-in avant le début d'une partie.
@@ -179,6 +168,51 @@ class EconomyService {
 
         console.log(`[EconomyService] Buy-in of ${buyIn} coins deducted. Remaining: ${updated.coins}`);
         return true;
+    }
+
+    /**
+     * Vérifie si le joueur peut réclamer sa récompense quotidienne sans la créditer.
+     * @returns true si la récompense est disponible (24h écoulées ou jamais réclamée)
+     */
+    async isDailyRewardAvailable(): Promise<boolean> {
+        const current = await this.getEconomy();
+        if (!current.lastDailyRewardTimestamp) return true;
+        const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+        return (Date.now() - current.lastDailyRewardTimestamp) >= TWENTY_FOUR_HOURS_MS;
+    }
+
+    /**
+     * Vérifie si le joueur peut réclamer sa récompense quotidienne (300 coins).
+     * @returns Le montant gagné (300) ou null si déjà réclamé dans les 24h.
+     */
+    async checkAndClaimDailyReward(userId?: string): Promise<number | null> {
+        const current = await this.getEconomy();
+        const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+        const shouldReward = !current.lastDailyRewardTimestamp ||
+            (Date.now() - current.lastDailyRewardTimestamp) >= TWENTY_FOUR_HOURS_MS;
+
+        if (shouldReward) {
+            const rewardAmount = DAILY_REWARD_COINS;
+
+            const updated: PlayerEconomy = {
+                ...current,
+                coins: current.coins + rewardAmount,
+                lastDailyRewardTimestamp: Date.now()
+            };
+
+            this.cached = updated;
+            await this.persistLocal();
+
+            if (userId && !userId.startsWith('guest_')) {
+                await this.pushToFirebase(userId, updated);
+            }
+
+            console.log(`🎁 [EconomyService] Daily reward of ${rewardAmount} coins claimed!`);
+            return rewardAmount;
+        }
+
+        return null;
     }
 
     /**
@@ -232,6 +266,11 @@ class EconomyService {
     private mergeEconomies(local: PlayerEconomy, remote: Partial<PlayerEconomy>): PlayerEconomy {
         const mergedXP = Math.max(local.xp, remote.xp ?? 0);
         const mergedLeaguePoints = Math.max(local.leaguePoints, remote.leaguePoints ?? 0);
+        // Conserver le timestamp le plus récent pour éviter de re-déclencher la récompense
+        const mergedTimestamp = Math.max(
+            local.lastDailyRewardTimestamp ?? 0,
+            remote.lastDailyRewardTimestamp ?? 0
+        ) || undefined;
         return {
             coins: Math.max(local.coins, remote.coins ?? 0),
             xp: mergedXP,
@@ -239,6 +278,7 @@ class EconomyService {
             diamonds: Math.max(local.diamonds, remote.diamonds ?? 0),
             leaguePoints: mergedLeaguePoints,
             leagueGrade: getLeagueGrade(mergedLeaguePoints),
+            lastDailyRewardTimestamp: mergedTimestamp,
         };
     }
 
@@ -255,6 +295,7 @@ class EconomyService {
             diamonds: partial.diamonds ?? DEFAULT_ECONOMY.diamonds,
             leaguePoints,
             leagueGrade: (partial.leagueGrade as LeagueGrade) ?? getLeagueGrade(leaguePoints),
+            lastDailyRewardTimestamp: partial.lastDailyRewardTimestamp,
         };
     }
 }

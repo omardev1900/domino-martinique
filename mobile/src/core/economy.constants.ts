@@ -86,6 +86,9 @@ export const SOLO_WIN_FLAT_REWARD = 500; // 🪙
 
 export const NEW_PLAYER_COINS = 1000; // 🪙 donné à la création du compte
 
+/** Coins offerts chaque jour à la connexion */
+export const DAILY_REWARD_COINS = 300; // 🎁
+
 // ─── XP et Niveaux ───────────────────────────────────────────────────────────
 
 /** XP requis pour passer du niveau 1 au niveau 2 */
