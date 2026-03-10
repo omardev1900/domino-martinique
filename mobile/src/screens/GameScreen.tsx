@@ -192,6 +192,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [showRoomInfo, setShowRoomInfo] = useState(false);
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
     const [showScoreboard, setShowScoreboard] = useState(false);
+    const [showPartieTerminee, setShowPartieTerminee] = useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [bannerState, setBannerState] = useState<'NONE' | 'MANCHE' | 'ROUND'>('NONE');
@@ -457,7 +458,19 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     // Automatically show scoreboard when a round/manche/match ends (Excluding BOUDE for intro delay)
     useEffect(() => {
         if (!gameState) return;
-        const endPhases: GamePhase[] = ['PARTIE_END', 'MANCHE_END', 'MATCH_END'];
+
+        if (gameState.phase === 'PARTIE_END') {
+            // Pour PARTIE_END : afficher 'Partie terminée' 2s avant le score
+            setShowPartieTerminee(true);
+            const timer = setTimeout(() => {
+                setShowPartieTerminee(false);
+                setShowScoreboard(true);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+
+        // Pour MANCHE_END / MATCH_END : overlay immédiat (comportement inchangé)
+        const endPhases: GamePhase[] = ['MANCHE_END', 'MATCH_END'];
         setShowScoreboard(endPhases.includes(gameState.phase));
     }, [gameState?.phase]);
 
@@ -1040,6 +1053,39 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         <Text style={{ color: '#FFD700', fontSize: 24, fontWeight: 'bold' }}>Reprise de la connexion...</Text>
                     </View>
                 </View>
+            )}
+
+            {/* ✨ Overlay élégant 'Partie terminée' avant l'écran de score */}
+            {showPartieTerminee && (
+                <Animated.View
+                    entering={FadeIn.duration(400)}
+                    exiting={FadeOut.duration(500)}
+                    style={[StyleSheet.absoluteFillObject, { justifyContent: 'center', alignItems: 'center', zIndex: 1500, pointerEvents: 'none' }]}
+                >
+                    <Animated.View
+                        entering={ZoomIn.duration(500).springify()}
+                        style={{
+                            backgroundColor: 'rgba(0, 0, 0, 0.55)',
+                            paddingHorizontal: 40,
+                            paddingVertical: 24,
+                            borderRadius: 24,
+                            borderWidth: 1,
+                            borderColor: 'rgba(255, 215, 0, 0.35)',
+                            alignItems: 'center',
+                            gap: 8,
+                        }}
+                    >
+                        <Text style={{ fontSize: 13, color: 'rgba(255,215,0,0.7)', letterSpacing: 4, textTransform: 'uppercase', fontWeight: '500' }}>
+                            ✦ Résultat ✦
+                        </Text>
+                        <Text style={{ fontSize: 26, color: '#FFFFFF', fontWeight: 'bold', letterSpacing: 1 }}>
+                            Partie terminée
+                        </Text>
+                        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                            Consultez le tableau des scores…
+                        </Text>
+                    </Animated.View>
+                </Animated.View>
             )}
         </View>
     );
