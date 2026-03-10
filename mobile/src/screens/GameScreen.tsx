@@ -759,6 +759,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             fullState.turnDuration = roomData.turnDuration || 15;
             fullState.gameId = gameId; // Ensure gameId is present
 
+            // ✅ FIX: Champs manquants que dealGame() ne définit pas (contrairement à dealGameSolo)
+            // Sans eux, computeNextRoundState lit roundNumber=undefined → calcule toujours round 2 = R1
+            fullState.roundNumber = 1;
+            fullState.mancheNumber = 1;
+            fullState.mancheHistory = [];
+            fullState.history = [];
+            fullState.firstPlayerOfRound = null;
+            fullState.mancheResult = null;
+            fullState.startingHandSize = roomData.startingHandSize || 7;
+
             // Re-assign IDs to actual UIDs for real players, and configure Bots
             fullState.players = fullState.players.map((p, i) => {
                 if (i < roomData.players.length) {

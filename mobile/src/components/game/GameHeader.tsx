@@ -40,6 +40,17 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
     return (
         <View style={[styles.unifiedHeader, { top: Math.max(insets.top, 10) }]} testID="game-header">
 
+            {/* Block 1: Objectif (Solo Uniquement) */}
+            {isSoloMode && (
+                <View style={styles.headerBadge}>
+                    <Text style={styles.headerText}>
+                        {gameState.gameMode === 'MANCHE' ? `${gameState.winningCondition} Victoires` :
+                            gameState.gameMode === 'SCORE' ? `${gameState.winningCondition} Pts` :
+                                `${gameState.winningCondition} 🐷`}
+                    </Text>
+                </View>
+            )}
+
             {/* Block 2: Manche + Round */}
             <View style={styles.headerBadge}>
                 <Text style={styles.headerText}>
