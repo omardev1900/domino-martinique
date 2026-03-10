@@ -314,33 +314,6 @@ export default function LobbyScreen() {
 
     const renderCreateTab = () => (
         <Animated.View entering={FadeIn.delay(200)} style={styles.createContent}>
-            {/* Table Name Input */}
-            <View style={styles.inputWrapper}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Nom de la table (optionnel)"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    value={roomNameInput}
-                    onChangeText={setRoomNameInput}
-                    maxLength={20}
-                />
-                <View style={[styles.privateToggle, isPrivateRoom && styles.privateToggleActive]}>
-                    <TouchableOpacity
-                        style={styles.toggleClickArea}
-                        onPress={() => setIsPrivateRoom(!isPrivateRoom)}
-                    >
-                        <Ionicons
-                            name={isPrivateRoom ? "lock-closed" : "earth"}
-                            size={18}
-                            color={isPrivateRoom ? "#FFD700" : "rgba(255,255,255,0.6)"}
-                        />
-                        <Text style={[styles.privateToggleText, isPrivateRoom && styles.privateToggleTextActive]}>
-                            {isPrivateRoom ? 'Privée' : 'Publique'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
             {/* Mode Cards */}
             <View style={[styles.gameModeContainer, isLandscape && styles.gameModeContainerLandscape]}>
                 {/* SCORE */}
@@ -465,27 +438,39 @@ export default function LobbyScreen() {
                 </View>
             </View>
 
-            {/* Create Button */}
-            <View style={[styles.playButtonWrapper, isLandscape && styles.playButtonWrapperLandscape]}>
-                <TouchableOpacity style={[styles.playButton, isLandscape && styles.playButtonLandscape]} onPress={handleCreateRoom} activeOpacity={0.8}>
-                    <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.playGradient}>
-                        <View style={styles.playContent}>
-                            <View style={styles.costContainer}>
-                                <Text style={{ fontSize: isLandscape ? 14 : 18 }}>🪙</Text>
-                                <Text style={[styles.costText, isLandscape && styles.costTextLandscape]}>-{TABLE_CONFIGS[tableTier].buyIn}</Text>
-                            </View>
-                            <View style={styles.playDivider} />
-                            <Text style={[styles.playText, isLandscape && styles.playTextLandscape]}>CRÉER LA TABLE</Text>
-                        </View>
-                    </LinearGradient>
-                </TouchableOpacity>
+            {/* Bottom Action Bar (Option 3+) */}
+            <View style={[styles.bottomActionsRow, isLandscape && styles.bottomActionsRowLandscape]}>
+                <TextInput
+                    style={styles.bottomInput}
+                    placeholder="Nom de la table (optionnel)"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    value={roomNameInput}
+                    onChangeText={setRoomNameInput}
+                    maxLength={25}
+                />
 
-                {debitFeedback && (
-                    <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
-                        {debitFeedback} débités
-                    </Animated.Text>
-                )}
+                {/* Create Button */}
+                <View style={[styles.playButtonWrapper, isLandscape && styles.playButtonWrapperLandscape]}>
+                    <TouchableOpacity style={[styles.playButton, isLandscape && styles.playButtonLandscape]} onPress={handleCreateRoom} activeOpacity={0.8}>
+                        <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.playGradient}>
+                            <View style={styles.playContent}>
+                                <View style={styles.costContainerCompact}>
+                                    <Text style={{ fontSize: isLandscape ? 12 : 14 }}>🪙</Text>
+                                    <Text style={[styles.costTextCompact, isLandscape && styles.costTextLandscape]}>-{TABLE_CONFIGS[tableTier].buyIn}</Text>
+                                </View>
+                                <View style={styles.playDividerSmall} />
+                                <Text style={[styles.playText, isLandscape && styles.playTextLandscape]}>CRÉER</Text>
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </View>
             </View>
+
+            {debitFeedback && (
+                <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
+                    {debitFeedback} débités
+                </Animated.Text>
+            )}
         </Animated.View>
     );
 
@@ -619,7 +604,7 @@ export default function LobbyScreen() {
                 <ScrollView
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
                     showsVerticalScrollIndicator={false}
-                    scrollEnabled={!isLandscape}
+                    scrollEnabled={true}
                 >
                     <Animated.View entering={FadeInUp.delay(200)} style={[styles.mainWrapper, isLandscape && styles.mainWrapperLandscape]}>
                         {activeTab === 'CREATE' && renderCreateTab()}
@@ -962,23 +947,24 @@ const styles = StyleSheet.create({
     },
     // --- Play Button ---
     playButtonWrapper: {
-        width: '100%',
+        flex: 0,
+        minWidth: 120,
         alignItems: 'center',
     },
     playButtonWrapperLandscape: {
         marginTop: 0,
     },
     playButton: {
-        width: '100%',
-        maxWidth: 400,
-        height: 54,
-        borderRadius: 27,
+        width: 'auto',
+        minWidth: 100,
+        height: 48,
+        borderRadius: 24,
         overflow: 'hidden',
         elevation: 8,
     },
     playButtonLandscape: {
         height: 40,
-        maxWidth: 280,
+        minWidth: 120,
     },
     playGradient: {
         flex: 1,
@@ -1025,12 +1011,57 @@ const styles = StyleSheet.create({
     playTextLandscape: {
         fontSize: 12,
     },
+    // --- Bottom Actions (Option 3+) ---
+    bottomActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginTop: 15,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        padding: 10,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    bottomActionsRowLandscape: {
+        paddingVertical: 8,
+    },
+    bottomInput: {
+        flex: 1,
+        height: 48,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 12,
+        paddingHorizontal: 15,
+        color: '#FFF',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        fontSize: 14,
+    },
+    costContainerCompact: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.15)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 10,
+    },
+    costTextCompact: {
+        color: '#FFF',
+        fontSize: 13,
+        fontWeight: '900',
+        marginLeft: 2,
+    },
+    playDividerSmall: {
+        width: 1,
+        height: 15,
+        backgroundColor: 'rgba(255,255,255,0.3)',
+        marginHorizontal: 5,
+    },
     debitFeedback: {
         color: '#FFD700',
-        position: 'absolute',
-        top: -25,
+        marginTop: 8,
         fontWeight: 'bold',
-        fontSize: 14,
+        fontSize: 12,
         textAlign: 'center',
     },
     // ─── List Rooms (Public) ─────────────────────────────────────

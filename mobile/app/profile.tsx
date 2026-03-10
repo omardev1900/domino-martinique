@@ -134,7 +134,7 @@ export default function ProfileScreen() {
 
             {/* Image Avatars - Compact grid for left side */}
             <View style={styles.avatarGridCompact}>
-                {AVAILABLE_AVATARS.map((avatarId) => (
+                {AVAILABLE_AVATARS.slice(0, 4).map((avatarId) => (
                     <TouchableOpacity
                         key={avatarId}
                         style={[
@@ -170,7 +170,7 @@ export default function ProfileScreen() {
                     <ActivityIndicator color="#1A0E2E" />
                 ) : (
                     <View style={styles.saveButtonContent}>
-                        <Ionicons name="checkmark-circle" size={20} color="#1A0E2E" style={{ marginRight: 8 }} />
+                        <Ionicons name="save" size={20} color="#1A0E2E" style={{ marginRight: 8 }} />
                         <Text style={styles.saveButtonText}>ENREGISTRER</Text>
                     </View>
                 )}
@@ -191,17 +191,15 @@ export default function ProfileScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
             >
-                {/* Header with Back Button */}
-                <View style={[styles.header, { paddingTop: insets.top || 10 }]}>
+                {/* Simple Home Button at top */}
+                <View style={[styles.homeHeader, { paddingTop: insets.top || 10 }]}>
                     <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => router.back()}
+                        style={styles.homeButton}
+                        onPress={() => router.replace('/home')}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="chevron-back" size={28} color="#FFD700" />
+                        <Ionicons name="home" size={28} color="#FFD700" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>PROFIL</Text>
-                    <View style={{ width: 48 }} />
                 </View>
 
                 <ScrollView
@@ -275,20 +273,19 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    header: {
+    homeHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         height: 60,
     },
-    backButton: {
-        padding: 10,
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
+    homeButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     scrollContent: {
         paddingHorizontal: 20,

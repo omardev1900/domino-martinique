@@ -101,22 +101,21 @@ export default function CollectionScreen() {
                 key={item.id}
                 style={[
                     styles.card,
-                    isLandscape && styles.cardLandscape,
-                    isEquipped && styles.cardEquipped,
-                    isLandscape && { width: width * 0.24 }
+                    isLandscape ? styles.cardLandscape : null,
+                    isEquipped ? styles.cardEquipped : null,
+                    isLandscape ? { width: width * 0.24 } : null
                 ]}
             >
-                <View style={{ flex: 1 }}> {/* Main content flex to push footer down */}
+                <View style={{ flex: 1 }}>
                     <View style={styles.cardHeader}>
                         <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
                         <Text style={styles.cardRarity}>{item.rarity}</Text>
                     </View>
 
-                    {/* Graphic or Firestore Remote Image */}
                     <View style={styles.cardImagePlaceholder}>
                         {item.type === 'SKIN' ? (
                             <View style={[styles.skinPreviewContainer, { backgroundColor: item.skinConfig ? item.skinConfig.tableBackgroundColor : '#555555' }]}>
-                                {item.skinConfig && (
+                                {item.skinConfig ? (
                                     <View style={[styles.skinPreviewDomino, { backgroundColor: item.skinConfig.dominoBackgroundColor }]}>
                                         <View style={styles.skinPreviewHalf}>
                                             <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
@@ -130,7 +129,7 @@ export default function CollectionScreen() {
                                             <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
                                         </View>
                                     </View>
-                                )}
+                                ) : null}
                             </View>
                         ) : item.imageUrl ? (
                             <Image
@@ -155,11 +154,11 @@ export default function CollectionScreen() {
                         >
                             {item.description}
                         </Text>
-                        {item.description && item.description.length > 40 && (
+                        {(item.description && item.description.length > 40) ? (
                             <TouchableOpacity onPress={() => setIsExpanded(!isExpanded)} style={styles.collapseBtn}>
                                 <Text style={styles.collapseBtnText}>{isExpanded ? '<<' : '>>'}</Text>
                             </TouchableOpacity>
-                        )}
+                        ) : null}
                     </View>
                 </View>
 
@@ -207,15 +206,15 @@ export default function CollectionScreen() {
                             return (
                                 <TouchableOpacity
                                     key={tab.id}
-                                    style={[styles.headerTab, isActive && styles.activeHeaderTab]}
+                                    style={[styles.headerTab, isActive ? styles.activeHeaderTab : null]}
                                     onPress={() => setActiveTab(tab.id)}
                                 >
                                     <Ionicons name={tab.icon} size={14} color={isActive ? '#1A0E2E' : '#FFF'} />
-                                    {isLandscape && (
-                                        <Text style={[styles.headerTabText, isActive && styles.activeHeaderTabText]}>
+                                    {isLandscape ? (
+                                        <Text style={[styles.headerTabText, isActive ? styles.activeHeaderTabText : null]}>
                                             {tab.label}
                                         </Text>
-                                    )}
+                                    ) : null}
                                 </TouchableOpacity>
                             );
                         })}
@@ -248,10 +247,10 @@ export default function CollectionScreen() {
                     decelerationRate="fast"
                 >
                     {filteredItems.map(item => {
-                        const isEquipped = inventory && (
+                        const isEquipped = inventory ? (
                             item.type === 'AVATAR' ? inventory.equipped.avatar === item.id :
                                 item.type === 'SKIN' ? inventory.equipped.skin === item.id : false
-                        );
+                        ) : false;
                         return (
                             <CollectionItem
                                 key={item.id}
