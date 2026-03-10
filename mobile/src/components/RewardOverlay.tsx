@@ -308,10 +308,13 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     mainContent: {
-        width: '95%',
-        maxWidth: 600,
+        width: '88%',
+        maxWidth: 550,
         alignItems: 'center',
         zIndex: 10,
+        backgroundColor: 'rgba(30, 15, 50, 0.4)',
+        padding: 5,
+        borderRadius: 20,
     },
     mainContentLandscape: {
         width: '100%',
@@ -321,7 +324,7 @@ const styles = StyleSheet.create({
     flexHeaderZone: {
         alignItems: 'center',
         width: '100%',
-        marginBottom: 10,
+        marginBottom: 5,
     },
     flexBodyZone: {
         alignItems: 'center',
@@ -337,10 +340,10 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     title: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: '900',
         letterSpacing: 2,
-        marginBottom: 8,
+        marginBottom: 4,
         textAlign: 'center',
         textShadowColor: 'rgba(0,0,0,0.8)',
         textShadowOffset: { width: 0, height: 4 },
@@ -409,8 +412,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
         maxWidth: 580, // Increased to fit 4 boxes better
-        gap: 10,
-        marginBottom: 15,
+        gap: 8,
+        marginBottom: 10,
     },
     totalsContainerLandscape: {
         marginBottom: 0,

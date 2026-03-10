@@ -180,17 +180,19 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
                 {/* ZONE 1: HEADER (Title & Stats) */}
                 <View style={styles.flexHeaderZone}>
-                    <View style={{ flex: 1 }}>
-                        <Text style={[styles.flexTitle, isLandscape && { fontSize: 20 }]}>{titles.main}</Text>
+                    <View style={styles.flexTitleContainer}>
+                        <Text style={[styles.flexTitle, isLandscape && { fontSize: 18 }]}>{titles.main}</Text>
                         <Text style={styles.flexSubtitle}>{titles.sub}</Text>
                     </View>
-                    <TouchableOpacity
-                        onPress={() => setShowDetails(true)}
-                        style={styles.flexStatsButton}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                        <Ionicons name="stats-chart" size={24} color="#8B6508" />
-                    </TouchableOpacity>
+                    {isMatchOver && (
+                        <TouchableOpacity
+                            onPress={() => setShowDetails(true)}
+                            style={styles.flexStatsButton}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <Ionicons name="stats-chart" size={20} color="#8B6508" />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* ZONE 2: BODY (Grid of Player Cards) */}
@@ -305,31 +307,38 @@ const styles = StyleSheet.create({
         shadowRadius: 15,
     },
     mainFlexBannerPortrait: {
-        width: '94%',
-        maxHeight: '85%',
-        padding: 15,
+        width: '90%',
+        maxHeight: '80%',
+        padding: 10,
     },
     mainFlexBannerLandscape: {
-        width: '96%',
-        height: '92%', // Use most of the height in landscape
-        padding: 10,
+        width: '85%',
+        height: '85%',
+        padding: 8,
     },
 
     // --- ZONE 1: HEADER ---
     flexHeaderZone: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingBottom: 10,
+        justifyContent: 'center',
+        paddingBottom: 8,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(139, 101, 8, 0.2)',
-        marginBottom: 10,
+        borderBottomColor: 'rgba(139, 101, 8, 0.15)',
+        marginBottom: 8,
+        position: 'relative',
+        minHeight: 50,
+    },
+    flexTitleContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     flexTitle: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: '900',
         color: '#8B0000',
         textTransform: 'uppercase',
+        textAlign: 'center',
     },
     flexSubtitle: {
         fontSize: 14,
@@ -337,10 +346,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     flexStatsButton: {
+        position: 'absolute',
+        right: 0,
         backgroundColor: 'rgba(232, 202, 139, 0.3)',
-        borderRadius: 25,
-        width: 44,
-        height: 44,
+        borderRadius: 20,
+        width: 38,
+        height: 38,
         justifyContent: 'center',
         alignItems: 'center',
     },
