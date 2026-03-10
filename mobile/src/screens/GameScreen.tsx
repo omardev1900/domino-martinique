@@ -947,7 +947,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 />
 
                 {/* QUICK CHAT UI */}
-                {!isGameOver && (
+                {!isGameOver && !isSoloMode && (
                     <QuickChat
                         onSelectMessage={triggerLocalChat}
                         onSelectEmoji={triggerLocalChat}

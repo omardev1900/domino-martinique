@@ -7,6 +7,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState, useCallback } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { Platform } from 'react-native';
+import * as NavigationBar from 'expo-navigation-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import SoundManager from '@/core/audio/SoundManager';
 import SettingsManager from '@/core/SettingsManager';
@@ -45,6 +46,12 @@ export default function RootLayout() {
 
         // Preload audio assets
         await SoundManager.preloadSounds();
+
+        // Android Immersive Mode
+        if (Platform.OS === 'android') {
+          await NavigationBar.setVisibilityAsync('hidden');
+          await NavigationBar.setBehaviorAsync('overlay-swipe');
+        }
 
         // Start menu music immediately
         SoundManager.playMusic('bgm3', 0.5);

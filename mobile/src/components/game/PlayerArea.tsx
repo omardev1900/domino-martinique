@@ -11,7 +11,7 @@ export interface PlayerAreaProps {
     gameState: GameState | null;
     localPlayerId: string;
     boudedPlayerId: string | null;
-    playersChat: Record<string, { message: string, timestamp: number, emoji?: string }>;
+    playersChat: Record<string, string | null>;
     overtime: number | null;
     isBotPlaying: boolean;
     isPaused: boolean;
@@ -75,7 +75,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             ptsScore={getCamionScore(opponents[0]?.id)}
                             position="top-right"
                             isBoude={boudedPlayerId === opponents[0]?.id}
-                            chatContent={playersChat[opponents[0]?.id]?.message || playersChat[opponents[0]?.id]?.emoji || null}
+                            chatContent={playersChat[opponents[0]?.id]}
                             overtime={gameState.currentPlayerId === opponents[0]?.id ? overtime : null}
                             isBotPlaying={gameState.currentPlayerId === opponents[0]?.id ? isBotPlaying : false}
                             isDisconnected={opponents[0]?.isDisconnected}
@@ -114,7 +114,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             ptsScore={getCamionScore(opponents[1]?.id)}
                             position="top-left"
                             isBoude={boudedPlayerId === opponents[1]?.id}
-                            chatContent={playersChat[opponents[1]?.id]?.message || playersChat[opponents[1]?.id]?.emoji || null}
+                            chatContent={playersChat[opponents[1]?.id]}
                             overtime={gameState.currentPlayerId === opponents[1]?.id ? overtime : null}
                             isBotPlaying={gameState.currentPlayerId === opponents[1]?.id ? isBotPlaying : false}
                             isDisconnected={opponents[1]?.isDisconnected}
@@ -152,7 +152,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             ptsScore={getCamionScore(localPlayer.id)}
                             position="bottom"
                             isBoude={boudedPlayerId === localPlayerId}
-                            chatContent={playersChat[localPlayerId]?.message || playersChat[localPlayerId]?.emoji || null}
+                            chatContent={playersChat[localPlayerId]}
                             overtime={gameState.currentPlayerId === localPlayerId ? overtime : null}
                             isBotPlaying={gameState.currentPlayerId === localPlayerId ? isBotPlaying : false}
                             isDisconnected={localPlayer.isDisconnected}
