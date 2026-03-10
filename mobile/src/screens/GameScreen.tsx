@@ -237,17 +237,31 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     // Synchronise les messages chat des adversaires depuis Firebase
     useEffect(() => {
         if (!roomData?.quickChats || isSoloMode) return;
+
+        if (isFirstChatLoad.current) {
+            // Premier chargement: on marque tous les messages actuels comme "vus" silencieusement
+            Object.entries(roomData.quickChats).forEach(([pId, chatData]) => {
+                if (chatData) {
+                    lastSeenChatNonces.current[pId] = chatData.nonce || String(chatData.timestamp);
+                }
+            });
+            isFirstChatLoad.current = false;
+            return;
+        }
+
         Object.entries(roomData.quickChats).forEach(([pId, chatData]) => {
             if (pId === localPlayerId) return;
             if (!chatData?.content) return;
-            const lastSeen = lastSeenChatTimestamps.current[pId] ?? 0;
-            if (chatData.timestamp > lastSeen) {
-                lastSeenChatTimestamps.current[pId] = chatData.timestamp;
+
+            const currentNonce = chatData.nonce || String(chatData.timestamp);
+            const lastSeen = lastSeenChatNonces.current[pId];
+
+            if (currentNonce !== lastSeen) {
+                lastSeenChatNonces.current[pId] = currentNonce;
                 triggerOpponentChat(pId, chatData.content);
             }
         });
     }, [roomData?.quickChats]);
-
     // Fullscreen API (web only)
     useEffect(() => {
         if (Platform.OS !== 'web') return;
@@ -277,7 +291,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const lastPlayStartPos = useRef<{ x: number, y: number } | null>(null);
     const avatarRefs = useRef<{ [key: string]: View | null }>({});
     const processedBotTurnRef = useRef<string | null>(null);
-    const lastSeenChatTimestamps = useRef<{ [playerId: string]: number }>({});
+    const lastSeenChatNonces = useRef<{ [playerId: string]: string }>({});
+    const isFirstChatLoad = useRef<boolean>(true);
+    const prevMancheRef = useRef<number>(1);
 
     // -- 6. Derived State & Layout --
     const localPlayer = gameState?.players.find(p => p.id === localPlayerId);
@@ -466,35 +482,45 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     }, [roomData?.status, roomData?.gameState]);
 
     // Show Round/Manche Banner when a new round starts
+    // 🔧 FIX: On utilise prevMancheRef pour détecter un VRAI changement de manche
+    // et éviter les faux positifs causés par les re-renders intermédiaires Firebase
+    // (ex: mancheNumber=1 stale + roundNumber=1 du nouvel état → M1/R1 affiché à tort).
     useEffect(() => {
         if (!gameState || gameState.phase !== 'PLAYING') return;
 
-        // Si c'est le round 1 de la manche, on affiche "Manche X" pendant 1s, puis "Round 1" pendant 1s
-        if (gameState.roundNumber === 1) {
+        const rn = gameState.roundNumber ?? 1;
+        const mn = gameState.mancheNumber ?? 1;
+
+        const isFirstRoundOfNewManche = rn === 1 && mn > prevMancheRef.current;
+        const isNewRound = rn > 1;
+
+        // Met à jour la ref AVANT de programmer quoi que ce soit
+        prevMancheRef.current = mn;
+
+        if (isFirstRoundOfNewManche) {
+            // Nouvelle manche : affiche "Manche X" 1s puis "Round 1" 1s
             setBannerState('MANCHE');
+            let timer2: ReturnType<typeof setTimeout>;
             const timer1 = setTimeout(() => {
                 setBannerState('ROUND');
-                const timer2 = setTimeout(() => {
+                timer2 = setTimeout(() => {
                     setBannerState('NONE');
                 }, 1000);
-                // On garde la référence du timer2 potentiellement pour clean up,
-                // mais c'est encapsulé ici.
             }, 1000);
-
             return () => {
                 clearTimeout(timer1);
-                // Pas trivial d'annuler timer2 ici sans state ref complexe,
-                // mais acceptable pour 1s.
+                clearTimeout(timer2);
             };
-        } else {
-            // Sinon (Round 2+), on affiche juste "Round Y" pendant 1s
+        } else if (isNewRound) {
+            // Round 2+ dans la même manche : affiche juste "Round Y" 1s
             setBannerState('ROUND');
             const timer = setTimeout(() => {
                 setBannerState('NONE');
             }, 1000);
             return () => clearTimeout(timer);
         }
-    }, [gameState?.roundNumber, gameState?.mancheNumber]);
+        // rn === 1 ET mn === prevManche → premier round du tout premier match OU re-render parasite : rien
+    }, [gameState?.roundNumber, gameState?.mancheNumber, gameState?.phase]);
 
     // Audio & Firebase Subscription
     // Buy-in Deduction (Delayed)

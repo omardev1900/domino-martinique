@@ -43,7 +43,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
             {/* Block 2: Manche + Round */}
             <View style={styles.headerBadge}>
                 <Text style={styles.headerText}>
-                    M{gameState.mancheNumber || 1} / R{gameState.roundNumber || 1}
+                    M{Math.max(1, gameState.mancheNumber ?? 1)} / R{Math.max(1, gameState.roundNumber ?? 1)}
                 </Text>
             </View>
 

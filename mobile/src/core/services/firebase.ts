@@ -409,7 +409,8 @@ export const updatePlayerChat = async (roomId: string, playerId: string, content
         const updateData: any = {};
         updateData[`quickChats.${playerId}`] = {
             content,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            nonce: Math.random().toString(36).substring(2, 10)
         };
         // Silent update on a decoupled root field
         await updateDoc(roomRef, updateData);
