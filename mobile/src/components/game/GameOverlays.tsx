@@ -137,21 +137,8 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                 />
             )}
 
-            {/* BOUDE OVERLAY (Blocked Game) */}
-            {gameState?.phase === 'BOUDE' && (
-                <Animated.View
-                    entering={FadeIn.duration(500)}
-                    exiting={FadeOut.duration(500)}
-                    style={styles.boudeOverlay}
-                    pointerEvents="none"
-                    testID="boude-overlay"
-                >
-                    <View style={styles.boudeContent}>
-                        <Text style={styles.boudeTitle}>BLOQUÉ</Text>
-                        <Text style={styles.boudeSubtitle}>Calcul des points...</Text>
-                    </View>
-                </Animated.View>
-            )}
+
+
             {bannerState !== 'NONE' && gameState && (
                 <Animated.View
                     key={bannerState}

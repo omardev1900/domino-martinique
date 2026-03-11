@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Switch, ScrollView, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Text, TouchableOpacity, Switch, ScrollView, useWindowDimensions, Modal as RNModal, TextInput, KeyboardAvoidingView, ActivityIndicator, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, usePathname } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +12,7 @@ import SoundManager from '../src/core/audio/SoundManager';
 import { TABLE_THEMES, TableTheme } from '../src/core/themes/tableThemes';
 import { botService } from '../src/core/services/bot.service';
 import { Alert } from 'react-native';
+import { getAvatarImage, AvatarId, AVAILABLE_AVATARS } from '../src/core/avatars';
 
 const THEME_OPTIONS: { theme: TableTheme; label: string; icon: string }[] = [
   { theme: 'classic', label: 'Classique', icon: '🟢' },
@@ -46,8 +48,50 @@ export default function ModalScreen() {
   const [bgmTheme, setBgmTheme] = React.useState<BgmTheme>(settings.gameBgmTheme);
   const [bgmVolume, setBgmVolume] = React.useState(settings.bgmVolume);
   const [sfxVolume, setSfxVolume] = React.useState(settings.sfxVolume);
-  const [activeTab, setActiveTab] = useState<'audio' | 'haptic' | 'theme' | 'account'>('audio');
+  const [activeTab, setActiveTab] = useState<'profil' | 'audio' | 'haptic' | 'theme' | 'account'>('profil');
   const pathname = usePathname();
+
+  // Données profil
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profileAvatar, setProfileAvatar] = useState<string>('avatar_default');
+
+  useEffect(() => {
+    authService.refreshUserFromStorage().then(user => {
+      if (user) {
+        setProfileName(user.displayName || 'Joueur');
+        setProfileEmail(user.email || '');
+        setProfileAvatar(user.avatarUrl || user.avatarId || 'avatar_default');
+      }
+    });
+  }, []);
+
+  // État du popup d'édition
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editAvatar, setEditAvatar] = useState<string>('avatar_default');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const openEditModal = () => {
+    setEditName(profileName);
+    setEditAvatar(profileAvatar);
+    setShowEditModal(true);
+  };
+
+  const saveProfile = async () => {
+    if (!editName.trim()) return;
+    setIsSaving(true);
+    try {
+      await authService.updateProfile({ displayName: editName.trim(), photoURL: editAvatar });
+      setProfileName(editName.trim());
+      setProfileAvatar(editAvatar);
+      setShowEditModal(false);
+    } catch (e) {
+      Alert.alert('Erreur', 'Impossible de sauvegarder.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const toggleSfx = (val: boolean) => {
     setSfxEnabled(val);
@@ -127,6 +171,9 @@ export default function ModalScreen() {
 
             {/* TABS */}
             <View style={styles.tabBar}>
+              <TouchableOpacity style={[styles.tabItem, activeTab === 'profil' && styles.activeTabItem]} onPress={() => setActiveTab('profil')}>
+                <Text style={[styles.tabText, activeTab === 'profil' && styles.activeTabText]}>PROFIL</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={[styles.tabItem, activeTab === 'audio' && styles.activeTabItem]} onPress={() => setActiveTab('audio')}>
                 <Text style={[styles.tabText, activeTab === 'audio' && styles.activeTabText]}>AUDIO</Text>
               </TouchableOpacity>
@@ -140,6 +187,37 @@ export default function ModalScreen() {
                 <Text style={[styles.tabText, activeTab === 'account' && styles.activeTabText]}>COMPTE</Text>
               </TouchableOpacity>
             </View>
+
+            {activeTab === 'profil' && (
+              <View style={styles.section}>
+                {/* Avatar + infos */}
+                <View style={styles.profileCard}>
+                  <View style={styles.profileAvatarWrapper}>
+                    <Image
+                      source={getAvatarImage(profileAvatar as AvatarId)}
+                      style={styles.profileAvatarImg}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  </View>
+                  <View style={styles.profileInfo}>
+                    <Text style={styles.profileName} numberOfLines={1}>{profileName}</Text>
+                    {profileEmail ? (
+                      <Text style={styles.profileEmail} numberOfLines={1}>{profileEmail}</Text>
+                    ) : null}
+                  </View>
+                </View>
+
+                {/* Bouton modifier */}
+                <TouchableOpacity
+                  style={styles.editProfileBtn}
+                  onPress={openEditModal}
+                >
+                  <Ionicons name="pencil" size={16} color="#1A0E2E" style={{ marginRight: 8 }} />
+                  <Text style={styles.editProfileBtnText}>MODIFIER LE PROFIL</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {activeTab === 'audio' && (
               <View style={styles.audioTabContainer}>
@@ -269,6 +347,87 @@ export default function ModalScreen() {
           </View>
         </ScrollView>
       </View>
+
+      {/* ── Popup d'édition du profil ── */}
+      <RNModal
+        visible={showEditModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={editStyles.backdrop}
+            activeOpacity={1}
+            onPress={() => setShowEditModal(false)}
+          />
+          <View style={editStyles.sheet}>
+            {/* Header */}
+            <View style={editStyles.sheetHeader}>
+              <Text style={editStyles.sheetTitle}>Modifier le profil</Text>
+              <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                <Ionicons name="close-circle" size={28} color="rgba(255,255,255,0.5)" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Avatar prévisualisation + grille */}
+            <View style={editStyles.avatarPreviewRow}>
+              <View style={editStyles.avatarPreviewCircle}>
+                <Image
+                  source={getAvatarImage(editAvatar as AvatarId)}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                />
+              </View>
+              <View style={editStyles.avatarGrid}>
+                {AVAILABLE_AVATARS.slice(0, 8).map(av => (
+                  <TouchableOpacity
+                    key={av}
+                    style={[editStyles.avatarOption, editAvatar === av && editStyles.avatarOptionSelected]}
+                    onPress={() => setEditAvatar(av)}
+                  >
+                    <Image
+                      source={getAvatarImage(av as AvatarId)}
+                      style={editStyles.avatarOptionImg}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Nom */}
+            <Text style={editStyles.fieldLabel}>PSEUDO</Text>
+            <TextInput
+              style={editStyles.nameInput}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Votre pseudo"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              maxLength={15}
+              returnKeyType="done"
+              autoCapitalize="words"
+            />
+
+            {/* Bouton Enregistrer */}
+            <TouchableOpacity
+              style={[editStyles.saveBtn, isSaving && { opacity: 0.7 }]}
+              onPress={saveProfile}
+              disabled={isSaving}
+            >
+              {isSaving
+                ? <ActivityIndicator color="#1A0E2E" />
+                : <>
+                  <Ionicons name="save" size={18} color="#1A0E2E" style={{ marginRight: 8 }} />
+                  <Text style={editStyles.saveBtnText}>ENREGISTRER</Text>
+                </>
+              }
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </RNModal>
     </View>
   );
 }
@@ -602,4 +761,170 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: '#FFD700',
   },
+  // ─── Profil Tab ─────────────────────────────────────────
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.15)',
+  },
+  profileAvatarWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    backgroundColor: '#2D1B4E',
+  },
+  profileAvatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  profileInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  profileEmail: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
+    fontStyle: 'italic',
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFD700',
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignSelf: 'center',
+    minWidth: 200,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  editProfileBtnText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#1A0E2E',
+    letterSpacing: 1.5,
+  },
 });
+
+const editStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  sheet: {
+    backgroundColor: '#1A0E2E',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
+    gap: 14,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFD700',
+    letterSpacing: 1,
+  },
+  avatarPreviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  avatarPreviewCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    backgroundColor: '#2D1B4E',
+    flexShrink: 0,
+  },
+  avatarGrid: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  avatarOption: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  avatarOptionSelected: {
+    borderColor: '#FFD700',
+  },
+  avatarOptionImg: {
+    width: '100%',
+    height: '100%',
+  },
+  fieldLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: 'rgba(255,215,0,0.7)',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  nameInput: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    padding: 14,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.25)',
+  },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFD700',
+    borderRadius: 25,
+    height: 50,
+    marginTop: 4,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  saveBtnText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1A0E2E',
+    letterSpacing: 1.5,
+  },
+});
+

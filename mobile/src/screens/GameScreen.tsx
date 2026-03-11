@@ -20,6 +20,7 @@ import { LobbyScreen } from './LobbyScreen';
 import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
 import { QuickChat } from '../components/QuickChat';
 import { RewardOverlay } from '../components/RewardOverlay';
+import { RoundResultCard } from '../components/game/RoundResultCard';
 
 // Core
 import { determineFirstPlayer, dealGameSolo, getForcedOpeningDominoId, dealGame } from '../core/LogicEngine';
@@ -192,7 +193,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [showRoomInfo, setShowRoomInfo] = useState(false);
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
     const [showScoreboard, setShowScoreboard] = useState(false);
-    const [showPartieTerminee, setShowPartieTerminee] = useState(false);
+    const [showRoundResult, setShowRoundResult] = useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [bannerState, setBannerState] = useState<'NONE' | 'MANCHE' | 'ROUND'>('NONE');
@@ -295,12 +296,17 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const lastSeenChatNonces = useRef<{ [playerId: string]: string }>({});
     const isFirstChatLoad = useRef<boolean>(true);
     const prevMancheRef = useRef<number>(1);
+    // Tracks whether current PARTIE_END came from a BOUDE (to skip re-showing the card)
+    const boudeHandledRef = useRef(false);
 
     // -- 6. Derived State & Layout --
     const localPlayer = gameState?.players.find(p => p.id === localPlayerId);
     const isMyTurn = gameState?.currentPlayerId === localPlayerId;
-    const isGameOver = gameState?.phase === 'MATCH_END' || gameState?.phase === 'MANCHE_END' || gameState?.phase === 'PARTIE_END' || gameState?.phase === 'BOUDE';
-    const showScoreOverlay = isGameOver && showScoreboard;
+    // isGameOver : logique UI générale (header, PlayerArea, QuickChat...)
+    const isGameOver = gameState?.phase === 'MATCH_END' || gameState?.phase === 'MANCHE_END'
+        || gameState?.phase === 'PARTIE_END' || gameState?.phase === 'BOUDE';
+    // showScoreOverlay : uniquement MANCHE_END / MATCH_END — PARTIE_END est géré par RoundResultCard + auto-continue
+    const showScoreOverlay = (gameState?.phase === 'MANCHE_END' || gameState?.phase === 'MATCH_END') && showScoreboard;
 
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
@@ -455,24 +461,66 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }, [isSoloMode])
     );
 
-    // Automatically show scoreboard when a round/manche/match ends (Excluding BOUDE for intro delay)
+    // Gestion des fins de round / manche / match
+    // Ref stable vers handleOverlayContinue (disponible dès useGameEngine, avant ce point)
+    // Pour PARTIE_END : l'intercept ne fait qu'appeler handleOverlayContinue (la branche récompenses est MATCH_END only)
+    const partieEndContinueRef = useRef(handleOverlayContinue);
+    useEffect(() => { partieEndContinueRef.current = handleOverlayContinue; }, [handleOverlayContinue]);
+
     useEffect(() => {
         if (!gameState) return;
 
+        // ── Garde catch-all : si BOUDE a été affiché mais PARTIE_END a été skippé
+        // (Firestore peut livrer BOUDE → PLAYING directement en multiplayer)
+        if (boudeHandledRef.current && gameState.phase !== 'BOUDE' && gameState.phase !== 'PARTIE_END') {
+            boudeHandledRef.current = false;
+            setShowRoundResult(false);
+            return;
+        }
+
+        if (gameState.phase === 'BOUDE' && !showRoundResult) {
+            // Partie bloquée : card immédiate 3.5s, host résout BOUDE au bout
+            boudeHandledRef.current = true;
+            setShowRoundResult(true);
+            if (isLocalHost) {
+                // Host : on résout soi-même après 3.5s (annule le timer 5s séparé)
+                const timer = setTimeout(() => {
+                    setShowRoundResult(false);
+                    partieEndContinueRef.current(); // resolveBoude → PARTIE_END
+                }, 3500);
+                return () => clearTimeout(timer);
+            }
+            // Non-host : attend PARTIE_END via Firestore (timer 5s du host)
+            return;
+        }
+
         if (gameState.phase === 'PARTIE_END') {
-            // Pour PARTIE_END : afficher 'Partie terminée' 2s avant le score
-            setShowPartieTerminee(true);
+            if (boudeHandledRef.current) {
+                // Vient de BOUDE : card déjà montrée, avancer directement sans re-afficher
+                boudeHandledRef.current = false;
+                setShowRoundResult(false);
+                partieEndContinueRef.current(); // computeNextRoundState → PLAYING/MANCHE_END
+                return;
+            }
+            // PARTIE_END classique (victoire normale)
+            setShowRoundResult(true);
             const timer = setTimeout(() => {
-                setShowPartieTerminee(false);
-                setShowScoreboard(true);
-            }, 3000);
+                setShowRoundResult(false);
+                partieEndContinueRef.current();
+            }, 3500);
             return () => clearTimeout(timer);
         }
 
-        // Pour MANCHE_END / MATCH_END : overlay immédiat (comportement inchangé)
-        const endPhases: GamePhase[] = ['MANCHE_END', 'MATCH_END'];
-        setShowScoreboard(endPhases.includes(gameState.phase));
-    }, [gameState?.phase]);
+        if (gameState.phase === 'MANCHE_END' || gameState.phase === 'MATCH_END') {
+            // Fin de manche/match : RoundResultCard 3.5s, PUIS UnifiedResultOverlay
+            setShowRoundResult(true);
+            const timer = setTimeout(() => {
+                setShowRoundResult(false);
+                setShowScoreboard(true);
+            }, 3500);
+            return () => clearTimeout(timer);
+        }
+    }, [gameState?.phase, isLocalHost]);
 
     // Handle BOUDE phase: automatically proceed after 5 seconds (Host only)
     useEffect(() => {
@@ -854,6 +902,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             setShowScoreboard(false);
             setShowRewardOverlay(true);
         } else {
+            setShowScoreboard(false); // Toujours reset avant d'avancer (fix double-affichage manche 2+)
             handleOverlayContinue();
         }
     }, [gameState?.phase, matchReward, handleOverlayContinue]);
@@ -1055,37 +1104,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 </View>
             )}
 
-            {/* ✨ Overlay élégant 'Partie terminée' avant l'écran de score */}
-            {showPartieTerminee && (
-                <Animated.View
-                    entering={FadeIn.duration(400)}
-                    exiting={FadeOut.duration(500)}
-                    style={[StyleSheet.absoluteFillObject, { justifyContent: 'center', alignItems: 'center', zIndex: 1500, pointerEvents: 'none' }]}
-                >
-                    <Animated.View
-                        entering={ZoomIn.duration(500).springify()}
-                        style={{
-                            backgroundColor: 'rgba(0, 0, 0, 0.55)',
-                            paddingHorizontal: 40,
-                            paddingVertical: 24,
-                            borderRadius: 24,
-                            borderWidth: 1,
-                            borderColor: 'rgba(255, 215, 0, 0.35)',
-                            alignItems: 'center',
-                            gap: 8,
-                        }}
-                    >
-                        <Text style={{ fontSize: 13, color: 'rgba(255,215,0,0.7)', letterSpacing: 4, textTransform: 'uppercase', fontWeight: '500' }}>
-                            ✦ Résultat ✦
-                        </Text>
-                        <Text style={{ fontSize: 26, color: '#FFFFFF', fontWeight: 'bold', letterSpacing: 1 }}>
-                            Partie terminée
-                        </Text>
-                        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
-                            Consultez le tableau des scores…
-                        </Text>
-                    </Animated.View>
-                </Animated.View>
+            {/* ✨ RoundResultCard — résumé visuel avant l'écran de score */}
+            {gameState && (
+                <RoundResultCard
+                    gameState={gameState}
+                    visible={showRoundResult}
+                />
             )}
         </View>
     );

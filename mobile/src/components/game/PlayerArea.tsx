@@ -80,7 +80,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             isBotPlaying={gameState.currentPlayerId === opponents[0]?.id ? isBotPlaying : false}
                             isDisconnected={opponents[0]?.isDisconnected}
                             gameMode={gameState.gameMode}
-                            showHandDominoes={gameState.phase === 'BOUDE'}
+                            showHandDominoes={false}
                             skinConfig={skinConfig}
                         />
                     </Animated.View>
@@ -119,7 +119,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             isBotPlaying={gameState.currentPlayerId === opponents[1]?.id ? isBotPlaying : false}
                             isDisconnected={opponents[1]?.isDisconnected}
                             gameMode={gameState.gameMode}
-                            showHandDominoes={gameState.phase === 'BOUDE'}
+                            showHandDominoes={false}
                             skinConfig={skinConfig}
                         />
                     </Animated.View>
@@ -157,7 +157,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             isBotPlaying={gameState.currentPlayerId === localPlayerId ? isBotPlaying : false}
                             isDisconnected={localPlayer.isDisconnected}
                             gameMode={gameState.gameMode}
-                            showHandDominoes={gameState.phase === 'BOUDE'}
+                            showHandDominoes={false}
                             skinConfig={skinConfig}
                         />
                     </Animated.View>
