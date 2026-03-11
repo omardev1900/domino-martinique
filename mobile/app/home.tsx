@@ -27,6 +27,7 @@ import { DAILY_REWARD_COINS } from '../src/core/economy.constants';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../src/core/avatars';
 import { EconomyHeader } from '../src/components/EconomyHeader';
 import { DailyRewardModal } from '../src/components/DailyRewardModal';
+import { HelpOverlay } from '../src/components/HelpOverlay';
 
 const MadrasPattern = () => (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -62,6 +63,7 @@ export default function HomeScreen() {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showDailyReward, setShowDailyReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
+    const [showHelp, setShowHelp] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
@@ -170,7 +172,7 @@ export default function HomeScreen() {
 
             {/* Header Area */}
             <View style={[styles.header, { paddingTop: insets.top || 20 }]}>
-                {/* Left Side: Fullscreen Toggle */}
+                {/* Left Side: Controls */}
                 <View style={styles.headerLeft}>
                     {Platform.OS === 'web' && (
                         <TouchableOpacity
@@ -185,6 +187,17 @@ export default function HomeScreen() {
                             />
                         </TouchableOpacity>
                     )}
+                    <TouchableOpacity
+                        style={styles.helpButton}
+                        onPress={() => setShowHelp(true)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons
+                            name="help-circle-outline"
+                            size={24}
+                            color="#FFD700"
+                        />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Right Side: Economy & User Info */}
@@ -318,6 +331,12 @@ export default function HomeScreen() {
                 </View>
             </ScrollView>
 
+            {/* Help Overlay */}
+            <HelpOverlay 
+                visible={showHelp} 
+                onClose={() => setShowHelp(false)} 
+            />
+
             {/* Daily Reward Modal — affiché uniquement si aucun modal de reconnexion */}
             <DailyRewardModal
                 visible={showDailyReward && !reconnectRoomId}
@@ -385,7 +404,9 @@ const styles = StyleSheet.create({
     },
     headerLeft: {
         flex: 1,
-        alignItems: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
     },
     headerRight: {
         flexDirection: 'row',
@@ -402,6 +423,16 @@ const styles = StyleSheet.create({
         height: 40,
         borderRadius: 10,
         backgroundColor: 'rgba(0,0,0,0.3)',
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,215,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    helpButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,215,0,0.1)',
         borderWidth: 1.5,
         borderColor: 'rgba(255,215,0,0.4)',
         justifyContent: 'center',
