@@ -215,15 +215,8 @@ export default function HomeScreen() {
                             <Text style={styles.settingsIcon}>📈</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={styles.settingsButton}
-                            onPress={() => router.push('/modal')}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.settingsIcon}>⚙️</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
                             style={styles.userBadge}
-                            onPress={() => router.push('/profile')}
+                            onPress={() => router.push('/modal')}
                             activeOpacity={0.8}
                         >
                             <View style={styles.avatarCircle}>
