@@ -19,7 +19,6 @@ import { ActionFooter } from '../components/game/ActionFooter';
 import { LobbyScreen } from './LobbyScreen';
 import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
 import { QuickChat } from '../components/QuickChat';
-import { RewardOverlay } from '../components/RewardOverlay';
 import { RoundResultCard } from '../components/game/RoundResultCard';
 
 // Core
@@ -306,7 +305,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const isGameOver = gameState?.phase === 'MATCH_END' || gameState?.phase === 'MANCHE_END'
         || gameState?.phase === 'PARTIE_END' || gameState?.phase === 'BOUDE';
     // showScoreOverlay : uniquement MANCHE_END / MATCH_END — PARTIE_END est géré par RoundResultCard + auto-continue
-    const showScoreOverlay = (gameState?.phase === 'MANCHE_END' || gameState?.phase === 'MATCH_END') && showScoreboard;
+    const showScoreOverlay = (gameState?.phase === 'MANCHE_END' || gameState?.phase === 'MATCH_END') && (showScoreboard || gameState?.phase === 'MATCH_END');
 
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
@@ -518,7 +517,13 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 setShowRoundResult(false);
                 setShowScoreboard(true);
             }, 3500);
-            return () => clearTimeout(timer);
+            return () => {
+                clearTimeout(timer);
+                if (gameState.phase === 'MATCH_END') {
+                     // Ensure scoreboard shows if component unmounts or phase changes abruptly
+                     setShowScoreboard(true); 
+                }
+            };
         }
     }, [gameState?.phase, isLocalHost]);
 
@@ -897,15 +902,14 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     );
 
     const interceptOverlayContinue = useCallback(() => {
-        if (gameState?.phase === 'MATCH_END' && matchReward) {
-            console.log("Déclenchement de l'Overlay de Récompenses", { matchReward });
-            setShowScoreboard(false);
-            setShowRewardOverlay(true);
+        // La navigation définitive quand l'overlay (qui gère déjà Scores / Historique / Gains) est fermé.
+        setShowScoreboard(false); 
+        if (gameState?.phase === 'MATCH_END') {
+             handleLeaveRoom(); // Quitte la salle définitivement après la fin du match complet
         } else {
-            setShowScoreboard(false); // Toujours reset avant d'avancer (fix double-affichage manche 2+)
-            handleOverlayContinue();
+             handleOverlayContinue(); // Continue vers la prochaine manche
         }
-    }, [gameState?.phase, matchReward, handleOverlayContinue]);
+    }, [gameState?.phase, handleLeaveRoom, handleOverlayContinue]);
 
 
 
@@ -1082,18 +1086,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 bannerState={bannerState}
                 isPaused={isPaused}
                 onResume={() => setIsPaused(false)}
+                matchReward={matchReward}
             />
 
-            {/* Dynamic Rewards Overlay (Phase 5B) */}
-            <RewardOverlay
-                visible={showRewardOverlay}
-                reward={matchReward}
-                isWinner={matchReward?.isWinner ?? (gameState?.players.find(p => p.id === localPlayerId)?.totalPoints === Math.max(...gameState.players.map(p => p.totalPoints)))}
-                onContinue={() => {
-                    setShowRewardOverlay(false);
-                    handleLeaveRoom(); // Les renvoyer au lobby/home après le résumé éco
-                }}
-            />
+
 
             {/* ✅ FIX ANTI-ZOMBIE: Overlay temporaire pendant la reprise */}
             {isRejoining && (
