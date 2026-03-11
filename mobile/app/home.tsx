@@ -70,6 +70,12 @@ export default function HomeScreen() {
                 if (u && !u.uid.startsWith('guest_')) {
                     console.log('🔄 HomeScreen: Forcing stats sync for', u.displayName);
                     statsService.syncWithFirebase(u.uid);
+                    // Écrire displayName + avatarId dans Firestore pour le leaderboard
+                    economyService.syncProfileToFirebase(
+                        u.uid,
+                        u.displayName,
+                        u.avatarId || u.avatarUrl || 'avatar_default'
+                    );
                     economyService.syncFromFirebase(u.uid).then(async () => {
                         // Vérification du cadeau quotidien (sans le créditer — le modal s'en charge)
                         const isAvailable = await economyService.isDailyRewardAvailable();

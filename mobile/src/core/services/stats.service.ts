@@ -3,6 +3,7 @@ import { db } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { PlayerInventory } from '../store.types';
 import { DEFAULT_INVENTORY } from '../store.constants';
+import { economyService } from './economy.service';
 
 const STORAGE_KEY_PLAYER_STATS = '@player_stats';
 
@@ -135,6 +136,13 @@ class StatsService {
         await this.persistStats();
 
         console.log('📊 Stats updated with history:', stats);
+
+        // Synchroniser leaguePoints avec totalCochonsInflicted
+        // pour que le leaderboard "Cochons" affiche la même valeur que la page stats
+        await economyService.setEconomy(
+            { leaguePoints: stats.totalCochonsInflicted },
+            userId
+        );
 
         // If logged in, sync to Firebase
         if (userId && !userId.startsWith('guest_')) {

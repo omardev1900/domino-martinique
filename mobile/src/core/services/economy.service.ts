@@ -18,6 +18,12 @@ import { PlayerEconomy, MatchReward, LeagueGrade } from '../economy.types';
 import { NEW_PLAYER_COINS, DAILY_REWARD_COINS } from '../economy.constants';
 import { getLevelFromXP, getLeagueGrade } from '../RewardEngine';
 
+/** Infos de profil minimales nécessaires pour les écrire dans Firestore avec l'économie */
+export interface EconomyProfileInfo {
+    displayName: string;
+    avatarId: string;
+}
+
 const STORAGE_KEY_ECONOMY = '@player_economy';
 
 // ─── Valeur par défaut pour nouveau joueur ───────────────────────────────────
@@ -112,7 +118,7 @@ class EconomyService {
      * @param userId  - UID du joueur (pour Firebase sync)
      * @returns       - Le nouvel état économique complet
      */
-    async applyReward(reward: MatchReward, userId?: string): Promise<PlayerEconomy> {
+    async applyReward(reward: MatchReward, userId?: string, profile?: EconomyProfileInfo): Promise<PlayerEconomy> {
         const current = await this.getEconomy();
 
         const updated: PlayerEconomy = {
@@ -139,7 +145,7 @@ class EconomyService {
 
         // Sync Firebase pour les joueurs authentifiés
         if (userId && !userId.startsWith('guest_')) {
-            await this.pushToFirebase(userId, updated);
+            await this.pushToFirebase(userId, updated, profile);
         }
 
         return { ...updated };
@@ -150,7 +156,7 @@ class EconomyService {
      * Déduit le buy-in avant le début d'une partie.
      * Retourne `false` si le joueur n'a pas assez de coins.
      */
-    async deductBuyIn(buyIn: number, userId?: string): Promise<boolean> {
+    async deductBuyIn(buyIn: number, userId?: string, profile?: EconomyProfileInfo): Promise<boolean> {
         const current = await this.getEconomy();
 
         if (current.coins < buyIn) {
@@ -163,7 +169,7 @@ class EconomyService {
         await this.persistLocal();
 
         if (userId && !userId.startsWith('guest_')) {
-            await this.pushToFirebase(userId, updated);
+            await this.pushToFirebase(userId, updated, profile);
         }
 
         console.log(`[EconomyService] Buy-in of ${buyIn} coins deducted. Remaining: ${updated.coins}`);
@@ -185,7 +191,7 @@ class EconomyService {
      * Vérifie si le joueur peut réclamer sa récompense quotidienne (300 coins).
      * @returns Le montant gagné (300) ou null si déjà réclamé dans les 24h.
      */
-    async checkAndClaimDailyReward(userId?: string): Promise<number | null> {
+    async checkAndClaimDailyReward(userId?: string, profile?: EconomyProfileInfo): Promise<number | null> {
         const current = await this.getEconomy();
         const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
@@ -205,7 +211,7 @@ class EconomyService {
             await this.persistLocal();
 
             if (userId && !userId.startsWith('guest_')) {
-                await this.pushToFirebase(userId, updated);
+                await this.pushToFirebase(userId, updated, profile);
             }
 
             console.log(`🎁 [EconomyService] Daily reward of ${rewardAmount} coins claimed!`);
@@ -218,14 +224,29 @@ class EconomyService {
     /**
      * Force une mise à jour directe de l'économie (utile pour les tests ou migrations).
      */
-    async setEconomy(economy: Partial<PlayerEconomy>, userId?: string): Promise<void> {
+    async setEconomy(economy: Partial<PlayerEconomy>, userId?: string, profile?: EconomyProfileInfo): Promise<void> {
         const current = await this.getEconomy();
         const updated = this.mergeWithDefaults({ ...current, ...economy });
         this.cached = updated;
         await this.persistLocal();
 
         if (userId && !userId.startsWith('guest_')) {
-            await this.pushToFirebase(userId, updated);
+            await this.pushToFirebase(userId, updated, profile);
+        }
+    }
+
+    /**
+     * Écrit displayName et avatarId dans Firestore pour que le leaderboard
+     * puisse afficher le vrai nom et l'avatar du joueur.
+     * À appeler après signIn() ou signUp().
+     */
+    async syncProfileToFirebase(uid: string, displayName: string, avatarId: string): Promise<void> {
+        if (uid.startsWith('guest_')) return;
+        try {
+            const economy = await this.getEconomy();
+            await this.pushToFirebase(uid, economy, { displayName, avatarId });
+        } catch (e) {
+            console.error('[EconomyService] syncProfileToFirebase error:', e);
         }
     }
 
@@ -249,11 +270,18 @@ class EconomyService {
         }
     }
 
-    private async pushToFirebase(uid: string, economy: PlayerEconomy): Promise<void> {
+    private async pushToFirebase(uid: string, economy: PlayerEconomy, profile?: EconomyProfileInfo): Promise<void> {
         try {
             const userRef = doc(db, 'users', uid);
-            await setDoc(userRef, { economy }, { merge: true });
-            console.log('☁️ [EconomyService] Economy pushed to Firebase.');
+            const payload: Record<string, any> = { economy };
+            // Écrire displayName et avatarId si fournis, pour que le leaderboard
+            // puisse afficher le vrai nom et l'avatar du joueur
+            if (profile) {
+                payload.displayName = profile.displayName;
+                payload.avatarId = profile.avatarId;
+            }
+            await setDoc(userRef, payload, { merge: true });
+            console.log('☁️ [EconomyService] Economy pushed to Firebase.', profile ? `(with profile: ${profile.displayName})` : '');
         } catch (e) {
             console.error('[EconomyService] pushToFirebase error:', e);
         }

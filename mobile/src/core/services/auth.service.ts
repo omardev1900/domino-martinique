@@ -10,6 +10,7 @@ import {
 import { auth } from './firebase';
 import { PlayerProfile } from '../types';
 import { statsService } from './stats.service';
+import { economyService } from './economy.service';
 
 const STORAGE_KEY_SESSION = '@user_session_active';
 const STORAGE_KEY_GUEST_PROFILE = '@guest_profile_data';
@@ -113,6 +114,13 @@ class AuthService {
             const profile = this.mapFirebaseUserToProfile(user);
             await this.activateSession(profile);
             await statsService.syncWithFirebase(profile.uid);
+            // S'assurer que displayName et avatarId sont écrits dans Firestore
+            // pour que le leaderboard affiche le bon nom/avatar
+            await economyService.syncProfileToFirebase(
+                profile.uid,
+                profile.displayName,
+                profile.avatarId || 'avatar_default'
+            );
             return profile;
         } catch (error) {
             console.error('Sign In Error:', error);
@@ -131,6 +139,12 @@ class AuthService {
             const profile = this.mapFirebaseUserToProfile(user);
             await this.activateSession(profile);
             await statsService.syncWithFirebase(profile.uid);
+            // Créer le document Firestore avec displayName et avatarId dès l'inscription
+            await economyService.syncProfileToFirebase(
+                profile.uid,
+                profile.displayName,
+                profile.avatarId || 'avatar_default'
+            );
             return profile;
         } catch (error) {
             console.error('Sign Up Error:', error);

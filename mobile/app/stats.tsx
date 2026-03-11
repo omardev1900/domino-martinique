@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { statsService, PlayerStats } from '../src/core/services/stats.service';
 import { economyService } from '../src/core/services/economy.service';
+import { authService } from '../src/core/services/auth.service';
 import { PlayerEconomy } from '../src/core/economy.types';
 import { xpRequiredForLevel } from '../src/core/RewardEngine';
 import { LEAGUE_LABELS, LEAGUE_ICONS } from '../src/core/economy.constants';
@@ -37,6 +38,12 @@ export default function StatsScreen() {
 
     const loadEconomy = async () => {
         try {
+            // Sync depuis Firebase d'abord pour que l'XP affiché
+            // corresponde à la valeur du leaderboard (source de vérité)
+            const user = await authService.getCurrentUser();
+            if (user && !user.uid.startsWith('guest_')) {
+                await economyService.syncFromFirebase(user.uid);
+            }
             const eco = await economyService.getEconomy();
             setEconomy(eco);
         } catch (error) {

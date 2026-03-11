@@ -3,16 +3,28 @@
  *
  * Service Firebase pour récupérer les classements des joueurs.
  * Gère la récupération du "Top XP" (Mapipi/Gran-Moun) et "Top Coins" (Richesse).
+ *
+ * v2 — Utilise onSnapshot() pour des mises à jour en temps réel.
+ *       Expose getPlayerRank() pour afficher la position d'un joueur hors Top 50.
  */
 
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import {
+    collection,
+    query,
+    orderBy,
+    limit,
+    onSnapshot,
+    where,
+    getCountFromServer,
+    Unsubscribe,
+} from 'firebase/firestore';
 import { db } from './firebase';
 import { LeagueGrade } from '../economy.types';
 
 export interface LeaderboardEntry {
     uid: string;
     displayName: string;
-    avatarUrl?: string;
+    avatarId: string;
     xp: number;
     coins: number;
     level: number;
@@ -23,58 +35,48 @@ export interface LeaderboardEntry {
 
 export type LeaderboardCategory = 'XP' | 'COINS' | 'COCHONS';
 
+/** Champ Firestore correspondant à chaque catégorie */
+const CATEGORY_FIELD: Record<LeaderboardCategory, string> = {
+    XP: 'economy.xp',
+    COINS: 'economy.coins',
+    COCHONS: 'economy.leaguePoints',
+};
+
 class LeaderboardService {
-    /**
-     * Récupère le Top 50 des joueurs classés par XP décroissant.
-     * @param limitCount Nombre max de joueurs à récupérer (défaut: 50)
-     */
-    async getTopPlayersByXP(limitCount: number = 50): Promise<LeaderboardEntry[]> {
-        return this.fetchLeaderboard('economy.xp', limitCount);
-    }
 
     /**
-     * Récupère le Top 50 des joueurs classés par Coins décroissant.
-     * @param limitCount Nombre max de joueurs à récupérer (défaut: 50)
+     * S'abonne en temps réel au classement de la catégorie donnée.
+     * Appelle `callback` à chaque mise à jour de Firestore.
+     * Retourne une fonction `unsubscribe` à appeler lors du démontage.
+     *
+     * @param category   - 'XP' | 'COINS' | 'COCHONS'
+     * @param limitCount - Nombre de joueurs à récupérer (défaut: 50)
+     * @param callback   - Fonction appelée avec les entrées mises à jour
      */
-    async getTopPlayersByCoins(limitCount: number = 50): Promise<LeaderboardEntry[]> {
-        return this.fetchLeaderboard('economy.coins', limitCount);
-    }
+    subscribeLeaderboard(
+        category: LeaderboardCategory,
+        limitCount: number = 50,
+        callback: (entries: LeaderboardEntry[]) => void
+    ): Unsubscribe {
+        const field = CATEGORY_FIELD[category];
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, orderBy(field, 'desc'), limit(limitCount));
 
-    /**
-     * Récupère le Top 50 des joueurs classés par Cochons (Points de Ligue) décroissant.
-     * @param limitCount Nombre max de joueurs à récupérer (défaut: 50)
-     */
-    async getTopPlayersByCochons(limitCount: number = 50): Promise<LeaderboardEntry[]> {
-        return this.fetchLeaderboard('economy.leaguePoints', limitCount);
-    }
-
-    /**
-     * Fonction générique pour récupérer un classement basé sur un champ de l'économie.
-     */
-    private async fetchLeaderboard(orderByField: string, limitCount: number): Promise<LeaderboardEntry[]> {
-        try {
-            const usersRef = collection(db, 'users');
-            // Requête : Trier par le champ spécifié en ordre décroissant, avec une limite
-            const q = query(
-                usersRef,
-                orderBy(orderByField, 'desc'),
-                limit(limitCount)
-            );
-
-            const querySnapshot = await getDocs(q);
+        const unsubscribe = onSnapshot(q, (snapshot) => {
             const leaderboard: LeaderboardEntry[] = [];
             let currentRank = 1;
 
-            querySnapshot.forEach((doc) => {
+            snapshot.forEach((doc) => {
                 const data = doc.data();
                 const economy = data.economy || {};
 
-                // Ne garder que les joueurs qui ont de l'XP ou des Coins (éviter les faux profils)
+                // Ne garder que les joueurs ayant de l'XP ou des Coins (éviter les faux profils)
                 if (economy.xp !== undefined && economy.coins !== undefined) {
                     leaderboard.push({
                         uid: doc.id,
-                        displayName: data.displayName || 'Joueur Anonyme',
-                        avatarUrl: data.avatarUrl || 'avatar_default',
+                        displayName: data.displayName || data.email?.split('@')[0] || 'Joueur',
+                        // Lire avatarId (nouveau champ) avec fallback vers avatarUrl (ancien champ)
+                        avatarId: data.avatarId || data.avatarUrl || 'avatar_default',
                         xp: economy.xp || 0,
                         coins: economy.coins || 0,
                         level: economy.level || 1,
@@ -85,10 +87,38 @@ class LeaderboardService {
                 }
             });
 
-            return leaderboard;
+            callback(leaderboard);
+        }, (error) => {
+            console.error('[LeaderboardService] onSnapshot error:', error);
+            callback([]);
+        });
+
+        return unsubscribe;
+    }
+
+    /**
+     * Retourne le rang approximatif d'un joueur pour une catégorie donnée.
+     * Compte le nombre de joueurs ayant un score strictement supérieur au sien,
+     * puis ajoute 1 pour obtenir sa position.
+     *
+     * Retourne `null` si le joueur n'a pas de données Firebase (invité).
+     */
+    async getPlayerRank(
+        uid: string,
+        category: LeaderboardCategory,
+        playerScore: number
+    ): Promise<number | null> {
+        if (uid.startsWith('guest_')) return null;
+
+        try {
+            const field = CATEGORY_FIELD[category];
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where(field, '>', playerScore));
+            const snapshot = await getCountFromServer(q);
+            return snapshot.data().count + 1;
         } catch (error) {
-            console.error('[LeaderboardService] Error fetching leaderboard for field ' + orderByField, error);
-            return [];
+            console.error('[LeaderboardService] getPlayerRank error:', error);
+            return null;
         }
     }
 }

@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+    View, Text, StyleSheet, FlatList, TouchableOpacity,
+    RefreshControl, ActivityIndicator, useWindowDimensions
+} from 'react-native';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,8 +10,10 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { leaderboardService, LeaderboardEntry, LeaderboardCategory } from '../src/core/services/leaderboard.service';
 import { authService } from '../src/core/services/auth.service';
-import { getAvatarImage, AvatarId } from '../src/core/avatars';
+import { economyService } from '../src/core/services/economy.service';
+import { getAvatarImage } from '../src/core/avatars';
 import { LEAGUE_LABELS, LEAGUE_ICONS } from '../src/core/economy.constants';
+import { PlayerProfile } from '../src/core/types';
 
 export default function LeaderboardScreen() {
     const router = useRouter();
@@ -17,54 +22,110 @@ export default function LeaderboardScreen() {
     const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [currentUser, setCurrentUser] = useState<PlayerProfile | null>(null);
+    /** Rang du joueur actuel si hors du Top 50 (null = dans le Top 50 ou invité) */
+    const [playerOutsideRank, setPlayerOutsideRank] = useState<number | null>(null);
+    const [playerLocalScore, setPlayerLocalScore] = useState<number>(0);
 
+    const unsubscribeRef = useRef<(() => void) | null>(null);
+
+    // Charger le profil utilisateur et synchroniser les infos dans Firestore
     useEffect(() => {
         authService.getCurrentUser().then(u => {
-            if (u) setCurrentUserId(u.uid);
+            if (!u) return;
+            setCurrentUser(u);
+            // Sync le displayName et avatarId vers Firestore pour les joueurs
+            // déjà connectés dont le document n'a jamais eu ces champs.
+            if (!u.uid.startsWith('guest_')) {
+                economyService.syncProfileToFirebase(
+                    u.uid,
+                    u.displayName,
+                    u.avatarId || u.avatarUrl || 'avatar_default'
+                );
+            }
         });
-        fetchData();
+    }, []);
+
+    // Charger le score local (pour les invités et le bandeau hors Top 50)
+    useEffect(() => {
+        economyService.getEconomy().then(eco => {
+            if (activeTab === 'XP') setPlayerLocalScore(eco.xp);
+            else if (activeTab === 'COINS') setPlayerLocalScore(eco.coins);
+            else setPlayerLocalScore(eco.leaguePoints);
+        });
     }, [activeTab]);
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            let data: LeaderboardEntry[] = [];
-            if (activeTab === 'XP') {
-                data = await leaderboardService.getTopPlayersByXP(50);
-            } else if (activeTab === 'COINS') {
-                data = await leaderboardService.getTopPlayersByCoins(50);
-            } else if (activeTab === 'COCHONS') {
-                data = await leaderboardService.getTopPlayersByCochons(50);
-            }
-            setLeaderboardData(data);
-        } catch (error) {
-            console.error('Failed to load leaderboard', error);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
+    // S'abonner au classement en temps réel
+    useEffect(() => {
+        // Nettoyer l'abonnement précédent
+        if (unsubscribeRef.current) {
+            unsubscribeRef.current();
         }
-    };
+
+        setLoading(true);
+        setLeaderboardData([]);
+        setPlayerOutsideRank(null);
+
+        const unsub = leaderboardService.subscribeLeaderboard(
+            activeTab,
+            50,
+            (entries) => {
+                setLeaderboardData(entries);
+                setLoading(false);
+                setRefreshing(false);
+            }
+        );
+        unsubscribeRef.current = unsub;
+
+        // Nettoyage au démontage
+        return () => {
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current();
+                unsubscribeRef.current = null;
+            }
+        };
+    }, [activeTab]);
+
+    // Calculer le rang du joueur s'il est hors du Top 50
+    useEffect(() => {
+        if (!currentUser || currentUser.uid.startsWith('guest_') || loading) return;
+
+        const isInTopList = leaderboardData.some(e => e.uid === currentUser.uid);
+        if (isInTopList) {
+            setPlayerOutsideRank(null);
+            return;
+        }
+
+        leaderboardService.getPlayerRank(currentUser.uid, activeTab, playerLocalScore)
+            .then(rank => setPlayerOutsideRank(rank));
+    }, [leaderboardData, currentUser, activeTab, playerLocalScore, loading]);
 
     const handleRefresh = useCallback(() => {
         setRefreshing(true);
-        fetchData();
-    }, [activeTab]);
+        // onSnapshot se mettra à jour automatiquement ; on simule juste le spinner
+        setTimeout(() => setRefreshing(false), 800);
+    }, []);
 
     const getRankColor = (rank: number) => {
-        if (rank === 1) return '#FFD700'; // Or
-        if (rank === 2) return '#C0C0C0'; // Argent
-        if (rank === 3) return '#CD7F32'; // Bronze
+        if (rank === 1) return '#FFD700';
+        if (rank === 2) return '#C0C0C0';
+        if (rank === 3) return '#CD7F32';
         return '#FFFFFF';
     };
 
+    const getScoreForTab = (item: LeaderboardEntry) => {
+        if (activeTab === 'XP') return item.xp;
+        if (activeTab === 'COINS') return item.coins;
+        return item.leaguePoints;
+    };
+
     const renderItem = ({ item, index }: { item: LeaderboardEntry; index: number }) => {
-        const isCurrentUser = item.uid === currentUserId;
+        const isCurrentUser = currentUser && item.uid === currentUser.uid;
         const rankColor = getRankColor(item.rank);
-        const avatarSrc = getAvatarImage(item.avatarUrl || 'avatar_default');
+        const avatarSrc = getAvatarImage(item.avatarId || 'avatar_default');
 
         return (
-            <Animated.View entering={FadeInUp.delay(50 + index * 50)} style={[styles.playerRow, isCurrentUser && styles.currentUserRow]}>
+            <Animated.View entering={FadeInUp.delay(50 + index * 40)} style={[styles.playerRow, isCurrentUser && styles.currentUserRow]}>
 
                 {/* Rang */}
                 <View style={styles.rankContainer}>
@@ -91,7 +152,7 @@ export default function LeaderboardScreen() {
                     </Text>
                 </View>
 
-                {/* Valeur du score */}
+                {/* Score */}
                 <View style={styles.scoreContainer}>
                     {activeTab === 'XP' && (
                         <>
@@ -116,6 +177,42 @@ export default function LeaderboardScreen() {
         );
     };
 
+    /** Bandeau fixe affiché en bas quand le joueur est hors Top 50 ou invité */
+    const renderPlayerBanner = () => {
+        const isGuest = !currentUser || currentUser.uid.startsWith('guest_');
+
+        if (isGuest) {
+            return (
+                <View style={styles.playerBanner}>
+                    <Ionicons name="person-outline" size={16} color="rgba(255,255,255,0.7)" />
+                    <Text style={styles.playerBannerText}>
+                        Votre position : Non classé{'\n'}
+                        <Text style={styles.playerBannerSub}>Créez un compte pour apparaître dans le classement</Text>
+                    </Text>
+                    <Text style={styles.playerBannerScore}>
+                        {playerLocalScore.toLocaleString()} {activeTab === 'COINS' ? '🪙' : activeTab === 'COCHONS' ? '🐷' : 'XP'}
+                    </Text>
+                </View>
+            );
+        }
+
+        const inTopList = leaderboardData.some(e => currentUser && e.uid === currentUser.uid);
+        if (inTopList) return null; // Déjà visible dans la liste
+
+        const rankText = playerOutsideRank != null ? `#${playerOutsideRank}` : '...';
+        return (
+            <View style={[styles.playerBanner, styles.playerBannerAuth]}>
+                <Ionicons name="person" size={16} color="#FFD700" />
+                <Text style={[styles.playerBannerText, { color: '#FFD700' }]}>
+                    Votre position : {rankText}
+                </Text>
+                <Text style={styles.playerBannerScore}>
+                    {playerLocalScore.toLocaleString()} {activeTab === 'COINS' ? '🪙' : activeTab === 'COCHONS' ? '🐷' : 'XP'}
+                </Text>
+            </View>
+        );
+    };
+
     return (
         <LinearGradient colors={['#2D1B4E', '#1A0E2E']} style={styles.container}>
             <Stack.Screen
@@ -133,28 +230,19 @@ export default function LeaderboardScreen() {
                 }}
             />
 
-            {/* Onglets (Tabs) */}
+            {/* Onglets */}
             <View style={styles.tabsContainer}>
-                <TouchableOpacity
-                    style={[styles.tabButton, activeTab === 'XP' && styles.activeTabButton]}
-                    onPress={() => setActiveTab('XP')}
-                >
-                    <Text style={[styles.tabText, activeTab === 'XP' && styles.activeTabText]} numberOfLines={1}>🌟 XP</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.tabButton, activeTab === 'COINS' && styles.activeTabButton]}
-                    onPress={() => setActiveTab('COINS')}
-                >
-                    <Text style={[styles.tabText, activeTab === 'COINS' && styles.activeTabText]} numberOfLines={1}>💰 Coins</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.tabButton, activeTab === 'COCHONS' && styles.activeTabButton]}
-                    onPress={() => setActiveTab('COCHONS')}
-                >
-                    <Text style={[styles.tabText, activeTab === 'COCHONS' && styles.activeTabText]} numberOfLines={1}>🐷 Cochons</Text>
-                </TouchableOpacity>
+                {(['XP', 'COINS', 'COCHONS'] as LeaderboardCategory[]).map((tab) => (
+                    <TouchableOpacity
+                        key={tab}
+                        style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
+                        onPress={() => setActiveTab(tab)}
+                    >
+                        <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]} numberOfLines={1}>
+                            {tab === 'XP' ? '🌟 XP' : tab === 'COINS' ? '💰 Coins' : '🐷 Cochons'}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
             </View>
 
             {/* Liste */}
@@ -177,6 +265,7 @@ export default function LeaderboardScreen() {
                             <Text style={styles.emptyText}>Aucun joueur classé pour le moment.</Text>
                         </View>
                     }
+                    ListFooterComponent={renderPlayerBanner}
                 />
             )}
         </LinearGradient>
@@ -216,7 +305,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         padding: 15,
-        paddingBottom: 40,
+        paddingBottom: 20,
     },
     playerRow: {
         flexDirection: 'row',
@@ -290,6 +379,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingVertical: 40,
     },
     loadingText: {
         color: '#FFD700',
@@ -302,5 +392,38 @@ const styles = StyleSheet.create({
         fontSize: 16,
         textAlign: 'center',
         marginTop: 50,
-    }
+    },
+    // ── Bandeau position joueur ──
+    playerBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 10,
+        marginBottom: 10,
+        padding: 14,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)',
+    },
+    playerBannerAuth: {
+        backgroundColor: 'rgba(255,215,0,0.08)',
+        borderColor: '#FFD700',
+    },
+    playerBannerText: {
+        flex: 1,
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 13,
+        fontWeight: 'bold',
+    },
+    playerBannerSub: {
+        fontSize: 11,
+        fontWeight: '400',
+        color: 'rgba(255,255,255,0.5)',
+    },
+    playerBannerScore: {
+        color: '#FFD700',
+        fontSize: 13,
+        fontWeight: 'bold',
+    },
 });
