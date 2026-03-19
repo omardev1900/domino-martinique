@@ -13,8 +13,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from './firebase';
-import { PlayerEconomy, MatchReward, LeagueGrade } from '../economy.types';
+import { PlayerEconomy, MatchReward, LeagueGrade, RewardCalculationInput } from '../economy.types';
 import { NEW_PLAYER_COINS, DAILY_REWARD_COINS } from '../economy.constants';
 import { getLevelFromXP, getLeagueGrade } from '../RewardEngine';
 
@@ -133,22 +134,61 @@ class EconomyService {
         this.cached = updated;
         await this.persistLocal();
 
-        console.log('[EconomyService] Reward applied:', {
-            coinsAdded: reward.coinsEarned,
-            newCoins: updated.coins,
-            xpAdded: reward.xpEarned,
-            newLevel: updated.level,
-            leveledUp: reward.leveledUp,
-            newGrade: updated.leagueGrade,
-            gradeUp: reward.gradeUp,
-        });
+        console.log('[EconomyService] Reward applied locally:', { coinsAdded: reward.coinsEarned, newCoins: updated.coins });
 
-        // Sync Firebase pour les joueurs authentifiés
+        // Sync Firebase pour les joueurs authentifiés (Fallback)
         if (userId && !userId.startsWith('guest_')) {
             await this.pushToFirebase(userId, updated, profile);
         }
 
         return { ...updated };
+    }
+
+    /**
+     * Appelle le Serveur (Cloud Functions) pour générer la récompense de façon sécurisée.
+     */
+    async processServerReward(input: RewardCalculationInput, userId?: string, profile?: EconomyProfileInfo): Promise<MatchReward> {
+        if (!userId || userId.startsWith('guest_')) {
+            // Mode hors-ligne ou invité : on exécute en local
+            console.log('[EconomyService] Invité ou mode Solo: Calcul des récompenses en local.');
+            const { RewardEngine } = require('../RewardEngine');
+            const reward = RewardEngine.calculate(input);
+            await this.applyReward(reward, userId, profile);
+            return reward;
+        }
+
+        try {
+            console.log('[EconomyService] Appel du Banquier Serveur pour le calcul de récompense...');
+            const functions = getFunctions();
+            const processMatchRewardHook = httpsCallable<{ input: Partial<RewardCalculationInput> }, MatchReward>(functions, 'processMatchReward');
+
+            const result = await processMatchRewardHook({ input });
+            const reward = result.data;
+
+            console.log('✅ [EconomyService] Réponse sécurisée du serveur :', reward);
+
+            // Mise à jour de l'UI localement sans forcer un push Firebase qui écraserait la DB
+            const current = await this.getEconomy();
+            const updated: PlayerEconomy = {
+                coins: current.coins + reward.coinsEarned,
+                xp: reward.newXP,
+                level: reward.newLevel,
+                diamonds: current.diamonds + reward.diamondsEarned,
+                leaguePoints: reward.newLeaguePoints,
+                leagueGrade: reward.newGrade,
+            };
+            this.cached = updated;
+            await this.persistLocal(); // On sauvegarde juste dans le AsyncStorage pour l'application fluide
+
+            return reward;
+
+        } catch (e) {
+            console.error('❌ [EconomyService] Erreur avec le Banquier Serveur, tentative de fallback :', e);
+            const { RewardEngine } = require('../RewardEngine');
+            const reward = RewardEngine.calculate(input);
+            await this.applyReward(reward, userId, profile);
+            return reward;
+        }
     }
 
 
@@ -273,7 +313,7 @@ class EconomyService {
     private async pushToFirebase(uid: string, economy: PlayerEconomy, profile?: EconomyProfileInfo): Promise<void> {
         try {
             const userRef = doc(db, 'users', uid);
-            
+
             // Nettoyage des valeurs undefined pour éviter l'erreur Firestore
             const cleanEconomy = { ...economy };
             if (cleanEconomy.lastDailyRewardTimestamp === undefined) {

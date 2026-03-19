@@ -380,19 +380,21 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         isSoloMode,
                     });
 
-                    const reward = RewardEngine.calculate(rewardInput);
-                    setMatchReward(reward);
+                    // ✅ Exécution sécurisée côté serveur (Backend Banker)
+                    economyService.processServerReward(rewardInput, userId)
+                        .then(reward => {
+                            setMatchReward(reward);
+                            console.log('💰 [GameScreen] Server Economy rewards applied:', {
+                                coins: reward.coinsEarned,
+                                xp: reward.xpEarned,
+                                leveledUp: reward.leveledUp,
+                                gradeUp: reward.gradeUp,
+                            });
+                        })
+                        .catch(err => {
+                            console.error('[Economy] Server calculation failed:', err);
+                        });
 
-                    economyService.applyReward(reward, userId).catch(err =>
-                        console.error('[Economy] applyReward failed:', err)
-                    );
-
-                    console.log('💰 [GameScreen] Economy rewards applied:', {
-                        coins: reward.coinsEarned,
-                        xp: reward.xpEarned,
-                        leveledUp: reward.leveledUp,
-                        gradeUp: reward.gradeUp,
-                    });
                 } catch (err) {
                     console.error('[Economy] RewardEngine calculation failed:', err);
                 }
