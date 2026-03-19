@@ -2,7 +2,7 @@ import { createAudioPlayer, AudioPlayer, setAudioModeAsync, AudioSource } from '
 import { Platform } from 'react-native';
 import SettingsManager from '../SettingsManager';
 
-type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'boude' | 'toktok' | 'startGame' | 'timer' | 'end_time';
+type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'end' | 'toktok' | 'startGame' | 'timer' | 'end_time';
 
 class SoundManager {
     private static instance: SoundManager;
@@ -17,7 +17,7 @@ class SoundManager {
         bgm1: null,
         bgm2: null,
         bgm3: null,
-        boude: null,
+        end: null,
         toktok: null,
         startGame: null,
         timer: null,
@@ -95,7 +95,7 @@ class SoundManager {
                 bgm1: require('@/assets/sounds/bgm1.mp3'),
                 bgm2: require('@/assets/sounds/bgm2.mp3'),
                 bgm3: require('@/assets/sounds/bgm3.mp3'),
-                boude: require('@/assets/sounds/boude.mp3'),
+                end: require('@/assets/sounds/end.mp3'),
                 toktok: require('@/assets/sounds/toktok.mp3'),
                 startGame: require('@/assets/sounds/start-game.mp3'),
                 timer: require('@/assets/sounds/timer.mp3'),

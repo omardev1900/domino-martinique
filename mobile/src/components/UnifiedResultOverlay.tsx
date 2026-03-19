@@ -87,9 +87,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
             scaleValue.value = withSpring(1);
             opacityValue.value = withTiming(1, { duration: 500 });
 
-            if (mancheResult === 'CHIRE' || isBoude) SoundManager.playSound('boude');
-            else if (mancheResult === 'COCHON' || isMeWinner) SoundManager.playSound('win');
-            else SoundManager.playSound('lose');
+            SoundManager.playSound('end');
         } else {
             scaleValue.value = 0.5;
             opacityValue.value = 0;

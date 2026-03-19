@@ -65,7 +65,7 @@ export const useAutoPass = ({
         // 3. Séquence visuelle
         setVisualBoudePlayerId(currentPlayerId);
         try {
-            SoundManager.playSound('boude');
+            SoundManager.playSound('toktok');
         } catch (e) {
             // Ignorer les erreurs sonores en test/background
         }

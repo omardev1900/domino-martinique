@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GameState } from '../../core/types';
+import SoundManager from '../../core/audio/SoundManager';
 
 export interface UseGameTimersProps {
     gameState: GameState | null;
@@ -110,6 +111,12 @@ export const useGameTimers = ({
             const turnAge = Date.now() - turnMountedAtRef.current;
             const isPlayerDisconnected = player.isDisconnected;
 
+            if (remaining === 5 && elapsed > 1000) {
+                // Ensure we only play it once when remaining hits exactly 5
+                // elapsed > 1000 ensures it doesn't play immediately if the turn duration is very short (e.g., 5 seconds or less)
+                SoundManager.playSound('timer');
+            }
+
             setTimeLeft(remaining);
 
             if (remaining === 0 && (isPlayerDisconnected || turnAge >= TURN_IMMUNITY_MS)) {
@@ -117,6 +124,7 @@ export const useGameTimers = ({
                 turnTimerRef.current = null;
 
                 setOvertime(5);
+                SoundManager.playSound('end_time');
             } else if (remaining === 0 && !isPlayerDisconnected && turnAge < TURN_IMMUNITY_MS) {
 
             }

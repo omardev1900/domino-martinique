@@ -55,17 +55,17 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         const isWinner = sortedPlayers[0].id === currentUserId;
 
         if (isWinner) {
-            SoundManager.playSound('win');
+            SoundManager.playSound('end');
             HapticManager.triggerSuccess();
         } else {
-            SoundManager.playSound('lose');
+            SoundManager.playSound('end');
         }
     }, [gameState.gameId, currentUserId, isBoudé]);
 
     // Play specific sound for BOUDE phase
     useEffect(() => {
         if (isBoudé) {
-            SoundManager.playSound('boude');
+            SoundManager.playSound('end');
             HapticManager.triggerImpact(); // Add impact for reinforcement
         }
     }, [isBoudé]);
