@@ -273,7 +273,14 @@ class EconomyService {
     private async pushToFirebase(uid: string, economy: PlayerEconomy, profile?: EconomyProfileInfo): Promise<void> {
         try {
             const userRef = doc(db, 'users', uid);
-            const payload: Record<string, any> = { economy };
+            
+            // Nettoyage des valeurs undefined pour éviter l'erreur Firestore
+            const cleanEconomy = { ...economy };
+            if (cleanEconomy.lastDailyRewardTimestamp === undefined) {
+                delete cleanEconomy.lastDailyRewardTimestamp;
+            }
+
+            const payload: Record<string, any> = { economy: cleanEconomy };
             // Écrire displayName et avatarId si fournis, pour que le leaderboard
             // puisse afficher le vrai nom et l'avatar du joueur
             if (profile) {
