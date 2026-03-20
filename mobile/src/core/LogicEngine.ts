@@ -512,12 +512,17 @@ export const handleTimeout = (gameState: GameState, playerId: PlayerId): GameSta
  * computeNextRoundState : Calcule l'état de départ du prochain round ou de la prochaine manche.
  */
 export const computeNextRoundState = (activeState: GameState, fallbackHandSize: number = 7): GameState => {
+    const handSize = activeState.startingHandSize;
+    if (!handSize || handSize < 1 || handSize > 14 || !Number.isInteger(handSize)) {
+        throw new Error(`[LogicEngine] startingHandSize invalide: ${handSize}`);
+    }
+
     const isMancheEnd = activeState.phase === 'MANCHE_END';
     let winnerId = isMancheEnd ? null : activeState.firstPlayerOfRound;
 
     const playerNames = activeState.players.map(p => p.name);
     // On génère la nouvelle distribution pure
-    const partialState = dealGame(playerNames, activeState.startingHandSize || fallbackHandSize);
+    const partialState = dealGame(playerNames, handSize);
 
     const safeOldPlayersArray = (Array.isArray(activeState.players) ? activeState.players : Object.values(activeState.players || {})) as Player[];
 
