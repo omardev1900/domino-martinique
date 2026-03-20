@@ -43,8 +43,20 @@ export const getAvatarImage = (avatarId: string | null | undefined) => {
     }
 
     // Check if the avatarId is actually a remote URL (like Firebase Storage)
+    // SEC-9: Whitelist de domaines autorisés pour éviter l'injection d'URLs arbitraires
+    const ALLOWED_AVATAR_DOMAINS = [
+        'firebasestorage.googleapis.com',
+        'lh3.googleusercontent.com', // Google Photos (comptes Google)
+    ];
+
     if (avatarId.startsWith('http://') || avatarId.startsWith('https://')) {
-        return { uri: avatarId };
+        try {
+            const url = new URL(avatarId);
+            if (ALLOWED_AVATAR_DOMAINS.some(d => url.hostname.endsWith(d))) {
+                return { uri: avatarId };
+            }
+        } catch {}
+        return AVATAR_IMAGES.avatar_default; // URL invalide ou domaine non autorisé
     }
 
     if (!(avatarId in AVATAR_IMAGES)) {
