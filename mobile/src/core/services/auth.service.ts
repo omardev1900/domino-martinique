@@ -20,15 +20,14 @@ class AuthService {
     private currentUser: PlayerProfile | null = null;
 
     /**
-     * Generate a secure random guest ID (SEC-5)
+     * Generate a cryptographically secure random guest ID (SEC-5)
+     * Uses globalThis.crypto.getRandomValues, available in React Native >= 0.71
      */
     private generateGuestId(): string {
-        const alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        let random = '';
-        for (let i = 0; i < 12; i++) {
-            random += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-        }
-        return `guest_${Date.now().toString(36)}_${random}`;
+        const bytes = new Uint8Array(16);
+        globalThis.crypto.getRandomValues(bytes);
+        const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        return `guest_${hex}`;
     }
 
     /**
