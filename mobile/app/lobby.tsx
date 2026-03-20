@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createRoom, joinRoom, listenToPublicRooms, findHostedWaitingRoom, findActiveRoomForUser, RoomOptions, auth } from '../src/core/services/firebase';
 import { PlayerProfile, GameMode, GameRoom } from '../src/core/types';
 import { authService } from '../src/core/services/auth.service';
+import { roomNameSchema } from '../src/core/validation/schemas';
 import { FlatList } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { HAND_SIZE, TURN_DURATION_SECONDS } from '../src/core/constants';
@@ -83,6 +84,7 @@ export default function LobbyScreen() {
     // — CREATE tab state —
     const [isPrivateRoom, setIsPrivateRoom] = useState(false);
     const [roomNameInput, setRoomNameInput] = useState('');
+    const [roomError, setRoomError] = useState<string | null>(null);
     const [gameMode, setGameMode] = useState<GameMode>('SCORE');
     const [winningCondition, setWinningCondition] = useState(6);
     const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
@@ -239,13 +241,21 @@ export default function LobbyScreen() {
         }
 
         if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant
+
+        setRoomError(null);
+        const result = roomNameSchema.safeParse(roomNameInput);
+        if (!result.success) {
+            setRoomError(result.error.issues[0].message);
+            return;
+        }
+
         try {
             setLoading(true);
             const options: RoomOptions = { gameMode, winningCondition, turnDuration, startingHandSize };
             const newRoomId = await createRoom(
                 currentUser,
                 isPrivateRoom,
-                roomNameInput.trim() || undefined,
+                result.data || undefined,
                 undefined,
                 options
             );
@@ -440,14 +450,20 @@ export default function LobbyScreen() {
 
             {/* Bottom Action Bar (Option 3+) */}
             <View style={[styles.bottomActionsRow, isLandscape && styles.bottomActionsRowLandscape]}>
-                <TextInput
-                    style={styles.bottomInput}
-                    placeholder="Nom de la table (optionnel)"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    value={roomNameInput}
-                    onChangeText={setRoomNameInput}
-                    maxLength={25}
-                />
+                <View style={{ flex: 1, gap: 4 }}>
+                    <TextInput
+                        style={[styles.bottomInput, roomError && { borderColor: '#FF3B30', borderWidth: 1 }]}
+                        placeholder="Nom de la table (optionnel)"
+                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        value={roomNameInput}
+                        onChangeText={(text) => {
+                            setRoomNameInput(text);
+                            if (roomError) setRoomError(null);
+                        }}
+                        maxLength={40}
+                    />
+                    {roomError && <Text style={styles.errorTextSmall}>{roomError}</Text>}
+                </View>
 
                 {/* Create Button */}
                 <View style={[styles.playButtonWrapper, isLandscape && styles.playButtonWrapperLandscape]}>
@@ -1173,5 +1189,11 @@ const styles = StyleSheet.create({
     emptyHint: {
         color: 'rgba(255,215,0,0.5)',
         fontSize: 13,
+    },
+    errorTextSmall: {
+        color: '#FF3B30',
+        fontSize: 11,
+        marginTop: 2,
+        marginLeft: 4,
     },
 });

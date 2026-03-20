@@ -22,8 +22,8 @@ describe('useGameTimers Hook (Component Wrapper)', () => {
     const createMockState = (overrides = {}): GameState => createBaseGameState({
         gameId: 'test-room',
         players: [
-            { id: 'p1', name: 'Human', isBot: false, isDisconnected: false } as Player,
-            { id: 'p2', name: 'Bot', isBot: true, isDisconnected: false } as Player
+            { id: 'p1', name: 'Human', status: 'HUMAN' } as Player,
+            { id: 'p2', name: 'Bot', status: 'BOT' } as Player
         ],
         currentPlayerId: 'p1',
         turnDuration: 10,

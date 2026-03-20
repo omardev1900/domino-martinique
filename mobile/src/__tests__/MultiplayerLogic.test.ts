@@ -6,9 +6,9 @@ import { createBaseGameState } from '../hooks/game/__tests__/testUtils';
 const createMockState = (mode: GameMode, condition: number): GameState => {
     return createBaseGameState({
         players: [
-            { id: 'p1', name: 'Player 1', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 },
-            { id: 'p2', name: 'Player 2', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 },
-            { id: 'p3', name: 'Player 3', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 }
+            { id: 'p1', name: 'Player 1', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'HUMAN', currentMancheStars: 0, totalRoundWins: 0 },
+            { id: 'p2', name: 'Player 2', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'HUMAN', currentMancheStars: 0, totalRoundWins: 0 },
+            { id: 'p3', name: 'Player 3', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'HUMAN', currentMancheStars: 0, totalRoundWins: 0 }
         ],
         currentPlayerId: 'p1',
         firstPlayerOfRound: 'p1',
@@ -148,9 +148,9 @@ describe('Multiplayer Game Logic & Rules Verification', () => {
 
         test('BOUDE Result: Winner is player with minimum points in hand', () => {
             const players: Player[] = [
-                { id: 'p1', name: '', hand: [{ id: '1', left: 1, right: 1, sum: 2, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 },
-                { id: 'p2', name: '', hand: [{ id: '2', left: 6, right: 6, sum: 12, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 },
-                { id: 'p3', name: '', hand: [{ id: '3', left: 5, right: 5, sum: 10, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 }
+                { id: 'p1', name: '', hand: [{ id: '1', left: 1, right: 1, sum: 2, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'HUMAN', currentMancheStars: 0, totalRoundWins: 0 },
+                { id: 'p2', name: '', hand: [{ id: '2', left: 6, right: 6, sum: 12, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'HUMAN', currentMancheStars: 0, totalRoundWins: 0 },
+                { id: 'p3', name: '', hand: [{ id: '3', left: 5, right: 5, sum: 10, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'HUMAN', currentMancheStars: 0, totalRoundWins: 0 }
             ];
 
             const winnerId = determineWinnerOnBoudé(players);
@@ -159,9 +159,9 @@ describe('Multiplayer Game Logic & Rules Verification', () => {
 
         test('BOUDE Result: TIE occurs if two players have same minimum points', () => {
             const players: Player[] = [
-                { id: 'p1', name: '', hand: [{ id: '1', left: 1, right: 1, sum: 2, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 },
-                { id: 'p2', name: '', hand: [{ id: '2', left: 1, right: 1, sum: 2, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 }, // Same as p1
-                { id: 'p3', name: '', hand: [{ id: '3', left: 6, right: 6, sum: 12, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, isBot: false, currentMancheStars: 0, totalRoundWins: 0 }
+                { id: 'p1', name: '', hand: [{ id: '1', left: 1, right: 1, sum: 2, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'HUMAN', currentMancheStars: 0, totalRoundWins: 0 },
+                { id: 'p2', name: '', hand: [{ id: '2', left: 1, right: 1, sum: 2, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'HUMAN', currentMancheStars: 0, totalRoundWins: 0 }, // Same as p1
+                { id: 'p3', name: '', hand: [{ id: '3', left: 6, right: 6, sum: 12, isDouble: true }], wins: 0, handSize: 1, mancheWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'HUMAN', currentMancheStars: 0, totalRoundWins: 0 }
             ];
 
             const winnerId = determineWinnerOnBoudé(players);

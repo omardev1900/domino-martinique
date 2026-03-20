@@ -46,29 +46,28 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     const isMancheOver = gameState.phase === 'MANCHE_END' || isMatchOver;
     const isBoudé = gameState.phase === 'BOUDE';
 
-    // Game Effects on mount (skip during BOUDE - resolution is pending)
+    const lastPlayedPhase = useRef<string | null>(null);
+
+    // Game Effects on mount
     useEffect(() => {
-        // Don't play win/lose sounds during BOUDE - wait for resolution
-        if (isBoudé) return;
+        // Only play if the phase has changed and is a terminal phase
+        if (lastPlayedPhase.current === gameState.phase) return;
+        if (!isMancheOver && !isBoudé) return;
 
-        const sortedPlayers = [...gameState.players].sort((a, b) => b.currentMancheStars - a.currentMancheStars);
-        const isWinner = sortedPlayers[0].id === currentUserId;
+        lastPlayedPhase.current = gameState.phase;
 
-        if (isWinner) {
-            SoundManager.playSound('end');
-            HapticManager.triggerSuccess();
-        } else {
-            SoundManager.playSound('end');
-        }
-    }, [gameState.gameId, currentUserId, isBoudé]);
-
-    // Play specific sound for BOUDE phase
-    useEffect(() => {
+        SoundManager.playSound('end');
+        
         if (isBoudé) {
-            SoundManager.playSound('end');
-            HapticManager.triggerImpact(); // Add impact for reinforcement
+            HapticManager.triggerImpact();
+        } else {
+            const sortedPlayers = [...gameState.players].sort((a, b) => b.currentMancheStars - a.currentMancheStars);
+            const isWinner = sortedPlayers[0].id === currentUserId;
+            if (isWinner) {
+                HapticManager.triggerSuccess();
+            }
         }
-    }, [isBoudé]);
+    }, [gameState.phase, currentUserId, isBoudé, isMancheOver]);
 
     // Les manches sont passées manuellement par l'utilisateur (ou l'hôte)
 

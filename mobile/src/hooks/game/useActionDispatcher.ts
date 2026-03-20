@@ -155,10 +155,9 @@ export const useActionDispatcher = ({
                         if ((SoundManager as any).playSound) (SoundManager as any).playSound('shuffle');
                     } else if (tilePlayed) {
                         if ((SoundManager as any).playClack) (SoundManager as any).playClack();
-                        if ((SoundManager as any).playSound) (SoundManager as any).playSound('place_tile');
                         if (onTilePlayed) onTilePlayed(tilePlayed);
                     } else if (command.type === 'PASS_TURN' || (command.type === 'TIMEOUT' && !tilePlayed)) {
-                        if ((SoundManager as any).playSound) (SoundManager as any).playSound('pass_turn');
+                        if ((SoundManager as any).playSound) (SoundManager as any).playSound('toktok');
                     }
                 } catch (e) {
                     console.error('[ActionDispatcher] Sound error:', e);

@@ -74,9 +74,9 @@ describe('Multiplayer Cochon Synchronization Integration', () => {
     const createInitialCochonState = (): GameState => {
         return createBaseGameState({
             players: [
-                { id: 'A', name: 'Player A', hand: [], handSize: 0, currentMancheStars: 2, totalPoints: 10, totalCochons: 0, wins: 2, mancheWins: 0, totalRoundWins: 0, isCochon: false, isBot: false } as Player,
-                { id: 'B', name: 'Player B', hand: [{ id: 'd1', sum: 5 } as any], handSize: 1, currentMancheStars: 0, totalPoints: 5, totalCochons: 1, wins: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, isBot: false } as Player,
-                { id: 'C', name: 'Player C', hand: [{ id: 'd2', sum: 10 } as any], handSize: 1, currentMancheStars: 0, totalPoints: 3, totalCochons: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, isBot: false } as Player
+                { id: 'A', name: 'Player A', hand: [], handSize: 0, currentMancheStars: 2, totalPoints: 10, totalCochons: 0, wins: 2, mancheWins: 0, totalRoundWins: 0, isCochon: false, status: 'HUMAN' } as Player,
+                { id: 'B', name: 'Player B', hand: [{ id: 'd1', sum: 5 } as any], handSize: 1, currentMancheStars: 0, totalPoints: 5, totalCochons: 1, wins: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, status: 'HUMAN' } as Player,
+                { id: 'C', name: 'Player C', hand: [{ id: 'd2', sum: 10 } as any], handSize: 1, currentMancheStars: 0, totalPoints: 3, totalCochons: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, status: 'HUMAN' } as Player
             ],
             gameMode: 'COCHON',
             phase: 'PLAYING',

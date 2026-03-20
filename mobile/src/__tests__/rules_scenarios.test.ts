@@ -11,7 +11,7 @@ const createMockPlayer = (id: string, name: string, wins: number, totalPoints: n
     mancheWins: 0,
     totalPoints,
     isCochon: false,
-    isBot: false,
+    status: 'HUMAN',
     currentMancheStars: wins,
     totalRoundWins: 0,
     totalCochons: 0
@@ -117,10 +117,10 @@ describe('Domino Martiniquais Rules - Termination Scenarios', () => {
             id: 'p1', name: 'Alice', hand: [
                 { id: '1', left: 4, right: 2, sum: 6, isDouble: false },
                 { id: '2', left: 1, right: 1, sum: 2, isDouble: true }
-            ], handSize: 2, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, isBot: false,
+            ], handSize: 2, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, status: 'HUMAN',
             currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0
         };
-        const p2: Player = { id: 'p2', name: 'Bob', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, isBot: false, currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0 };
+        const p2: Player = { id: 'p2', name: 'Bob', hand: [], handSize: 0, wins: 0, mancheWins: 0, totalPoints: 0, isCochon: false, status: 'HUMAN', currentMancheStars: 0, totalRoundWins: 0, totalCochons: 0 };
 
         const pts1 = calculateHandPoints(p1.hand);
         expect(pts1).toBe(8); // 4+2 + 1+1

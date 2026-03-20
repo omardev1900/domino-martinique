@@ -136,8 +136,8 @@ describe('Integration Architecture', () => {
             currentPlayerId: 'bot-1', // C'est au bot de jouer
             turnId: 42,
             players: [
-                { id: 'p1', isBot: false, hand: [] },
-                { id: 'bot-1', isBot: true, difficulty: 'medium', hand: [] }
+                { id: 'p1', status: 'HUMAN', hand: [] },
+                { id: 'bot-1', status: 'BOT', difficulty: 'medium', hand: [] }
             ] as any
         });
 

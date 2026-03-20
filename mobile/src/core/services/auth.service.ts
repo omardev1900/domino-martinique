@@ -11,6 +11,7 @@ import { auth } from './firebase';
 import { PlayerProfile } from '../types';
 import { statsService } from './stats.service';
 import { economyService } from './economy.service';
+import { LogService } from './LogService';
 
 const STORAGE_KEY_SESSION = '@user_session_active';
 const STORAGE_KEY_GUEST_PROFILE = '@guest_profile_data';
@@ -19,10 +20,15 @@ class AuthService {
     private currentUser: PlayerProfile | null = null;
 
     /**
-     * Generate a random guest ID
+     * Generate a secure random guest ID (SEC-5)
      */
     private generateGuestId(): string {
-        return 'guest_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+        const alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let random = '';
+        for (let i = 0; i < 12; i++) {
+            random += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+        }
+        return `guest_${Date.now().toString(36)}_${random}`;
     }
 
     /**

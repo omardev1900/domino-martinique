@@ -22,8 +22,8 @@ const mockGameState: GameState = createBaseGameState({
     gameId: 'test-room-1',
     phase: 'PLAYING',
     players: [
-        { id: 'p1', name: 'Player 1', isBot: false, isDisconnected: false, hand: [] } as unknown as Player,
-        { id: 'p2', name: 'Player 2', isBot: false, isDisconnected: false, hand: [] } as unknown as Player
+        { id: 'p1', name: 'Player 1', status: 'HUMAN', hand: [] } as unknown as Player,
+        { id: 'p2', name: 'Player 2', status: 'HUMAN', hand: [] } as unknown as Player
     ],
     currentPlayerId: 'p1',
     lastActionTimestamp: 1000,

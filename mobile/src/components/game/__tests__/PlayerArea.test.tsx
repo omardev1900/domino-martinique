@@ -14,9 +14,9 @@ jest.mock('../../PlayerAvatar', () => ({
 
 describe('PlayerArea Component', () => {
     const mockInsets = { top: 20, bottom: 20, left: 10, right: 10 };
-    const mockPlayer1: Player = { id: 'p1', name: 'Player 1', isDisconnected: false } as Player;
-    const mockPlayer2: Player = { id: 'p2', name: 'Player 2', isDisconnected: false } as Player;
-    const mockLocalPlayer: Player = { id: 'local', name: 'Me', isDisconnected: false } as Player;
+    const mockPlayer1: Player = { id: 'p1', name: 'Player 1', status: 'HUMAN' } as Player;
+    const mockPlayer2: Player = { id: 'p2', name: 'Player 2', status: 'HUMAN' } as Player;
+    const mockLocalPlayer: Player = { id: 'local', name: 'Me', status: 'HUMAN' } as Player;
 
     const mockGameState = {
         phase: 'PLAYING',

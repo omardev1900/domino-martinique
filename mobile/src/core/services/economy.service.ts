@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from './firebase';
+import { LogService } from './LogService';
 import { PlayerEconomy, MatchReward, LeagueGrade, RewardCalculationInput } from '../economy.types';
 import { NEW_PLAYER_COINS, DAILY_REWARD_COINS } from '../economy.constants';
 import { getLevelFromXP, getLeagueGrade } from '../RewardEngine';
@@ -335,25 +336,26 @@ class EconomyService {
     }
 
     /**
-     * Fusionne deux économies en prenant le maximum de chaque champ numérique.
-     * Stratégie "optimiste" : le joueur garde toujours le meilleur score.
+     * Fusionne deux économies.
+     * Pour les pièces/diamants, on fait confiance au serveur (SEC-3).
+     * Pour l'XP/Points de ligue, on prend le maximum pour éviter la frustration.
      */
     private mergeEconomies(local: PlayerEconomy, remote: Partial<PlayerEconomy>): PlayerEconomy {
         const mergedXP = Math.max(local.xp, remote.xp ?? 0);
         const mergedLeaguePoints = Math.max(local.leaguePoints, remote.leaguePoints ?? 0);
-        // Conserver le timestamp le plus récent pour éviter de re-déclencher la récompense
-        const mergedTimestamp = Math.max(
-            local.lastDailyRewardTimestamp ?? 0,
-            remote.lastDailyRewardTimestamp ?? 0
-        ) || undefined;
+        
         return {
-            coins: Math.max(local.coins, remote.coins ?? 0),
+            // SEC-3 : Ne pas utiliser Math.max sur les pièces/diamants pour éviter la triche côté client via AsyncStorage
+            coins: remote.coins !== undefined ? remote.coins : local.coins,
+            diamonds: remote.diamonds !== undefined ? remote.diamonds : local.diamonds,
             xp: mergedXP,
             level: getLevelFromXP(mergedXP),
-            diamonds: Math.max(local.diamonds, remote.diamonds ?? 0),
             leaguePoints: mergedLeaguePoints,
             leagueGrade: getLeagueGrade(mergedLeaguePoints),
-            lastDailyRewardTimestamp: mergedTimestamp,
+            lastDailyRewardTimestamp: Math.max(
+                local.lastDailyRewardTimestamp ?? 0,
+                remote.lastDailyRewardTimestamp ?? 0
+            ) || undefined,
         };
     }
 

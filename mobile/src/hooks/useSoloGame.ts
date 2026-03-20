@@ -64,7 +64,7 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
 
                 // Check if bot starts
                 const firstPlayer = restartState.players.find(p => p.id === firstPlayerId);
-                if (firstPlayer?.isBot) {
+                if (firstPlayer?.status === 'BOT') {
                     triggerBotTurn();
                 }
             } else {
@@ -90,7 +90,7 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
             const currentPlayer = currentState.players.find(p => p.id === currentState.currentPlayerId);
 
             // Verify it's still a bot turn
-            if (!currentPlayer?.isBot) return;
+            if (currentPlayer?.status !== 'BOT') return;
 
             const forcedOpeningId = getForcedOpeningDominoId(currentState, currentPlayer.id);
             const forcedOpeningTile = forcedOpeningId
@@ -126,7 +126,7 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
 
                 // Check if next player is also a bot
                 const nextPlayer = newState.players.find(p => p.id === newState.currentPlayerId);
-                if (nextPlayer?.isBot && newState.phase === 'PLAYING') {
+                if (nextPlayer?.status === 'BOT' && newState.phase === 'PLAYING') {
                     triggerBotTurn();
                 }
 
@@ -167,7 +167,7 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
 
         // Check if bot starts
         const firstPlayer = players.find(p => p.id === firstPlayerId);
-        if (firstPlayer?.isBot) {
+        if (firstPlayer?.status === 'BOT') {
             triggerBotTurn();
         }
     }, [localPlayerId, difficulty, updateGameState, triggerBotTurn]);
@@ -186,7 +186,7 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
 
             // Check if next player is bot
             const nextPlayer = newState.players.find(p => p.id === newState.currentPlayerId);
-            if (nextPlayer?.isBot && newState.phase === 'PLAYING') {
+            if (nextPlayer?.status === 'BOT' && newState.phase === 'PLAYING') {
                 triggerBotTurn();
             }
         } catch (e) {
@@ -220,7 +220,7 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
 
         // Check if next player is bot
         const nextPlayer = newState.players.find(p => p.id === newState.currentPlayerId);
-        if (nextPlayer?.isBot && newState.phase === 'PLAYING') {
+        if (nextPlayer?.status === 'BOT' && newState.phase === 'PLAYING') {
             triggerBotTurn();
         }
     }, [localPlayerId, updateGameState, triggerBoude, triggerBotTurn]);
@@ -286,7 +286,7 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
 
         // Check if bot starts new round
         const firstPlayer = nextPlayers.find(p => p.id === firstPlayerId);
-        if (firstPlayer?.isBot) {
+        if (firstPlayer?.status === 'BOT') {
             triggerBotTurn();
         }
     }, [localPlayerId, difficulty, updateGameState, triggerBotTurn]);

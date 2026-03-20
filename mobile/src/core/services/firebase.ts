@@ -684,8 +684,8 @@ export const signalPlayerOnline = async (roomId: string, playerId: string): Prom
                     const newLobbyPlayers = [...roomData.players];
                     newLobbyPlayers[lobbyPlayerIndex] = {
                         ...newLobbyPlayers[lobbyPlayerIndex],
-                        isDisconnected: false
-                    } as any;
+                        status: 'HUMAN'
+                    };
                     updateData[`players`] = newLobbyPlayers;
                 }
 

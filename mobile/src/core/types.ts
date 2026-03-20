@@ -92,6 +92,7 @@ export interface PlayerProfile {
     avatarUrl?: string;
     avatarId?: string;
     isHost?: boolean;
+    status?: PlayerStatus; // (Sprint 3-10) Disconnection tracking in room
     gamesPlayed: number;
     gamesWon: number;
     // ─── Economy & Progression (optional — defaults applied by EconomyService) ───

@@ -13,6 +13,7 @@ import { TABLE_THEMES, TableTheme } from '../src/core/themes/tableThemes';
 import { botService } from '../src/core/services/bot.service';
 import { Alert } from 'react-native';
 import { getAvatarImage, AvatarId, AVAILABLE_AVATARS } from '../src/core/avatars';
+import { playerNameSchema } from '../src/core/validation/schemas';
 
 const THEME_OPTIONS: { theme: TableTheme; label: string; icon: string }[] = [
   { theme: 'classic', label: 'Classique', icon: '🟢' },
@@ -71,6 +72,7 @@ export default function ModalScreen() {
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState<string>('avatar_default');
   const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const openEditModal = () => {
     setEditName(profileName);
@@ -79,11 +81,17 @@ export default function ModalScreen() {
   };
 
   const saveProfile = async () => {
-    if (!editName.trim()) return;
+    setEditError(null);
+    const result = playerNameSchema.safeParse(editName);
+    if (!result.success) {
+      setEditError(result.error.issues[0].message);
+      return;
+    }
+
     setIsSaving(true);
     try {
-      await authService.updateProfile({ displayName: editName.trim(), photoURL: editAvatar });
-      setProfileName(editName.trim());
+      await authService.updateProfile({ displayName: result.data, photoURL: editAvatar });
+      setProfileName(result.data);
       setProfileAvatar(editAvatar);
       setShowEditModal(false);
     } catch (e) {
@@ -401,15 +409,19 @@ export default function ModalScreen() {
             {/* Nom */}
             <Text style={editStyles.fieldLabel}>PSEUDO</Text>
             <TextInput
-              style={editStyles.nameInput}
+              style={[editStyles.nameInput, editError && { borderColor: '#FF3B30', borderWidth: 1 }]}
               value={editName}
-              onChangeText={setEditName}
+              onChangeText={(text) => {
+                setEditName(text);
+                if (editError) setEditError(null);
+              }}
               placeholder="Votre pseudo"
               placeholderTextColor="rgba(255,255,255,0.3)"
-              maxLength={15}
+              maxLength={20}
               returnKeyType="done"
               autoCapitalize="words"
             />
+            {editError ? <Text style={editStyles.errorText}>{editError}</Text> : null}
 
             {/* Bouton Enregistrer */}
             <TouchableOpacity
@@ -925,6 +937,13 @@ const editStyles = StyleSheet.create({
     fontWeight: '900',
     color: '#1A0E2E',
     letterSpacing: 1.5,
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 12,
+    marginTop: -8,
+    marginBottom: 8,
+    marginLeft: 4,
   },
 });
 

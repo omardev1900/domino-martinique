@@ -65,10 +65,10 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
                         id: realPlayers[i].uid,
                         name: realPlayers[i].displayName,
                         avatarId: realPlayers[i].avatarId,
-                        isBot: false
+                        status: 'HUMAN' as const
                     };
                 } else {
-                    return { ...p, id: `bot-${i}`, name: `Bot ${i}`, isBot: true, avatarId: i === 1 ? 'Spark_2' : i === 2 ? 'Atlas_3' : 'Zenith_4' };
+                    return { ...p, id: `bot-${i}`, name: `Bot ${i}`, status: 'BOT' as const, avatarId: i === 1 ? 'Spark_2' : i === 2 ? 'Atlas_3' : 'Zenith_4' };
                 }
             });
 
@@ -143,7 +143,7 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
         const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
         const isHost = roomData.players[0].uid === localPlayerId;
 
-        if (currentPlayer?.isBot && gameState.phase === 'PLAYING' && isHost) {
+        if (currentPlayer?.status === 'BOT' && gameState.phase === 'PLAYING' && isHost) {
             const timer = setTimeout(async () => {
                 const forcedOpeningId = getForcedOpeningDominoId(gameState, currentPlayer.id);
                 const forcedOpeningTile = forcedOpeningId

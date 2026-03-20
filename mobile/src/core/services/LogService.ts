@@ -42,5 +42,14 @@ export const LogService = {
    */
   error: (tag: string, message: string, ...args: any[]) => {
     console.error(`❌ [ERROR][${tag}] ${message}`, ...args);
+  },
+
+  /**
+   * Log générique (pour compatibilité avec logger.ts)
+   */
+  log: (...args: any[]) => {
+    if (isDev) {
+      console.log(...args);
+    }
   }
 };

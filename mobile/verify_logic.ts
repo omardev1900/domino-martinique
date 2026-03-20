@@ -6,7 +6,7 @@ const runVerification = () => {
     console.log("Starting Manual Verification...");
 
     // 1. Setup State
-    const p1 = { id: 'p1', name: 'P1', hand: [{ id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 }], handSize: 1, wins: 0, isCochon: false, isBot: false };
+    const p1 = { id: 'p1', name: 'P1', hand: [{ id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 }], handSize: 1, wins: 0, isCochon: false, status: 'HUMAN' };
     const state = {
         gameId: 'g1',
         players: [p1],
