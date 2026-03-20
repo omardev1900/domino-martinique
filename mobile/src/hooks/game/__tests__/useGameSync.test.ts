@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react-native';
+import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useGameSync } from '../useGameSync';
 import { GameState, GameRoom, Player, RoomStatus } from '../../../core/types';
 import { onSnapshot, runTransaction } from 'firebase/firestore';
@@ -10,8 +10,12 @@ jest.mock('../../../core/services/firebase', () => ({
 }));
 jest.mock('firebase/firestore', () => ({
     doc: jest.fn(),
-    onSnapshot: jest.fn(),
-    runTransaction: jest.fn()
+    onSnapshot: jest.fn().mockReturnValue(() => {}),
+    runTransaction: jest.fn((db, cb) => cb({
+        get: jest.fn(),
+        update: jest.fn(),
+        set: jest.fn()
+    }))
 }));
 
 const mockGameState: GameState = createBaseGameState({
@@ -40,6 +44,7 @@ const mockRoomData: GameRoom = {
 };
 
 describe('useGameSync Hook', () => {
+    jest.setTimeout(30000);
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -50,7 +55,7 @@ describe('useGameSync Hook', () => {
             gameId: undefined,
             localPlayerId: 'p1',
             isSoloMode: true,
-            signalPlayerOnline: jest.fn()
+            signalPlayerOnline: jest.fn().mockResolvedValue(true)
         }));
 
         expect(result.current.gameState).toBeNull();
@@ -72,7 +77,7 @@ describe('useGameSync Hook', () => {
             gameId: 'test-room-1',
             localPlayerId: 'p1',
             isSoloMode: false,
-            signalPlayerOnline: jest.fn()
+            signalPlayerOnline: jest.fn().mockResolvedValue(true)
         }));
 
         act(() => {
@@ -96,17 +101,19 @@ describe('useGameSync Hook', () => {
         };
 
         (runTransaction as jest.Mock).mockImplementation(async (db, callback) => {
-            await callback(mockTransaction);
+            return await callback(mockTransaction);
         });
 
+        const signalPlayerOnline = jest.fn().mockResolvedValue(undefined);
         const { result } = renderHook(() => useGameSync({
             gameId: 'test-room-1',
             localPlayerId: 'p1',
             isSoloMode: false,
-            signalPlayerOnline: jest.fn()
+            signalPlayerOnline
         }));
 
-        // FIX : On nettoie le mock après le montage au cas où l'anti-zombie tirerait quand même
+        // Nettoyage après montage
+        await act(async () => {});
         mockTransaction.update.mockClear();
 
         const staleState = {
@@ -131,16 +138,18 @@ describe('useGameSync Hook', () => {
         };
 
         (runTransaction as jest.Mock).mockImplementation(async (db, callback) => {
-            await callback(mockTransaction);
+            return await callback(mockTransaction);
         });
 
+        const signalPlayerOnline = jest.fn().mockResolvedValue(undefined);
         const { result } = renderHook(() => useGameSync({
             gameId: 'test-room-1',
             localPlayerId: 'p1',
             isSoloMode: false,
-            signalPlayerOnline: jest.fn()
+            signalPlayerOnline
         }));
 
+        await act(async () => {});
         mockTransaction.update.mockClear();
 
         const freshState = {

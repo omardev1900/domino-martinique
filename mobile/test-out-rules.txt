@@ -1,0 +1,99 @@
+
+> mobile@1.0.0 test
+> jest --watchAll=false src/__tests__/rules_scenarios.test.ts
+
+  console.log
+    CHIRÉE DETECTED! Manche ends, manche increments.
+
+      at log (src/core/ScoringEngine.ts:63:17)
+
+  console.log
+    MANCHE WINNER: p1
+
+      at log (src/core/ScoringEngine.ts:95:17)
+
+  console.log
+    COCHON DETECTED! Count: 2
+
+      at log (src/core/ScoringEngine.ts:101:21)
+
+  console.log
+    MANCHE WINNER: p1
+
+      at log (src/core/ScoringEngine.ts:95:17)
+
+  console.log
+    COCHON DETECTED! Count: 1
+
+      at log (src/core/ScoringEngine.ts:101:21)
+
+FAIL src/__tests__/rules_scenarios.test.ts
+  testUtils Placeholder
+    √ dummy (2 ms)
+  Domino Martiniquais Rules - Termination Scenarios
+    × Scenario 2-1-1: Should end in CHIRE (No cochon) (27 ms)
+    √ Scenario 3-0-0: Should reward 5 pts (2 cochons) (4 ms)
+    × Scenario 3-1-0: Should reward 4 pts (1 cochon) (2 ms)
+    √ Scenario 2-1-0: Should continue round (Cochon remains)
+    √ calculateHandPoints counts stars/points properly
+    Tie-break Logic (BOUDE)
+      × Tie-break: Highest Double wins (1 ms)
+      √ Tie-break: Highest Double among multiple doubles
+      √ Tie-break: If no doubles, highest sum among tied players wins (1 ms)
+
+  ● Domino Martiniquais Rules - Termination Scenarios › Scenario 2-1-1: Should end in CHIRE (No cochon)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 0
+
+    [0m [90m 37 |[39m         expect(result[33m.[39mmancheResult)[33m.[39mtoBe([32m'CHIRE'[39m)[33m;[39m
+     [90m 38 |[39m         [90m// P1: 2 wins -> 2 pts, P2: 1 win -> 1 pt, P3: 1 win -> 1 pt[39m
+    [31m[1m>[22m[39m[90m 39 |[39m         expect(result[33m.[39mplayers[33m.[39mfind(p [33m=>[39m p[33m.[39mid [33m===[39m [32m'p1'[39m)[33m?[39m[33m.[39mtotalPoints)[33m.[39mtoBe([35m2[39m)[33m;[39m
+     [90m    |[39m                                                                      [31m[1m^[22m[39m
+     [90m 40 |[39m         expect(result[33m.[39mplayers[33m.[39mfind(p [33m=>[39m p[33m.[39mid [33m===[39m [32m'p3'[39m)[33m?[39m[33m.[39mtotalPoints)[33m.[39mtoBe([35m1[39m)[33m;[39m
+     [90m 41 |[39m     })[33m;[39m
+     [90m 42 |[39m[0m
+
+      at Object.toBe (src/__tests__/rules_scenarios.test.ts:39:70)
+
+  ● Domino Martiniquais Rules - Termination Scenarios › Scenario 3-1-0: Should reward 4 pts (1 cochon)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0
+
+    [0m [90m 63 |[39m         expect(result[33m.[39mplayers[33m.[39mfind(p [33m=>[39m p[33m.[39mid [33m===[39m [32m'p1'[39m)[33m?[39m[33m.[39mtotalPoints)[33m.[39mtoBe([35m4[39m)[33m;[39m
+     [90m 64 |[39m         expect(result[33m.[39mplayers[33m.[39mfind(p [33m=>[39m p[33m.[39mid [33m===[39m [32m'p3'[39m)[33m?[39m[33m.[39mtotalPoints)[33m.[39mtoBe([33m-[39m[35m1[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 65 |[39m         expect(result[33m.[39mplayers[33m.[39mfind(p [33m=>[39m p[33m.[39mid [33m===[39m [32m'p2'[39m)[33m?[39m[33m.[39mtotalPoints)[33m.[39mtoBe([35m1[39m)[33m;[39m [90m// Keep wins as pts[39m
+     [90m    |[39m                                                                      [31m[1m^[22m[39m
+     [90m 66 |[39m     })[33m;[39m
+     [90m 67 |[39m
+     [90m 68 |[39m     test([32m'Scenario 2-1-0: Should continue round (Cochon remains)'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toBe (src/__tests__/rules_scenarios.test.ts:65:70)
+
+  ● Domino Martiniquais Rules - Termination Scenarios › Tie-break Logic (BOUDE) › Tie-break: Highest Double wins
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "p1"
+    Received: "TIE"
+
+    [0m [90m 88 |[39m             [90m// P1 and P2 have 2 points each. P1 has a double, P2 doesn't.[39m
+     [90m 89 |[39m             [36mconst[39m winner [33m=[39m determineWinnerOnBoudé(players)[33m;[39m
+    [31m[1m>[22m[39m[90m 90 |[39m             expect(winner)[33m.[39mtoBe([32m'p1'[39m)[33m;[39m
+     [90m    |[39m                            [31m[1m^[22m[39m
+     [90m 91 |[39m         })[33m;[39m
+     [90m 92 |[39m
+     [90m 93 |[39m         test([32m'Tie-break: Highest Double among multiple doubles'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toBe (src/__tests__/rules_scenarios.test.ts:90:28)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 6 passed, 9 total
+Snapshots:   0 total
+Time:        0.949 s, estimated 1 s
+Ran all test suites matching /src\\__tests__\\rules_scenarios.test.ts/i.

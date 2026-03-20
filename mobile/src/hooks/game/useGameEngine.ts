@@ -4,6 +4,8 @@ import { useTurnManager } from './useTurnManager';
 import { useActionDispatcher } from './useActionDispatcher';
 import { useBotDecision } from './useBotDecision';
 import { useAutoPass } from './useAutoPass';
+import { getValidMoves } from '../../core/DominoEngine';
+import SoundManager from '../../core/audio/SoundManager';
 
 export interface UseGameEngineProps {
     gameState: GameState | null;
@@ -100,29 +102,25 @@ export const useGameEngine = ({
         if (!player) return;
 
         // Auto-sélection du côté si un seul coup valide est disponible
-        import('../../core/DominoEngine').then(({ getValidMoves }) => {
-            const validMoves = getValidMoves([domino], {
-                left: gameState.table.leftValue,
-                right: gameState.table.rightValue
-            });
-
-            if (validMoves.length === 0) return;
-
-            if (validMoves.length > 1) {
-                import('../../core/audio/SoundManager').then((SoundManager) => {
-                    try {
-                        if ((SoundManager.default as any).playSound) (SoundManager.default as any).playSound('notify');
-                    } catch (e) { }
-                });
-                setPendingDomino(domino);
-            } else {
-                setTimeLeft(null);
-                setOvertime(null);
-                clearAllTurnTimers();
-                const side = validMoves[0].side === 'start' ? undefined : validMoves[0].side;
-                dispatch({ type: 'PLAY_TILE', playerId: localPlayerId, tile: domino, side });
-            }
+        const validMoves = getValidMoves([domino], {
+            left: gameState.table.leftValue,
+            right: gameState.table.rightValue
         });
+
+        if (validMoves.length === 0) return;
+
+        if (validMoves.length > 1) {
+            try {
+                if ((SoundManager as any).playSound) (SoundManager as any).playSound('notify');
+            } catch (e) { }
+            setPendingDomino(domino);
+        } else {
+            setTimeLeft(null);
+            setOvertime(null);
+            clearAllTurnTimers();
+            const side = (validMoves[0].side === 'start' ? undefined : validMoves[0].side) as "left" | "right" | undefined;
+            dispatch({ type: 'PLAY_TILE', playerId: localPlayerId, tile: domino, side });
+        }
     };
 
     const confirmSidePlay = (side: 'left' | 'right') => {
@@ -137,17 +135,31 @@ export const useGameEngine = ({
     const handlePassTurn = (forcedPlayerId?: string) => {
         if (!gameState) return;
         const targetId = forcedPlayerId || localPlayerId;
+        
+        // Bloquer si le joueur a des coups valides
+        const player = gameState.players.find(p => p.id === targetId);
+        if (player) {
+            const validMoves = getValidMoves(player.hand, {
+                left: gameState.table.leftValue,
+                right: gameState.table.rightValue
+            });
+            if (validMoves.length > 0) {
+                console.error(`[ActionDispatcher] Erreur durant l'action: Error: Player has valid moves, cannot pass`);
+                return;
+            }
+        }
+
         setTimeLeft(null);
         setOvertime(null);
         clearAllTurnTimers();
         dispatch({ type: 'PASS_TURN', playerId: targetId });
     };
 
-    const handleTimeout = (playerId?: string) => {
+    const handleTimeout = (playerId?: string, turnId?: number) => {
         if (!gameState) return;
         const targetId = playerId || gameState.currentPlayerId;
         if (!targetId) return;
-        dispatch({ type: 'TIMEOUT', playerId: targetId });
+        dispatch({ type: 'TIMEOUT', playerId: targetId, turnId });
     };
 
     const handleNextRound = () => {

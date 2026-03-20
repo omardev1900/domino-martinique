@@ -29,7 +29,6 @@ interface PlayerAvatarProps {
     chatContent?: string | null; // NEW: Chat message or emoji
     overtime?: number | null; // NEW: Explicit 5s Overtime
     isBotPlaying?: boolean; // NEW: Show bot indicator
-    isDisconnected?: boolean; // NEW: Show disconnected indicator
     gameMode?: string; // NEW: The current game mode to conditionally show specific stats
     showHandDominoes?: boolean; // NEW: Reveal remaining dominoes in hand
     skinConfig?: SkinConfig; // NEW: Skin configuration for dominoes
@@ -56,7 +55,6 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     chatContent,
     overtime = null,
     isBotPlaying = false,
-    isDisconnected = false,
     gameMode,
     showHandDominoes = false,
     skinConfig
@@ -282,7 +280,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                         )}
 
                         {/* DISCONNECTED OVERLAY (Priorité sur Bot) */}
-                        {isDisconnected ? (
+                        {player.status === 'DISCONNECTED' ? (
                             <View style={styles.disconnectedOverlay}>
                                 <Ionicons name="wifi" size={24} color="#FFF" style={{ opacity: 0.5, marginBottom: -8 }} />
                                 <Text style={styles.disconnectedIcon}>/</Text>

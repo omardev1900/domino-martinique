@@ -1,0 +1,37 @@
+
+> mobile@1.0.0 test
+> jest --watchAll=false src/core/__tests__/GameIntegration.test.ts
+
+  console.log
+    Match finished in 20 rounds.
+
+      at Object.log (src/core/__tests__/GameIntegration.test.ts:119:17)
+
+FAIL src/core/__tests__/GameIntegration.test.ts
+  testUtils Placeholder
+    √ dummy (1 ms)
+  GameIntegration - Full Game Simulation
+    × should simulate a full match between 3 bots without crashing (51 ms)
+
+  ● GameIntegration - Full Game Simulation › should simulate a full match between 3 bots without crashing
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "MATCH_END"
+    Received: "PARTIE_END"
+
+    [0m [90m 121 |[39m
+     [90m 122 |[39m         [90m// Assertions[39m
+    [31m[1m>[22m[39m[90m 123 |[39m         expect(state[33m.[39mphase)[33m.[39mtoBe([32m'MATCH_END'[39m)[33m;[39m
+     [90m     |[39m                             [31m[1m^[22m[39m
+     [90m 124 |[39m         expect(winner)[33m.[39mtoBeDefined()[33m;[39m
+     [90m 125 |[39m         [90m// Check no pig (isCochon) logic if needed, but basic check passes.[39m
+     [90m 126 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (src/core/__tests__/GameIntegration.test.ts:123:29)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   0 total
+Time:        0.946 s, estimated 2 s
+Ran all test suites matching /src\\core\\__tests__\\GameIntegration.test.ts/i.

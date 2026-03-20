@@ -22,10 +22,18 @@ export const determineWinnerOnBoudé = (players: Player[]): PlayerId | 'TIE' => 
 
 /**
  * finalizeRound : Logique stricte de fin de round.
- * Ordre des Priorités :
- * 1. Attribution : Gagnant +1 Étoile, +1 Point de Round.
- * 2. Détection CHIRÉE (Priorité 1) : Si TOUS les joueurs ont >= 1 Étoile -> Reset Étoiles, Fin de Round (pas de manche).
- * 3. Détection VICTOIRE MANCHE (Priorité 2) : Si un joueur a 3 Étoiles -> Fin de Manche + Bonus Cochon.
+ * 
+ * --- CLARIFICATION DES RÈGLES (Sprint 2) ---
+ * 
+ * C1 (Points) : La double attribution est évitée en ajoutant systématiquement 1 point
+ * par round gagné au 'totalPoints'. Les bonus de "Cochon" (Manche) ne sont ajoutés
+ * qu'à la fin de la manche (mancheWinner) en sus des points déjà acquis.
+ * 
+ * C2 (Winner) : 'firstPlayerOfRound' est mis à jour pour refléter le vainqueur du round
+ * ou de la manche, garantissant une sémantique claire pour le prochain démarrage.
+ * 
+ * C3 (Reset) : Le reset des étoiles (currentMancheStars) et du statut Cochon (isCochon)
+ * est centralisé dans 'preparePlayersForNextRound' pour être appelé par le LogicEngine.
  */
 export const finalizeRound = (
     gameState: GameState,
@@ -49,7 +57,7 @@ export const finalizeRound = (
                 ...p,
                 currentMancheStars: p.currentMancheStars + 1, // Étoile (+1 currentMancheStars)
                 totalRoundWins: (p.totalRoundWins || 0) + 1, // Point de Round permanent
-                totalPoints: (p.totalPoints || 0) + 1 // Le Camion (totalMatchPoints) avance aussi de 1 par victoire de round
+                totalPoints: (p.totalPoints || 0) + 1 // Add 1 point per round win immediately
             };
         }
         pointsGainedInRound[p.id] = 0;
@@ -90,7 +98,7 @@ export const finalizeRound = (
     }
 
     // --- ETAPE 3 : DÉTECTION VICTOIRE MANCHE (PRIORITÉ 2) ---
-    const mancheWinner = newState.players.find(p => p.currentMancheStars >= MANCHE_WIN_THRESHOLD);
+    const mancheWinner = !isChire ? newState.players.find(p => p.currentMancheStars >= MANCHE_WIN_THRESHOLD) : null;
 
     if (mancheWinner) {
         console.log(`MANCHE WINNER: ${mancheWinner.id}`);
@@ -112,20 +120,23 @@ export const finalizeRound = (
             let updatedPlayer = { ...p };
 
             if (p.id === mancheWinner.id) {
-                historyPointsForManche = p.currentMancheStars + cochonCount;
+                // All rounds were already added to totalPoints in Step 1.
+                // We only add the extra "cochon" bonus points here.
+                const bonus = cochonCount;
+                historyPointsForManche = p.currentMancheStars + bonus;
 
                 updatedPlayer = {
                     ...p,
                     mancheWins: p.mancheWins + 1,
-                    totalPoints: p.totalPoints + cochonCount,
-                    totalCochons: p.totalCochons + cochonCount // SILENT STAT: Recorded here
+                    totalPoints: (p.totalPoints || 0) + bonus 
                 };
             } else if (p.currentMancheStars === 0) {
                 historyPointsForManche = -1;
                 updatedPlayer = {
                     ...p,
                     isCochon: true,
-                    totalPoints: p.totalPoints - 1
+                    totalPoints: (p.totalPoints || 0) - 1, // Receives -1 for being cochon
+                    totalCochons: (p.totalCochons || 0) + 1
                 };
             } else {
                 historyPointsForManche = p.currentMancheStars;
@@ -157,9 +168,10 @@ export const finalizeRound = (
     }
 
     // 3.3 Check Match End
-    // NEW RULE: Match ends ONLY at the end of a Manche (mancheWinner OR isChire)
+    // NEW RULE: Match ends at the end of a Manche (mancheWinner OR isChire)
+    // OR immediately in SCORE/COCHON modes when a threshold is met.
     let isMatchOver = false;
-    if (mancheWinner || isChire) {
+    if (mancheWinner || isChire || newState.gameMode === 'SCORE' || newState.gameMode === 'COCHON') {
         if (newState.gameMode === 'MANCHE') {
             // Match ends ONLY when fixed number of manches played AND tie-breaker is resolved
             if (newState.mancheHistory && newState.mancheHistory.length >= newState.winningCondition) {
@@ -202,3 +214,34 @@ export const finalizeRound = (
 
     return newState;
 };
+
+/**
+ * preparePlayersForNextRound (C3) : Centralise le reset des compteurs temporaires.
+ * Appelé par LogicEngine lors du passage au round/manche suivant.
+ */
+export const preparePlayersForNextRound = (
+    nextRoundDistributedPlayers: Player[], 
+    oldPlayers: Player[], 
+    isMancheEnd: boolean
+): Player[] => {
+    return nextRoundDistributedPlayers.map((p, i) => {
+        const originalPlayer = oldPlayers[i] as Player | undefined;
+        return {
+            ...p,
+            id: originalPlayer?.id || p.id,
+            // (C3) Reset uniquement si c'est une fin de manche
+            currentMancheStars: isMancheEnd ? 0 : (originalPlayer?.currentMancheStars ?? 0),
+            isCochon: isMancheEnd ? false : (originalPlayer?.isCochon ?? false),
+            // Conservation des stats permanentes
+            mancheWins: originalPlayer?.mancheWins ?? 0,
+            totalPoints: originalPlayer?.totalPoints ?? 0,
+            totalCochons: originalPlayer?.totalCochons ?? 0,
+            totalRoundWins: originalPlayer?.totalRoundWins ?? 0,
+            status: originalPlayer?.status ?? 'HUMAN',
+            avatarId: originalPlayer?.avatarId ?? undefined,
+            wins: originalPlayer?.wins ?? 0,
+            difficulty: originalPlayer?.difficulty,
+        } as Player;
+    });
+};
+

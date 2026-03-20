@@ -24,7 +24,8 @@ describe('Multiplayer Game Logic & Rules Verification', () => {
         test('Mode MANCHE: Match ends at correct winningCondition (mancheWins)', () => {
             const state = createMockState('MANCHE', 3);
             state.players[0].mancheWins = 2; // P1 needs 1 more manche
-            state.players[0].wins = 2;       // P1 needs 1 more round win to finish the manche
+            state.players[0].currentMancheStars = 2;       // P1 needs 1 more round win to finish the manche
+            state.mancheHistory = [{}, {}] as any; // Trigger MATCH_END after 3rd manche is recorded
 
             // P1 wins the final round of the manche
             const newState = handleEndOfRound(state, 'p1');
@@ -36,9 +37,10 @@ describe('Multiplayer Game Logic & Rules Verification', () => {
 
         test('Mode SCORE: Points accumulate and trigger Match End', () => {
             const state = createMockState('SCORE', 100);
-            state.players[0].totalPoints = 96;
-            state.players[0].wins = 2;
-            // P2 and P3 have 0 wins, so P1 will get 5 points (2 cochons)
+            state.players[0].totalPoints = 98; // 96 + 2 stars from before
+            state.players[0].currentMancheStars = 2;
+            // P2 and P3 have 0 stars, so P1 will get 1 pt (round) + 2 pts (cochon bonus) = 3 total points gained.
+            // 98 + 3 = 101.
 
             const newState = handleEndOfRound(state, 'p1');
 
@@ -49,9 +51,9 @@ describe('Multiplayer Game Logic & Rules Verification', () => {
         test('Mode COCHON: totalCochons increments and triggers Match End', () => {
             const state = createMockState('COCHON', 2);
             state.players[1].totalCochons = 1; // P2 already has 1 cochon
-            state.players[0].wins = 2;
-            state.players[1].wins = 0; // P2 about to be cochon again
-            state.players[2].wins = 1;
+            state.players[0].currentMancheStars = 2;
+            state.players[1].currentMancheStars = 0; // P2 about to be cochon again
+            state.players[2].currentMancheStars = 1;
 
             const newState = handleEndOfRound(state, 'p1');
 
@@ -65,23 +67,24 @@ describe('Multiplayer Game Logic & Rules Verification', () => {
 
         test('CHIRE: Occurs when everyone has at least one win', () => {
             const state = createMockState('MANCHE', 3);
-            state.players[0].wins = 2;
-            state.players[1].wins = 1;
-            state.players[2].wins = 1;
+            state.players[0].currentMancheStars = 2;
+            state.players[1].currentMancheStars = 1;
+            state.players[2].currentMancheStars = 1;
 
             // P1 wins, triggering end of manche (reaches 3)
             const newState = handleEndOfRound(state, 'p1');
 
             expect(newState.mancheResult).toBe('CHIRE');
-            expect(newState.players[0].totalPoints).toBe(0); // No points awarded in Chiré
+            expect(newState.players[0].totalPoints).toBe(1); // 0 + 1 point for the chire-triggering round win
             expect(newState.phase).toBe('MANCHE_END');
         });
 
         test('COCHON Rule: Only applies if total rounds >= 3', () => {
             const state = createMockState('MANCHE', 3);
-            state.players[0].wins = 2;
-            state.players[1].wins = 0;
-            state.players[2].wins = 0;
+            state.players[0].currentMancheStars = 2;
+            state.players[0].totalPoints = 2;
+            state.players[1].currentMancheStars = 0;
+            state.players[2].currentMancheStars = 0;
 
             // P1 wins, reaching 3 round wins. Total wins = 3.
             const newState = handleEndOfRound(state, 'p1');
@@ -94,16 +97,16 @@ describe('Multiplayer Game Logic & Rules Verification', () => {
 
         test('COCHON Rule: Does NOT apply if total rounds < 3', () => {
             const state = createMockState('MANCHE', 3);
-            state.players[0].wins = 5; // Simulating logic jump if threshold was higher
-            state.players[1].wins = 0;
-            state.players[2].wins = 0;
+            state.players[0].currentMancheStars = 5; // Simulating logic jump if threshold was higher
+            state.players[1].currentMancheStars = 0;
+            state.players[2].currentMancheStars = 0;
 
             // Wait, if wins=3 it triggers. Let's test a case where manche ends by "force" or different threshold.
             // If total wins is 2, it shouldn't be COCHON yet.
             const state2 = createMockState('MANCHE', 3);
-            state2.players[0].wins = 1;
-            state2.players[1].wins = 0;
-            state2.players[2].wins = 0;
+            state2.players[0].currentMancheStars = 1;
+            state2.players[1].currentMancheStars = 0;
+            state2.players[2].currentMancheStars = 0;
 
             // P1 wins, total wins becomes 2. Manche threshold is 3, so manche doesn't end.
             const newState = handleEndOfRound(state2, 'p1');
@@ -114,17 +117,20 @@ describe('Multiplayer Game Logic & Rules Verification', () => {
         test('Cochon Points: 1 Cochon = 4 points, 2 Cochons = 5 points', () => {
             // Case 1: 1 Cochon
             const state1 = createMockState('SCORE', 100);
-            state1.players[0].wins = 2;
-            state1.players[1].wins = 1; // Not cochon
-            state1.players[2].wins = 0; // Cochon
+            state1.players[0].currentMancheStars = 2;
+            state1.players[0].totalPoints = 2;
+            state1.players[1].currentMancheStars = 1; // Not cochon
+            state1.players[2].currentMancheStars = 0; // Cochon
+            state1.players[1].totalPoints = 1;
             const ns1 = handleEndOfRound(state1, 'p1');
             expect(ns1.players[0].totalPoints).toBe(4);
 
             // Case 2: 2 Cochons
             const state2 = createMockState('SCORE', 100);
-            state2.players[0].wins = 2;
-            state2.players[1].wins = 0; // Cochon
-            state2.players[2].wins = 0; // Cochon
+            state2.players[0].currentMancheStars = 2;
+            state2.players[0].totalPoints = 2;
+            state2.players[1].currentMancheStars = 0; // Cochon
+            state2.players[2].currentMancheStars = 0; // Cochon
             const ns2 = handleEndOfRound(state2, 'p1');
             expect(ns2.players[0].totalPoints).toBe(5);
         });

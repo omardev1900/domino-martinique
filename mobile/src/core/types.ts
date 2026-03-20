@@ -13,6 +13,7 @@ export type PlayerId = string;
 
 export type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
 export type MancheResult = 'NORMAL' | 'CHIRE' | 'COCHON';
+export type PlayerStatus = 'HUMAN' | 'BOT' | 'DISCONNECTED';
 
 export interface MancheHistoryRecord {
     mancheNumber: number;
@@ -35,9 +36,8 @@ export interface Player {
     totalPoints: number; // LE CAMION (totalMatchPoints) : Score cumulé (RoundWins + Bonus/Malus Cochon)
     isCochon: boolean;
     totalCochons: number;
-    isBot: boolean;
+    status: PlayerStatus; // (Sprint 3-10) Remplace isBot et isDisconnected
     difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN'; // NEW: Niveau spécifique du bot
-    isDisconnected?: boolean; // NEW: Track if remote player is offline
 }
 
 export type GamePhase = 'LOBBY' | 'DEALING' | 'PLAYING' | 'BOUDE' | 'PARTIE_END' | 'MATCH_END' | 'MANCHE_END';
@@ -70,6 +70,7 @@ export interface GameState {
     roundNumber: number; // NEW: Numéro du round/partie en cours dans la manche
     mancheNumber: number; // NEW: Numéro de la manche en cours
     startingHandSize: number;
+    reDealCount?: number; // ✅ NOUVEAU : Compteur de redonnes consécutives (C5)
 }
 
 

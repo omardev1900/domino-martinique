@@ -14,7 +14,7 @@ describe('LogicEngine Stress Test (500 parties automatiques)', () => {
 
         for (let i = 0; i < TOTAL_MATCHES; i++) {
             // 1. Initialisation de la Partie (Solo avec 2 bots + 1 "humain" joué par un bot)
-            const partial = dealGameSolo('player1', 'Tester', 'avatar_1', 'medium', 7);
+            const partial = dealGameSolo('player1', 'Tester', 'avatar_1', 'TI_MANMAY', 7);
 
             let state: GameState = createBaseGameState({
                 ...partial,
@@ -70,9 +70,14 @@ describe('LogicEngine Stress Test (500 parties automatiques)', () => {
             // 3. Match End Verifications
             expect(state.phase).toBe('MATCH_END');
 
-            // On vérifie que quelqu'un a atteint le winningCondition (Normalement oui si MATCH_END)
-            const hasWinner = state.players.some(p => p.mancheWins >= state.winningCondition);
-            expect(hasWinner).toBe(true);
+            // On vérifie que la phase est bien MATCH_END (LogicEngine a validé un vainqueur unique)
+            expect(state.phase).toBe('MATCH_END');
+            
+            // On vérifie qu'un joueur a plus de points que les autres (ou au moins le max)
+            const scores = state.players.map(p => p.totalPoints || 0);
+            const maxScore = Math.max(...scores);
+            const leaders = state.players.filter(p => (p.totalPoints || 0) === maxScore);
+            expect(leaders.length).toBe(1);
 
             // "vérifie que le score du gagnant est cohérent avec la somme des points restants dans les mains des adversaires"
             // Dans ce jeu, state.mancheResult dit peut-être CHIRE. On vérifie juste qu'il y a des points

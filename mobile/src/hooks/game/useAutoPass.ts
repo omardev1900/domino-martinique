@@ -55,7 +55,7 @@ export const useAutoPass = ({
         const isLocalTurn = currentPlayerId === localPlayerId;
 
         // Cas B : C'est un Bot ou un Déconnecté, et nous sommes le Host
-        const isBotOrDisco = activePlayer.isBot || activePlayer.isDisconnected;
+        const isBotOrDisco = activePlayer.status !== 'HUMAN';
         const shouldIDispatch = isLocalTurn || (isBotOrDisco && isLocalHost);
 
         if (!shouldIDispatch) return;

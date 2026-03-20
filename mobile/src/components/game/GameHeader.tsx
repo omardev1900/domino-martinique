@@ -94,6 +94,24 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
                         <Ionicons name="information-circle-outline" size={24} color="#FFD700" />
                     </TouchableOpacity>
                 )}
+
+                <TouchableOpacity
+                    onPress={onToggleSound}
+                    activeOpacity={0.7}
+                    style={styles.controlBtn}
+                    testID="btn-sound"
+                >
+                    <Ionicons name={isSoundEnabled ? "volume-high" : "volume-mute"} size={22} color="#FFD700" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={onOpenSettings}
+                    activeOpacity={0.7}
+                    style={styles.controlBtn}
+                    testID="btn-settings"
+                >
+                    <Ionicons name="settings-outline" size={22} color="#FFD700" />
+                </TouchableOpacity>
             </View>
         </View>
     );

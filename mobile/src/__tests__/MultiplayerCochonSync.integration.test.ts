@@ -11,7 +11,7 @@ const createBaseGameState = (overrides: Partial<GameState>): GameState => ({
     phase: 'PLAYING',
     firstPlayerOfRound: null,
     history: [],
-    winningCondition: 3,
+    winningCondition: 2,
     gameMode: 'COCHON',
     mancheResult: null,
     turnDuration: 15,
@@ -74,9 +74,9 @@ describe('Multiplayer Cochon Synchronization Integration', () => {
     const createInitialCochonState = (): GameState => {
         return createBaseGameState({
             players: [
-                { id: 'A', name: 'Player A', hand: [], handSize: 0, currentMancheStars: 2, wins: 2, totalPoints: 10, totalCochons: 1, mancheWins: 0, totalRoundWins: 0, isCochon: false, isBot: false } as Player,
-                { id: 'B', name: 'Player B', hand: [{ id: 'd1', sum: 5 } as any], handSize: 1, currentMancheStars: 0, wins: 0, totalPoints: 5, totalCochons: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, isBot: false } as Player,
-                { id: 'C', name: 'Player C', hand: [{ id: 'd2', sum: 10 } as any], handSize: 1, currentMancheStars: 0, wins: 0, totalPoints: 3, totalCochons: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, isBot: false } as Player
+                { id: 'A', name: 'Player A', hand: [], handSize: 0, currentMancheStars: 2, totalPoints: 10, totalCochons: 0, wins: 2, mancheWins: 0, totalRoundWins: 0, isCochon: false, isBot: false } as Player,
+                { id: 'B', name: 'Player B', hand: [{ id: 'd1', sum: 5 } as any], handSize: 1, currentMancheStars: 0, totalPoints: 5, totalCochons: 1, wins: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, isBot: false } as Player,
+                { id: 'C', name: 'Player C', hand: [{ id: 'd2', sum: 10 } as any], handSize: 1, currentMancheStars: 0, totalPoints: 3, totalCochons: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, isBot: false } as Player
             ],
             gameMode: 'COCHON',
             phase: 'PLAYING',
@@ -109,15 +109,14 @@ describe('Multiplayer Cochon Synchronization Integration', () => {
 
         // Verify the logic result locally first
         expect(newStateAfterWin.mancheResult).toBe('COCHON');
-        expect(newStateAfterWin.phase).toBe('MANCHE_END');
+        expect(newStateAfterWin.phase).toBe('MATCH_END');
 
         const playerA = newStateAfterWin.players.find(p => p.id === 'A');
         const playerB = newStateAfterWin.players.find(p => p.id === 'B');
         const playerC = newStateAfterWin.players.find(p => p.id === 'C');
 
-        // Verification des scores (A:+5 cumulé sur la manche, B:-1, C:-1)
         // Initial : A:10, B:5, C:3
-        // A gagne le round (+1) et bonus double cochon (+2) => 13
+        // A gagne le round (+1 donc 3 étoiles) et bonus double cochon (+2) => +3 => 13
         // B et C sont cochons => -1
         expect(playerA?.totalPoints).toBe(13);
         expect(playerB?.totalPoints).toBe(4);
@@ -125,24 +124,26 @@ describe('Multiplayer Cochon Synchronization Integration', () => {
 
         // Manche history check
         const latestHistory = newStateAfterWin.mancheHistory[0];
-        // Points in history for the winner = current stars (3) + cochonCount (2) = 5
+        // Points in history for the winner = round wins (3) + cochonCount (2) = 5
         expect(latestHistory.points['A']).toBe(5);
         expect(latestHistory.points['B']).toBe(-1);
         expect(latestHistory.points['C']).toBe(-1);
 
         // Case with totalCochons
-        expect(playerA?.totalCochons).toBe(3); // 1 initial + 2 new
+        expect(playerA?.totalCochons).toBe(0); 
+        expect(playerB?.totalCochons).toBe(2); 
+        expect(playerC?.totalCochons).toBe(1); 
 
         // 2. Propagation to DB
         await db.runTransaction(() => newStateAfterWin);
 
         // 3. Verify all clients see the SAME data
-        expect(playerA_State.phase).toBe('MANCHE_END');
-        expect(playerB_State.phase).toBe('MANCHE_END');
-        expect(playerC_State.phase).toBe('MANCHE_END');
+        expect(playerA_State.phase).toBe('MATCH_END');
+        expect(playerB_State.phase).toBe('MATCH_END');
+        expect(playerC_State.phase).toBe('MATCH_END');
 
         expect(playerB_State.mancheHistory).toEqual(playerA_State.mancheHistory);
-        // A: 10 initial + 2 cochon bonus + 1 round win = 13
+        // A: 10 initial + 1 star (current win) + 2 cochon bonus = 13 (since previous 2 stars were already in the 10)
         expect(playerB_State.players.find(p => p.id === 'A')?.totalPoints).toBe(13);
     });
 
@@ -183,6 +184,6 @@ describe('Multiplayer Cochon Synchronization Integration', () => {
         await dbUpdate;
 
         // Now phase is updated
-        expect(db.getState().phase).toBe('MANCHE_END');
+        expect(db.getState().phase).toBe('MATCH_END');
     });
 });

@@ -641,7 +641,7 @@ export const listenToPublicRooms = (
 
 /**
  * Explicitly signals to the Room that this player is online and active.
- * Clears `isBot` and `isDisconnected` flags from the gameState.
+ * Sets `status` to 'HUMAN' in the gameState.
  * @param roomId 
  * @param playerId 
  */
@@ -665,14 +665,13 @@ export const signalPlayerOnline = async (roomId: string, playerId: string): Prom
             const currentPlayerState = roomData.gameState.players[playerIndex];
 
             // Only explicitly run the expensive update if they are currently marked offline or bot
-            if (currentPlayerState.isBot || currentPlayerState.isDisconnected) {
+            if (currentPlayerState.status !== 'HUMAN') {
                 console.log(`[Reconnection Protocol] Player ${playerId} signaling ONLINE natively via Transaction. Removing BOT locks.`);
 
                 const newGameStatePlayers = [...roomData.gameState.players];
                 newGameStatePlayers[playerIndex] = {
                     ...newGameStatePlayers[playerIndex],
-                    isBot: false,
-                    isDisconnected: false
+                    status: 'HUMAN'
                 };
 
                 const updateData: any = {};

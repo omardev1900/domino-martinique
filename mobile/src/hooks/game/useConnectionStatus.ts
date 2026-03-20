@@ -40,9 +40,9 @@ export const useConnectionStatus = ({
                 // Remove zombie status
                 let stateUpdated = false;
                 const updatedPlayers = state.players.map((p) => {
-                    if (p.id === localPlayerId && (p.isBot || p.isDisconnected)) {
+                    if (p.id === localPlayerId && (p.status !== 'HUMAN')) {
                         stateUpdated = true;
-                        return { ...p, isBot: false, isDisconnected: false };
+                        return { ...p, status: 'HUMAN' };
                     }
                     return p;
                 });
@@ -82,7 +82,7 @@ export const useConnectionStatus = ({
 
                 const updatedPlayers = state.players.map((p) => {
                     if (p.id === localPlayerId) {
-                        return { ...p, isBot: true, isDisconnected: true };
+                        return { ...p, status: 'DISCONNECTED' };
                     }
                     return p;
                 });

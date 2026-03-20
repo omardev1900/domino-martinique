@@ -53,7 +53,6 @@ describe('DominoEngine Migration (Phase 1.4)', () => {
         expect(m4[0].isReversed).toBe(true);
     });
 
-
     test('Stress Test : 100 simulations de tours de bots stratégiques', () => {
         let botErrors = 0;
         for (let i = 0; i < 100; i++) {
@@ -65,7 +64,7 @@ describe('DominoEngine Migration (Phase 1.4)', () => {
             };
 
             const possible = getValidMoves(bHand, bEnds);
-            const decision = getBotMove(bHand, bEnds, 'valou_legend');
+            const decision = getBotMove(bHand, bEnds, 'MAPIPI');
 
             if (possible.length > 0 && !decision) {
                 console.error(`Erreur simulation ${i} : Le bot n'a pas trouvé de coup alors qu'un coup était possible.`);
@@ -84,7 +83,7 @@ describe('DominoEngine Migration (Phase 1.4)', () => {
             { id: '1', left: 1, right: 3, isDouble: false, sum: 4 },
             { id: '2', left: 2, right: 2, isDouble: true, sum: 4 } // Double 2
         ];
-        const decision = getBotMove(hand, null, 'valou_legend');
+        const decision = getBotMove(hand, null, 'MAPIPI');
         expect(decision?.tile.id).toBe('2');
     });
 

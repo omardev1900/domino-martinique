@@ -172,6 +172,14 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                         >
                             <Text style={styles.resumeButtonText}>REPRENDRE</Text>
                         </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.quitButton}
+                            onPress={onLeaveRoom}
+                            testID="btn-quit"
+                        >
+                            <Text style={styles.quitButtonText}>QUITTER LA PARTIE</Text>
+                        </TouchableOpacity>
                     </Animated.View>
                 </View>
             )}

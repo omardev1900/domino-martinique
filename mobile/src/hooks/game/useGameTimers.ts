@@ -33,12 +33,8 @@ export const useGameTimers = ({
     // Ref qui stocke le turnId capturé AU MOMENT où le chrono démarre.
     const capturedTurnIdRef = useRef<number>(0);
 
-    // IMMUNITÉ DE TOUR: Horloge locale, indépendante de Firebase.
-    const TURN_IMMUNITY_MS = 5000;
-    const turnMountedAtRef = useRef<number>(Date.now());
-
     const getTurnAgeMs = useCallback(() => {
-        return Date.now() - turnMountedAtRef.current;
+        return 0; // Deprecated, kept for interface compatibility if needed
     }, []);
 
     const onTimeoutRef = useRef(onTimeout);
@@ -57,7 +53,7 @@ export const useGameTimers = ({
     // turnId et phase ne changent pas. Ce flag dérivé force le redémarrage
     // avec la durée réduite (5s).
     const activePlayer = gameState?.players?.find(p => p.id === gameState?.currentPlayerId);
-    const activePlayerIsDisconnected = !!(activePlayer?.isDisconnected);
+    const activePlayerIsDisconnected = !!(activePlayer?.status === 'DISCONNECTED');
 
     // Tour principal (PURE LOCAL CLOCK)
     useEffect(() => {
@@ -76,7 +72,7 @@ export const useGameTimers = ({
 
         // Pas de timer visuel pour les bots PURS (IA de base).
         // Les joueurs déconnectés DOIVENT garder un timer.
-        if (!player || (player.isBot && !player.isDisconnected)) {
+        if (!player || player.status === 'BOT') {
             setTimeLeft(null);
             return;
         }
@@ -88,17 +84,14 @@ export const useGameTimers = ({
         }
 
         // Durée réduite pour les joueurs déconnectés
-        const effectiveDuration = player.isDisconnected
+        const effectiveDuration = player.status === 'DISCONNECTED'
             ? Math.min(turnDuration, 5)
             : turnDuration;
 
         const currentTurnId = gameState.turnId ?? 0;
         capturedTurnIdRef.current = currentTurnId;
 
-
-
         setTimeLeft(effectiveDuration);
-        turnMountedAtRef.current = Date.now();
 
         const localStartTimeMs = Date.now();
         const durationMs = effectiveDuration * 1000;
@@ -108,8 +101,6 @@ export const useGameTimers = ({
 
             const elapsed = Date.now() - localStartTimeMs;
             const remaining = Math.max(0, Math.ceil((durationMs - elapsed) / 1000));
-            const turnAge = Date.now() - turnMountedAtRef.current;
-            const isPlayerDisconnected = player.isDisconnected;
 
             if (remaining === 5 && elapsed > 1000) {
                 // Ensure we only play it once when remaining hits exactly 5
@@ -119,14 +110,12 @@ export const useGameTimers = ({
 
             setTimeLeft(remaining);
 
-            if (remaining === 0 && (isPlayerDisconnected || turnAge >= TURN_IMMUNITY_MS)) {
+            if (remaining === 0) {
                 if (turnTimerRef.current) clearInterval(turnTimerRef.current);
                 turnTimerRef.current = null;
 
                 setOvertime(5);
                 SoundManager.playSound('end_time');
-            } else if (remaining === 0 && !isPlayerDisconnected && turnAge < TURN_IMMUNITY_MS) {
-
             }
         }, 100);
 

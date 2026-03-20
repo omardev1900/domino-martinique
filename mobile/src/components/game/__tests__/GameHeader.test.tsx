@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { GameHeader } from '../GameHeader';
 import { GameState } from '../../../core/types';
 
@@ -31,7 +31,7 @@ describe('GameHeader Component', () => {
     it('renders correctly when phase is PLAYING', () => {
         const { getByText } = render(<GameHeader {...defaultProps} />);
 
-        expect(getByText('🏆 Manche · Obj: 3 manches')).toBeTruthy();
+        expect(getByText('3 Victoires')).toBeTruthy();
         expect(getByText('M1 / R2')).toBeTruthy();
     });
 
@@ -66,17 +66,21 @@ describe('GameHeader Component', () => {
         expect(props.onToggleRoomInfo).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onToggleSound when sound button is pressed', () => {
+    it('calls onToggleSound when sound button is pressed', async () => {
         const { getByTestId } = render(<GameHeader {...defaultProps} />);
 
-        fireEvent.press(getByTestId('btn-sound'));
+        await act(async () => {
+            fireEvent.press(getByTestId('btn-sound'));
+        });
         expect(defaultProps.onToggleSound).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onOpenSettings when settings button is pressed', () => {
+    it('calls onOpenSettings when settings button is pressed', async () => {
         const { getByTestId } = render(<GameHeader {...defaultProps} />);
 
-        fireEvent.press(getByTestId('btn-settings'));
+        await act(async () => {
+            fireEvent.press(getByTestId('btn-settings'));
+        });
         expect(defaultProps.onOpenSettings).toHaveBeenCalledTimes(1);
     });
 });

@@ -9,7 +9,7 @@ export interface UseBotDecisionProps {
     localPlayerId: string;
     isSoloMode: boolean;
     isPaused: boolean;
-    canAction: (playerId: string, isTimeoutAction?: boolean) => boolean;
+    canAction: (playerId: string, options?: { isAuto?: boolean; minAgeMs?: number }) => boolean;
     dispatch: (command: ActionCommand) => Promise<void>;
 }
 
@@ -50,7 +50,7 @@ export const useBotDecision = ({
         const activePlayer = gameState.players?.find(p => p.id === currentPlayerId);
 
         // Uniquement pour les bots / déconnectés
-        if (!activePlayer || (!activePlayer.isBot && !activePlayer.isDisconnected)) {
+        if (!activePlayer || activePlayer.status === 'HUMAN') {
             return;
         }
 
@@ -62,7 +62,7 @@ export const useBotDecision = ({
         const capturedTurnId = gameState.turnId;
 
         // Délai de réflexion : court pour un joueur subitement déco, naturel pour un bot
-        const delayMs = activePlayer.isDisconnected
+        const delayMs = activePlayer.status === 'DISCONNECTED'
             ? 100
             : Math.floor(Math.random() * 500) + 1000;
 
@@ -78,7 +78,7 @@ export const useBotDecision = ({
 
             // 2. Le Dispatcher autorise-t-il l'action ?
             // Les bots ne subissent pas l'immunité timeout car c'est une action organique
-            if (!canActionRef.current(currentPlayerId, false)) {
+            if (!canActionRef.current(currentPlayerId, { isAuto: false })) {
 
                 return;
             }

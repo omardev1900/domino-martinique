@@ -91,9 +91,9 @@ describe('LogicEngine', () => {
 
 
 describe('passTurn', () => {
-    const p1: Player = { id: 'p1', name: 'P1', hand: [{ id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
-    const p2: Player = { id: 'p2', name: 'P2', hand: [{ id: 'd2', left: 0, right: 0, isDouble: true, sum: 0 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
-    const p3: Player = { id: 'p3', name: 'P3', hand: [{ id: 'd3', left: 2, right: 2, isDouble: true, sum: 4 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
+    const p1: Player = { id: 'p1', name: 'P1', hand: [{ id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, status: 'HUMAN' };
+    const p2: Player = { id: 'p2', name: 'P2', hand: [{ id: 'd2', left: 0, right: 0, isDouble: true, sum: 0 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, status: 'HUMAN' };
+    const p3: Player = { id: 'p3', name: 'P3', hand: [{ id: 'd3', left: 2, right: 2, isDouble: true, sum: 4 } as Domino], handSize: 1, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, status: 'HUMAN' };
 
     let state: GameState = createBaseGameState({
         players: [p1, p2, p3],
@@ -133,7 +133,7 @@ describe('passTurn', () => {
 });
 
 describe('handleTurn', () => {
-    const p1: Player = { id: 'p1', name: 'P1', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false };
+    const p1: Player = { id: 'p1', name: 'P1', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, status: 'HUMAN' };
 
     let state: GameState = createBaseGameState({
         players: [p1],
@@ -175,7 +175,7 @@ describe('Opening rule (round 1 / manche 1)', () => {
                 totalPoints: 0,
                 totalCochons: 0,
                 isCochon: false,
-                isBot: false
+                status: 'HUMAN'
             },
             {
                 id: 'p2',
@@ -189,7 +189,7 @@ describe('Opening rule (round 1 / manche 1)', () => {
                 totalPoints: 0,
                 totalCochons: 0,
                 isCochon: false,
-                isBot: false
+                status: 'HUMAN'
             }
         ],
         currentPlayerId: 'p1',

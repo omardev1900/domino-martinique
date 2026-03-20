@@ -1,5 +1,6 @@
 import { Domino, DominoSide, Player, PlayerId, GameState, GamePhase, GameMode, MancheResult } from './types';
 import { ALL_DOMINOS, HAND_SIZE, TALON_MORT_SIZE, WINS_TO_WIN_MATCH, MAX_PLAYERS, MANCHE_WIN_THRESHOLD } from './constants';
+import { preparePlayersForNextRound } from './ScoringEngine';
 
 interface HighestDoubleInfo {
     playerId: PlayerId;
@@ -78,7 +79,7 @@ export const dealGame = (playerNames: string[], handSize: number = HAND_SIZE): P
         totalPoints: 0,
         isCochon: false,
         totalCochons: 0,
-        isBot: false,
+        status: 'HUMAN',
         wins: 0,
     }));
 
@@ -97,6 +98,7 @@ export const dealGame = (playerNames: string[], handSize: number = HAND_SIZE): P
         winningCondition: WINS_TO_WIN_MATCH,
         lastActionTimestamp: Date.now(),
         turnId: 0,
+        reDealCount: 0, // ✅ Initialisation (C5)
     };
 };
 
@@ -146,7 +148,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             totalPoints: 0,
             isCochon: false,
             totalCochons: 0,
-            isBot: false,
+            status: 'HUMAN',
             wins: 0,
         },
         {
@@ -161,7 +163,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             totalPoints: 0,
             isCochon: false,
             totalCochons: 0,
-            isBot: true,
+            status: 'BOT',
             difficulty: bots[0].diff as any,
             wins: 0,
         },
@@ -177,7 +179,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
             totalPoints: 0,
             isCochon: false,
             totalCochons: 0,
-            isBot: true,
+            status: 'BOT',
             difficulty: bots[1].diff as any,
             wins: 0,
         },
@@ -426,15 +428,23 @@ export const passTurn = (
 import { determineWinnerOnBoudé } from './ScoringEngine';
 
 export const resolveBoude = (gameState: GameState): { newState: GameState; isTie: boolean } => {
-    const winnerId = determineWinnerOnBoudé(gameState.players);
+    let winnerId = determineWinnerOnBoudé(gameState.players);
+
+    // ✅ GARDE-FOU ANTI-BOUCLE (C5) : Au-delà de 2 égalités de points, on force un gagnant
+    const currentTieCount = gameState.reDealCount || 0;
+    if (winnerId === 'TIE' && currentTieCount >= 2) {
+        console.warn(`[LogicEngine] Tie limit reached (${currentTieCount + 1}-th tie). Forcing decision via determineFirstPlayer.`);
+        // Note: determineFirstPlayer cherche le plus haut domino (ou double) dans les mains
+        winnerId = determineFirstPlayer(gameState.players);
+    }
 
     if (winnerId === 'TIE') {
-        // IMPORTANT: In case of TIE, we return isTie true. 
-        // The dispatcher will handle re-dealing to avoid lock issues.
         return { newState: gameState, isTie: true };
     }
 
-    const newState = finalizeRound(gameState, winnerId);
+    // Gagnant trouvé ou forcé -> On réinitialise le compteur
+    const winningState = { ...gameState, reDealCount: 0 };
+    const newState = finalizeRound(winningState, winnerId);
     return { newState, isTie: false };
 };
 
@@ -510,25 +520,13 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
     // On génère la nouvelle distribution pure
     const partialState = dealGame(playerNames, activeState.startingHandSize || fallbackHandSize);
 
-    const safeOldPlayersArray = Array.isArray(activeState.players) ? activeState.players : Object.values(activeState.players || {});
+    const safeOldPlayersArray = (Array.isArray(activeState.players) ? activeState.players : Object.values(activeState.players || {})) as Player[];
 
-    const newPlayers = (partialState.players as Player[]).map((p, i) => {
-        const originalPlayer = safeOldPlayersArray[i] as Player | undefined;
-        return {
-            ...p,
-            id: originalPlayer?.id || p.id,
-            currentMancheStars: isMancheEnd ? 0 : (originalPlayer?.currentMancheStars ?? 0),
-            isCochon: isMancheEnd ? false : (originalPlayer?.isCochon ?? false),
-            mancheWins: originalPlayer?.mancheWins ?? 0,
-            totalPoints: originalPlayer?.totalPoints ?? 0,
-            totalCochons: originalPlayer?.totalCochons ?? 0,
-            isBot: originalPlayer?.isBot ?? false,
-            isDisconnected: originalPlayer?.isDisconnected ?? false,
-            avatarId: originalPlayer?.avatarId ?? undefined,
-            wins: originalPlayer?.wins ?? 0,
-            difficulty: originalPlayer?.difficulty,
-        } as Player;
-    });
+    const newPlayers = preparePlayersForNextRound(
+        partialState.players as Player[],
+        safeOldPlayersArray,
+        isMancheEnd
+    );
 
     if (!winnerId) {
         winnerId = determineFirstPlayer(newPlayers);

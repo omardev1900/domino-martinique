@@ -1,4 +1,4 @@
-import { dealGame, handleTurn, passTurn, checkValidMove, determineFirstPlayer } from '../LogicEngine';
+import { dealGame, handleTurn, passTurn, checkValidMove, determineFirstPlayer, computeNextRoundState } from '../LogicEngine';
 import { getBotMove } from '../BotEngine';
 import { GameState, PlayerId, GamePhase } from '../types';
 import { WINS_TO_WIN_MATCH, MAX_PLAYERS } from '../constants';
@@ -21,8 +21,11 @@ describe('GameIntegration - Full Game Simulation', () => {
 
         while (state.phase === 'PLAYING' && turns < MAX_TURNS) {
             turns++;
-            const currentPlayer = state.players.find(p => p.id === state.currentPlayerId)!;
-
+            const currentPlayer = state.players.find(p => p.id === state.currentPlayerId);
+            if (!currentPlayer) {
+                console.error(`ERROR: currentPlayerId ${state.currentPlayerId} not found in [${state.players.map(p => p.id).join(', ')}]`);
+                throw new Error("currentPlayer is undefined");
+            }
             // AI Logic
             const move = getBotMove(
                 currentPlayer.hand,
@@ -63,11 +66,12 @@ describe('GameIntegration - Full Game Simulation', () => {
             talonMort: partial.talonMort as any,
             table: partial.table!,
             currentPlayerId: partial.players![0].id,
+            firstPlayerOfRound: partial.players![0].id,
             winningCondition: WINS_TO_WIN_MATCH,
         });
 
         // Mark all as bots (optional, mostly for our generic logic if we used it)
-        state.players.forEach(p => p.isBot = true);
+        state.players.forEach(p => p.status = 'BOT');
 
         // Loop until Match End
         let rounds = 0;
@@ -79,31 +83,7 @@ describe('GameIntegration - Full Game Simulation', () => {
             // Verify we are starting a round or continuing?
             // If previous phase was PARTIE_END or MANCHE_END, we need to re-deal
             if (state.phase === 'PARTIE_END' || state.phase === 'MANCHE_END' || state.phase === 'BOUDE') {
-                // Simulate re-deal logic (LogicEngine doesn't have a specific "nextRound" function that keeps scores, 
-                // usually handled by server/GameScreen state management. We mimic it here.)
-                const winners = state.players.map(p => ({ id: p.id, wins: p.wins }));
-                const nextStartPlayer = state.firstPlayerOfRound; // LogicEngine sets this for next round
-
-                const newDeal = dealGame(['Bot1', 'Bot2', 'Bot3']);
-
-                // Restore state with new deal but keep wins
-                state = {
-                    ...state,
-                    players: newDeal.players as any,
-                    talonMort: newDeal.talonMort as any,
-                    table: newDeal.table!,
-                    phase: 'PLAYING',
-                    history: []
-                };
-
-                // Restore wins and names
-                state.players.forEach((p, i) => {
-                    // Assert mapping by index for simplicity in this test
-                    p.wins = winners[i].wins;
-                    p.id = winners[i].id; // Ensure IDs persist
-                });
-
-                state.firstPlayerOfRound = nextStartPlayer;
+                state = computeNextRoundState(state);
             }
 
             playFullRound();
@@ -112,8 +92,7 @@ describe('GameIntegration - Full Game Simulation', () => {
             expect(['PARTIE_END', 'MANCHE_END', 'MATCH_END', 'BOUDE']).toContain(state.phase);
         }
 
-        console.log(`Match finished in ${rounds} rounds.`);
-        const winner = state.players.find(p => p.wins >= WINS_TO_WIN_MATCH);
+        const winner = state.players.find(p => p.totalPoints >= WINS_TO_WIN_MATCH);
 
         // Assertions
         expect(state.phase).toBe('MATCH_END');

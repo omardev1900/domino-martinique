@@ -5,8 +5,13 @@ import { GameState, Domino } from '../../../core/types';
 import { UnifiedResultOverlay } from '../../UnifiedResultOverlay';
 
 // Mock UnifiedResultOverlay so it doesn't render its complex logic
-jest.mock('../UnifiedResultOverlay', () => ({
+jest.mock('../../UnifiedResultOverlay', () => ({
     UnifiedResultOverlay: jest.fn(() => null)
+}));
+
+jest.mock('@expo/vector-icons', () => ({
+    MaterialCommunityIcons: 'Icon',
+    Ionicons: 'Icon'
 }));
 
 describe('GameOverlays Component', () => {
@@ -99,14 +104,13 @@ describe('GameOverlays Component', () => {
             <GameOverlays {...defaultProps} showScoreOverlay={true} />
         );
 
-        expect(UnifiedResultOverlay).toHaveBeenCalledWith(
-            expect.objectContaining({
-                gameState: mockGameState,
-                visible: true,
-                currentUserId: 'player1',
-                isHost: true
-            }),
-            {}
-        );
+        expect(UnifiedResultOverlay).toHaveBeenCalledTimes(1);
+        const [props] = (UnifiedResultOverlay as jest.Mock).mock.calls[0];
+        expect(props).toMatchObject({
+            gameState: mockGameState,
+            visible: true,
+            currentUserId: 'player1',
+            isHost: true
+        });
     });
 });

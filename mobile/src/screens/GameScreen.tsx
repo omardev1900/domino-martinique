@@ -106,7 +106,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     const [isPaused, setIsPaused] = useState(false);
 
-    let handleTimeoutCb = (pId: string) => {
+    let handleTimeoutCb = (pId: string, turnId?: number) => {
         // Will be wired to the engine
     };
 
@@ -121,7 +121,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         gameState,
         isPaused,
         localPlayerId,
-        onTimeout: (pId, turnId) => handleTimeoutCb(pId)
+        onTimeout: (pId, turnId) => handleTimeoutCb(pId, turnId)
     });
 
     // -- 5. The Façade Game Engine --
@@ -845,8 +845,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         ...p,
                         id: uid,
                         avatarId: roomData.players[i].avatarId || 'avatar_default',
-                        isDisconnected: false,
-                        isBot: false
+                        status: 'HUMAN'
                     };
                 } else {
                     const relativeBotIdx = i - roomData.players.length;
@@ -855,7 +854,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         ...p,
                         id: `bot-${i}`,
                         name: config.name,
-                        isBot: true,
+                        status: 'BOT',
                         avatarId: config.avatarId,
                         difficulty: config.difficulty as any
                     };

@@ -31,10 +31,10 @@ describe('LogicEngine Advanced', () => {
             id: 'p1', name: 'Player 1', hand: [
                 { id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 } as Domino,
                 { id: 'd2', left: 1, right: 1, isDouble: true, sum: 2 } as Domino
-            ], handSize: 2, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: false
+            ], handSize: 2, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, status: 'HUMAN'
         };
-        const p2: Player = { id: 'p2', name: 'Player 2', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: true };
-        const p3: Player = { id: 'p3', name: 'Player 3', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, isBot: true };
+        const p2: Player = { id: 'p2', name: 'Player 2', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, status: 'BOT' };
+        const p3: Player = { id: 'p3', name: 'Player 3', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, status: 'BOT' };
 
         let state: GameState = createBaseGameState({
             gameId: 'g1',

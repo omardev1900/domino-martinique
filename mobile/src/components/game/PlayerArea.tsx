@@ -78,7 +78,6 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             chatContent={playersChat[opponents[0]?.id]}
                             overtime={gameState.currentPlayerId === opponents[0]?.id ? overtime : null}
                             isBotPlaying={gameState.currentPlayerId === opponents[0]?.id ? isBotPlaying : false}
-                            isDisconnected={opponents[0]?.isDisconnected}
                             gameMode={gameState.gameMode}
                             showHandDominoes={false}
                             skinConfig={skinConfig}
@@ -117,7 +116,6 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             chatContent={playersChat[opponents[1]?.id]}
                             overtime={gameState.currentPlayerId === opponents[1]?.id ? overtime : null}
                             isBotPlaying={gameState.currentPlayerId === opponents[1]?.id ? isBotPlaying : false}
-                            isDisconnected={opponents[1]?.isDisconnected}
                             gameMode={gameState.gameMode}
                             showHandDominoes={false}
                             skinConfig={skinConfig}
@@ -155,7 +153,6 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             chatContent={playersChat[localPlayerId]}
                             overtime={gameState.currentPlayerId === localPlayerId ? overtime : null}
                             isBotPlaying={gameState.currentPlayerId === localPlayerId ? isBotPlaying : false}
-                            isDisconnected={localPlayer.isDisconnected}
                             gameMode={gameState.gameMode}
                             showHandDominoes={false}
                             skinConfig={skinConfig}

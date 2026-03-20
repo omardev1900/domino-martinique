@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
-import { GameState, Domino, PlayerId, GameRoom } from '../../core/types';
+import { GameState, Domino, PlayerId, GameRoom, GamePhase } from '../../core/types';
 import { handleTurn, passTurn, resolveBoude, handleTimeout, computeNextRoundState } from '../../core/LogicEngine';
 import SoundManager from '../../core/audio/SoundManager';
 
 export type ActionCommand =
     | { type: 'PLAY_TILE'; playerId: PlayerId; tile: Domino; side?: 'start' | 'left' | 'right' }
     | { type: 'PASS_TURN'; playerId: PlayerId }
-    | { type: 'TIMEOUT'; playerId: PlayerId }
+    | { type: 'TIMEOUT'; playerId: PlayerId; turnId?: number }
     | { type: 'NEXT_ROUND'; stateOverride?: GameState }
     | { type: 'RESOLVE_BOUDE' };
 
@@ -20,7 +20,7 @@ export interface UseActionDispatcherProps {
     startingHandSize?: number;
     acquireLock: () => boolean;
     releaseLock: () => void;
-    canAction: (playerId: string, isTimeoutAction?: boolean) => boolean;
+    canAction: (playerId: string, options?: { isAuto?: boolean; minAgeMs?: number }) => boolean;
     safeUpdateGameState: (gameId: string, newState: GameState) => Promise<void>;
     setGameState: (state: GameState) => void;
     clearAllTurnTimers: () => void;
@@ -52,17 +52,21 @@ export const useActionDispatcher = ({
         // Autorité de l'Hôte pour le TIMEOUT
         if (command.type === 'TIMEOUT') {
             const player = gameState.players.find(p => p.id === command.playerId);
-            const isBotOrDisconnected = player?.isBot || player?.isDisconnected;
+            const isBotOrDisconnected = player?.status !== 'HUMAN';
             if (isBotOrDisconnected && !isSoloMode && roomData && roomData.createdBy !== localPlayerId) {
-
                 return;
             }
         }
 
-        // Vérification globale canAction (C'est son tour ? Verrou libre ? Immunité (timeouts) ?)
+        // Vérification globale canAction (C'est son tour ? Verrou libre ? Immunité (timeouts/auto-pass) ?)
         if (command.type === 'PLAY_TILE' || command.type === 'PASS_TURN' || command.type === 'TIMEOUT') {
-            const isTimeout = command.type === 'TIMEOUT';
-            if (!canAction(command.playerId, isTimeout)) {
+            const isAuto = command.type === 'TIMEOUT' || command.type === 'PASS_TURN';
+            // On distingue l'immunité : 
+            // - Les pass auto (boudé) ont besoin d'être fluides (1.5s de délai total d'animation, donc 1s d'immunité suffit).
+            // - Les Timeouts (fin de chrono) sont des sécurités critiques (5s anti-cascade).
+            const minAgeMs = command.type === 'TIMEOUT' ? 5000 : 1000;
+            
+            if (!canAction(command.playerId, { isAuto, minAgeMs })) {
                 return;
             }
         }
@@ -92,6 +96,13 @@ export const useActionDispatcher = ({
                 }
                 case 'TIMEOUT': {
                     if (gameState.phase !== 'PLAYING') break;
+                    
+                    // Reject stale timeouts
+                    if (command.turnId !== undefined && command.turnId !== gameState.turnId) {
+                        console.log(`[ActionDispatcher] Ignored stale timeout: command.turnId=${command.turnId}, gameState.turnId=${gameState.turnId}`);
+                        break;
+                    }
+
                     // LogicEngine.ts contains handleTimeout to do exactly this logic purely
                     newState = handleTimeout(gameState, command.playerId);
                     // Determine if a tile was actually played during timeout by checking history
@@ -118,9 +129,13 @@ export const useActionDispatcher = ({
                     const { newState: resolvedState, isTie } = resolveBoude(gameState);
                     if (isTie) {
                         // TIE = même manche, étoiles inchangées, nouveau round (nouvelle donne)
-                        // On force la phase à PARTIE_END pour que computeNextRoundState
-                        // préserve les étoiles et ne change pas le mancheNumber.
-                        const stateForRedeal = { ...resolvedState, phase: 'PARTIE_END' as GamePhase };
+                        // On incrémente le compteur pour le garde-fou C5
+                        const nextTieCount = (gameState.reDealCount || 0) + 1;
+                        const stateForRedeal = { 
+                            ...resolvedState, 
+                            phase: 'PARTIE_END' as GamePhase,
+                            reDealCount: nextTieCount
+                        };
                         newState = computeNextRoundState(stateForRedeal, startingHandSize);
                     } else {
                         newState = resolvedState;

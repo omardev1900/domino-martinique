@@ -15,7 +15,7 @@ describe('useGameTimers Hook (Component Wrapper)', () => {
     });
 
     afterEach(() => {
-        jest.runOnlyPendingTimers();
+        jest.clearAllTimers();
         jest.useRealTimers();
     });
 
@@ -96,10 +96,12 @@ describe('useGameTimers Hook (Component Wrapper)', () => {
             jest.advanceTimersByTime(1100);
         });
 
-        // Avancer tout l'overtime (5s)
-        act(() => {
-            jest.advanceTimersByTime(5500);
-        });
+        // Avancer tout l'overtime (5s) par étape pour déclencher les useEffect successifs
+        for(let i = 0; i < 5; i++) {
+            act(() => {
+                jest.advanceTimersByTime(1000);
+            });
+        }
 
         expect(getByTestId('overtime').props.children).toBe(0);
         expect(mockOnTimeout).toHaveBeenCalledWith('p1', expect.any(Number));
