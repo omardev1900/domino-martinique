@@ -5,7 +5,7 @@ import { Player } from './types';
 const createMockPlayer = (id: string, name: string, score: number): Player => ({
     id,
     name,
-    hand: Array(score).fill({ left: 1, right: 0, sum: 1, isDouble: false, id: 'd' }), // Mock hand with total 'score' points
+    hand: Array(score).fill({ left: 1, right: 0, isDouble: false, id: 'd' }), // Mock hand with total 'score' points
     handSize: score,
     wins: 0,
     mancheWins: 0,

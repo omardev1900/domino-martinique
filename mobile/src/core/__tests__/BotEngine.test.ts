@@ -6,8 +6,8 @@ import { createBaseGameState } from '../../hooks/game/__tests__/testUtils';
 describe('BotEngine', () => {
     it('should return a valid move if one exists', () => {
         const hand: Domino[] = [
-            { id: '1', left: 1, right: 2, isDouble: false, sum: 3 } as Domino,
-            { id: '2', left: 5, right: 5, isDouble: true, sum: 10 } as Domino
+            { id: '1', left: 1, right: 2, isDouble: false } as Domino,
+            { id: '2', left: 5, right: 5, isDouble: true } as Domino
         ];
         // Table matches 1 or 6
         const move = getBotMove(hand, 1, 6);
@@ -17,7 +17,7 @@ describe('BotEngine', () => {
 
     it('should return null if no moves', () => {
         const hand: Domino[] = [
-            { id: '1', left: 3, right: 3, isDouble: true, sum: 6 } as Domino
+            { id: '1', left: 3, right: 3, isDouble: true } as Domino
         ];
         // Table matches 1 or 6
         const move = getBotMove(hand, 1, 6);
@@ -29,8 +29,8 @@ describe('LogicEngine Advanced', () => {
     it('handleTurn should update table and current player', () => {
         const p1: Player = {
             id: 'p1', name: 'Player 1', hand: [
-                { id: 'd1', left: 6, right: 6, isDouble: true, sum: 12 } as Domino,
-                { id: 'd2', left: 1, right: 1, isDouble: true, sum: 2 } as Domino
+                { id: 'd1', left: 6, right: 6, isDouble: true } as Domino,
+                { id: 'd2', left: 1, right: 1, isDouble: true } as Domino
             ], handSize: 2, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, status: 'HUMAN'
         };
         const p2: Player = { id: 'p2', name: 'Player 2', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, totalCochons: 0, isCochon: false, status: 'BOT' };

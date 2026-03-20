@@ -2,11 +2,11 @@ import { getValidMoves, calculateHandPoints, getBotMove, ValidMove } from '../Do
 import { Domino, DominoSide } from '../types';
 
 describe('DominoEngine', () => {
-    const d00: Domino = { id: 'd00', left: 0, right: 0, isDouble: true, sum: 0 };
-    const d01: Domino = { id: 'd01', left: 0, right: 1, isDouble: false, sum: 1 };
-    const d11: Domino = { id: 'd11', left: 1, right: 1, isDouble: true, sum: 2 };
-    const d12: Domino = { id: 'd12', left: 1, right: 2, isDouble: false, sum: 3 };
-    const d22: Domino = { id: 'd22', left: 2, right: 2, isDouble: true, sum: 4 };
+    const d00: Domino = { id: 'd00', left: 0, right: 0, isDouble: true };
+    const d01: Domino = { id: 'd01', left: 0, right: 1, isDouble: false };
+    const d11: Domino = { id: 'd11', left: 1, right: 1, isDouble: true };
+    const d12: Domino = { id: 'd12', left: 1, right: 2, isDouble: false };
+    const d22: Domino = { id: 'd22', left: 2, right: 2, isDouble: true };
 
     describe('getValidMoves', () => {
         it('should allow all moves on empty table (ends is null)', () => {

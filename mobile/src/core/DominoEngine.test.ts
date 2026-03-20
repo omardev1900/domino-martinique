@@ -15,7 +15,6 @@ const generateDeck = (): Domino[] => {
                 left: i as DominoSide,
                 right: j as DominoSide,
                 isDouble: i === j,
-                sum: i + j
             });
         }
     }
@@ -33,8 +32,8 @@ describe('DominoEngine Migration (Phase 1.4)', () => {
     });
 
     test('Validation des correspondances standard (4 cas)', () => {
-        const domino12: Domino = { id: '1-2', left: 1, right: 2, isDouble: false, sum: 3 };
-        const domino34: Domino = { id: '3-4', left: 3, right: 4, isDouble: false, sum: 7 };
+        const domino12: Domino = { id: '1-2', left: 1, right: 2, isDouble: false };
+        const domino34: Domino = { id: '3-4', left: 3, right: 4, isDouble: false };
 
         // CAS 1 : Gauche, sans inversion [1|2] sur [2|...] -> 1 devient l'extrémité
         const m1 = getValidMoves([domino12], { left: 2 as DominoSide, right: 5 as DominoSide });
@@ -80,8 +79,8 @@ describe('DominoEngine Migration (Phase 1.4)', () => {
 
     test('Intelligence Valou : Priorité aux doubles pour commencer', () => {
         const hand: Domino[] = [
-            { id: '1', left: 1, right: 3, isDouble: false, sum: 4 },
-            { id: '2', left: 2, right: 2, isDouble: true, sum: 4 } // Double 2
+            { id: '1', left: 1, right: 3, isDouble: false },
+            { id: '2', left: 2, right: 2, isDouble: true } // Double 2
         ];
         const decision = getBotMove(hand, null, 'MAPIPI');
         expect(decision?.tile.id).toBe('2');

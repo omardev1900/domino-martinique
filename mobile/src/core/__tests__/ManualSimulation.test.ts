@@ -3,7 +3,7 @@ import { handleEndOfRound } from '../LogicEngine';
 import { GameState, Player, Domino } from '../types';
 import { createBaseGameState } from '../../hooks/game/__tests__/testUtils';
 
-const mockDomino: Domino = { id: 'd', left: 0, right: 0, isDouble: true, sum: 0 };
+const mockDomino: Domino = { id: 'd', left: 0, right: 0, isDouble: true };
 
 const createMockPlayer = (id: string, name: string, wins: number, totalPoints: number = 0): Player => ({
     id,

@@ -6,7 +6,6 @@ export interface Domino {
     left: DominoSide;
     right: DominoSide;
     isDouble: boolean;
-    sum: number;
 }
 
 export type PlayerId = string;

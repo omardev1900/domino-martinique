@@ -53,7 +53,6 @@ export const shuffleDeck = (): Domino[] => {
         left: d.left,
         right: d.right,
         isDouble: d.left === d.right,
-        sum: d.left + d.right,
     }));
 
     for (let i = deck.length - 1; i > 0; i--) {
