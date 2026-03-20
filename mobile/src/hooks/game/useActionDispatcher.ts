@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { GameState, Domino, PlayerId, GameRoom, GamePhase } from '../../core/types';
 import { handleTurn, passTurn, resolveBoude, handleTimeout, computeNextRoundState } from '../../core/LogicEngine';
 import SoundManager from '../../core/audio/SoundManager';
+import { LogService } from '../../core/services/LogService';
 
 export type ActionCommand =
     | { type: 'PLAY_TILE'; playerId: PlayerId; tile: Domino; side?: 'start' | 'left' | 'right' }
@@ -99,7 +100,7 @@ export const useActionDispatcher = ({
                     
                     // Reject stale timeouts
                     if (command.turnId !== undefined && command.turnId !== gameState.turnId) {
-                        console.log(`[ActionDispatcher] Ignored stale timeout: command.turnId=${command.turnId}, gameState.turnId=${gameState.turnId}`);
+                        LogService.info('ActionDispatcher', `Ignored stale timeout: command.turnId=${command.turnId}, gameState.turnId=${gameState.turnId}`);
                         break;
                     }
 

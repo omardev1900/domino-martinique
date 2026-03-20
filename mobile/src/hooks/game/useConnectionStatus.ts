@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../core/services/firebase';
 import { doc, runTransaction } from 'firebase/firestore';
 import { GameRoom } from '../../core/types';
+import { LogService } from '../../core/services/LogService';
 
 export interface UseConnectionStatusProps {
     gameId: string | undefined;
@@ -58,7 +59,7 @@ export const useConnectionStatus = ({
                 }
             });
         } catch (error) {
-            console.error('[useConnectionStatus] Error signalPlayerOnline:', error);
+            LogService.error('ConnectionStatus', 'Error signalPlayerOnline:', error);
         }
     }, [gameId, isSoloMode, localPlayerId]);
 
@@ -93,7 +94,7 @@ export const useConnectionStatus = ({
 
             });
         } catch (error) {
-            console.error('[useConnectionStatus] Error signalPlayerOffline:', error);
+            LogService.error('ConnectionStatus', 'Error signalPlayerOffline:', error);
         }
     }, [gameId, isSoloMode, localPlayerId]);
 

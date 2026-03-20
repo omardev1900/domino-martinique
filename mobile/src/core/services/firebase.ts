@@ -33,6 +33,7 @@ import {
     QuerySnapshot
 } from 'firebase/firestore';
 import { GameRoom, GameState, PlayerProfile, RoomStatus, GameMode } from '../types';
+import { LogService } from './LogService';
 
 // Configuration Firebase
 // Configuration Firebase
@@ -131,7 +132,7 @@ export const createRoom = async (
         const cleanRoomData = JSON.parse(JSON.stringify(roomData));
 
         const docRef = await addDoc(collection(db, ROOMS_COLLECTION), cleanRoomData);
-        console.log("Room created with ID: ", docRef.id);
+        LogService.info('Firebase', "Room created with ID:", docRef.id);
 
         // Update the room with its own ID (optional but helpful)
         await updateDoc(docRef, { roomId: docRef.id });
@@ -170,7 +171,7 @@ export const joinRoom = async (roomId: string, playerProfile: PlayerProfile): Pr
         // PRIORITY 1: Check if player is already in room (reconnection)
         const isAlreadyIn = roomData.players.some(p => p.uid === playerProfile.uid);
         if (isAlreadyIn) {
-            console.log("✅ Player already in room - reconnecting");
+            LogService.info('Firebase', "✅ Player already in room - reconnecting");
             // Update lastActivity to keep room alive
             await updateDoc(roomRef, {
                 lastActivity: Date.now()
@@ -181,7 +182,7 @@ export const joinRoom = async (roomId: string, playerProfile: PlayerProfile): Pr
         // PRIORITY 2: Check if player was in the game but disconnected (reconnection scenario)
         const wasInGame = roomData.gameState?.players.some(p => p.id === playerProfile.uid);
         if (wasInGame) {
-            console.log("✅ Player reconnecting to ongoing game (was disconnected)");
+            LogService.info('Firebase', "✅ Player reconnecting to ongoing game (was disconnected)");
             // Re-add player to the room's player list
             const cleanPlayerProfile = JSON.parse(JSON.stringify(playerProfile));
             await updateDoc(roomRef, {
@@ -666,7 +667,7 @@ export const signalPlayerOnline = async (roomId: string, playerId: string): Prom
 
             // Only explicitly run the expensive update if they are currently marked offline or bot
             if (currentPlayerState.status !== 'HUMAN') {
-                console.log(`[Reconnection Protocol] Player ${playerId} signaling ONLINE natively via Transaction. Removing BOT locks.`);
+                LogService.warn('Firebase', `[Reconnection Protocol] Player ${playerId} signaling ONLINE natively via Transaction. Removing BOT locks.`);
 
                 const newGameStatePlayers = [...roomData.gameState.players];
                 newGameStatePlayers[playerIndex] = {

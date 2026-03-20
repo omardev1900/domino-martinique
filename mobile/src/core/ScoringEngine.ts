@@ -1,5 +1,6 @@
 import { GameState, Player, PlayerId, GameMode, MancheResult } from './types';
 import { MANCHE_WIN_THRESHOLD, WINS_TO_WIN_MATCH } from './constants';
+import { LogService } from './services/LogService';
 
 /**
  * calculateHandPoints : Somme des points d'une main
@@ -69,7 +70,7 @@ export const finalizeRound = (
     const isChire = newState.players.every(p => p.currentMancheStars >= 1);
 
     if (isChire) {
-        console.log("CHIRÉE DETECTED! Manche ends, manche increments.");
+        LogService.info('Scoring', "CHIRÉE DETECTED! Manche ends, manche increments.");
 
         // On ne remet PAS les étoiles à 0 ici.
         // L'écran de résultat (GameOverScreen / UnifiedResultOverlay) a besoin de lire les 'currentMancheStars' pour les afficher.
@@ -101,16 +102,16 @@ export const finalizeRound = (
     const mancheWinner = !isChire ? newState.players.find(p => p.currentMancheStars >= MANCHE_WIN_THRESHOLD) : null;
 
     if (mancheWinner) {
-        console.log(`MANCHE WINNER: ${mancheWinner.id}`);
+        LogService.info('Scoring', `MANCHE WINNER: ${mancheWinner.id}`);
         // 3.2 Calcul Bonus/Malus Cochon
         const losersAtZero = newState.players.filter(p => p.currentMancheStars === 0);
         const cochonCount = losersAtZero.length;
 
         if (cochonCount > 0) {
-            console.log(`COCHON DETECTED! Count: ${cochonCount}`);
+            LogService.info('Scoring', `COCHON DETECTED! Count: ${cochonCount}`);
             newState.mancheResult = 'COCHON';
         } else {
-            console.log("Manche finished normally.");
+            LogService.info('Scoring', "Manche finished normally.");
             newState.mancheResult = 'NORMAL';
         }
 
