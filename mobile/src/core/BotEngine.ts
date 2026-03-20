@@ -1,6 +1,7 @@
 import { Domino, DominoSide, GameState } from './types';
 import { getBotMove as getEngineBotMove, ValidMove } from './DominoEngine';
 import { getForcedOpeningDominoId } from './LogicEngine';
+import { LogService } from './services/LogService';
 
 /**
  * Interface pour le retour du Bot
@@ -22,7 +23,7 @@ export const getBotMove = (
 ): BotDecision | null => {
     // SECURITY: Ensure we are passing actual values or null, not an object
     if (typeof leftValue === 'object' && leftValue !== null) {
-        console.error("[BotEngine] ERROR: leftValue is an object! Check call site.");
+        LogService.error('BotEngine', 'leftValue is an object! Check call site.');
         return null;
     }
 

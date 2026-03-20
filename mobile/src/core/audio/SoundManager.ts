@@ -1,6 +1,7 @@
 import { createAudioPlayer, AudioPlayer, setAudioModeAsync, AudioSource } from 'expo-audio';
 import { Platform } from 'react-native';
 import SettingsManager from '../SettingsManager';
+import { LogService } from '../services/LogService';
 
 type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'end' | 'toktok' | 'startGame' | 'timer' | 'end_time';
 
@@ -61,11 +62,11 @@ class SoundManager {
     unlockAudio() {
         if (this.userInteracted) return; // Already unlocked
         this.userInteracted = true;
-        console.log('[SoundManager] Audio unlocked by user interaction.');
+        LogService.info('SoundManager', 'Audio unlocked by user interaction.');
 
         // Resume any pending background music that was requested before the gesture
         if (this.pendingMusicName) {
-            this.playMusic(this.pendingMusicName, this.pendingMusicVolume).catch(e => console.warn(e));
+            this.playMusic(this.pendingMusicName, this.pendingMusicVolume).catch(e => LogService.warn('SoundManager', String(e)));
             this.pendingMusicName = null;
         }
     }
@@ -80,7 +81,7 @@ class SoundManager {
                     playsInSilentMode: true,
                 });
             } catch (e) {
-                console.warn('[SoundManager] setAudioModeAsync not supported on this platform:', e);
+                LogService.warn('SoundManager', 'setAudioModeAsync not supported on this platform:', e);
             }
 
             // Load sounds
@@ -107,11 +108,11 @@ class SoundManager {
                     const player = createAudioPlayer(source);
                     this.sounds[key as SoundName] = player;
                 } catch (e) {
-                    console.error(`Error loading ${key}:`, e);
+                    LogService.error('SoundManager', `Error loading ${key}`, e);
                 }
             }
         } catch (error) {
-            console.warn('Failed to configure or preload sounds', error);
+            LogService.warn('SoundManager', 'Failed to configure or preload sounds', error);
         }
     }
 
@@ -126,7 +127,7 @@ class SoundManager {
     async playMusic(name: 'bgm1' | 'bgm2' | 'bgm3', volume = 0.5) {
         // On Web, defer until user has interacted (browser autoplay policy)
         if (!this.isAudioAllowed) {
-            console.warn(`[SoundManager] Audio blocked on Web (no gesture yet). Music "${name}" queued.`);
+            LogService.warn('SoundManager', `Audio blocked on Web (no gesture yet). Music "${name}" queued.`);
             this.pendingMusicName = name;
             this.pendingMusicVolume = volume;
             return;
@@ -139,12 +140,12 @@ class SoundManager {
                     try {
                         const playResult = this.currentMusic.play() as any;
                         if (playResult instanceof Promise) {
-                            playResult.catch((e: any) => console.warn('[SoundManager] Autoplay prevented on web', e));
+                            playResult.catch((e: any) => LogService.warn('SoundManager', 'Autoplay prevented on web', e));
                         } else if (playResult && typeof playResult.catch === 'function') {
-                            playResult.catch((e: any) => console.warn('[SoundManager] Autoplay prevented on web', e));
+                            playResult.catch((e: any) => LogService.warn('SoundManager', 'Autoplay prevented on web', e));
                         }
                     } catch (e) {
-                        console.warn('[SoundManager] Autoplay prevented on web', e);
+                        LogService.warn('SoundManager', 'Autoplay prevented on web', e);
                     }
                 }
                 return;
@@ -166,20 +167,20 @@ class SoundManager {
                 try {
                     const playResult = player.play() as any;
                     if (playResult instanceof Promise) {
-                        playResult.catch((e: any) => console.warn('[SoundManager] Autoplay prevented on web', e));
+                        playResult.catch((e: any) => LogService.warn('SoundManager', 'Autoplay prevented on web', e));
                     } else if (playResult && typeof playResult.catch === 'function') {
-                        playResult.catch((e: any) => console.warn('[SoundManager] Autoplay prevented on web', e));
+                        playResult.catch((e: any) => LogService.warn('SoundManager', 'Autoplay prevented on web', e));
                     }
                 } catch (e) {
-                    console.warn('[SoundManager] Autoplay prevented on web', e);
+                    LogService.warn('SoundManager', 'Autoplay prevented on web', e);
                 }
                 this.currentMusic = player;
                 this.currentMusicName = name;
             } else {
-                console.warn(`Music ${name} not found`);
+                LogService.warn('SoundManager', `Music ${name} not found`);
             }
         } catch (error) {
-            console.warn(`[SoundManager] Error playing music "${name}" — browser may have blocked autoplay:`, error);
+            LogService.warn('SoundManager', `Error playing music "${name}" — browser may have blocked autoplay:`, error);
         }
     }
 
@@ -194,7 +195,7 @@ class SoundManager {
             // Also clear any pending music
             this.pendingMusicName = null;
         } catch (error) {
-            console.warn('Error stopping music', error);
+            LogService.warn('SoundManager', 'Error stopping music', error);
         }
     }
 
@@ -217,7 +218,7 @@ class SoundManager {
     async playSound(name: SoundName) {
         // On Web, block all sound until user has interacted
         if (!this.isAudioAllowed) {
-            console.warn(`[SoundManager] Sound "${name}" blocked — waiting for user gesture.`);
+            LogService.warn('SoundManager', `Sound "${name}" blocked — waiting for user gesture.`);
             return;
         }
 
@@ -241,17 +242,17 @@ class SoundManager {
                 try {
                     const playResult = player.play() as any;
                     if (playResult instanceof Promise) {
-                        playResult.catch((e: any) => console.warn(`[SoundManager] Autoplay blocked for ${name}:`, e));
+                        playResult.catch((e: any) => LogService.warn('SoundManager', `Autoplay blocked for ${name}`, e));
                     } else if (playResult && typeof playResult.catch === 'function') {
-                        playResult.catch((e: any) => console.warn(`[SoundManager] Autoplay blocked for ${name}:`, e));
+                        playResult.catch((e: any) => LogService.warn('SoundManager', `Autoplay blocked for ${name}`, e));
                     }
                 } catch (err) {
-                    console.warn(`[SoundManager] Audio play error for ${name}`, err);
+                    LogService.warn('SoundManager', `Audio play error for ${name}`, err);
                 }
             }
             // Silently ignore if sound not loaded yet
         } catch (error) {
-            console.warn(`[SoundManager] Error playing sound "${name}":`, error);
+            LogService.warn('SoundManager', `Error playing sound "${name}"`, error);
         }
     }
 

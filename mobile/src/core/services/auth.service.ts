@@ -55,7 +55,7 @@ class AuthService {
                     const needsMigration = !guestUser.avatarId || guestUser.avatarId === 'avatar_01';
 
                     if (isGuestId && needsMigration) {
-                        console.log('[AuthService] Migrating guest avatar to avatar_default');
+                        LogService.info('AuthService', 'Migrating guest avatar to avatar_default');
                         guestUser.avatarId = 'avatar_default';
                         guestUser.avatarUrl = 'avatar_default';
                         await this.saveGuestProfile(guestUser);
@@ -63,7 +63,7 @@ class AuthService {
                 }
             }
         } catch (error) {
-            console.warn('Failed to load existing guest profile', error);
+            LogService.warn('AuthService', 'Failed to load existing guest profile', error);
         }
 
         if (!guestUser) {
@@ -95,16 +95,16 @@ class AuthService {
             };
             const jsonString = JSON.stringify(profileToSave);
             await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, jsonString);
-            console.log('[AuthService] Profile saved to AsyncStorage:', profileToSave.displayName, profileToSave.avatarId);
+            LogService.info('AuthService', 'Profile saved to AsyncStorage:', profileToSave.displayName, profileToSave.avatarId);
             
             // Verify it was saved correctly
             const verify = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
             if (verify) {
                 const verified = JSON.parse(verify);
-                console.log('[AuthService] Verification - saved profile:', verified.displayName, verified.avatarId);
+                LogService.debug('AuthService', 'Verification - saved profile:', verified.displayName, verified.avatarId);
             }
         } catch (error) {
-            console.error('[AuthService] Error saving profile:', error);
+            LogService.error('AuthService', 'Error saving profile:', error);
             throw error;
         }
     }
@@ -129,7 +129,7 @@ class AuthService {
             );
             return profile;
         } catch (error) {
-            console.error('Sign In Error:', error);
+            LogService.error('AuthService', 'Sign In Error:', error);
             throw error;
         }
     }
@@ -153,7 +153,7 @@ class AuthService {
             );
             return profile;
         } catch (error) {
-            console.error('Sign Up Error:', error);
+            LogService.error('AuthService', 'Sign Up Error:', error);
             throw error;
         }
     }
@@ -177,9 +177,9 @@ class AuthService {
         try {
             await AsyncStorage.setItem(STORAGE_KEY_SESSION, 'true');
             this.currentUser = { ...user };
-            console.log(`[AuthService] Session activated for: ${user.uid} (${user.displayName})`);
+            LogService.info('AuthService', `Session activated for: ${user.uid} (${user.displayName})`);
         } catch (error) {
-            console.error('Failed to activate session', error);
+            LogService.error('AuthService', 'Failed to activate session', error);
         }
     }
 
@@ -222,7 +222,7 @@ class AuthService {
                 return this.currentUser;
             }
         } catch (error) {
-            console.error('[AuthService] getCurrentUser error:', error);
+            LogService.error('AuthService', 'getCurrentUser error:', error);
         }
 
         return null;
@@ -245,7 +245,7 @@ class AuthService {
             await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
             this.currentUser = null;
         } catch (error) {
-            console.error('Failed to logout', error);
+            LogService.error('AuthService', 'Failed to logout', error);
         }
     }
 
@@ -263,7 +263,7 @@ class AuthService {
             try {
                 await this.saveGuestProfile(this.currentUser);
             } catch (error) {
-                console.error('Failed to update guest stats', error);
+                LogService.error('AuthService', 'Failed to update guest stats', error);
             }
         }
     }
@@ -274,7 +274,7 @@ class AuthService {
     async updateProfile(updates: { displayName?: string; photoURL?: string }): Promise<void> {
         const user = await this.getCurrentUser();
         if (!user) {
-            console.warn('[AuthService] updateProfile: No user logged in');
+            LogService.warn('AuthService', 'updateProfile: No user logged in');
             return;
         }
 
@@ -298,7 +298,7 @@ class AuthService {
             if (this.currentUser.uid.startsWith('guest_')) {
                 await this.saveGuestProfile(this.currentUser);
                 await AsyncStorage.setItem(STORAGE_KEY_SESSION, 'true'); // Ensure session is active
-                console.log('[AuthService] Guest profile updated & saved:', this.currentUser.displayName);
+                LogService.info('AuthService', 'Guest profile updated & saved:', this.currentUser.displayName);
             }
 
             // 4. Persist Firebase Profile
@@ -307,10 +307,10 @@ class AuthService {
                     displayName: updates.displayName,
                     photoURL: updates.photoURL
                 });
-                console.log('[AuthService] Firebase profile updated');
+                LogService.info('AuthService', 'Firebase profile updated');
             }
         } catch (error) {
-            console.error('[AuthService] updateProfile error:', error);
+            LogService.error('AuthService', 'updateProfile error:', error);
             throw error;
         }
     }

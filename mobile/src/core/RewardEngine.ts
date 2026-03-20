@@ -27,6 +27,7 @@ import {
 } from './economy.types';
 
 import { GameState } from './types';
+import { LogService } from './services/LogService';
 
 import {
     BASE_REWARDS,
@@ -385,7 +386,7 @@ export const RewardEngine = {
             breakdown: adjustedBreakdown,
         };
 
-        console.log('[RewardEngine] Rewards calculated:', {
+        LogService.debug('RewardEngine', 'Rewards calculated:', {
             rank,
             coinsEarned: matchReward.coinsEarned,
             xpEarned: matchReward.xpEarned,

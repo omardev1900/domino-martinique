@@ -65,10 +65,10 @@ class EconomyService {
                 // Nouveau joueur → cadeau de bienvenue
                 this.cached = { ...DEFAULT_ECONOMY };
                 await this.persistLocal();
-                console.log('🎁 [EconomyService] New player: welcome bonus applied.');
+                LogService.info('EconomyService', 'New player: welcome bonus applied.');
             }
         } catch (e) {
-            console.error('[EconomyService] getEconomy error:', e);
+            LogService.error('EconomyService', 'getEconomy error:', e);
             this.cached = { ...DEFAULT_ECONOMY };
         }
 
@@ -94,7 +94,7 @@ class EconomyService {
                     const merged = this.mergeEconomies(local, remoteEconomy);
                     this.cached = merged;
                     await this.persistLocal();
-                    console.log('🔄 [EconomyService] Economy synced from Firebase.');
+                    LogService.info('EconomyService', 'Economy synced from Firebase.');
                     return;
                 }
             }
@@ -102,9 +102,9 @@ class EconomyService {
             // Aucune donnée remote → push les données locales
             const local = await this.getEconomy();
             await this.pushToFirebase(uid, local);
-            console.log('⬆️ [EconomyService] Local economy pushed to Firebase.');
+            LogService.info('EconomyService', 'Local economy pushed to Firebase.');
         } catch (e) {
-            console.error('[EconomyService] syncFromFirebase error:', e);
+            LogService.error('EconomyService', 'syncFromFirebase error:', e);
         }
     }
 
@@ -135,7 +135,7 @@ class EconomyService {
         this.cached = updated;
         await this.persistLocal();
 
-        console.log('[EconomyService] Reward applied locally:', { coinsAdded: reward.coinsEarned, newCoins: updated.coins });
+        LogService.debug('EconomyService', 'Reward applied locally:', { coinsAdded: reward.coinsEarned, newCoins: updated.coins });
 
         // Sync Firebase pour les joueurs authentifiés (Fallback)
         if (userId && !userId.startsWith('guest_')) {
@@ -151,7 +151,7 @@ class EconomyService {
     async processServerReward(input: RewardCalculationInput, userId?: string, profile?: EconomyProfileInfo): Promise<MatchReward> {
         if (!userId || userId.startsWith('guest_')) {
             // Mode hors-ligne ou invité : on exécute en local
-            console.log('[EconomyService] Invité ou mode Solo: Calcul des récompenses en local.');
+            LogService.info('EconomyService', 'Invité ou mode Solo: Calcul des récompenses en local.');
             const { RewardEngine } = require('../RewardEngine');
             const reward = RewardEngine.calculate(input);
             await this.applyReward(reward, userId, profile);
@@ -159,14 +159,14 @@ class EconomyService {
         }
 
         try {
-            console.log('[EconomyService] Appel du Banquier Serveur pour le calcul de récompense...');
+            LogService.info('EconomyService', 'Appel du Banquier Serveur pour le calcul de récompense...');
             const functions = getFunctions();
             const processMatchRewardHook = httpsCallable<{ input: Partial<RewardCalculationInput> }, MatchReward>(functions, 'processMatchReward');
 
             const result = await processMatchRewardHook({ input });
             const reward = result.data;
 
-            console.log('✅ [EconomyService] Réponse sécurisée du serveur :', reward);
+            LogService.info('EconomyService', 'Réponse sécurisée du serveur :', reward);
 
             // Mise à jour de l'UI localement sans forcer un push Firebase qui écraserait la DB
             const current = await this.getEconomy();
@@ -184,7 +184,7 @@ class EconomyService {
             return reward;
 
         } catch (e) {
-            console.error('❌ [EconomyService] Erreur avec le Banquier Serveur, tentative de fallback :', e);
+            LogService.error('EconomyService', 'Erreur avec le Banquier Serveur, tentative de fallback :', e);
             const { RewardEngine } = require('../RewardEngine');
             const reward = RewardEngine.calculate(input);
             await this.applyReward(reward, userId, profile);
@@ -201,7 +201,7 @@ class EconomyService {
         const current = await this.getEconomy();
 
         if (current.coins < buyIn) {
-            console.warn(`[EconomyService] Not enough coins. Have: ${current.coins}, Need: ${buyIn}`);
+            LogService.warn('EconomyService', `Not enough coins. Have: ${current.coins}, Need: ${buyIn}`);
             return false;
         }
 
@@ -213,7 +213,7 @@ class EconomyService {
             await this.pushToFirebase(userId, updated, profile);
         }
 
-        console.log(`[EconomyService] Buy-in of ${buyIn} coins deducted. Remaining: ${updated.coins}`);
+        LogService.debug('EconomyService', `Buy-in of ${buyIn} coins deducted. Remaining: ${updated.coins}`);
         return true;
     }
 
@@ -255,7 +255,7 @@ class EconomyService {
                 await this.pushToFirebase(userId, updated, profile);
             }
 
-            console.log(`🎁 [EconomyService] Daily reward of ${rewardAmount} coins claimed!`);
+            LogService.info('EconomyService', `Daily reward of ${rewardAmount} coins claimed!`);
             return rewardAmount;
         }
 
@@ -287,7 +287,7 @@ class EconomyService {
             const economy = await this.getEconomy();
             await this.pushToFirebase(uid, economy, { displayName, avatarId });
         } catch (e) {
-            console.error('[EconomyService] syncProfileToFirebase error:', e);
+            LogService.error('EconomyService', 'syncProfileToFirebase error:', e);
         }
     }
 
@@ -307,7 +307,7 @@ class EconomyService {
         try {
             await AsyncStorage.setItem(STORAGE_KEY_ECONOMY, JSON.stringify(this.cached));
         } catch (e) {
-            console.error('[EconomyService] persistLocal error:', e);
+            LogService.error('EconomyService', 'persistLocal error:', e);
         }
     }
 
@@ -329,9 +329,9 @@ class EconomyService {
                 payload.avatarId = profile.avatarId;
             }
             await setDoc(userRef, payload, { merge: true });
-            console.log('☁️ [EconomyService] Economy pushed to Firebase.', profile ? `(with profile: ${profile.displayName})` : '');
+            LogService.info('EconomyService', 'Economy pushed to Firebase.', profile ? `(with profile: ${profile.displayName})` : '');
         } catch (e) {
-            console.error('[EconomyService] pushToFirebase error:', e);
+            LogService.error('EconomyService', 'pushToFirebase error:', e);
         }
     }
 

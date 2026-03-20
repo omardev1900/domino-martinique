@@ -180,7 +180,7 @@ export const finalizeRound = (
                 const leaders = newState.players.filter(p => (p.totalPoints || 0) === maxPoints);
                 isMatchOver = leaders.length === 1;
                 if (leaders.length > 1) {
-                    console.log(`TIE AT MANCHE THRESHOLD (Points: ${maxPoints})! Continuing for another manche...`);
+                    LogService.info('ScoringEngine', `TIE AT MANCHE THRESHOLD (Points: ${maxPoints})! Continuing for another manche...`);
                 }
             }
         } else if (newState.gameMode === 'SCORE') {
@@ -190,7 +190,7 @@ export const finalizeRound = (
                 const leaders = newState.players.filter(p => p.totalPoints === maxPoints);
                 isMatchOver = leaders.length === 1;
                 if (leaders.length > 1) {
-                    console.log(`TIE AT THRESHOLD (${maxPoints})! Continuing for another manche...`);
+                    LogService.info('ScoringEngine', `TIE AT THRESHOLD (${maxPoints})! Continuing for another manche...`);
                 }
             }
         } else if (newState.gameMode === 'COCHON') {
@@ -200,7 +200,7 @@ export const finalizeRound = (
                 const leaders = newState.players.filter(p => p.totalCochons === maxCochons);
                 isMatchOver = leaders.length === 1;
                 if (leaders.length > 1) {
-                    console.log(`TIE AT COCHON THRESHOLD (${maxCochons})! Continuing for another manche...`);
+                    LogService.info('ScoringEngine', `TIE AT COCHON THRESHOLD (${maxCochons})! Continuing for another manche...`);
                 }
             }
         }
