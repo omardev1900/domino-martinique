@@ -279,8 +279,7 @@ export const handleTurn = (
     const isReversed = move.isReversed;
 
 
-    // Clone state deeply (simplified for structural clone)
-    const newState: GameState = JSON.parse(JSON.stringify(gameState));
+    const newState: GameState = structuredClone(gameState);
     // ✅ Filet de securite : history peut manquer dans les anciens etats Firebase
     if (!newState.history) newState.history = [];
     if (!newState.talonMort) newState.talonMort = [];
@@ -372,7 +371,7 @@ export const passTurn = (
         throw new Error("Not your turn");
     }
 
-    const newState: GameState = JSON.parse(JSON.stringify(gameState));
+    const newState: GameState = structuredClone(gameState);
     const player = newState.players.find(p => p.id === playerId);
 
     if (!player) throw new Error("Player not found");
