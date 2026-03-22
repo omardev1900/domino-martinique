@@ -24,14 +24,13 @@ describe('DominoEngine', () => {
         });
 
         it('should match left end', () => {
-            const hand = [d01, d22]; // only d01 matches 0
+            const d33: Domino = { id: 'd33', left: 3, right: 3, isDouble: true };
+            const hand = [d01, d33]; // only d01 matches 0 (d33 matches neither 0 nor 2)
             const moves = getValidMoves(hand, { left: 0, right: 2 });
             expect(moves).toHaveLength(1);
             expect(moves[0].tile.id).toBe('d01');
             expect(moves[0].side).toBe('left');
-            expect(moves[0].isReversed).toBe(true); // 0 matches left, so 0 becomes inside, 1 becomes end. Inversion depends on implementation.
-            // Let's check logic: if (d.left === ends.left) moves.push({ tile: d, side: 'left', isReversed: true });
-            // Yes, isReversed is true.
+            expect(moves[0].isReversed).toBe(true);
         });
 
         it('should match right end', () => {
