@@ -314,7 +314,7 @@ export default function HomeScreen() {
 
                     <Animated.View entering={FadeInUp.delay(600).duration(500)} style={[styles.cardWrapper, isLandscape && styles.cardWrapperLandscape]}>
                         <TouchableOpacity
-                            style={[styles.modeCard, { opacity: 0.7 }]}
+                            style={[styles.modeCard, { opacity: 0.5 }]}
                             disabled={true}
                             activeOpacity={1}
                         >
@@ -327,6 +327,9 @@ export default function HomeScreen() {
                                 <Text style={styles.cardDesc}>Prochainement</Text>
                             </LinearGradient>
                         </TouchableOpacity>
+                        <View style={styles.comingSoonBadge}>
+                            <Text style={styles.comingSoonText}>Bientôt</Text>
+                        </View>
                     </Animated.View>
                 </View>
             </ScrollView>
@@ -548,6 +551,22 @@ const styles = StyleSheet.create({
     lockOverlay: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.25)',
+    },
+    comingSoonBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: '#FF9800',
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+    },
+    comingSoonText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#fff',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     // Modal Styles
     modalOverlay: {
