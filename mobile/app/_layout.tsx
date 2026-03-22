@@ -56,7 +56,7 @@ export default function RootLayout() {
         // Start menu music immediately
         SoundManager.playMusic('bgm3', 0.5);
       } catch (e) {
-        console.warn(e);
+        // Non-critical init error — app continues
       } finally {
         setAppReady(true);
         // FORCE HIDE: If the app is ready, don't wait for onLayout
@@ -64,7 +64,7 @@ export default function RootLayout() {
         try {
           await SplashScreen.hideAsync();
         } catch (e) {
-          console.warn('Splash hide failed:', e);
+          // Splash hide failure is non-critical
         }
       }
     }
@@ -102,6 +102,7 @@ export default function RootLayout() {
     <GestureHandlerRootView
       style={{ flex: 1, minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%', backgroundColor: '#1A0E2E' }}
       onLayout={onLayoutRootView}
+      onTouchStart={() => SoundManager.unlockAudio()}
     >
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <LinearGradient
