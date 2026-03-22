@@ -36,6 +36,11 @@ import { GameRoom, GameState, PlayerProfile, RoomStatus, GameMode } from '../typ
 import { LogService } from './LogService';
 import { roomNameSchema } from '../validation/schemas';
 
+// SEC-8: Debounce state for updateGameState — one pending write per roomId
+const GAME_STATE_DEBOUNCE_MS = 300;
+type PendingWrite = { data: Record<string, any>; timer: ReturnType<typeof setTimeout>; resolve: () => void; reject: (e: unknown) => void };
+const pendingGameStateWrites = new Map<string, PendingWrite>();
+
 // Configuration Firebase
 // Configuration Firebase
 const firebaseConfig = {
@@ -161,7 +166,7 @@ export const createRoom = async (
 
         return docRef.id;
     } catch (e: any) {
-        console.error("Error adding document: ", e);
+        LogService.error('Firebase', 'Error adding document:', e);
         // CRITICAL UI FEEDBACK: Ensure user sees the error
         Alert.alert(
             "Erreur de création",
@@ -231,10 +236,10 @@ export const joinRoom = async (roomId: string, playerProfile: PlayerProfile): Pr
             players: arrayUnion(cleanPlayerProfile),
             lastActivity: Date.now() // Update activity timestamp
         });
-        console.log(`✅ Player ${playerProfile.uid} joined room ${roomId}`);
+        LogService.info('Firebase', `Player ${playerProfile.uid} joined room ${roomId}`);
 
     } catch (e) {
-        console.error("Error joining room: ", e);
+        LogService.error('Firebase', 'Error joining room:', e);
         throw e;
     }
 };
@@ -249,9 +254,9 @@ export const updateRoomSettings = async (roomId: string, settings: { gameMode?: 
             ...settings,
             lastActivity: Date.now()
         });
-        console.log(`✅ Room settings updated for ${roomId}:`, settings);
+        LogService.info('Firebase', `Room settings updated for ${roomId}:`, settings);
     } catch (e) {
-        console.error("Error updating room settings: ", e);
+        LogService.error('Firebase', 'Error updating room settings:', e);
         throw e;
     }
 };
@@ -274,7 +279,7 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
 
         // 1. If room empty, delete it
         if (updatedPlayers.length === 0) {
-            console.log("Room empty, deleting: ", roomId);
+            LogService.info('Firebase', 'Room empty, deleting:', roomId);
             await deleteDoc(roomRef);
             return;
         }
@@ -282,7 +287,7 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
         // 2. If Host left, reassign host
         if (playerToRemove?.isHost && updatedPlayers.length > 0) {
             updatedPlayers[0].isHost = true;
-            console.log(`Host left. New host assigned: ${updatedPlayers[0].displayName}`);
+            LogService.info('Firebase', `Host left. New host assigned: ${updatedPlayers[0].displayName}`);
         }
 
         await updateDoc(roomRef, {
@@ -290,15 +295,15 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
             lastActivity: Date.now()
         });
 
-        console.log(`Player ${userId} left room ${roomId}`);
+        LogService.info('Firebase', `Player ${userId} left room ${roomId}`);
 
     } catch (e: any) {
         // Specifically check for offline error to log a cleaner message
         if (e.code === 'unavailable' || (e.message && e.message.includes('offline'))) {
-            console.warn(`[Firebase] User leaving room while offline. Move queued for sync.`, roomId);
+            LogService.warn('Firebase', 'User leaving room while offline. Move queued for sync.', roomId);
             return;
         }
-        console.error("Error leaving room:", e);
+        LogService.error('Firebase', 'Error leaving room:', e);
     }
 };
 
@@ -323,9 +328,9 @@ export const markPlayerAsDebited = async (roomId: string, userId: string): Promi
 
             transaction.update(roomRef, { players: updatedPlayers });
         });
-        console.log(`✅ Player ${userId} marked as debited in room ${roomId}`);
+        LogService.info('Firebase', `Player ${userId} marked as debited in room ${roomId}`);
     } catch (e) {
-        console.error("Error marking player as debited: ", e);
+        LogService.error('Firebase', 'Error marking player as debited:', e);
     }
 };
 
@@ -350,7 +355,7 @@ export const startGame = async (roomId: string, initialGameState: GameState): Pr
             gameState: sanitizedGameState
         });
     } catch (e) {
-        console.error("Error starting game: ", e);
+        LogService.error('Firebase', 'Error starting game:', e);
         throw e;
     }
 };
@@ -367,7 +372,7 @@ export const resetRoomToLobby = async (roomId: string): Promise<void> => {
             gameState: null
         });
     } catch (e) {
-        console.error("Error resetting room: ", e);
+        LogService.error('Firebase', 'Error resetting room:', e);
         throw e;
     }
 };
@@ -384,9 +389,9 @@ export const markRoomAsFinished = async (roomId: string): Promise<void> => {
             status: RoomStatus.FINISHED,
             lastActivity: Date.now()
         });
-        console.log(`✅ Room ${roomId} marked as FINISHED`);
+        LogService.info('Firebase', `Room ${roomId} marked as FINISHED`);
     } catch (e) {
-        console.error("Error marking room as finished: ", e);
+        LogService.error('Firebase', 'Error marking room as finished:', e);
         throw e;
     }
 };
@@ -396,28 +401,34 @@ export const markRoomAsFinished = async (roomId: string): Promise<void> => {
  * @param roomId 
  * @param newGameState 
  */
-export const updateGameState = async (roomId: string, newGameState: Partial<GameState>): Promise<void> => {
-    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
-    try {
-        // We use dot notation for nested updates if necessary, but here we replace the whole gameState object 
-        // to avoid sync issues, or we use updateDoc with specific fields.
-        // For simplicity, we update the `gameState` field.
-        // Note: Firestore merge is shallow efficiently. 
-        // If we want to accept Partial<GameState>, we should ideally map it to "gameState.field".
-        // But for this MVP, assuming we enact a move, we send the new FULL GameState usually or significant parts.
-
-        // Let's assume newGameState is the FULL object for safety or partial fields
-        // Since we passed Partial, we construct the update object.
-        const updateData: any = {};
-        Object.keys(newGameState).forEach(key => {
-            updateData[`gameState.${key}`] = (newGameState as any)[key];
-        });
-
-        await updateDoc(roomRef, updateData);
-    } catch (e) {
-        console.error("Error updating game state: ", e);
-        throw e;
+export const updateGameState = (roomId: string, newGameState: Partial<GameState>): Promise<void> => {
+    // SEC-8: Debounce — cancel any pending write for this room and replace with latest state
+    const existing = pendingGameStateWrites.get(roomId);
+    if (existing) {
+        clearTimeout(existing.timer);
+        existing.resolve(); // resolve the previous promise silently (superseded)
     }
+
+    const updateData: Record<string, any> = {};
+    Object.keys(newGameState).forEach(key => {
+        updateData[`gameState.${key}`] = (newGameState as any)[key];
+    });
+
+    return new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(async () => {
+            pendingGameStateWrites.delete(roomId);
+            const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+            try {
+                await updateDoc(roomRef, updateData);
+                resolve();
+            } catch (e) {
+                LogService.error('Firebase', 'Error updating game state:', e);
+                reject(e);
+            }
+        }, GAME_STATE_DEBOUNCE_MS);
+
+        pendingGameStateWrites.set(roomId, { data: updateData, timer, resolve, reject });
+    });
 };
 
 /**
@@ -438,7 +449,7 @@ export const updatePlayerChat = async (roomId: string, playerId: string, content
         // Silent update on a decoupled root field
         await updateDoc(roomRef, updateData);
     } catch (e) {
-        console.error("Error updating player chat: ", e);
+        LogService.error('Firebase', 'Error updating player chat:', e);
     }
 };
 
@@ -454,7 +465,7 @@ export const voteForRematch = async (roomId: string, userId: string): Promise<vo
             rematchVotes: arrayUnion(userId)
         });
     } catch (e) {
-        console.error("Error voting for rematch: ", e);
+        LogService.error('Firebase', 'Error voting for rematch:', e);
         throw e;
     }
 };
@@ -470,7 +481,7 @@ export const clearRematchVotes = async (roomId: string): Promise<void> => {
             rematchVotes: []
         });
     } catch (e) {
-        console.error("Error clearing rematch votes: ", e);
+        LogService.error('Firebase', 'Error clearing rematch votes:', e);
         throw e;
     }
 };
@@ -504,10 +515,10 @@ export const subscribeToRoom = (
 
             onUpdate(data);
         } else {
-            console.log("No such room!");
+            LogService.warn('Firebase', 'subscribeToRoom: no such room', roomId);
         }
     }, (error) => {
-        console.error("Room subscription error:", error);
+        LogService.error('Firebase', 'Room subscription error:', error);
         if (onError) onError(error);
     });
 };
@@ -539,14 +550,14 @@ export const findHostedWaitingRoom = async (userId: string): Promise<string | nu
             if (isStale) {
                 // Nettoyage automatique : room abandonnée (app fermée avant démarrage)
                 await deleteDoc(roomDoc.ref);
-                console.log(`🧹 Stale hosted room deleted: ${roomDoc.id}`);
+                LogService.info('Firebase', `Stale hosted room deleted: ${roomDoc.id}`);
             } else {
                 return roomDoc.id; // Room récente → bloquer la création
             }
         }
         return null; // Toutes les rooms trouvées étaient abandonnées
     } catch (e) {
-        console.error("Error finding hosted waiting room:", e);
+        LogService.error('Firebase', 'Error finding hosted waiting room:', e);
         return null; // Fail-open : autoriser la création en cas d'erreur
     }
 };
@@ -558,7 +569,7 @@ export const findHostedWaitingRoom = async (userId: string): Promise<string | nu
  */
 export const findActiveRoomForUser = async (userId: string): Promise<string | null> => {
     try {
-        console.log(`🔍 Searching for active room for user: ${userId}`);
+        LogService.debug('Firebase', `Searching for active room for user: ${userId}`);
 
         // Query for rooms that are PLAYING
         // Note: Array-contains on objects requires exact match.
@@ -573,7 +584,7 @@ export const findActiveRoomForUser = async (userId: string): Promise<string | nu
         );
 
         const snapshot = await getDocs(q);
-        console.log(`🔍 Found ${snapshot.docs.length} PLAYING rooms to check`);
+        LogService.debug('Firebase', `Found ${snapshot.docs.length} PLAYING rooms to check`);
 
         for (const doc of snapshot.docs) {
             const data = doc.data() as GameRoom;
@@ -585,15 +596,15 @@ export const findActiveRoomForUser = async (userId: string): Promise<string | nu
             const isInGameState = data.gameState?.players.some(p => p.id === userId);
 
             if (isInPlayersList || isInGameState) {
-                console.log(`✅ Found active room for user ${userId}: ${doc.id} (inPlayersList: ${isInPlayersList}, inGameState: ${isInGameState})`);
+                LogService.debug('Firebase', `Found active room for user ${userId}: ${doc.id} (inPlayersList: ${isInPlayersList}, inGameState: ${isInGameState})`);
                 return doc.id;
             }
         }
 
-        console.log(`❌ No active room found for user: ${userId}`);
+        LogService.debug('Firebase', `No active room found for user: ${userId}`);
         return null;
     } catch (e) {
-        console.error("Error finding active room:", e);
+        LogService.error('Firebase', 'Error finding active room:', e);
         return null; // Fail safe
     }
 };
@@ -648,7 +659,7 @@ export const listenToPublicRooms = (
             if (timeSinceActivity < FIVE_MINUTES) {
                 rooms.push(roomData);
             } else {
-                console.log(`🧹 Filtering out abandoned room: ${roomData.roomId} (inactive for ${Math.round(timeSinceActivity / 60000)} minutes)`);
+                LogService.debug('Firebase', `Filtering out abandoned room: ${roomData.roomId} (inactive for ${Math.round(timeSinceActivity / 60000)} minutes)`);
             }
         });
 
@@ -657,7 +668,7 @@ export const listenToPublicRooms = (
 
         onUpdate(rooms);
     }, (error: FirestoreError) => {
-        console.error("Public rooms listener error:", error);
+        LogService.error('Firebase', 'Public rooms listener error:', error);
         if (onError) onError(error);
     });
 };
@@ -715,6 +726,6 @@ export const signalPlayerOnline = async (roomId: string, playerId: string): Prom
             }
         });
     } catch (e) {
-        console.error(`[Firebase] Failed to signal online status transaction for ${playerId}:`, e);
+        LogService.error('Firebase', `Failed to signal online status transaction for ${playerId}:`, e);
     }
 };
