@@ -271,11 +271,16 @@ export default function LobbyScreen() {
     const handleJoinRoom = async () => {
         if (!requireAccountForMultiplayer()) return;
         if (!roomIdToJoin.trim() || !currentUser) return;
+        const cleanRoomId = roomIdToJoin.trim();
+        if (cleanRoomId.length < 10 || cleanRoomId.length > 30 || !/^[a-zA-Z0-9]+$/.test(cleanRoomId)) {
+            Alert.alert('Code invalide', 'Le code de salle doit contenir entre 10 et 30 caractères alphanumériques.');
+            return;
+        }
         if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
-            await joinRoom(roomIdToJoin.trim(), currentUser);
-            router.push({ pathname: '/game/[id]', params: { id: roomIdToJoin.trim(), userId: currentUser.uid, tableTier } });
+            await joinRoom(cleanRoomId, currentUser);
+            router.push({ pathname: '/game/[id]', params: { id: cleanRoomId, userId: currentUser.uid, tableTier } });
         } catch (error: any) {
             Alert.alert('Erreur', error.message || 'Impossible de rejoindre.');
         } finally {

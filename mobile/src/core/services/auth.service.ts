@@ -12,6 +12,8 @@ import { PlayerProfile } from '../types';
 import { statsService } from './stats.service';
 import { economyService } from './economy.service';
 import { LogService } from './LogService';
+import { playerNameSchema } from '../validation/schemas';
+import { AVATAR_IMAGES } from '../avatars';
 
 const STORAGE_KEY_SESSION = '@user_session_active';
 const STORAGE_KEY_GUEST_PROFILE = '@guest_profile_data';
@@ -281,10 +283,18 @@ class AuthService {
         const profileUpdates: Partial<PlayerProfile> = {};
 
         if (updates.displayName !== undefined && updates.displayName !== null) {
-            profileUpdates.displayName = updates.displayName.trim();
+            const nameResult = playerNameSchema.safeParse(updates.displayName);
+            if (!nameResult.success) throw new Error(nameResult.error.errors[0].message);
+            profileUpdates.displayName = nameResult.data;
         }
 
         if (updates.photoURL) {
+            const isKnownAvatarId = updates.photoURL in AVATAR_IMAGES;
+            const isAllowedUrl = updates.photoURL.startsWith('https://firebasestorage.googleapis.com') ||
+                updates.photoURL.startsWith('https://lh3.googleusercontent.com');
+            if (!isKnownAvatarId && !isAllowedUrl) {
+                throw new Error('Avatar invalide');
+            }
             profileUpdates.avatarUrl = updates.photoURL;
             profileUpdates.avatarId = updates.photoURL;
         }

@@ -34,6 +34,7 @@ import {
 } from 'firebase/firestore';
 import { GameRoom, GameState, PlayerProfile, RoomStatus, GameMode } from '../types';
 import { LogService } from './LogService';
+import { roomNameSchema } from '../validation/schemas';
 
 // Configuration Firebase
 // Configuration Firebase
@@ -106,6 +107,27 @@ export const createRoom = async (
     passcode?: string,
     options?: RoomOptions
 ): Promise<string> => {
+    // SEC-7: Validate inputs before writing to Firestore
+    if (roomName) {
+        const nameResult = roomNameSchema.safeParse(roomName);
+        if (!nameResult.success) throw new Error(nameResult.error.errors[0].message);
+    }
+    if (passcode !== undefined && passcode !== '' && (passcode.length < 4 || passcode.length > 12 || !/^[a-zA-Z0-9]+$/.test(passcode))) {
+        throw new Error('Le code doit contenir entre 4 et 12 caractères alphanumériques');
+    }
+    const buyIn = options?.buyIn ?? 50;
+    if (!Number.isInteger(buyIn) || buyIn < 0 || buyIn > 100000) {
+        throw new Error('Mise invalide');
+    }
+    const winningCondition = options?.winningCondition ?? 6;
+    if (!Number.isInteger(winningCondition) || winningCondition < 1 || winningCondition > 20) {
+        throw new Error('Condition de victoire invalide (1-20)');
+    }
+    const startingHandSize = options?.startingHandSize ?? 3;
+    if (!Number.isInteger(startingHandSize) || startingHandSize < 1 || startingHandSize > 14) {
+        throw new Error('Taille de main invalide (1-14)');
+    }
+
     try {
         const now = Date.now();
         const roomData: Omit<GameRoom, 'roomId'> = {
