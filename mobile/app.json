@@ -20,7 +20,8 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
+      "output": "single",
+      "bundler": "metro",
       "favicon": "./src/assets/images/favicon.png"
     },
     "plugins": [
