@@ -1,6 +1,0 @@
-﻿src/core/__tests__/GameStressTest.test.ts(17,75): error TS2345: Argument of type '"medium"' is not assignable to parameter of type '"TI_MANMAY" | "MAPIPI" | "GRAN_MOUN" | undefined'.
-src/core/DominoEngine.test.ts(68,55): error TS2345: Argument of type '"valou_legend"' is not assignable to parameter of type '"TI_MANMAY" | "MAPIPI" | "GRAN_MOUN"'.
-src/core/DominoEngine.test.ts(87,49): error TS2345: Argument of type '"valou_legend"' is not assignable to parameter of type '"TI_MANMAY" | "MAPIPI" | "GRAN_MOUN"'.
-src/hooks/game/useActionDispatcher.ts(123,91): error TS2304: Cannot find name 'GamePhase'.
-testscript.ts(6,5): error TS2741: Property 'turnId' is missing in type '{ players: Player[]; gameId: string; turnDuration: number; phase: "BOUDE"; gameMode: GameMode; winningCondition: number; talonMort: never[]; table: { sequence: never[]; leftValue: null; rightValue: null; }; ... 8 more ...; startingHandSize: number; }' but required in type 'GameState'.
-verify_fix.ts(16,9): error TS2741: Property 'turnId' is missing in type '{ gameId: string; players: Player[]; talonMort: never[]; table: { sequence: never[]; leftValue: null; rightValue: null; }; history: never[]; currentPlayerId: string; phase: "PLAYING"; firstPlayerOfRound: string; ... 7 more ...; startingHandSize: number; }' but required in type 'GameState'.
