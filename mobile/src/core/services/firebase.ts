@@ -140,6 +140,7 @@ export const createRoom = async (
             lastActivity: now, // Track last activity for cleanup
             status: RoomStatus.WAITING,
             players: [{ ...hostProfile, isHost: true }], // Force Host flag
+            playerIds: [hostProfile.uid], // Used by Firestore security rules
             gameState: null,
             createdBy: hostProfile.uid,
             //hostId: hostProfile.uid,
@@ -234,6 +235,7 @@ export const joinRoom = async (roomId: string, playerProfile: PlayerProfile): Pr
 
         await updateDoc(roomRef, {
             players: arrayUnion(cleanPlayerProfile),
+            playerIds: arrayUnion(playerProfile.uid),
             lastActivity: Date.now() // Update activity timestamp
         });
         LogService.info('Firebase', `Player ${playerProfile.uid} joined room ${roomId}`);

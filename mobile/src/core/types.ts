@@ -111,6 +111,7 @@ export interface GameRoom {
     lastActivity: number; // Timestamp of last activity for cleanup
     status: RoomStatus;
     players: PlayerProfile[]; // Liste des joueurs connectés (max 3)
+    playerIds?: string[]; // UIDs des joueurs (utilisé par les règles Firestore)
     gameState: GameState | null; // État complet de la partie une fois lancée
     createdBy: string; // UID du créateur
     //hostId: string;
