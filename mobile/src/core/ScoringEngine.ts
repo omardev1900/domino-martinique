@@ -169,10 +169,9 @@ export const finalizeRound = (
     }
 
     // 3.3 Check Match End
-    // NEW RULE: Match ends at the end of a Manche (mancheWinner OR isChire)
-    // OR immediately in SCORE/COCHON modes when a threshold is met.
+    // RULE: Match ends only at the end of a Manche (mancheWinner OR isChire), for all modes.
     let isMatchOver = false;
-    if (mancheWinner || isChire || newState.gameMode === 'SCORE' || newState.gameMode === 'COCHON') {
+    if (mancheWinner || isChire) {
         if (newState.gameMode === 'MANCHE') {
             // Match ends ONLY when fixed number of manches played AND tie-breaker is resolved
             if (newState.mancheHistory && newState.mancheHistory.length >= newState.winningCondition) {
