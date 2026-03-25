@@ -47,7 +47,12 @@ export const calculateHandPoints = (hand: Domino[]): number => {
 };
 
 // --- IA MAX : GRAN_MOUN (Fusion Valou & Man'X) ---
-export const getGranMounMove = (hand: Domino[], ends: { left: DominoSide | null; right: DominoSide | null } | null): ValidMove | null => {
+export const getGranMounMove = (
+    hand: Domino[],
+    ends: { left: DominoSide | null; right: DominoSide | null } | null,
+    playedTiles?: Domino[],
+    opponentPassedValues?: number[]
+): ValidMove | null => {
     const validMoves = getValidMoves(hand, ends);
     if (validMoves.length === 0) return null;
 
@@ -84,6 +89,15 @@ export const getGranMounMove = (hand: Domino[], ends: { left: DominoSide | null;
         }
     });
     const isStrongKey = maxCount >= 4;
+
+    // Helper: count tiles (played + in hand) containing value v
+    const getKnownCount = (v: number): number => {
+        const playedCount = playedTiles
+            ? playedTiles.filter(t => t.left === v || t.right === v).length
+            : 0;
+        const handCount = hand.filter(t => t.left === v || t.right === v).length;
+        return playedCount + handCount;
+    };
 
     const scoredMoves = validMoves.map(move => {
         let score = 0;
@@ -123,7 +137,19 @@ export const getGranMounMove = (hand: Domino[], ends: { left: DominoSide | null;
         // PRINCIPE 5 : Finisseur
         if (hand.length === 1) score += 10000;
 
-        score += Math.random() * 5;
+        // PRINCIPE 6 : Éviter les bouts morts ou faibles
+        const knownForOpen = getKnownCount(nextOpenValue);
+        if (knownForOpen >= 7) {
+            score -= 150; // Bout mort — personne ne peut suivre
+        } else if (knownForOpen >= 5) {
+            score -= 50;  // Bout faible — peu de tuiles restantes
+        }
+
+        // PRINCIPE 7 : Jouer où les adversaires ont passé (blocage)
+        if (opponentPassedValues && opponentPassedValues.includes(nextOpenValue)) {
+            score += 80; // L'adversaire a déjà prouvé qu'il ne peut pas jouer cette valeur
+        }
+
         return { move, score };
     });
 
@@ -137,7 +163,9 @@ export const getGranMounMove = (hand: Domino[], ends: { left: DominoSide | null;
 export const getBotMove = (
     hand: Domino[],
     ends: { left: DominoSide | null; right: DominoSide | null } | null,
-    difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN'
+    difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN',
+    playedTiles?: Domino[],
+    opponentPassedValues?: number[]
 ): ValidMove | null => {
     const validMoves = getValidMoves(hand, ends);
     if (validMoves.length === 0) return null;
@@ -175,7 +203,7 @@ export const getBotMove = (
     }
 
     if (difficulty === 'GRAN_MOUN') {
-        return getGranMounMove(hand, ends);
+        return getGranMounMove(hand, ends, playedTiles, opponentPassedValues);
     }
 
     return validMoves[0];

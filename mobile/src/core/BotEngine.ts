@@ -19,7 +19,9 @@ export const getBotMove = (
     hand: Domino[],
     leftValue: DominoSide | null,
     rightValue: DominoSide | null,
-    difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' = 'MAPIPI'
+    difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' = 'MAPIPI',
+    playedTiles?: Domino[],
+    opponentPassedValues?: number[]
 ): BotDecision | null => {
     // SECURITY: Ensure we are passing actual values or null, not an object
     if (typeof leftValue === 'object' && leftValue !== null) {
@@ -42,7 +44,7 @@ export const getBotMove = (
         }
     }
 
-    const decision = getEngineBotMove(hand, { left: leftValue, right: rightValue }, difficulty);
+    const decision = getEngineBotMove(hand, { left: leftValue, right: rightValue }, difficulty, playedTiles, opponentPassedValues);
 
     if (!decision) return null;
 
@@ -69,10 +71,58 @@ export const computeBotDecision = (gameState: GameState, playerId: string): BotD
         }
     }
 
+    // Extract context from GameState for smarter GRAN_MOUN decisions
+    const playedTiles: Domino[] = gameState.history
+        .filter(h => h.action === 'PLAY' && h.domino != null)
+        .map(h => h.domino as Domino);
+
+    const opponentPassedValues: number[] = [];
+    const opponentIds = gameState.players
+        .filter(p => p.id !== playerId)
+        .map(p => p.id);
+
+    if (gameState.history.length > 0) {
+        // Build a lookup: domino ID → sequence metadata (side and orientation)
+        const seqByDominoId = new Map<string, { sideAtTable: 'left' | 'right'; isReversed: boolean }>();
+        for (const se of gameState.table.sequence) {
+            seqByDominoId.set(se.domino.id, { sideAtTable: se.sideAtTable, isReversed: se.isReversed });
+        }
+
+        let currentLeft: number | null = null;
+        let currentRight: number | null = null;
+        let isFirstPlay = true;
+
+        for (const entry of gameState.history) {
+            if (entry.action === 'PLAY' && entry.domino) {
+                if (isFirstPlay) {
+                    currentLeft = entry.domino.left;
+                    currentRight = entry.domino.right;
+                    isFirstPlay = false;
+                } else {
+                    const se = seqByDominoId.get(entry.domino.id);
+                    if (se) {
+                        if (se.sideAtTable === 'left') {
+                            currentLeft = se.isReversed ? entry.domino.right : entry.domino.left;
+                        } else {
+                            currentRight = se.isReversed ? entry.domino.left : entry.domino.right;
+                        }
+                    }
+                }
+            } else if (entry.action === 'PASS' && opponentIds.includes(entry.playerId)) {
+                if (currentLeft !== null) opponentPassedValues.push(currentLeft);
+                if (currentRight !== null && currentRight !== currentLeft) {
+                    opponentPassedValues.push(currentRight);
+                }
+            }
+        }
+    }
+
     return getBotMove(
         player.hand,
         gameState.table.leftValue,
         gameState.table.rightValue,
-        (player.difficulty as any) || 'MAPIPI'
+        (player.difficulty as any) || 'MAPIPI',
+        playedTiles,
+        opponentPassedValues
     );
 };
