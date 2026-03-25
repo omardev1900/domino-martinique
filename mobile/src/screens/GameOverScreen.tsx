@@ -157,9 +157,10 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                 </View>
                                 <View style={styles.objectiveBadge}>
                                     <Text style={styles.objectiveText}>
-                                        {gameState.gameMode === 'MANCHE' ? `Objectif : ${gameState.winningCondition} manches` :
-                                            gameState.gameMode === 'SCORE' ? `Objectif : ${gameState.winningCondition} pts` :
-                                                `Objectif : ${gameState.winningCondition} cochons`}
+                                        {gameState.gameMode === 'VICTOIRE' ? `Objectif : ${gameState.winningCondition} victoire${gameState.winningCondition > 1 ? 's' : ''}` :
+                                            gameState.gameMode === 'MANCHE' ? `Objectif : ${gameState.winningCondition} manches` :
+                                                gameState.gameMode === 'SCORE' ? `Objectif : ${gameState.winningCondition} pts` :
+                                                    `Objectif : ${gameState.winningCondition} cochons`}
                                     </Text>
                                 </View>
                             </View>
@@ -266,9 +267,10 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                             </View>
                             <View style={styles.objectiveBadge}>
                                 <Text style={styles.objectiveText}>
-                                    {gameState.gameMode === 'MANCHE' ? `Objectif : Gagner ${gameState.winningCondition} manches` :
-                                        gameState.gameMode === 'SCORE' ? `Objectif : Atteindre ${gameState.winningCondition} points` :
-                                            `Objectif : Infliger ${gameState.winningCondition} cochons`}
+                                    {gameState.gameMode === 'VICTOIRE' ? `Objectif : ${gameState.winningCondition} victoire${gameState.winningCondition > 1 ? 's' : ''}` :
+                                        gameState.gameMode === 'MANCHE' ? `Objectif : Gagner ${gameState.winningCondition} manches` :
+                                            gameState.gameMode === 'SCORE' ? `Objectif : Atteindre ${gameState.winningCondition} points` :
+                                                `Objectif : Infliger ${gameState.winningCondition} cochons`}
                                 </Text>
                             </View>
                         </View>

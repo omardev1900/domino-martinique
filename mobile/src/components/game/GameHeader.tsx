@@ -44,9 +44,10 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
             {isSoloMode && (
                 <View style={styles.headerBadge}>
                     <Text style={styles.headerText}>
-                        {gameState.gameMode === 'MANCHE' ? `${gameState.winningCondition} Victoires` :
-                            gameState.gameMode === 'SCORE' ? `${gameState.winningCondition} Pts` :
-                                `${gameState.winningCondition} 🐷`}
+                        {gameState.gameMode === 'VICTOIRE' ? `${gameState.winningCondition} 🏆` :
+                            gameState.gameMode === 'MANCHE' ? `${gameState.winningCondition} Victoires` :
+                                gameState.gameMode === 'SCORE' ? `${gameState.winningCondition} Pts` :
+                                    `${gameState.winningCondition} 🐷`}
                     </Text>
                 </View>
             )}

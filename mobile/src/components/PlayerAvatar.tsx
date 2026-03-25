@@ -369,7 +369,9 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                 )}
                                 <View style={styles.opponentStatCol}>
                                     <Text style={styles.statLabelV}>V</Text>
-                                    <Text style={styles.statValueV}>{player.currentMancheStars || 0}</Text>
+                                    <Text style={styles.statValueV}>
+                                        {gameMode === 'VICTOIRE' ? (player.totalRoundWins || 0) : (player.currentMancheStars || 0)}
+                                    </Text>
                                 </View>
                                 <View style={styles.opponentStatCol}>
                                     <Text style={styles.statLabelPTS}>PTS</Text>

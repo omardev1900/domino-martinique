@@ -48,6 +48,31 @@ export const finalizeRound = (
         return newState;
     }
 
+    // --- MODE VICTOIRE : Logique indépendante (pas de manche, pas de chiré, pas de cochon) ---
+    // Le match se joue en rounds purs. Le premier joueur à atteindre winningCondition victoires gagne.
+    if (newState.gameMode === 'VICTOIRE') {
+        newState.players = newState.players.map(p => {
+            if (p.id === winnerId) {
+                return {
+                    ...p,
+                    totalRoundWins: (p.totalRoundWins || 0) + 1,
+                    totalPoints: (p.totalPoints || 0) + 1,
+                };
+            }
+            return p;
+        });
+        newState.firstPlayerOfRound = winnerId;
+        newState.mancheResult = null;
+
+        const roundWinner = newState.players.find(p => p.id === winnerId);
+        if (roundWinner && (roundWinner.totalRoundWins || 0) >= newState.winningCondition) {
+            newState.phase = 'MATCH_END';
+        } else {
+            newState.phase = 'PARTIE_END';
+        }
+        return newState;
+    }
+
     // --- ETAPE 1 : ATTRIBUTION ---
     // Le gagnant reçoit +1 Étoile (currentMancheStars) et +1 Point de Round (totalRoundWins)
     const pointsGainedInRound: { [playerId: string]: number } = {};

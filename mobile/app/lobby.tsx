@@ -55,12 +55,14 @@ const MadrasPattern = () => (
 type LobbyTab = 'CREATE' | 'JOIN' | 'PUBLIC';
 
 const MODE_LABELS: Record<GameMode, string> = {
+    VICTOIRE: 'Victoire',
     MANCHE: 'Manche',
     SCORE: 'Score',
     COCHON: 'Cochon',
 };
 
 const MODE_UNIT_LABELS: Record<GameMode, string> = {
+    VICTOIRE: 'Victoires',
     MANCHE: 'Manches',
     SCORE: 'Points',
     COCHON: 'Cochons',
@@ -85,8 +87,8 @@ export default function LobbyScreen() {
     const [isPrivateRoom, setIsPrivateRoom] = useState(false);
     const [roomNameInput, setRoomNameInput] = useState('');
     const [roomError, setRoomError] = useState<string | null>(null);
-    const [gameMode, setGameMode] = useState<GameMode>('SCORE');
-    const [winningCondition, setWinningCondition] = useState(6);
+    const [gameMode, setGameMode] = useState<GameMode>('VICTOIRE');
+    const [winningCondition, setWinningCondition] = useState(5);
     const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
     const [startingHandSize, setStartingHandSize] = useState(HAND_SIZE);
     // Phase 7 : le sélecteur de table sera dans l'UI — fixé à DEBUTANT pour l'instant
@@ -331,6 +333,19 @@ export default function LobbyScreen() {
         <Animated.View entering={FadeIn.delay(200)} style={styles.createContent}>
             {/* Mode Cards */}
             <View style={[styles.gameModeContainer, isLandscape && styles.gameModeContainerLandscape]}>
+                {/* VICTOIRE */}
+                <TouchableOpacity
+                    style={[styles.gameModeTile, isLandscape && styles.gameModeTileLandscape, gameMode === 'VICTOIRE' && styles.gameModeTileActive]}
+                    onPress={() => { setGameMode('VICTOIRE'); setWinningCondition(5); }}
+                    activeOpacity={0.8}
+                >
+                    <LinearGradient colors={['#388E3C', '#66BB6A']} style={[styles.modeGradient, isLandscape && styles.modeGradientLandscape]}>
+                        <Text style={[styles.modeIllustration, isLandscape && styles.modeIllustrationLandscape]}>🏆</Text>
+                        <Text style={[styles.gameModeTitle, isLandscape && styles.gameModeTitleLandscape]}>Victoire</Text>
+                        <Text style={[styles.gameModeSubtitle, isLandscape && styles.gameModeSubtitleLandscape]}>X rounds gagnés</Text>
+                    </LinearGradient>
+                </TouchableOpacity>
+
                 {/* SCORE */}
                 <TouchableOpacity
                     style={[styles.gameModeTile, isLandscape && styles.gameModeTileLandscape, gameMode === 'SCORE' && styles.gameModeTileActive]}
@@ -406,7 +421,7 @@ export default function LobbyScreen() {
                         </TouchableOpacity>
                     </View>
                     <Text style={styles.paramValueSmall}>
-                        {gameMode === 'MANCHE' ? 'Manches' : gameMode === 'COCHON' ? 'Cochons' : 'Points'}
+                        {MODE_UNIT_LABELS[gameMode]}
                     </Text>
                 </View>
 

@@ -100,7 +100,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     // Sub-Component: Player Card (Universal Flexbox based)
     // --------------------------------------------------------------------------------
     const PlayerResultCard = ({ player, isWinner }: { player: Player, isWinner: boolean }) => {
-        const totalPts = gameState.gameMode === 'SCORE' ? player.totalPoints : gameState.gameMode === 'COCHON' ? player.totalCochons : player.totalPoints;
+        const totalPts = gameState.gameMode === 'VICTOIRE' ? player.totalRoundWins : gameState.gameMode === 'SCORE' ? player.totalPoints : gameState.gameMode === 'COCHON' ? player.totalCochons : player.totalPoints;
         const currentPips = calculateHandPoints(player.hand);
 
         // Animation de la carte
@@ -259,7 +259,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 <Text style={[styles.statsTableCell, { width: 60, fontWeight: 'bold', color: '#FFD700' }]}>TOTAL</Text>
                 {gameState.players.map(p => (
                     <Text key={p.id} style={[styles.statsTableCell, { flex: 1, fontWeight: 'bold', fontSize: 16, color: p.id === winnerId ? '#FFD700' : '#FFF' }]}>
-                        {gameState.gameMode === 'SCORE' ? p.totalPoints : gameState.gameMode === 'COCHON' ? p.totalCochons : p.totalPoints}
+                        {gameState.gameMode === 'VICTOIRE' ? p.totalRoundWins : gameState.gameMode === 'SCORE' ? p.totalPoints : gameState.gameMode === 'COCHON' ? p.totalCochons : p.totalPoints}
                     </Text>
                 ))}
             </View>

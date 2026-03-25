@@ -38,7 +38,7 @@ const MadrasPattern = () => (
 );
 
 type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
-type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
+type GameMode = 'MANCHE' | 'SCORE' | 'COCHON' | 'VICTOIRE';
 
 export default function SoloScreen() {
     const router = useRouter();
@@ -47,8 +47,8 @@ export default function SoloScreen() {
     const isLandscape = width > height;
 
     const [difficulty, setDifficulty] = useState<Difficulty>('MAPIPI');
-    const [gameMode, setGameMode] = useState<GameMode>('SCORE');
-    const [winningCondition, setWinningCondition] = useState(6);
+    const [gameMode, setGameMode] = useState<GameMode>('VICTOIRE');
+    const [winningCondition, setWinningCondition] = useState(5);
     const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
     const [startingHandSize, setStartingHandSize] = useState(HAND_SIZE);
     const [user, setUser] = useState<PlayerProfile | null>(null);
@@ -133,6 +133,19 @@ export default function SoloScreen() {
                     {/* Game Mode Selection */}
                     {/* Mode Cards */}
                     <View style={[styles.gameModeContainer, isLandscape && styles.gameModeContainerLandscape]}>
+                        {/* VICTOIRE */}
+                        <TouchableOpacity
+                            style={[styles.gameModeTile, isLandscape && styles.gameModeTileLandscape, gameMode === 'VICTOIRE' && styles.gameModeTileActive]}
+                            onPress={() => { setGameMode('VICTOIRE'); setWinningCondition(5); }}
+                            activeOpacity={0.8}
+                        >
+                            <LinearGradient colors={['#388E3C', '#66BB6A']} style={[styles.modeGradient, isLandscape && styles.modeGradientLandscape]}>
+                                <Text style={[styles.modeIllustration, isLandscape && styles.modeIllustrationLandscape]}>🏆</Text>
+                                <Text style={[styles.gameModeTitle, isLandscape && styles.gameModeTitleLandscape]}>Victoire</Text>
+                                <Text style={[styles.gameModeSubtitle, isLandscape && styles.gameModeSubtitleLandscape]}>X rounds gagnés</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+
                         {/* SCORE */}
                         <TouchableOpacity
                             style={[styles.gameModeTile, isLandscape && styles.gameModeTileLandscape, gameMode === 'SCORE' && styles.gameModeTileActive]}
@@ -216,7 +229,7 @@ export default function SoloScreen() {
                                 </TouchableOpacity>
                             </View>
                             <Text style={styles.paramValueSmall}>
-                                {gameMode === 'MANCHE' ? 'Manches' : gameMode === 'COCHON' ? 'Cochons' : 'Points'}
+                                {gameMode === 'VICTOIRE' ? 'Victoires' : gameMode === 'MANCHE' ? 'Manches' : gameMode === 'COCHON' ? 'Cochons' : 'Points'}
                             </Text>
                         </View>
 

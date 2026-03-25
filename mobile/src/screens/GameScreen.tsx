@@ -956,6 +956,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const getPlayerScore = (player: Player) => {
         if (!gameState) return "";
         switch (gameState.gameMode) {
+            case 'VICTOIRE': return `${player.totalRoundWins} 🏆`;
             case 'MANCHE': return `${player.mancheWins} ${player.mancheWins > 1 ? 'Manches' : 'Manche'}`;
             case 'SCORE': {
                 // Points from previous manches only:

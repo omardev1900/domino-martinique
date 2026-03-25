@@ -10,7 +10,7 @@ export interface Domino {
 
 export type PlayerId = string;
 
-export type GameMode = 'MANCHE' | 'SCORE' | 'COCHON';
+export type GameMode = 'MANCHE' | 'SCORE' | 'COCHON' | 'VICTOIRE';
 export type MancheResult = 'NORMAL' | 'CHIRE' | 'COCHON';
 export type PlayerStatus = 'HUMAN' | 'BOT' | 'DISCONNECTED';
 

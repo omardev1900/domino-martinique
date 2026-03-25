@@ -106,11 +106,13 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                             <Ionicons name="star-outline" size={16} color="#FFD700" />
                             <Text style={styles.infoLabel}>Objectif : </Text>
                             <Text style={styles.infoValue}>
-                                {gameState.gameMode === 'MANCHE'
-                                    ? `${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
-                                    : gameState.gameMode === 'SCORE'
-                                        ? `${gameState.winningCondition} points`
-                                        : `${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
+                                {gameState.gameMode === 'VICTOIRE'
+                                    ? `${gameState.winningCondition} victoire${gameState.winningCondition > 1 ? 's' : ''}`
+                                    : gameState.gameMode === 'MANCHE'
+                                        ? `${gameState.winningCondition} manche${gameState.winningCondition > 1 ? 's' : ''}`
+                                        : gameState.gameMode === 'SCORE'
+                                            ? `${gameState.winningCondition} points`
+                                            : `${gameState.winningCondition} cochon${gameState.winningCondition > 1 ? 's' : ''}`
                                 }
                             </Text>
                         </View>
@@ -120,7 +122,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                             <Ionicons name="trophy-outline" size={16} color="#FFD700" />
                             <Text style={styles.infoLabel}>Mode de jeu : </Text>
                             <Text style={styles.infoValue}>
-                                {gameState.gameMode === 'MANCHE' ? 'Manche' : gameState.gameMode === 'SCORE' ? 'Score' : 'Cochon'}
+                                {gameState.gameMode === 'VICTOIRE' ? 'Victoire' : gameState.gameMode === 'MANCHE' ? 'Manche' : gameState.gameMode === 'SCORE' ? 'Score' : 'Cochon'}
                             </Text>
                         </View>
                     </Pressable>
