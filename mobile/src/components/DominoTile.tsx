@@ -23,11 +23,11 @@ interface DominoTileProps {
 const DOT_POSITIONS: Record<number, number[][]> = {
     0: [],
     1: [[0.5, 0.5]],
-    2: [[0.25, 0.25], [0.75, 0.75]],
-    3: [[0.25, 0.25], [0.5, 0.5], [0.75, 0.75]],
-    4: [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]],
-    5: [[0.25, 0.25], [0.75, 0.25], [0.5, 0.5], [0.25, 0.75], [0.75, 0.75]],
-    6: [[0.25, 0.25], [0.25, 0.5], [0.25, 0.75], [0.75, 0.25], [0.75, 0.5], [0.75, 0.75]],
+    2: [[0.28, 0.28], [0.72, 0.72]],
+    3: [[0.28, 0.28], [0.5, 0.5], [0.72, 0.72]],
+    4: [[0.28, 0.28], [0.72, 0.28], [0.28, 0.72], [0.72, 0.72]],
+    5: [[0.28, 0.28], [0.72, 0.28], [0.5, 0.5], [0.28, 0.72], [0.72, 0.72]],
+    6: [[0.28, 0.22], [0.28, 0.5], [0.28, 0.78], [0.72, 0.22], [0.72, 0.5], [0.72, 0.78]],
 };
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -69,18 +69,20 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     // Apply skin aesthetics
     // Base defaults if no config is available
     let gradientColors = ['#f0e68c', '#eee8aa', '#bdb76b']; // Ivory
-    let pipColor = '#000000';
+    const DEFAULT_PIP_COLOR = '#615e53ff'; // Couleur des points dominos
+    let pipColor = DEFAULT_PIP_COLOR;
     let dividerColor = 'rgba(0,0,0,0.15)';
 
     if (skinConfig) {
-        // If we have a skinConfig, we skip the hardcoded gradients and just use the uniform background color for now.
-        // We will fake a simple gradient based on the single background color.
         gradientColors = [
             skinConfig.dominoBackgroundColor,
             skinConfig.dominoBackgroundColor,
             skinConfig.dominoBackgroundColor
         ];
-        pipColor = skinConfig.dominoDotColor;
+        // Normalise to lowercase to handle potential casing differences from Firestore
+        const dotColor = skinConfig.dominoDotColor?.toLowerCase?.() ?? '';
+        // If the skin uses pure black (legacy default), replace with our visible brown
+        pipColor = (dotColor === '#000000' || dotColor === '#000') ? DEFAULT_PIP_COLOR : skinConfig.dominoDotColor;
         dividerColor = skinConfig.dominoLineColor;
     }
 
@@ -93,9 +95,9 @@ export const DominoTile: React.FC<DominoTileProps> = ({
             borderColor: interpolateColor(
                 glowValue.value,
                 [0, 1],
-                ['rgba(255,255,255,0.4)', '#FFD700']
+                ['transparent', '#FFD700']
             ),
-            borderWidth: isPlayable ? 4 : 1, // Thicker border
+            borderWidth: isPlayable ? 3 : 0,
             transform: [
                 { scale: withTiming(isPlayable ? 1.15 + glowValue.value * 0.05 : 1) },
                 { scale: pressScale.value }
@@ -117,11 +119,11 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     const renderHalfSVG = (value: DominoSide, isSideHorizontal: boolean) => {
         let pips = [...DOT_POSITIONS[value]];
 
-        // Special logic for 6: Rotate dots if horizontal
+        // Special logic for 6: Rotate dots if horizontal (3 colonnes → 3 lignes)
         if (value === 6 && isSideHorizontal) {
             pips = [
-                [0.25, 0.25], [0.5, 0.25], [0.75, 0.25],
-                [0.25, 0.75], [0.5, 0.75], [0.75, 0.75]
+                [0.22, 0.28], [0.5, 0.28], [0.78, 0.28],
+                [0.22, 0.72], [0.5, 0.72], [0.78, 0.72]
             ];
         }
 
@@ -133,7 +135,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                         key={idx}
                         cx={x * 100}
                         cy={y * 100}
-                        r={dotRadius * 2.5}
+                        r={dotRadius * 2.4} // Taille des points dominos
                         fill={pipColor}
                     />
                 ))}
@@ -217,8 +219,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4,
         shadowRadius: 6,
         elevation: 10,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.4)',
+        borderWidth: 0,
     },
     half: {
         flex: 1,
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
         height: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 4,
+        padding: 2,
     },
     divider: {
         alignItems: 'center',
@@ -240,10 +241,7 @@ const styles = StyleSheet.create({
     },
     bevelOverlay: {
         ...StyleSheet.absoluteFillObject,
-        borderWidth: 1.5,
+        borderWidth: 0,
         borderRadius: 8,
-        borderColor: 'rgba(255,255,255,0.5)',
-        borderBottomColor: 'rgba(0,0,0,0.15)',
-        borderRightColor: 'rgba(0,0,0,0.15)',
     },
 });
