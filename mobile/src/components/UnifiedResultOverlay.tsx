@@ -239,49 +239,83 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         );
     };
 
-    const renderHistoryTab = () => (
-        <ScrollView style={styles.historyScroll} showsVerticalScrollIndicator={false}>
-            {/* Table Header */}
-            <View style={styles.statsTableHeader}>
-                <Text style={[styles.statsTableCell, { width: 60, fontWeight: 'bold' }]}>Round</Text>
-                {gameState.players.map(p => (
-                    <View key={p.id} style={{ flex: 1, alignItems: 'center' }}>
-                        <Text style={[styles.statsTableCell, { fontWeight: 'bold', color: p.id === currentUserId ? '#FFD700' : '#FFF' }]} numberOfLines={1}>
-                            {p.id === currentUserId ? 'Moi' : p.name}
+    const renderHistoryTab = () => {
+        // Mode VICTOIRE : pas de mancheHistory, afficher un récapitulatif des victoires par joueur
+        if (gameState.gameMode === 'VICTOIRE') {
+            const sortedByWins = [...gameState.players].sort((a, b) => (b.totalRoundWins || 0) - (a.totalRoundWins || 0));
+            return (
+                <ScrollView style={styles.historyScroll} showsVerticalScrollIndicator={false}>
+                    <View style={{ padding: 10, alignItems: 'center', marginBottom: 8 }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' }}>
+                            Objectif : {gameState.winningCondition} victoire{gameState.winningCondition > 1 ? 's' : ''}
                         </Text>
                     </View>
-                ))}
-            </View>
+                    {sortedByWins.map((p, idx) => {
+                        const isMe = p.id === currentUserId;
+                        const isWinnerRow = p.id === winnerId;
+                        return (
+                            <View key={p.id} style={[styles.statsTableRow, isWinnerRow && { backgroundColor: 'rgba(255,215,0,0.08)' }]}>
+                                <Text style={[styles.statsTableCell, { width: 30, color: 'rgba(255,255,255,0.4)', fontSize: 12 }]}>#{idx + 1}</Text>
+                                <Text style={[styles.statsTableCell, { flex: 1, textAlign: 'left', color: isMe ? '#FFD700' : '#FFF', fontWeight: isWinnerRow ? 'bold' : 'normal' }]} numberOfLines={1}>
+                                    {isMe ? 'Moi' : p.name}{isWinnerRow ? ' 👑' : ''}
+                                </Text>
+                                <Text style={[styles.statsTableCell, { width: 80, fontWeight: 'bold', fontSize: 18, color: isWinnerRow ? '#FFD700' : '#FFF' }]}>
+                                    {p.totalRoundWins || 0}
+                                </Text>
+                                <Text style={[styles.statsTableCell, { width: 60, color: 'rgba(255,255,255,0.4)', fontSize: 12 }]}>
+                                    victoire{(p.totalRoundWins || 0) !== 1 ? 's' : ''}
+                                </Text>
+                            </View>
+                        );
+                    })}
+                </ScrollView>
+            );
+        }
 
-            {/* History Rows */}
-            {gameState.mancheHistory?.map((h, idx) => (
-                <View key={idx} style={styles.statsTableRow}>
-                    <Text style={[styles.statsTableCell, { width: 60 }]}>M{h.mancheNumber}</Text>
+        return (
+            <ScrollView style={styles.historyScroll} showsVerticalScrollIndicator={false}>
+                {/* Table Header */}
+                <View style={styles.statsTableHeader}>
+                    <Text style={[styles.statsTableCell, { width: 60, fontWeight: 'bold' }]}>Manche</Text>
                     {gameState.players.map(p => (
-                        <Text key={p.id} style={[styles.statsTableCell, { flex: 1, color: 'rgba(255,255,255,0.8)' }]}>
-                            {h.points[p.id] || 0}
+                        <View key={p.id} style={{ flex: 1, alignItems: 'center' }}>
+                            <Text style={[styles.statsTableCell, { fontWeight: 'bold', color: p.id === currentUserId ? '#FFD700' : '#FFF' }]} numberOfLines={1}>
+                                {p.id === currentUserId ? 'Moi' : p.name}
+                            </Text>
+                        </View>
+                    ))}
+                </View>
+
+                {/* History Rows */}
+                {gameState.mancheHistory?.map((h, idx) => (
+                    <View key={idx} style={styles.statsTableRow}>
+                        <Text style={[styles.statsTableCell, { width: 60 }]}>M{h.mancheNumber}</Text>
+                        {gameState.players.map(p => (
+                            <Text key={p.id} style={[styles.statsTableCell, { flex: 1, color: 'rgba(255,255,255,0.8)' }]}>
+                                {h.points[p.id] || 0}
+                            </Text>
+                        ))}
+                    </View>
+                ))}
+
+                {(!gameState.mancheHistory || gameState.mancheHistory.length === 0) && (
+                    <View style={{ padding: 40, alignItems: 'center' }}>
+                        <Text style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.4)' }}>Aucun historique disponible.</Text>
+                    </View>
+                )}
+
+                {/* Final Total */}
+                <View style={[styles.statsTableRow, { borderTopWidth: 2, borderColor: '#FFD700', marginTop: 10, paddingTop: 10 }]}>
+                    <Text style={[styles.statsTableCell, { width: 60, fontWeight: 'bold', color: '#FFD700' }]}>TOTAL</Text>
+                    {gameState.players.map(p => (
+                        <Text key={p.id} style={[styles.statsTableCell, { flex: 1, fontWeight: 'bold', fontSize: 16, color: p.id === winnerId ? '#FFD700' : '#FFF' }]}>
+                            {p.totalPoints}
                         </Text>
                     ))}
                 </View>
-            ))}
-
-            {(!gameState.mancheHistory || gameState.mancheHistory.length === 0) && (
-                <View style={{ padding: 40, alignItems: 'center' }}>
-                    <Text style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.4)' }}>Aucun historique disponible.</Text>
-                </View>
-            )}
-
-            {/* Final Total */}
-            <View style={[styles.statsTableRow, { borderTopWidth: 2, borderColor: '#FFD700', marginTop: 10, paddingTop: 10 }]}>
-                <Text style={[styles.statsTableCell, { width: 60, fontWeight: 'bold', color: '#FFD700' }]}>TOTAL</Text>
-                {gameState.players.map(p => (
-                    <Text key={p.id} style={[styles.statsTableCell, { flex: 1, fontWeight: 'bold', fontSize: 16, color: p.id === winnerId ? '#FFD700' : '#FFF' }]}>
-                        {gameState.gameMode === 'VICTOIRE' ? p.totalRoundWins : p.totalPoints}
-                    </Text>
-                ))}
-            </View>
-        </ScrollView>
-    );
+            </ScrollView>
+        );
+    };
 
     const renderRewardsTab = () => (
         <View style={styles.rewardsContainer}>
