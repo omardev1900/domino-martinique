@@ -128,7 +128,12 @@ export default function SoloScreen() {
                 <EconomyHeader refreshTrigger={economyRefresh} />
             </View>
 
-            <Animated.View entering={FadeInUp.delay(200)} style={[styles.mainWrapper, isLandscape && { paddingTop: 60 }]}>
+            <ScrollView
+                contentContainerStyle={[styles.mainWrapper, isLandscape && { paddingTop: 60 }, { paddingBottom: insets.bottom + 20 }]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+            <Animated.View entering={FadeInUp.delay(200)} style={{ width: '100%', alignItems: 'center' }}>
                 <View style={styles.contentContainer}>
                     {/* Game Mode Selection */}
                     {/* Mode Cards */}
@@ -301,6 +306,7 @@ export default function SoloScreen() {
                     </View>
                 </View>
             </Animated.View>
+            </ScrollView>
         </LinearGradient>
     );
 }
@@ -343,7 +349,7 @@ const styles = StyleSheet.create({
         textShadowRadius: 4,
     },
     mainWrapper: {
-        flex: 1,
+        flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 16,

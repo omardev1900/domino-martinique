@@ -195,9 +195,13 @@ export const finalizeRound = (
 
     // 3.3 Check Match End
     // RULE: Match ends only at the end of a Manche (mancheWinner OR isChire), for all modes.
+    // EXCEPTION: A Chiré (tie manche) can NEVER end the match — no winner, so no match over.
     let isMatchOver = false;
     if (mancheWinner || isChire) {
-        if (newState.gameMode === 'MANCHE') {
+        if (isChire) {
+            // Chiré = manche nulle, aucun vainqueur → jamais de fin de match
+            isMatchOver = false;
+        } else if (newState.gameMode === 'MANCHE') {
             // Match ends ONLY when fixed number of manches played AND tie-breaker is resolved
             if (newState.mancheHistory && newState.mancheHistory.length >= newState.winningCondition) {
                 const maxPoints = Math.max(...newState.players.map(p => p.totalPoints || 0));
@@ -220,12 +224,10 @@ export const finalizeRound = (
         } else if (newState.gameMode === 'COCHON') {
             const maxCochons = Math.max(...newState.players.map(p => p.totalCochons));
             if (maxCochons >= newState.winningCondition) {
-                // TIE BREAKER: Only end if there is a unique winner with the maximum cochons
-                const leaders = newState.players.filter(p => p.totalCochons === maxCochons);
-                isMatchOver = leaders.length === 1;
-                if (leaders.length > 1) {
-                    LogService.info('ScoringEngine', `TIE AT COCHON THRESHOLD (${maxCochons})! Continuing for another manche...`);
-                }
+                // En mode COCHON, le match se termine dès qu'un joueur atteint le seuil de cochons.
+                // Contrairement aux modes SCORE/MANCHE, le tie-breaker est na pas applicable ici :
+                // plusieurs joueurs peuvent être éliminés simultanément → on termine le match.
+                isMatchOver = true;
             }
         }
     }
@@ -251,7 +253,8 @@ export const preparePlayersForNextRound = (
 ): Player[] => {
     return nextRoundDistributedPlayers.map((p, i) => {
         const originalPlayer = oldPlayers[i] as Player | undefined;
-        return {
+        
+        const newPlayer: Player = {
             ...p,
             id: originalPlayer?.id || p.id,
             // (C3) Reset uniquement si c'est une fin de manche
@@ -263,10 +266,18 @@ export const preparePlayersForNextRound = (
             totalCochons: originalPlayer?.totalCochons ?? 0,
             totalRoundWins: originalPlayer?.totalRoundWins ?? 0,
             status: originalPlayer?.status ?? 'HUMAN',
-            avatarId: originalPlayer?.avatarId ?? undefined,
             wins: originalPlayer?.wins ?? 0,
-            difficulty: originalPlayer?.difficulty,
-        } as Player;
+        };
+
+        // On n'ajoute ces clés que si elles sont strictement définies pour éviter les rejets Firestore 400
+        if (originalPlayer?.avatarId !== undefined) {
+            newPlayer.avatarId = originalPlayer.avatarId;
+        }
+        if (originalPlayer?.difficulty !== undefined) {
+            newPlayer.difficulty = originalPlayer.difficulty;
+        }
+
+        return newPlayer;
     });
 };
 

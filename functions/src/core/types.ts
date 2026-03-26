@@ -6,13 +6,13 @@ export interface Domino {
     left: DominoSide;
     right: DominoSide;
     isDouble: boolean;
-    sum: number;
 }
 
 export type PlayerId = string;
 
 export type GameMode = 'MANCHE' | 'SCORE' | 'COCHON' | 'VICTOIRE';
 export type MancheResult = 'NORMAL' | 'CHIRE' | 'COCHON';
+export type PlayerStatus = 'HUMAN' | 'BOT' | 'DISCONNECTED';
 
 export interface MancheHistoryRecord {
     mancheNumber: number;
@@ -35,9 +35,8 @@ export interface Player {
     totalPoints: number; // LE CAMION (totalMatchPoints) : Score cumulé (RoundWins + Bonus/Malus Cochon)
     isCochon: boolean;
     totalCochons: number;
-    isBot: boolean;
+    status: PlayerStatus; // (Sprint 3-10) Remplace isBot et isDisconnected
     difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN'; // NEW: Niveau spécifique du bot
-    isDisconnected?: boolean; // NEW: Track if remote player is offline
 }
 
 export type GamePhase = 'LOBBY' | 'DEALING' | 'PLAYING' | 'BOUDE' | 'PARTIE_END' | 'MATCH_END' | 'MANCHE_END';
@@ -70,6 +69,7 @@ export interface GameState {
     roundNumber: number; // NEW: Numéro du round/partie en cours dans la manche
     mancheNumber: number; // NEW: Numéro de la manche en cours
     startingHandSize: number;
+    reDealCount?: number; // ✅ NOUVEAU : Compteur de redonnes consécutives (C5)
 }
 
 
@@ -91,6 +91,7 @@ export interface PlayerProfile {
     avatarUrl?: string;
     avatarId?: string;
     isHost?: boolean;
+    status?: PlayerStatus; // (Sprint 3-10) Disconnection tracking in room
     gamesPlayed: number;
     gamesWon: number;
     // ─── Economy & Progression (optional — defaults applied by EconomyService) ───
@@ -110,6 +111,7 @@ export interface GameRoom {
     lastActivity: number; // Timestamp of last activity for cleanup
     status: RoomStatus;
     players: PlayerProfile[]; // Liste des joueurs connectés (max 3)
+    playerIds?: string[]; // UIDs des joueurs (utilisé par les règles Firestore)
     gameState: GameState | null; // État complet de la partie une fois lancée
     createdBy: string; // UID du créateur
     //hostId: string;

@@ -172,7 +172,15 @@ export const useActionDispatcher = ({
                     setGameState(newState);
                 } else {
                     const cleanState = JSON.parse(JSON.stringify(newState));
-                    await safeUpdateGameState(gameId, cleanState);
+                    try {
+                        await safeUpdateGameState(gameId, cleanState);
+                    } catch (syncError: any) {
+                        // ✅ FIX: Fallback local si Firebase échoue définitivement après retries.
+                        // onSnapshot corrigera la divergence automatiquement dès qu'une autre
+                        // écriture réussira (celle d'un autre joueur ou le prochain coup).
+                        LogService.warn('ActionDispatcher', `Firebase sync failed, applying state locally to unblock host: ${syncError?.code}`);
+                        setGameState(newState);
+                    }
                 }
             } else {
 

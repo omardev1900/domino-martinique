@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ScrollView, Modal } from 'react-native';
 import { Image } from 'expo-image';
-import Animated, { FadeIn, SlideInDown, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withSpring, Easing, runOnJS, interpolate, Extrapolate } from 'react-native-reanimated';
+import Animated, { FadeIn, SlideInDown, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withSpring, Easing, runOnJS, interpolate, Extrapolate, useReducedMotion } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,8 +68,9 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     const isMeWinner = winnerId === currentUserId;
 
     // animations
-    const scaleValue = useSharedValue(0.5);
-    const opacityValue = useSharedValue(0);
+    const reducedMotion = useReducedMotion();
+    const scaleValue = useSharedValue(reducedMotion ? 1 : 0.5);
+    const opacityValue = useSharedValue(reducedMotion ? 1 : 0);
 
     const animatedContentStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scaleValue.value }],
@@ -84,15 +85,25 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
     useEffect(() => {
         if (visible) {
-            scaleValue.value = withSpring(1);
-            opacityValue.value = withTiming(1, { duration: 500 });
+            if (reducedMotion) {
+                scaleValue.value = 1;
+                opacityValue.value = 1;
+            } else {
+                scaleValue.value = withSpring(1);
+                opacityValue.value = withTiming(1, { duration: 500 });
+            }
 
             SoundManager.playSound('end');
         } else {
-            scaleValue.value = 0.5;
-            opacityValue.value = 0;
+            if (reducedMotion) {
+                scaleValue.value = 0.5;
+                opacityValue.value = 0;
+            } else {
+                scaleValue.value = 0.5;
+                opacityValue.value = 0;
+            }
         }
-    }, [visible, isBoude, isMatchOver, isMeWinner]);
+    }, [visible, isBoude, isMatchOver, isMeWinner, reducedMotion]);
 
     if (!visible) return null;
 
@@ -108,6 +119,12 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         const animatedOpacity = useSharedValue(isWinner ? 1 : 0.6);
 
         useEffect(() => {
+            if (reducedMotion) {
+                animatedScale.value = isWinner ? 1.05 : 0.85;
+                animatedOpacity.value = isWinner ? 1 : 0.6;
+                return;
+            }
+
             if (isWinner) {
                 // Flash glow / pulse for winner
                 animatedScale.value = withRepeat(
@@ -123,7 +140,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 animatedScale.value = withTiming(0.85, { duration: 500 });
                 animatedOpacity.value = withTiming(0.6, { duration: 500 });
             }
-        }, [isWinner]);
+        }, [isWinner, reducedMotion]);
 
         const animStyle = useAnimatedStyle(() => ({
             transform: [{ scale: animatedScale.value }],
@@ -259,7 +276,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 <Text style={[styles.statsTableCell, { width: 60, fontWeight: 'bold', color: '#FFD700' }]}>TOTAL</Text>
                 {gameState.players.map(p => (
                     <Text key={p.id} style={[styles.statsTableCell, { flex: 1, fontWeight: 'bold', fontSize: 16, color: p.id === winnerId ? '#FFD700' : '#FFF' }]}>
-                        {gameState.gameMode === 'VICTOIRE' ? p.totalRoundWins : gameState.gameMode === 'SCORE' ? p.totalPoints : gameState.gameMode === 'COCHON' ? p.totalCochons : p.totalPoints}
+                        {gameState.gameMode === 'VICTOIRE' ? p.totalRoundWins : p.totalPoints}
                     </Text>
                 ))}
             </View>

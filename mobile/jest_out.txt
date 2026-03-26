@@ -1,0 +1,26 @@
+﻿node.exe : PASS src/core/__tests__/DominoEngine.test.ts
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/core/_...oEngine.test.t 
+   s:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  DominoEngine
+    getValidMoves
+      ÔêÜ should allow all moves on empty table (ends is null) (2 ms)
+      ÔêÜ should allow all moves on empty ends
+      ÔêÜ should match left end (1 ms)
+      ÔêÜ should match right end (1 ms)
+    calculateHandPoints
+      ÔêÜ should sum up points correctly (1 ms)
+    getBotMove strategies
+      ÔêÜ TI_MANMAY should pick a random move (1 ms)
+      ÔêÜ MAPIPI should pick a smart move (1 ms)
+      ÔêÜ GRAN_MOUN should pick the best move
+
+Test Suites: 1 passed, 1 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        1.026 s, estimated 2 s
+Ran all test suites matching /src\\core\\__tests__\\DominoEngine.test.ts/i.

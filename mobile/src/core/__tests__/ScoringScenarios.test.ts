@@ -122,9 +122,10 @@ describe('Scoring Verification', () => {
         expect(playerA?.totalPoints).toBe(1); // 1 point pour le round gagné !
     });
 
-    test('4. Test Match NOT Over after round win (must wait for manche end)', () => {
-        // A=29, Goal=30. A wins round.
-        // Expect: A gets 1 point (total 30) but phase remains PARTIE_END because manche is not over.
+    test('4. [CORRIGÉ] SCORE — Round simple ne déclenche pas MATCH_END sans fin de manche', () => {
+        // A=0 étoile, 29 pts. Objectif=30. A gagne le round → totalPoints = 30.
+        // Mais AUCUNE manche ne se termine (pas 3 étoiles) → jamais MATCH_END.
+        // La phase doit rester PARTIE_END (fin de round classique).
         const state = createMockState([
             { id: 'A', stars: 0, totalPoints: 29 },
             { id: 'B', stars: 0, totalPoints: 10 },
@@ -132,14 +133,75 @@ describe('Scoring Verification', () => {
         ], 'SCORE', 30);
 
         const newState = finalizeRound(state, 'A');
-        logResult('Test 4: Match NOT Over after round', newState, {});
+        logResult('Test 4 [CORRIGÉ]: Round simple sans fin de manche', newState, {});
 
         const playerA = newState.players.find(p => p.id === 'A');
-        expect(playerA?.totalPoints).toBe(30);
-        expect(newState.phase).toBe('MATCH_END');
+        expect(playerA?.totalPoints).toBe(30); // Les points s'accumulent
+        // Sans fin de manche (pas 3 étoiles), le match ne peut pas se terminer
+        expect(newState.phase).toBe('PARTIE_END');
+    });
+
+    // ─── Tests de régression pour les bugs identifiés ───────────────────────────
+
+    test('Bug B1 — Chiré ne déclenche jamais MATCH_END en mode SCORE', () => {
+        // A=2 étoiles, 29 pts. B=1 étoile, 5 pts. C=0 étoile, 5 pts.
+        // C gagne le round → tous ont ≥1 étoile → CHIRÉ (manche nulle)
+        // Même si A passe à 30 pts (seuil atteint) : un Chiré ne finit jamais le match.
+        const state = createMockState([
+            { id: 'A', stars: 2, totalPoints: 29 },
+            { id: 'B', stars: 1, totalPoints: 5 },
+            { id: 'C', stars: 0, totalPoints: 5 }
+        ], 'SCORE', 30);
+
+        const result = finalizeRound(state, 'C'); // C gagne → tout le monde ≥1 étoile → CHIRÉ
+        logResult('Bug B1: Chiré ne doit pas provoquer MATCH_END', result, {});
+
+        expect(result.mancheResult).toBe('CHIRE');
+        expect(result.phase).toBe('MANCHE_END'); // Jamais MATCH_END sur un Chiré
+    });
+
+    test('Bug B2 — COCHON : MATCH_END déclenché quand totalCochons >= winningCondition', () => {
+        // A=2 étoiles. B=0 étoile (1 cochon existant). C=0 étoile (1 cochon existant).
+        // Objectif = 2 cochons. A gagne le round → Manche terminée → B et C = cochons → 2e cochon → MATCH_END.
+        const state: any = createMockState([
+            { id: 'A', stars: 2, totalPoints: 4 },
+            { id: 'B', stars: 0, totalPoints: -1 },
+            { id: 'C', stars: 0, totalPoints: -1 }
+        ], 'COCHON', 2);
+        state.players[1].totalCochons = 1;
+        state.players[2].totalCochons = 1;
+
+        const result = finalizeRound(state, 'A');
+        logResult('Bug B2: COCHON — MATCH_END au 2e cochon', result, {});
+
+        expect(result.phase).toBe('MATCH_END');
+        expect(result.mancheResult).toBe('COCHON');
+        const playerB = result.players.find((p: any) => p.id === 'B');
+        expect(playerB?.totalCochons).toBe(2);
+    });
+
+    test('Bug B5 — VICTOIRE : isolation complète, pas de MANCHE_END', () => {
+        // Mode VICTOIRE : winner = premier à atteindre winningCondition totalRoundWins.
+        // A a déjà 2 victoires. Objectif = 3. A gagne un round → totalRoundWins = 3 → MATCH_END.
+        const state: any = createMockState([
+            { id: 'A', stars: 0, totalPoints: 2 },
+            { id: 'B', stars: 0, totalPoints: 1 },
+            { id: 'C', stars: 0, totalPoints: 0 }
+        ], 'VICTOIRE', 3);
+        state.players[0].totalRoundWins = 2;
+        state.players[1].totalRoundWins = 1;
+
+        const result = finalizeRound(state, 'A');
+        logResult('Bug B5: VICTOIRE — MATCH_END au 3e round gagné', result, {});
+
+        expect(result.phase).toBe('MATCH_END');
+        expect(result.mancheResult).toBeNull(); // Pas de mancheResult en mode VICTOIRE
+        const playerA = result.players.find((p: any) => p.id === 'A');
+        expect(playerA?.totalRoundWins).toBe(3);
     });
 
     test('5. Test Match Over at Manche End', () => {
+
         // A=2 Stars, 29 Points. Goal=30. A wins round.
         // Result: A gets +1 Star (3 Stars => Manche Win) AND +1 Point (30 Pts => Match Win).
         // Since it's end of Manche, Match Win is triggered.

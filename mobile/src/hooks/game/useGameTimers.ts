@@ -117,7 +117,8 @@ export const useGameTimers = ({
                 setOvertime(5);
                 SoundManager.playSound('end_time');
             }
-        }, 100);
+        }, 500); // ✅ PERF: 500ms suffit pour une précision à la seconde (divise par 5 les re-renders)
+
 
         return clearAllTurnTimers;
     }, [gameState?.turnId, gameState?.phase, isPaused, clearAllTurnTimers, activePlayerIsDisconnected]);

@@ -101,6 +101,16 @@ export const useGameEngine = ({
         const player = gameState.players.find(p => p.id === localPlayerId);
         if (!player) return;
 
+        // Board vide (1er domino) : pas besoin de choisir un côté, on pose directement
+        const isBoardEmpty = gameState.table.leftValue === null && gameState.table.rightValue === null;
+        if (isBoardEmpty) {
+            setTimeLeft(null);
+            setOvertime(null);
+            clearAllTurnTimers();
+            dispatch({ type: 'PLAY_TILE', playerId: localPlayerId, tile: domino });
+            return;
+        }
+
         // Auto-sélection du côté si un seul coup valide est disponible
         const validMoves = getValidMoves([domino], {
             left: gameState.table.leftValue,
@@ -109,7 +119,10 @@ export const useGameEngine = ({
 
         if (validMoves.length === 0) return;
 
-        if (validMoves.length > 1) {
+        // Si les deux bouts de la chaîne sont identiques, le choix de côté est sans intérêt → droite par défaut
+        const bothEndsEqual = gameState.table.leftValue === gameState.table.rightValue;
+
+        if (validMoves.length > 1 && !bothEndsEqual) {
             try {
                 if ((SoundManager as any).playSound) (SoundManager as any).playSound('notify');
             } catch (e) { }
@@ -118,7 +131,13 @@ export const useGameEngine = ({
             setTimeLeft(null);
             setOvertime(null);
             clearAllTurnTimers();
-            const side = (validMoves[0].side === 'start' ? undefined : validMoves[0].side) as "left" | "right" | undefined;
+            // Quand les deux bouts sont égaux, on choisit 'right' par défaut (getValidMoves retourne 'left' en premier)
+            let side: 'left' | 'right' | undefined;
+            if (bothEndsEqual && validMoves.length > 1) {
+                side = 'right';
+            } else {
+                side = (validMoves[0].side === 'start' ? undefined : validMoves[0].side) as "left" | "right" | undefined;
+            }
             dispatch({ type: 'PLAY_TILE', playerId: localPlayerId, tile: domino, side });
         }
     };

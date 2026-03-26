@@ -102,7 +102,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const hasBeenDebited = useRef(false);
     const [debitFeedback, setDebitFeedback] = useState<string | null>(null);
 
-    const isLocalHost = isSoloMode || (roomData?.players[0]?.uid === localPlayerId);
+    const isLocalHost = isSoloMode || (roomData?.createdBy === localPlayerId);
 
     const [isPaused, setIsPaused] = useState(false);
 
@@ -473,10 +473,14 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         // ── Garde catch-all : si BOUDE a été affiché mais PARTIE_END a été skippé
         // (Firestore peut livrer BOUDE → PLAYING directement en multiplayer)
+        // IMPORTANT : ne pas retourner early pour MANCHE_END/MATCH_END — laisser
+        // leurs handlers ci-dessous s'exécuter (BOUDE peut résoudre directement en MANCHE_END).
         if (boudeHandledRef.current && gameState.phase !== 'BOUDE' && gameState.phase !== 'PARTIE_END') {
             boudeHandledRef.current = false;
             setShowRoundResult(false);
-            return;
+            if (gameState.phase !== 'MANCHE_END' && gameState.phase !== 'MATCH_END') {
+                return;
+            }
         }
 
         if (gameState.phase === 'BOUDE' && !showRoundResult) {
@@ -529,15 +533,17 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
     }, [gameState?.phase, isLocalHost]);
 
-    // Handle BOUDE phase: automatically proceed after 5 seconds (Host only)
+    // Handle BOUDE phase: fallback automatique 5s si le timer 3.5s n'a pas résolu (Host only)
+    // Utilise partieEndContinueRef (stable) plutôt que handleOverlayContinue directement
+    // pour éviter de recréer ce useEffect à chaque render.
     useEffect(() => {
         if (gameState?.phase === 'BOUDE' && isLocalHost) {
             const timer = setTimeout(() => {
-                handleOverlayContinue();
+                partieEndContinueRef.current();
             }, 5000);
             return () => clearTimeout(timer);
         }
-    }, [gameState?.phase, isLocalHost, handleOverlayContinue]);
+    }, [gameState?.phase, isLocalHost]);
 
     // Auto-redirect non-hôtes quand l'hôte reset la room après le match
     useEffect(() => {
@@ -881,6 +887,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     const handleLeaveRoom = useCallback(() => {
         console.log("[QUIT] handleLeaveRoom called. isSoloMode:", isSoloMode, "gameId:", gameId);
+
+        // 0. Arrêter la musique de jeu immédiatement pour éviter la fuite audio
+        SoundManager.stopMusic();
 
         // 1. Navigate FIRST — Force redirect to /home for all players
         router.replace('/home');

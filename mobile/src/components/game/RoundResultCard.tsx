@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, ZoomIn, useReducedMotion } from 'react-native-reanimated';
 import { GameState, Domino } from '../../core/types';
 import { DominoTile } from '../DominoTile';
 
@@ -14,6 +14,8 @@ interface RoundResultCardProps {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, visible }) => {
+    const reducedMotion = useReducedMotion();
+
     if (!visible) return null;
 
     const handScore = (hand: Domino[]) => hand.reduce((s, d) => s + d.left + d.right, 0);
@@ -33,8 +35,8 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
     if (isTie) {
         const accentColor = '#4A90E2'; // bleu = égalité
         return (
-            <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(400)} style={styles.overlay} pointerEvents="none">
-                <Animated.View entering={ZoomIn.duration(450).springify()} style={[styles.card, { borderColor: accentColor + '80' }]}>
+            <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(300)} exiting={reducedMotion ? undefined : FadeOut.duration(400)} style={styles.overlay} pointerEvents="none">
+                <Animated.View entering={reducedMotion ? undefined : ZoomIn.duration(450).springify()} style={[styles.card, { borderColor: accentColor + '80' }]}>
                     <View style={[styles.headerTag, { backgroundColor: accentColor + '18', borderColor: accentColor + '45' }]}>
                         <Text style={[styles.headerTagText, { color: accentColor }]}>⚖️ PARTIE BLOQUÉE — ÉGALITÉ</Text>
                     </View>
@@ -100,13 +102,13 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
 
     return (
         <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(400)}
+            entering={reducedMotion ? undefined : FadeIn.duration(300)}
+            exiting={reducedMotion ? undefined : FadeOut.duration(400)}
             style={styles.overlay}
             pointerEvents="none"
         >
             <Animated.View
-                entering={ZoomIn.duration(450).springify()}
+                entering={reducedMotion ? undefined : ZoomIn.duration(450).springify()}
                 style={[styles.card, { borderColor: accentColor + '80' }]}
             >
                 {/* ── Header tag ── */}

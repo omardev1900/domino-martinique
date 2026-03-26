@@ -133,7 +133,13 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     };
 
     const roundWinner = getRoundWinner();
-    const sortedPlayers = [...gameState.players].sort((a, b) => b.currentMancheStars - a.currentMancheStars);
+    // Tri conditionnel selon le mode de jeu
+    const sortedPlayers = [...gameState.players].sort((a, b) => {
+        if (gameState.gameMode === 'COCHON') return b.totalCochons - a.totalCochons;
+        if (gameState.gameMode === 'VICTOIRE') return b.totalRoundWins - a.totalRoundWins;
+        if (gameState.gameMode === 'SCORE') return b.totalPoints - a.totalPoints;
+        return b.currentMancheStars - a.currentMancheStars; // MANCHE (défaut)
+    });
 
     return (
         <View style={styles.container}>
@@ -344,9 +350,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                                     <Text style={[styles.name, isWinner && styles.winnerText]}>
                                                         {p.name} {p.id === currentUserId ? "(Moi)" : ""}
                                                     </Text>
-                                                    <Text style={styles.starsSub}>
-                                                        {p.currentMancheStars} {p.currentMancheStars > 1 ? 'Étoiles' : 'Étoile'}
-                                                    </Text>
+                                                    {gameState.gameMode !== 'VICTOIRE' && (
+                                                        <Text style={styles.starsSub}>
+                                                            {p.currentMancheStars} {p.currentMancheStars > 1 ? 'Étoiles' : 'Étoile'}
+                                                        </Text>
+                                                    )}
                                                 </View>
                                                 {!isSolo && rematchVotes.includes(p.id) && (
                                                     <View style={styles.readyBadge}>
@@ -361,8 +369,12 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                                 )}
                                                 <View style={styles.scoreContainer}>
                                                     <View style={styles.scoreColumn}>
-                                                        {/* Hide manche stars if match is over, focus on global stats */}
-                                                        {!isMatchOver ? (
+                                                        {/* Stat principale : adaptée selon le mode */}
+                                                        {gameState.gameMode === 'VICTOIRE' ? (
+                                                            <Text style={[styles.scoreMain, isWinner && styles.winnerText]}>
+                                                                {p.totalRoundWins} {p.totalRoundWins > 1 ? 'Victoires' : 'Victoire'}
+                                                            </Text>
+                                                        ) : !isMatchOver ? (
                                                             <Text style={[styles.scoreMain, isWinner && styles.winnerText, gameState.mancheResult === 'COCHON' && p.currentMancheStars === 0 && styles.statWinsCochon]}>
                                                                 {p.currentMancheStars} {p.currentMancheStars > 1 ? 'Wins' : 'Win'}
                                                             </Text>
@@ -371,7 +383,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                                                 {p.mancheWins} {p.mancheWins > 1 ? 'Manches' : 'Manche'}
                                                             </Text>
                                                         )}
-                                                        {/* Show subtext only if we need it (when not MatchOver) */}
+                                                        {/* Sous-titre manches : uniquement mode MANCHE classique */}
                                                         {gameState.gameMode === 'MANCHE' && !isMatchOver && (
                                                             <Text style={styles.scoreSub}>
                                                                 {p.mancheWins} {p.mancheWins > 1 ? 'Manches' : 'Manche'}

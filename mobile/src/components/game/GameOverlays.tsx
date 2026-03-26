@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeOut, ZoomIn, FadeInLeft } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, ZoomIn, FadeInLeft, useReducedMotion } from 'react-native-reanimated';
 import { EdgeInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { GameState, Domino } from '../../core/types';
@@ -47,6 +47,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
     matchReward
 }) => {
     const isHost = isSoloMode || roomData?.createdBy === localPlayerId;
+    const reducedMotion = useReducedMotion();
 
     return (
         <View style={styles.container} pointerEvents="box-none" testID="game-overlays">
@@ -56,7 +57,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                     styles.choiceBanner,
                     isLandscape ? { top: 15, bottom: undefined } : { bottom: 160 }
                 ]} pointerEvents="none" testID="choice-banner">
-                    <Animated.View entering={FadeIn.duration(300)}>
+                    <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(300)}>
                         <Text style={styles.choiceText}>CHOISISSEZ UN CÔTÉ</Text>
                     </Animated.View>
                 </View>
@@ -147,8 +148,8 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
             {bannerState !== 'NONE' && gameState && (
                 <Animated.View
                     key={bannerState}
-                    entering={ZoomIn.duration(300)}
-                    exiting={FadeOut.duration(300)}
+                    entering={reducedMotion ? undefined : ZoomIn.duration(300)}
+                    exiting={reducedMotion ? undefined : FadeOut.duration(300)}
                     style={styles.roundBannerContainer}
                     pointerEvents="none"
                     testID="round-banner"
@@ -164,7 +165,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
             {/* PAUSE OVERLAY */}
             {isPaused && (
                 <View style={styles.pauseOverlay} testID="pause-overlay">
-                    <Animated.View entering={FadeInLeft.duration(300)} style={styles.pauseContent}>
+                    <Animated.View entering={reducedMotion ? undefined : FadeInLeft.duration(300)} style={styles.pauseContent}>
                         <Ionicons name="pause-circle" size={80} color="#FFD700" />
                         <Text style={styles.pauseTitle}>PAUSE</Text>
                         <TouchableOpacity

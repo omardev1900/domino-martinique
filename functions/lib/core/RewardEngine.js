@@ -25,6 +25,7 @@ exports.nextLeagueThreshold = nextLeagueThreshold;
 exports.applyLevelMultiplier = applyLevelMultiplier;
 exports.calculatePot = calculatePot;
 exports.getLevelUpChest = getLevelUpChest;
+const LogService_1 = require("./services/LogService");
 const economy_constants_1 = require("./economy.constants");
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers Purs (fonctions mathématiques)
@@ -334,7 +335,7 @@ exports.RewardEngine = {
             // Détail animable
             breakdown: adjustedBreakdown,
         };
-        console.log('[RewardEngine] Rewards calculated:', {
+        LogService_1.LogService.debug('RewardEngine', 'Rewards calculated:', {
             rank,
             coinsEarned: matchReward.coinsEarned,
             xpEarned: matchReward.xpEarned,
