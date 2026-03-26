@@ -58,8 +58,8 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                                                 key={i}
                                                 left={d.left as any}
                                                 right={d.right as any}
-                                                size={22}
-                                                orientation="horizontal"
+                                                size={18}
+                                                orientation="vertical"
                                                 disabled
                                                 noMargin
                                             />
@@ -154,19 +154,19 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                                 </Text>
                                 <Text style={styles.subLabel}>dans la main</Text>
                                 <View style={styles.handRow}>
-                                    {winner.hand.slice(0, 3).map((d, i) => (
+                                    {winner.hand.slice(0, 4).map((d, i) => (
                                         <DominoTile
                                             key={i}
                                             left={d.left as any}
                                             right={d.right as any}
-                                            size={24}
-                                            orientation="horizontal"
+                                            size={18}
+                                            orientation="vertical"
                                             disabled
                                             noMargin
                                         />
                                     ))}
-                                    {winner.hand.length > 3 && (
-                                        <Text style={styles.moreLabel}>+{winner.hand.length - 3}</Text>
+                                    {winner.hand.length > 4 && (
+                                        <Text style={styles.moreLabel}>+{winner.hand.length - 4}</Text>
                                     )}
                                 </View>
                             </View>
@@ -197,8 +197,8 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                                                     key={i}
                                                     left={d.left as any}
                                                     right={d.right as any}
-                                                    size={24}
-                                                    orientation="horizontal"
+                                                    size={18}
+                                                    orientation="vertical"
                                                     disabled
                                                     noMargin
                                                 />
@@ -220,7 +220,7 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                                                 left={d.left as any}
                                                 right={d.right as any}
                                                 size={24}
-                                                orientation="horizontal"
+                                                orientation="vertical"
                                                 disabled
                                                 noMargin
                                             />
