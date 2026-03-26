@@ -29,7 +29,7 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
-    const [isLoginMode, setIsLoginMode] = useState(false);
+    const [isLoginMode, setIsLoginMode] = useState(true);
 
     const getErrorMessage = (error: any) => {
         const code = error.code || '';
@@ -221,18 +221,20 @@ export default function LoginScreen() {
                             </View>
                         </LinearGradient>
 
-                        {/* BOTTOM: Minimal Guest Section */}
-                        <TouchableOpacity
-                            style={styles.guestSection}
-                            onPress={handleGuestLogin}
-                            disabled={isLoading}
-                        >
-                            <Ionicons name="person-circle-outline" size={24} color="#90CAF9" />
-                            <View style={styles.guestTexts}>
-                                <Text style={styles.guestButtonText}>Jouer Solo (Invité)</Text>
-                                <Text style={styles.guestWarningText}>Pas de multijoueur, pas de stats.</Text>
-                            </View>
-                        </TouchableOpacity>
+                        {/* BOTTOM: Minimal Guest Section — temporairement masqué */}
+                        {false && (
+                            <TouchableOpacity
+                                style={styles.guestSection}
+                                onPress={handleGuestLogin}
+                                disabled={isLoading}
+                            >
+                                <Ionicons name="person-circle-outline" size={24} color="#90CAF9" />
+                                <View style={styles.guestTexts}>
+                                    <Text style={styles.guestButtonText}>Jouer Solo (Invité)</Text>
+                                    <Text style={styles.guestWarningText}>Pas de multijoueur, pas de stats.</Text>
+                                </View>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

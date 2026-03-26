@@ -144,7 +144,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     };
 
     return (
-        <Animated.View entering={entering || ZoomIn.duration(400)} style={{ opacity: disabled ? 0.9 : 1 }}>
+        <Animated.View entering={entering || ZoomIn.duration(400)} style={{ opacity: 1 }}>
             <AnimatedTouchableOpacity
                 activeOpacity={0.9}
                 onPress={onPress}

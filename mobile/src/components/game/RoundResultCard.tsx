@@ -58,7 +58,7 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                                                 key={i}
                                                 left={d.left as any}
                                                 right={d.right as any}
-                                                size={18}
+                                                size={28}
                                                 orientation="vertical"
                                                 disabled
                                                 noMargin
@@ -159,7 +159,7 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                                             key={i}
                                             left={d.left as any}
                                             right={d.right as any}
-                                            size={18}
+                                            size={28}
                                             orientation="vertical"
                                             disabled
                                             noMargin
@@ -197,7 +197,7 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                                                     key={i}
                                                     left={d.left as any}
                                                     right={d.right as any}
-                                                    size={18}
+                                                    size={28}
                                                     orientation="vertical"
                                                     disabled
                                                     noMargin
@@ -219,7 +219,7 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                                                 key={i}
                                                 left={d.left as any}
                                                 right={d.right as any}
-                                                size={24}
+                                                size={28}
                                                 orientation="vertical"
                                                 disabled
                                                 noMargin

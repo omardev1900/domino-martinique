@@ -101,6 +101,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     const hasBeenDebited = useRef(false);
     const [debitFeedback, setDebitFeedback] = useState<string | null>(null);
+    const isIntentionalLeave = useRef(false);
 
     const isLocalHost = isSoloMode || (roomData?.createdBy === localPlayerId);
 
@@ -488,11 +489,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             boudeHandledRef.current = true;
             setShowRoundResult(true);
             if (isLocalHost) {
-                // Host : on résout soi-même après 3.5s (annule le timer 5s séparé)
+                // Host : on résout soi-même après 5s (annule le timer 6s séparé)
                 const timer = setTimeout(() => {
                     setShowRoundResult(false);
                     partieEndContinueRef.current(); // resolveBoude → PARTIE_END
-                }, 3500);
+                }, 5000);
                 return () => clearTimeout(timer);
             }
             // Non-host : attend PARTIE_END via Firestore (timer 5s du host)
@@ -512,17 +513,17 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
                 partieEndContinueRef.current();
-            }, 3500);
+            }, 5000);
             return () => clearTimeout(timer);
         }
 
         if (gameState.phase === 'MANCHE_END' || gameState.phase === 'MATCH_END') {
-            // Fin de manche/match : RoundResultCard 3.5s, PUIS UnifiedResultOverlay
+            // Fin de manche/match : RoundResultCard 5s, PUIS UnifiedResultOverlay
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
                 setShowScoreboard(true);
-            }, 3500);
+            }, 5000);
             return () => {
                 clearTimeout(timer);
                 if (gameState.phase === 'MATCH_END') {
@@ -540,7 +541,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         if (gameState?.phase === 'BOUDE' && isLocalHost) {
             const timer = setTimeout(() => {
                 partieEndContinueRef.current();
-            }, 5000);
+            }, 6000);
             return () => clearTimeout(timer);
         }
     }, [gameState?.phase, isLocalHost]);
@@ -684,8 +685,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         if (!gameState && !isStarting) return; // Only protect if in game or starting
 
         const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
-            // If the match is over, we don't need to protect the screen
-            if (gameStateRef.current?.phase === 'MATCH_END') {
+            // If the match is over, or we intentionally leave, allow navigation
+            if (gameStateRef.current?.phase === 'MATCH_END' || isIntentionalLeave.current) {
                 return;
             }
             // Prevent default behavior of leaving the screen
@@ -890,6 +891,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         // 0. Arrêter la musique de jeu immédiatement pour éviter la fuite audio
         SoundManager.stopMusic();
+
+        // Allow beforeRemove to pass through
+        isIntentionalLeave.current = true;
 
         // 1. Navigate FIRST — Force redirect to /home for all players
         router.replace('/home');

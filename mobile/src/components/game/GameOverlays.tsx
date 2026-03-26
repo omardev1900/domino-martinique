@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Pressable, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut, ZoomIn, FadeInLeft, useReducedMotion } from 'react-native-reanimated';
 import { EdgeInsets } from 'react-native-safe-area-context';
@@ -48,6 +48,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
 }) => {
     const isHost = isSoloMode || roomData?.createdBy === localPlayerId;
     const reducedMotion = useReducedMotion();
+    const [showQuitConfirm, setShowQuitConfirm] = useState(false);
 
     return (
         <View style={styles.container} pointerEvents="box-none" testID="game-overlays">
@@ -164,25 +165,48 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
 
             {/* PAUSE OVERLAY */}
             {isPaused && (
-                <View style={styles.pauseOverlay} testID="pause-overlay">
+                <View style={styles.pauseOverlay} pointerEvents="auto" testID="pause-overlay">
                     <Animated.View entering={reducedMotion ? undefined : FadeInLeft.duration(300)} style={styles.pauseContent}>
-                        <Ionicons name="pause-circle" size={80} color="#FFD700" />
-                        <Text style={styles.pauseTitle}>PAUSE</Text>
-                        <TouchableOpacity
-                            style={styles.resumeButton}
-                            onPress={onResume}
-                            testID="btn-resume"
-                        >
-                            <Text style={styles.resumeButtonText}>REPRENDRE</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.quitButton}
-                            onPress={onLeaveRoom}
-                            testID="btn-quit"
-                        >
-                            <Text style={styles.quitButtonText}>QUITTER LA PARTIE</Text>
-                        </TouchableOpacity>
+                        {!showQuitConfirm ? (
+                            <>
+                                <Ionicons name="pause-circle" size={80} color="#FFD700" />
+                                <Text style={styles.pauseTitle}>PAUSE</Text>
+                                <TouchableOpacity
+                                    style={styles.resumeButton}
+                                    onPress={() => { setShowQuitConfirm(false); onResume(); }}
+                                    testID="btn-resume"
+                                >
+                                    <Text style={styles.resumeButtonText}>REPRENDRE</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.quitButton}
+                                    onPress={() => setShowQuitConfirm(true)}
+                                    testID="btn-quit"
+                                >
+                                    <Text style={styles.quitButtonText}>QUITTER LA PARTIE</Text>
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <>
+                                <Ionicons name="warning-outline" size={60} color="#FF6B6B" />
+                                <Text style={styles.pauseTitle}>QUITTER ?</Text>
+                                <Text style={styles.confirmSubtitle}>La partie sera abandonnée.</Text>
+                                <TouchableOpacity
+                                    style={styles.quitButton}
+                                    onPress={onLeaveRoom}
+                                    testID="btn-quit-confirm"
+                                >
+                                    <Text style={styles.quitButtonText}>OUI, QUITTER</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.resumeButton}
+                                    onPress={() => setShowQuitConfirm(false)}
+                                    testID="btn-quit-cancel"
+                                >
+                                    <Text style={styles.resumeButtonText}>NON, RESTER</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
                     </Animated.View>
                 </View>
             )}
@@ -375,6 +399,12 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    confirmSubtitle: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 14,
+        marginBottom: 20,
+        textAlign: 'center',
     },
     boudeOverlay: {
         ...StyleSheet.absoluteFillObject,

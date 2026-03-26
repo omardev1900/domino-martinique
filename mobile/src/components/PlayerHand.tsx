@@ -45,7 +45,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
 
     return (
         <View
-            style={[styles.container, isLocked && { opacity: 0.5 }]}
+            style={[styles.container]}
             pointerEvents={isLocked ? 'none' : 'auto'}
         >
             <ScrollView
@@ -67,7 +67,11 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                                 // 🚨 RADICAL FIX: On retire 'layout' car il cause des mutations sur objets gelés en React 19
                                 style={[
                                     styles.tileWrapper,
-                                    canPlay ? { transform: [{ translateY: -25 }], zIndex: 10, elevation: 15 } : { opacity: 0.6, transform: [{ scale: 0.95 }], zIndex: 1, elevation: 5 },
+                                    canPlay
+                                        ? { transform: [{ translateY: -25 }], zIndex: 10, elevation: 15 }
+                                        : disabled
+                                            ? { zIndex: 1, elevation: 3 } // Pas mon tour : tuiles visibles, pas de réduction d'opacité
+                                            : { opacity: 0.5, transform: [{ scale: 0.92 }], zIndex: 1, elevation: 3 }, // Mon tour mais tuile non jouable
                                 ]}
                             >
                                 <DominoTile
