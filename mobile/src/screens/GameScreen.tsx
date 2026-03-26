@@ -193,7 +193,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [showRoundResult, setShowRoundResult] = useState(false);
-    const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+    const [isSoundEnabled, setIsSoundEnabled] = useState(() => SettingsManager.getSettings().isSfxEnabled);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [bannerState, setBannerState] = useState<'NONE' | 'MANCHE' | 'ROUND'>('NONE');
     const [playersChat, setPlayersChat] = useState<{ [playerId: string]: string | null }>({});

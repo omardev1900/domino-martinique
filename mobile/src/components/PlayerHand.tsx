@@ -73,7 +73,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                                 <DominoTile
                                     left={domino.left}
                                     right={domino.right}
-                                    size={34}
+                                    size={42}
                                     orientation="vertical"
                                     onPress={() => handleTilePress(domino)}
                                     disabled={!canPlay || disabled}
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         alignItems: 'center',
-        height: 130, // Increased to account for paddingTop
+        height: 150, // Increased to account for larger domino size
         justifyContent: 'center',
         overflow: 'visible',
         zIndex: 10,

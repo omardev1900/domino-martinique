@@ -268,6 +268,15 @@ class SoundManager {
         const current = SettingsManager.getSettings().isSfxEnabled;
         const newState = !current;
         await SettingsManager.setSfxEnabled(newState);
+        // Also mute/unmute BGM music
+        if (this.currentMusic) {
+            if (newState) {
+                const settings = SettingsManager.getSettings();
+                this.currentMusic.volume = 0.5 * settings.bgmVolume;
+            } else {
+                this.currentMusic.volume = 0;
+            }
+        }
         return newState;
     }
 }
