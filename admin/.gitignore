@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Env files (contiennent des secrets)
+.env.local
+.env*.local
+
+# Firebase service account keys (NE JAMAIS COMMITER)
+*-firebase-adminsdk-*.json
+serviceAccount*.json
+
+# Misc
+.DS_Store
+*.log

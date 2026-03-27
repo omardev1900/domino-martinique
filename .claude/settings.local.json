@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npm audit)",
+      "Bash(npx firebase deploy --only firestore:rules)",
+      "Bash(npx firebase deploy --only firestore:indexes)",
+      "Bash(npm install firebase-admin)",
+      "Bash(curl -s http://localhost:3001/api/users)",
+      "Bash(curl -s --head https://www.google.com)",
+      "Bash(ls \"e:/HAPPYAGENCY/00 Clients/00 En cours/Manuel/code src/react-native/admin/\"*.json)",
+      "Bash(node setup-admin-key.js \"domino-martinique-v1-firebase-adminsdk-fbsvc-6de1d78f2e.json\")",
+      "Bash(w32tm /resync /force)",
+      "Bash(powershell -Command \"w32tm /resync /force\")",
+      "Bash(powershell -Command \"Start-Service W32Time; w32tm /resync /force\")",
+      "Bash(npm install recharts)"
+    ]
+  }
+}
