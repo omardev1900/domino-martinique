@@ -17,7 +17,8 @@
         "foregroundImage": "./src/assets/images/icon.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.aboumalak.mobile"
     },
     "web": {
       "output": "single",

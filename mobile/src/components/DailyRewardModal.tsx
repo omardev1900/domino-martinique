@@ -1,5 +1,13 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, Dimensions, TouchableOpacity } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    Modal,
+    TouchableOpacity,
+    ScrollView,
+    useWindowDimensions,
+} from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -12,15 +20,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width, height } = Dimensions.get('window');
-
 interface DailyRewardModalProps {
     visible: boolean;
     amount: number;
     onClaim: () => void;
 }
 
-const CoinParticle = ({ delay, index }: { delay: number; index: number }) => {
+const CoinParticle = ({ delay, index, screenW }: { delay: number; index: number; screenW: number }) => {
     const translateY = useSharedValue(0);
     const translateX = useSharedValue(0);
     const opacity = useSharedValue(0);
@@ -28,31 +34,27 @@ const CoinParticle = ({ delay, index }: { delay: number; index: number }) => {
     const scale = useSharedValue(0.5);
 
     useEffect(() => {
-        const xOffset = (Math.random() - 0.5) * width * 0.8;
+        const xOffset = (Math.random() - 0.5) * screenW * 0.8;
 
         translateY.value = withSequence(
             withTiming(0, { duration: 0 }),
-            withTiming(-height * 0.5 - Math.random() * 100, { duration: 600 + delay }),
-            withTiming(height * 0.3, { duration: 1800 })
+            withTiming(-200 - Math.random() * 100, { duration: 600 + delay }),
+            withTiming(150, { duration: 1800 })
         );
-
         translateX.value = withSequence(
             withTiming(0, { duration: 0 }),
             withTiming(xOffset, { duration: 2400 + delay })
         );
-
         opacity.value = withSequence(
             withTiming(0, { duration: 0 }),
             withTiming(1, { duration: 150 + delay }),
             withTiming(0, { duration: 1600 })
         );
-
         scale.value = withSequence(
             withTiming(0.5, { duration: 0 }),
             withSpring(1.2, { damping: 8, stiffness: 200 }),
             withTiming(0.6, { duration: 1800 })
         );
-
         rotate.value = withRepeat(
             withTiming(360 * (index % 2 === 0 ? 1 : -1), { duration: 1200 }),
             -1,
@@ -82,7 +84,7 @@ const CoinParticle = ({ delay, index }: { delay: number; index: number }) => {
             style={[
                 styles.particle,
                 style,
-                { left: (width / 25) * (index % 25) }
+                { left: (screenW / 20) * (index % 20) }
             ]}
         />
     );
@@ -93,6 +95,19 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
     amount,
     onClaim,
 }) => {
+    const { width, height } = useWindowDimensions();
+    const isLandscape = width > height;
+
+    // Tailles adaptatives
+    const iconSize = Math.min(isLandscape ? height * 0.20 : height * 0.12, 80);
+    const iconFontSize = iconSize * 0.58;
+    const titleFontSize = isLandscape ? Math.min(height * 0.07, 20) : Math.min(height * 0.038, 24);
+    const amountFontSize = isLandscape ? Math.min(height * 0.12, 34) : Math.min(height * 0.055, 38);
+    const subtitleFontSize = isLandscape ? Math.min(height * 0.055, 11) : Math.min(height * 0.018, 13);
+    const cardPadding = isLandscape ? Math.min(height * 0.06, 14) : Math.min(height * 0.03, 20);
+    const cardMaxWidth = Math.min(width * 0.85, 420);
+    const cardMaxHeight = height * 0.88;
+
     const scale = useSharedValue(0);
     const glowOpacity = useSharedValue(0.5);
     const titleScale = useSharedValue(0.8);
@@ -127,66 +142,98 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
     const glowStyle = useAnimatedStyle(() => ({
         opacity: glowOpacity.value,
         transform: [
-            { scale: interpolate(glowOpacity.value, [0.4, 1], [1, 1.25], Extrapolate.CLAMP) }
+            { scale: interpolate(glowOpacity.value, [0.4, 1], [1, 1.2], Extrapolate.CLAMP) }
         ],
     }));
 
-    const titleStyle = useAnimatedStyle(() => ({
+    const titleAnimStyle = useAnimatedStyle(() => ({
         transform: [{ scale: titleScale.value }],
     }));
 
     if (!visible) return null;
 
-    const particles = Array.from({ length: 25 }).map((_, i) => (
-        <CoinParticle key={i} index={i} delay={Math.random() * 400} />
+    const particles = Array.from({ length: 20 }).map((_, i) => (
+        <CoinParticle key={i} index={i} delay={Math.random() * 400} screenW={width} />
     ));
 
     return (
         <Modal transparent visible={visible} animationType="fade" onRequestClose={onClaim}>
             <View style={styles.overlay}>
-                {/* Particles layer */}
+                {/* Particles */}
                 <View style={StyleSheet.absoluteFill} pointerEvents="none">
                     {particles}
                 </View>
 
-                {/* Glow behind card */}
+                {/* Glow */}
                 <Animated.View style={[styles.glowContainer, glowStyle]} pointerEvents="none">
                     <View style={styles.glow} />
                 </Animated.View>
 
                 {/* Card */}
-                <Animated.View style={[styles.contentContainer, containerStyle]}>
+                <Animated.View style={[{ width: cardMaxWidth, maxHeight: cardMaxHeight, zIndex: 10 }, containerStyle]}>
                     <LinearGradient
                         colors={['#2A1B3D', '#1A0B2E']}
-                        style={styles.card}
+                        style={[styles.card, { padding: cardPadding, borderRadius: isLandscape ? 18 : 24 }]}
                     >
-                        {/* Star burst decoration */}
-                        <View style={styles.iconContainer}>
-                            <Text style={styles.iconEmoji}>🎁</Text>
-                        </View>
-
-                        <Animated.Text style={[styles.title, titleStyle]}>
-                            CADEAU DU JOUR !
-                        </Animated.Text>
-
-                        <Text style={styles.amountText}>+{amount} 🪙</Text>
-
-                        <Text style={styles.subtitle}>
-                            Revenez demain pour un nouveau cadeau
-                        </Text>
-
-                        <TouchableOpacity
-                            style={styles.claimButton}
-                            onPress={onClaim}
-                            activeOpacity={0.85}
+                        <ScrollView
+                            contentContainerStyle={[
+                                styles.scrollContent,
+                                isLandscape ? styles.scrollContentLandscape : styles.scrollContentPortrait,
+                            ]}
+                            showsVerticalScrollIndicator={false}
+                            bounces={false}
                         >
-                            <LinearGradient
-                                colors={['#FFD700', '#FFA500']}
-                                style={styles.claimGradient}
-                            >
-                                <Text style={styles.claimButtonText}>RÉCLAMER !</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
+                            {/* Icône cadeau */}
+                            <View style={[
+                                styles.iconContainer,
+                                {
+                                    width: iconSize,
+                                    height: iconSize,
+                                    borderRadius: iconSize / 2,
+                                    marginBottom: isLandscape ? 0 : 12,
+                                    marginRight: isLandscape ? 16 : 0,
+                                }
+                            ]}>
+                                <Text style={{ fontSize: iconFontSize }}>🎁</Text>
+                            </View>
+
+                            {/* Textes + bouton */}
+                            <View style={isLandscape ? styles.rightColumn : styles.centerColumn}>
+                                <Animated.Text style={[styles.title, titleAnimStyle, { fontSize: titleFontSize }]}>
+                                    CADEAU DU JOUR !
+                                </Animated.Text>
+
+                                <Text style={[styles.amountText, { fontSize: amountFontSize }]}>
+                                    +{amount} 🪙
+                                </Text>
+
+                                <Text style={[styles.subtitle, {
+                                    fontSize: subtitleFontSize,
+                                    marginBottom: isLandscape ? 8 : 16,
+                                }]}>
+                                    Revenez demain pour un nouveau cadeau
+                                </Text>
+
+                                <TouchableOpacity
+                                    style={[styles.claimButton, isLandscape && { width: '100%' }]}
+                                    onPress={onClaim}
+                                    activeOpacity={0.85}
+                                >
+                                    <LinearGradient
+                                        colors={['#FFD700', '#FFA500']}
+                                        style={[styles.claimGradient, {
+                                            paddingVertical: isLandscape ? 8 : 13,
+                                        }]}
+                                    >
+                                        <Text style={[styles.claimButtonText, {
+                                            fontSize: isLandscape ? Math.min(height * 0.07, 14) : 16,
+                                        }]}>
+                                            RÉCLAMER !
+                                        </Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+                        </ScrollView>
                     </LinearGradient>
                 </Animated.View>
             </View>
@@ -204,63 +251,68 @@ const styles = StyleSheet.create({
     particle: {
         position: 'absolute',
         bottom: '45%',
-        width: 12,
-        height: 12,
-        borderRadius: 6,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
         zIndex: 5,
         elevation: 5,
     },
     glowContainer: {
         position: 'absolute',
-        width: 320,
-        height: 320,
+        width: 260,
+        height: 260,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1,
     },
     glow: {
-        width: 280,
-        height: 280,
-        borderRadius: 140,
-        backgroundColor: 'rgba(255, 215, 0, 0.18)',
+        width: 220,
+        height: 220,
+        borderRadius: 110,
+        backgroundColor: 'rgba(255, 215, 0, 0.15)',
         shadowColor: '#FFD700',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 1,
-        shadowRadius: 60,
+        shadowRadius: 50,
         elevation: 10,
     },
-    contentContainer: {
-        width: '85%',
-        maxWidth: 380,
-        zIndex: 10,
-    },
     card: {
-        borderRadius: 24,
-        padding: 28,
-        alignItems: 'center',
         borderWidth: 2,
         borderColor: '#FFD700',
         overflow: 'hidden',
     },
+    scrollContent: {
+        flexGrow: 1,
+    },
+    scrollContentPortrait: {
+        flexDirection: 'column',
+        alignItems: 'center',
+    },
+    scrollContentLandscape: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     iconContainer: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
         backgroundColor: 'rgba(255, 215, 0, 0.15)',
         borderWidth: 2,
         borderColor: 'rgba(255, 215, 0, 0.4)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 18,
+        flexShrink: 0,
     },
-    iconEmoji: {
-        fontSize: 52,
+    centerColumn: {
+        alignItems: 'center',
+        width: '100%',
+    },
+    rightColumn: {
+        flex: 1,
+        alignItems: 'center',
     },
     title: {
-        fontSize: 26,
         fontWeight: '900',
         color: '#FFD700',
-        marginBottom: 12,
+        marginBottom: 6,
         textAlign: 'center',
         textShadowColor: 'rgba(255, 215, 0, 0.6)',
         textShadowOffset: { width: 0, height: 2 },
@@ -268,25 +320,22 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     amountText: {
-        fontSize: 40,
         fontWeight: '900',
         color: '#FFFFFF',
-        marginBottom: 10,
+        marginBottom: 6,
         textAlign: 'center',
         textShadowColor: 'rgba(255, 215, 0, 0.4)',
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 8,
     },
     subtitle: {
-        fontSize: 13,
         color: 'rgba(255, 255, 255, 0.55)',
         textAlign: 'center',
-        marginBottom: 26,
-        lineHeight: 18,
+        lineHeight: 16,
     },
     claimButton: {
         width: '100%',
-        borderRadius: 14,
+        borderRadius: 12,
         overflow: 'hidden',
         elevation: 6,
         shadowColor: '#FFD700',
@@ -295,13 +344,11 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
     },
     claimGradient: {
-        paddingVertical: 16,
         alignItems: 'center',
         justifyContent: 'center',
     },
     claimButtonText: {
         color: '#1A0B2E',
-        fontSize: 18,
         fontWeight: '900',
         letterSpacing: 1.5,
     },
