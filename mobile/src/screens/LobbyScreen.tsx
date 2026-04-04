@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking as RNLinking, Platform } from 'react-native';
+import * as Linking from 'expo-linking';
 import { Image } from 'expo-image';
 import { GameRoom, GameMode } from '../core/types';
 import { FadeIn, FadeInUp } from 'react-native-reanimated';
@@ -98,7 +99,8 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
     });
 
     const shareToWhatsApp = () => {
-        const message = `Rejoins ma table de Domino Martiniquais ! Code : ${roomData.roomId}`;
+        const deepLink = Linking.createURL(`join/${roomData.roomId}`);
+        const message = `Rejoins ma table de Domino Martiniquais ! Code : ${roomData.roomId}\n\nLien : ${deepLink}`;
 
         let url = `whatsapp://send?text=${encodeURIComponent(message)}`;
 
@@ -107,7 +109,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
             url = `https://wa.me/?text=${encodeURIComponent(message)}`;
         }
 
-        Linking.openURL(url).catch(() => {
+        RNLinking.openURL(url).catch(() => {
             // Fallback if WhatsApp is not installed or fails
             alert('WhatsApp ne semble pas être installé');
         });

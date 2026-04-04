@@ -13,7 +13,7 @@ import {
     useWindowDimensions,
     ImageBackground
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,7 @@ import { authService } from '../src/core/services/auth.service';
 
 export default function LoginScreen() {
     const router = useRouter();
+    const { autoJoinRoomId } = useLocalSearchParams<{ autoJoinRoomId?: string }>();
     const insets = useSafeAreaInsets();
     const { height } = useWindowDimensions();
 
@@ -73,7 +74,11 @@ export default function LoginScreen() {
                                 if (shouldReconnect) {
                                     router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } });
                                 } else {
-                                    router.replace('/home');
+                                    if (autoJoinRoomId) {
+                                        router.replace({ pathname: '/lobby', params: { autoJoinRoomId } });
+                                    } else {
+                                        router.replace('/home');
+                                    }
                                 }
                             }, 100);
                             return;
@@ -82,7 +87,11 @@ export default function LoginScreen() {
                         console.error("❌ Rejoin check failed:", e);
                     }
                 }
-                router.replace('/home');
+                if (autoJoinRoomId) {
+                    router.replace({ pathname: '/lobby', params: { autoJoinRoomId } });
+                } else {
+                    router.replace('/home');
+                }
             } else {
                 if (password.length < 6) {
                     setErrorMessage('Le mot de passe doit contenir au moins 6 caractères.');
@@ -90,7 +99,11 @@ export default function LoginScreen() {
                     return;
                 }
                 await authService.signUp(email, password);
-                router.replace('/home');
+                if (autoJoinRoomId) {
+                    router.replace({ pathname: '/lobby', params: { autoJoinRoomId } });
+                } else {
+                    router.replace('/home');
+                }
             }
         } catch (error: any) {
             console.error(error);

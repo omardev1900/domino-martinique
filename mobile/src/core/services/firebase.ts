@@ -30,7 +30,8 @@ import {
     FirestoreError,
     query,
     where,
-    QuerySnapshot
+    QuerySnapshot,
+    setDoc
 } from 'firebase/firestore';
 import { GameRoom, GameState, PlayerProfile, RoomStatus, GameMode } from '../types';
 import { LogService } from './LogService';
@@ -115,7 +116,7 @@ export const createRoom = async (
     // SEC-7: Validate inputs before writing to Firestore
     if (roomName) {
         const nameResult = roomNameSchema.safeParse(roomName);
-        if (!nameResult.success) throw new Error(nameResult.error.errors[0].message);
+        if (!nameResult.success) throw new Error(nameResult.error.issues[0].message);
     }
     if (passcode !== undefined && passcode !== '' && (passcode.length < 4 || passcode.length > 12 || !/^[a-zA-Z0-9]+$/.test(passcode))) {
         throw new Error('Le code doit contenir entre 4 et 12 caractères alphanumériques');
@@ -143,7 +144,6 @@ export const createRoom = async (
             playerIds: [hostProfile.uid], // Used by Firestore security rules
             gameState: null,
             createdBy: hostProfile.uid,
-            //hostId: hostProfile.uid,
             isPrivate,
             ...(passcode && { passcode }),
             // Default room name if not provided
@@ -159,13 +159,41 @@ export const createRoom = async (
         // SAFETY: Remove undefined fields which crash Firestore
         const cleanRoomData = JSON.parse(JSON.stringify(roomData));
 
-        const docRef = await addDoc(collection(db, ROOMS_COLLECTION), cleanRoomData);
-        LogService.info('Firebase', "Room created with ID:", docRef.id);
+        const generateShortCode = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        };
 
-        // Update the room with its own ID (optional but helpful)
-        await updateDoc(docRef, { roomId: docRef.id });
+        let isUnique = false;
+        let shortCode = '';
+        let loopCount = 0;
 
-        return docRef.id;
+        while (!isUnique && loopCount < 10) {
+            shortCode = generateShortCode();
+            const docRef = doc(db, ROOMS_COLLECTION, shortCode);
+            const snap = await getDoc(docRef);
+            if (!snap.exists()) {
+                isUnique = true;
+                await setDoc(docRef, cleanRoomData);
+            }
+            loopCount++;
+        }
+
+        if (!isUnique) {
+            throw new Error('Impossible de générer un code de table unique.');
+        }
+
+        LogService.info('Firebase', "Room created with ID:", shortCode);
+
+        // Update the room with its own ID
+        const finalDocRef = doc(db, ROOMS_COLLECTION, shortCode);
+        await updateDoc(finalDocRef, { roomId: shortCode });
+
+        return shortCode;
     } catch (e: any) {
         LogService.error('Firebase', 'Error adding document:', e);
         // CRITICAL UI FEEDBACK: Ensure user sees the error

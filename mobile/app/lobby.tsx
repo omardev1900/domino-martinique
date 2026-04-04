@@ -12,7 +12,7 @@ import {
     useWindowDimensions,
     Platform
 } from 'react-native';
-import { useRouter, useNavigation } from 'expo-router';
+import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft, FadeIn } from 'react-native-reanimated';
@@ -82,6 +82,14 @@ export default function LobbyScreen() {
 
     // — JOIN tab state —
     const [roomIdToJoin, setRoomIdToJoin] = useState('');
+    const { autoJoinRoomId } = useLocalSearchParams<{ autoJoinRoomId?: string }>();
+
+    useEffect(() => {
+        if (autoJoinRoomId) {
+            setRoomIdToJoin(autoJoinRoomId);
+            setActiveTab('JOIN');
+        }
+    }, [autoJoinRoomId]);
 
     // — CREATE tab state —
     const [isPrivateRoom, setIsPrivateRoom] = useState(false);
@@ -109,7 +117,7 @@ export default function LobbyScreen() {
                     if (user) {
                         if (user.uid.startsWith('guest_')) {
                             // Guard: Anons cannot stay in lobby
-                            router.replace('/login');
+                            router.replace({ pathname: '/login', params: { autoJoinRoomId } });
                             return;
                         }
                         console.log('[Lobby] User loaded:', user.displayName, user.avatarId);
@@ -117,7 +125,7 @@ export default function LobbyScreen() {
                         setEconomyRefresh(v => v + 1); // refresh EconomyHeader
                     } else {
                         // No user at all -> Login
-                        router.replace('/login');
+                        router.replace({ pathname: '/login', params: { autoJoinRoomId } });
                     }
                 } catch (error) {
                     console.error('[Lobby] Error loading user:', error);
@@ -273,9 +281,9 @@ export default function LobbyScreen() {
     const handleJoinRoom = async () => {
         if (!requireAccountForMultiplayer()) return;
         if (!roomIdToJoin.trim() || !currentUser) return;
-        const cleanRoomId = roomIdToJoin.trim();
-        if (cleanRoomId.length < 10 || cleanRoomId.length > 30 || !/^[a-zA-Z0-9]+$/.test(cleanRoomId)) {
-            Alert.alert('Code invalide', 'Le code de salle doit contenir entre 10 et 30 caractères alphanumériques.');
+        const cleanRoomId = roomIdToJoin.trim().toUpperCase();
+        if (cleanRoomId.length < 5 || cleanRoomId.length > 20 || !/^[a-zA-Z0-9]+$/.test(cleanRoomId)) {
+            Alert.alert('Code invalide', 'Le code de la table doit contenir environ 6 caractères alphanumériques.');
             return;
         }
         if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant

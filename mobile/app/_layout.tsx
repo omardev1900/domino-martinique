@@ -116,6 +116,7 @@ export default function RootLayout() {
             <Stack.Screen name="solo" />
             <Stack.Screen name="lobby" />
             <Stack.Screen name="game/[id]" />
+            <Stack.Screen name="join/[id]" />
             <Stack.Screen name="profile" />
             <Stack.Screen
               name="modal"
