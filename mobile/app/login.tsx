@@ -48,18 +48,7 @@ export default function LoginScreen() {
         return "Une erreur est survenue. Veuillez réessayer.";
     };
 
-    const handleGuestLogin = async () => {
-        setIsLoading(true);
-        try {
-            await authService.loginAsGuest();
-            router.replace('/solo');
-        } catch (error) {
-            console.error(error);
-            Alert.alert('Erreur', 'Impossible de se connecter en invité.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+
 
     const handleAuthAction = async () => {
         setErrorMessage('');
@@ -221,20 +210,7 @@ export default function LoginScreen() {
                             </View>
                         </LinearGradient>
 
-                        {/* BOTTOM: Minimal Guest Section — temporairement masqué */}
-                        {false && (
-                            <TouchableOpacity
-                                style={styles.guestSection}
-                                onPress={handleGuestLogin}
-                                disabled={isLoading}
-                            >
-                                <Ionicons name="person-circle-outline" size={24} color="#90CAF9" />
-                                <View style={styles.guestTexts}>
-                                    <Text style={styles.guestButtonText}>Jouer Solo (Invité)</Text>
-                                    <Text style={styles.guestWarningText}>Pas de multijoueur, pas de stats.</Text>
-                                </View>
-                            </TouchableOpacity>
-                        )}
+
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -363,25 +339,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 82, 82, 0.2)',
         padding: 4,
         borderRadius: 4,
-    },
-    guestSection: {
-        flexDirection: 'row',
-        backgroundColor: 'rgba(20, 25, 20, 0.9)',
-        borderRadius: 12,
-        padding: 10,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        alignItems: 'center',
-        gap: 12,
-        justifyContent: 'center'
-    },
-    guestTexts: {
-        alignItems: 'flex-start',
-    },
-    guestWarningText: {
-        color: '#FFCDD2',
-        fontSize: 11,
-        fontWeight: '600',
     },
     guestButtonText: {
         fontSize: 14,

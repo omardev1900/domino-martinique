@@ -16,99 +16,11 @@ import { playerNameSchema } from '../validation/schemas';
 import { AVATAR_IMAGES } from '../avatars';
 
 const STORAGE_KEY_SESSION = '@user_session_active';
-const STORAGE_KEY_GUEST_PROFILE = '@guest_profile_data';
 
 class AuthService {
     private currentUser: PlayerProfile | null = null;
 
-    /**
-     * Generate a cryptographically secure random guest ID (SEC-5)
-     * Uses globalThis.crypto.getRandomValues, available in React Native >= 0.71
-     */
-    private generateGuestId(): string {
-        const bytes = new Uint8Array(16);
-        globalThis.crypto.getRandomValues(bytes);
-        const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-        return `guest_${hex}`;
-    }
 
-    /**
-     * Login as Guest
-     */
-    async loginAsGuest(): Promise<PlayerProfile> {
-        let guestUser: PlayerProfile | null = null;
-
-        try {
-            const existingProfileJson = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
-            if (existingProfileJson) {
-                guestUser = JSON.parse(existingProfileJson);
-
-                // FIX: Restore avatarUrl from avatarId if missing (JSON.stringify drops undefined)
-                if (guestUser && !guestUser.avatarUrl && guestUser.avatarId) {
-                    guestUser.avatarUrl = guestUser.avatarId;
-                }
-
-                // MIGRATION: Only force default avatar for truly new/invalid accounts
-                // Don't overwrite custom avatars!
-                if (guestUser) {
-                    const isGuestId = guestUser.uid.startsWith('guest_');
-                    // Only migrate if NO avatarId at all OR it's the old 'avatar_01' default
-                    const needsMigration = !guestUser.avatarId || guestUser.avatarId === 'avatar_01';
-
-                    if (isGuestId && needsMigration) {
-                        LogService.info('AuthService', 'Migrating guest avatar to avatar_default');
-                        guestUser.avatarId = 'avatar_default';
-                        guestUser.avatarUrl = 'avatar_default';
-                        await this.saveGuestProfile(guestUser);
-                    }
-                }
-            }
-        } catch (error) {
-            LogService.warn('AuthService', 'Failed to load existing guest profile', error);
-        }
-
-        if (!guestUser) {
-            guestUser = {
-                uid: this.generateGuestId(),
-                displayName: 'Invité',
-                avatarUrl: 'avatar_default',
-                avatarId: 'avatar_default',
-                gamesPlayed: 0,
-                gamesWon: 0,
-            };
-            await this.saveGuestProfile(guestUser);
-        }
-
-        await this.activateSession(guestUser);
-        await statsService.syncWithFirebase(guestUser.uid);
-        return guestUser;
-    }
-
-    /**
-     * Save guest profile ensuring avatarUrl is always present
-     */
-    private async saveGuestProfile(profile: PlayerProfile): Promise<void> {
-        try {
-            // Ensure avatarUrl is always set to avatarId (for consistency)
-            const profileToSave = {
-                ...profile,
-                avatarUrl: profile.avatarId || profile.avatarUrl || 'avatar_default'
-            };
-            const jsonString = JSON.stringify(profileToSave);
-            await AsyncStorage.setItem(STORAGE_KEY_GUEST_PROFILE, jsonString);
-            LogService.info('AuthService', 'Profile saved to AsyncStorage:', profileToSave.displayName, profileToSave.avatarId);
-            
-            // Verify it was saved correctly
-            const verify = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
-            if (verify) {
-                const verified = JSON.parse(verify);
-                LogService.debug('AuthService', 'Verification - saved profile:', verified.displayName, verified.avatarId);
-            }
-        } catch (error) {
-            LogService.error('AuthService', 'Error saving profile:', error);
-            throw error;
-        }
-    }
 
     /**
      * Firebase Sign In
@@ -211,17 +123,7 @@ class AuthService {
                 }
             }
 
-            // 3. Fallback to Guest Profile (Always try this if no Firebase user, even if session flag is missing)
-            const guestProfileJson = await AsyncStorage.getItem(STORAGE_KEY_GUEST_PROFILE);
-            if (guestProfileJson) {
-                const guestUser = JSON.parse(guestProfileJson);
-                // Ensure avatarUrl is restored (JSON.stringify drops undefined)
-                if (guestUser && !guestUser.avatarUrl && guestUser.avatarId) {
-                    guestUser.avatarUrl = guestUser.avatarId;
-                }
-                this.currentUser = guestUser;
-                return this.currentUser;
-            }
+
         } catch (error) {
             LogService.error('AuthService', 'getCurrentUser error:', error);
         }
@@ -259,14 +161,7 @@ class AuthService {
 
         this.currentUser = { ...user, ...stats };
 
-        // Only persist to Guest Profile if it looks like a guest ID
-        if (this.currentUser.uid.startsWith('guest_')) {
-            try {
-                await this.saveGuestProfile(this.currentUser);
-            } catch (error) {
-                LogService.error('AuthService', 'Failed to update guest stats', error);
-            }
-        }
+
     }
 
     /**
@@ -284,7 +179,7 @@ class AuthService {
 
         if (updates.displayName !== undefined && updates.displayName !== null) {
             const nameResult = playerNameSchema.safeParse(updates.displayName);
-            if (!nameResult.success) throw new Error(nameResult.error.errors[0].message);
+            if (!nameResult.success) throw new Error(nameResult.error.issues[0].message);
             profileUpdates.displayName = nameResult.data;
         }
 
@@ -303,15 +198,8 @@ class AuthService {
         this.currentUser = { ...user, ...profileUpdates };
 
         try {
-            // 3. Persist Guest Profile
-            if (this.currentUser.uid.startsWith('guest_')) {
-                await this.saveGuestProfile(this.currentUser);
-                await AsyncStorage.setItem(STORAGE_KEY_SESSION, 'true'); // Ensure session is active
-                LogService.info('AuthService', 'Guest profile updated & saved:', this.currentUser.displayName);
-            }
-
-            // 4. Persist Firebase Profile
-            else if (auth.currentUser) {
+            // 3. Persist Firebase Profile
+            if (auth.currentUser) {
                 await updateFirebaseProfile(auth.currentUser, {
                     displayName: updates.displayName,
                     photoURL: updates.photoURL
