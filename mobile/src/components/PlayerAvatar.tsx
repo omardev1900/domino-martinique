@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { DominoTile } from './DominoTile';
 import { SkinConfig } from '../core/store.types';
 import { ChatBubble } from './ChatBubble';
+import { AvatarFrame } from './AvatarFrame';
 
 interface PlayerAvatarProps {
     player: Player;
@@ -270,6 +271,11 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                 contentFit="cover"
                                 cachePolicy="memory-disk"
                             />
+                        )}
+                        
+                        {/* Cadre de Ligue des Cochons */}
+                        {player.activeFrame && (
+                            <AvatarFrame frameId={player.activeFrame} size={size} />
                         )}
 
                         {/* BOUDE OVERLAY */}

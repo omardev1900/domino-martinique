@@ -26,6 +26,7 @@ export interface Player {
     id: PlayerId;
     name: string;
     avatarId?: string;
+    activeFrame?: string; // NEW: Cadre Ligue des Cochons
     hand: Domino[];
     handSize: number;
     currentMancheStars: number; // ÉTOILES (currentMancheStars) : Victoires dans la manche en cours (0-3)
@@ -101,6 +102,7 @@ export interface PlayerProfile {
     diamonds?: number;       // 💎 Monnaie premium
     leaguePoints?: number;   // 🐷 Cochons totaux (alias de totalCochonsInflicted)
     leagueGrade?: string;    // Grade de ligue ('APPRENTI' | 'MAITRE' | 'ROI' | 'LEGENDE')
+    activeFrame?: string;    // Cadre de ligue équipé
     inventory?: PlayerInventory; // Cosmétiques possédés et équipés
     hasBeenDebited?: boolean; // NEW: Persistant buy-in check
 }

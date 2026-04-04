@@ -4,9 +4,10 @@ import Animated, { FadeIn, FadeInDown, FadeOut, ZoomIn, ZoomOut, useSharedValue,
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
-import { MatchReward, RewardBreakdown } from '../core/economy.types';
-import { LEAGUE_LABELS, LEAGUE_ICONS, MAX_LEVEL } from '../core/economy.constants';
+import { MatchReward, RewardBreakdown, LeagueFrameId } from '../core/economy.types';
+import { LEAGUE_LABELS, LEAGUE_ICONS, MAX_LEVEL, LEAGUE_GRADE_ORDER, LEAGUE_FRAME_THRESHOLDS } from '../core/economy.constants';
 import { xpRequiredForLevel } from '../core/RewardEngine';
+import { AvatarFrame } from './AvatarFrame';
 
 interface RewardOverlayProps {
     visible: boolean;
@@ -32,37 +33,7 @@ const XPIcon = ({ size = 18 }: { size?: number }) => (
 );
 
 
-// ─── Composant Rolling Number ────────────────────────────────────────────────
-const RollingNumber: React.FC<{ value: number; duration?: number; prefix?: string; suffix?: string; style?: any }> = ({ value, duration = 2000, prefix = '', suffix = '', style }) => {
-    const [displayValue, setDisplayValue] = useState(0);
-
-    useEffect(() => {
-        let startTime: number | null = null;
-        let animationFrameId: number;
-
-        const animate = (timestamp: number) => {
-            if (!startTime) startTime = timestamp;
-            const progress = Math.min((timestamp - startTime) / duration, 1);
-            const easeOut = progress * (2 - progress);
-            setDisplayValue(Math.floor(easeOut * value));
-
-            if (progress < 1) {
-                animationFrameId = requestAnimationFrame(animate);
-            } else {
-                setDisplayValue(value);
-            }
-        };
-
-        animationFrameId = requestAnimationFrame(animate);
-        return () => cancelAnimationFrame(animationFrameId);
-    }, [value, duration]);
-
-    return (
-        <Text style={style}>
-            {prefix}{displayValue.toLocaleString()}{suffix}
-        </Text>
-    );
-};
+import RollingNumber from './RollingNumber';
 
 
 // ─── Main Overlay ───────────────────────────────────────────────────────────
@@ -70,6 +41,28 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
     const [infoModalVisible, setInfoModalVisible] = useState(false);
+    
+    // État pour afficher la modale "Nouveau Cadre" s'il y en a un
+    const [showFrameModal, setShowFrameModal] = useState(false);
+
+    // Animation flottante pour le cadre (Déplacée au niveau racine absolu, avant tout return conditionnel !)
+    const floatingStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{
+                translateY: withRepeat(withTiming(-5, { duration: 1500, easing: Easing.inOut(Easing.ease) }), -1, true)
+            }]
+        };
+    });
+
+    useEffect(() => {
+        if (visible && reward && reward.newlyUnlockedFrames && reward.newlyUnlockedFrames.length > 0) {
+            // Afficher la modale après un court délai pour l'effet de surprise
+            const timer = setTimeout(() => setShowFrameModal(true), 1500);
+            return () => clearTimeout(timer);
+        } else {
+            setShowFrameModal(false);
+        }
+    }, [visible, reward]);
 
     if (!visible || !reward) return null;
 
@@ -254,6 +247,137 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>
+
+            {/* Modale NOUVEAU CADRE DÉBLOQUÉ */}
+            {reward.newlyUnlockedFrames && reward.newlyUnlockedFrames.length > 0 && (
+                <Modal
+                    visible={showFrameModal}
+                    animationType="fade"
+                    transparent={true}
+                    onRequestClose={() => setShowFrameModal(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        {(() => {
+                            const firstEvent = reward.newlyUnlockedFrames[0];
+                            const currentGrade = firstEvent.grade;
+                            const label = LEAGUE_LABELS[currentGrade];
+                            const icon = LEAGUE_ICONS[currentGrade];
+                            const cochons = firstEvent.cochonsAtUnlock;
+                            
+                            // Déduction du nom usuel du cadre
+                            const frameName = currentGrade === 'APPRENTI' ? 'CADRE ARGENT' : 
+                                              currentGrade === 'MAITRE' ? 'CADRE OR' : 
+                                              currentGrade === 'ROI' ? 'CADRE DIAMANT NÉON' : 'CADRE ULTIMATE FIRE';
+
+                            // Calcul de la progression
+                            let nextGrade: string | null = null;
+                            let nextThreshold: number | null = null;
+                            for (const g of LEAGUE_GRADE_ORDER) {
+                                if (LEAGUE_FRAME_THRESHOLDS[g] > cochons) {
+                                    nextGrade = g;
+                                    nextThreshold = LEAGUE_FRAME_THRESHOLDS[g];
+                                    break;
+                                }
+                            }
+
+                            const prevGradeIndex = LEAGUE_GRADE_ORDER.indexOf(currentGrade) - 1;
+                            const prevThreshold = prevGradeIndex >= 0 ? LEAGUE_FRAME_THRESHOLDS[LEAGUE_GRADE_ORDER[prevGradeIndex]] : 0;
+                            
+                            const remaining = nextThreshold ? nextThreshold - cochons : 0;
+                            const progressPercent = nextThreshold ? Math.min(100, Math.max(0, ((cochons - prevThreshold) / (nextThreshold - prevThreshold)) * 100)) : 100;
+                            const nextGradeLabel = nextGrade ? LEAGUE_LABELS[nextGrade as keyof typeof LEAGUE_LABELS] : '';
+                            const totalCoinsBonus = reward.newlyUnlockedFrames.reduce((acc, curr) => acc + curr.coinsBonus, 0);
+
+                            return (
+                                <TouchableOpacity 
+                                    activeOpacity={0.9} 
+                                    onPress={() => setShowFrameModal(false)}
+                                    style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                    <View style={styles.celebrationHeader}>
+                                        <Text style={styles.celebrationTitle}>FÉLICITATIONS !</Text>
+                                    </View>
+                                    <Animated.View 
+                                        entering={ZoomIn.duration(800).springify()} 
+                                        style={[
+                                            styles.frameUnlockModalContent,
+                                            isLandscape && styles.frameUnlockModalContentLandscape
+                                        ]}
+                                    >
+                                        <View style={[
+                                            styles.frameUnlockBody,
+                                            isLandscape && styles.frameUnlockBodyLandscape
+                                        ]}>
+                                            {/* Colonne Gauche : PROGRESSION */}
+                                            <View style={[styles.column, styles.columnLeft]}>
+                                                <Text style={styles.columnSubtitle}>VOTRE GRADE</Text>
+                                                <View style={styles.gradeBox}>
+                                                    <Text style={styles.gradeIcon}>{icon}</Text>
+                                                    <View>
+                                                        <Text style={styles.gradeTitle}>{label}</Text>
+                                                        <Text style={styles.gradeSubtext}>{cochons} COCHONS atteint</Text>
+                                                    </View>
+                                                </View>
+
+                                                {nextGrade && (
+                                                    <View style={styles.objectiveBox}>
+                                                        <Text style={styles.columnSubtitle}>OBJECTIF SUIVANT</Text>
+                                                        <View style={styles.nextObjectiveInfo}>
+                                                            <Text style={styles.nextObjectiveText}>
+                                                                Encore <Text style={{fontWeight: 'bold', color: '#FFD700'}}>{remaining} COCHONS</Text> pour '{nextGradeLabel}' !
+                                                            </Text>
+                                                        </View>
+                                                        <View style={styles.progressBarBg}>
+                                                            <Animated.View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+                                                        </View>
+                                                        <Text style={styles.progressText}>{cochons}/{nextThreshold} Cochons</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+
+                                            {/* Séparateur vertical en mode paysage */}
+                                            {isLandscape && <View style={styles.verticalDivider} />}
+
+                                            {/* Colonne Droite : BUTIN */}
+                                            <View style={[styles.column, styles.columnRight]}>
+                                                <Text style={styles.columnSubtitle}>BUTIN GAGNÉ</Text>
+                                                <View style={styles.framesContainer}>
+                                                    {reward.newlyUnlockedFrames.map((fEvent, idx) => (
+                                                        <View key={idx} style={styles.frameShowcase}>
+                                                            <Animated.View style={[styles.frameDisplay, floatingStyle]}>
+                                                                <View style={styles.shimmerEffect} />
+                                                                <View style={styles.fakeAvatar} />
+                                                                <AvatarFrame frameId={fEvent.frameId as LeagueFrameId} size={isLandscape ? 110 : 100} />
+                                                            </Animated.View>
+                                                            <Text style={styles.frameNameTag}>{frameName}</Text>
+                                                        </View>
+                                                    ))}
+                                                </View>
+
+                                                <View style={styles.frameCoinsBadgeBig}>
+                                                    <Text style={styles.frameCoinsValBig}>+</Text>
+                                                    <RollingNumber 
+                                                        value={totalCoinsBonus} 
+                                                        duration={1500} 
+                                                        style={styles.frameCoinsValBig} 
+                                                    />
+                                                    <Text style={styles.frameCoinsSymbol}> 🪙</Text>
+                                                </View>
+                                                <Text style={styles.coinsSubtext}>PIÈCES DE JEU</Text>
+                                                
+                                                <Text style={styles.tapToCloseText}>
+                                                    (Appuyez pour continuer)
+                                                </Text>
+                                            </View>
+
+                                        </View>
+                                    </Animated.View>
+                                </TouchableOpacity>
+                            );
+                        })()}
+                    </View>
+                </Modal>
+            )}
         </Animated.View>
     );
 }
@@ -509,5 +633,196 @@ const styles = StyleSheet.create({
         color: '#FFD700',
         fontWeight: 'bold',
         fontSize: 14,
+    },
+    // --- Cadre Unlock Modal ---
+    celebrationHeader: {
+        marginBottom: 15,
+        alignItems: 'center',
+    },
+    celebrationTitle: {
+        color: '#FFD700',
+        fontSize: 28,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+        textShadowColor: 'rgba(255, 215, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+    },
+    frameUnlockModalContent: {
+        width: '92%',
+        maxWidth: 500,
+        backgroundColor: 'rgba(20, 10, 35, 0.98)',
+        borderRadius: 22,
+        padding: 24,
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#FFD700',
+        elevation: 10,
+        shadowColor: '#FFD700',
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        maxHeight: '90%',
+    },
+    frameUnlockModalContentLandscape: {
+        maxWidth: 700,
+        paddingVertical: 20,
+    },
+    frameUnlockBody: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    frameUnlockBodyLandscape: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    column: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    columnLeft: {
+        flex: 1,
+        paddingBottom: 15,
+    },
+    columnRight: {
+        flex: 1,
+        paddingTop: 15,
+    },
+    verticalDivider: {
+        width: 1,
+        height: '90%',
+        backgroundColor: 'rgba(255, 215, 0, 0.3)',
+        marginHorizontal: 15,
+    },
+    columnSubtitle: {
+        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 12,
+        fontWeight: 'bold',
+        letterSpacing: 1.5,
+        marginBottom: 10,
+    },
+    gradeBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 20,
+        width: '100%',
+        maxWidth: 250,
+    },
+    gradeIcon: {
+        fontSize: 32,
+        marginRight: 10,
+    },
+    gradeTitle: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    gradeSubtext: {
+        color: '#4CAF50',
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginTop: 2,
+    },
+    objectiveBox: {
+        width: '100%',
+        maxWidth: 250,
+        alignItems: 'center',
+    },
+    nextObjectiveInfo: {
+        marginBottom: 8,
+    },
+    nextObjectiveText: {
+        color: '#FFF',
+        fontSize: 13,
+        textAlign: 'center',
+    },
+    progressBarBg: {
+        width: '100%',
+        height: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 6,
+        overflow: 'hidden',
+        marginBottom: 5,
+    },
+    progressBarFill: {
+        height: '100%',
+        backgroundColor: '#FFD700',
+        borderRadius: 6,
+    },
+    progressText: {
+        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 11,
+    },
+    framesContainer: {
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    frameShowcase: {
+        alignItems: 'center',
+    },
+    frameDisplay: {
+        width: 130,
+        height: 130,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 10,
+        position: 'relative',
+    },
+    shimmerEffect: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255, 215, 0, 0.15)',
+        borderRadius: 65,
+        transform: [{ scale: 1.2 }],
+    },
+    fakeAvatar: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    frameNameTag: {
+        color: '#FFD700',
+        fontWeight: 'bold',
+        fontSize: 15,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+    frameCoinsBadgeBig: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        backgroundColor: 'rgba(255,215,0,0.15)',
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#FFD700',
+        marginBottom: 5,
+    },
+    frameCoinsValBig: {
+        color: '#FFD700',
+        fontWeight: '900',
+        fontSize: 24,
+    },
+    frameCoinsSymbol: {
+        fontSize: 20,
+        marginLeft: 5,
+    },
+    coinsSubtext: {
+        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 11,
+        fontWeight: 'bold',
+        letterSpacing: 1,
+    },
+    tapToCloseText: {
+        color: 'rgba(255,255,255,0.3)',
+        fontSize: 12,
+        marginTop: 20,
+        fontStyle: 'italic',
     },
 });

@@ -19,8 +19,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { authService } from '../src/core/services/auth.service';
+import { economyService } from '../src/core/services/economy.service';
 import { PlayerProfile } from '../src/core/types';
+import { LeagueFrameId } from '../src/core/economy.types';
 import { AVAILABLE_AVATARS, getAvatarImage, AvatarId } from '../src/core/avatars';
+import { AvatarFrame } from '../src/components/AvatarFrame';
+import { LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_FRAME_THRESHOLDS } from '../src/core/economy.constants';
+import { leagueService } from '../src/core/services/league.service';
 export default function ProfileScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
@@ -31,6 +36,11 @@ export default function ProfileScreen() {
     const [displayName, setDisplayName] = useState('');
     const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
     const [selectedAvatar, setSelectedAvatar] = useState<string | undefined>(undefined);
+    // -- Cadres --
+    const [unlockedFrames, setUnlockedFrames] = useState<LeagueFrameId[]>([]);
+    const [activeFrame, setActiveFrame] = useState<LeagueFrameId | null>(null);
+    const [cochonsGiven, setCochonsGiven] = useState(0);
+
     const [isLoading, setIsLoading] = useState(false);
     const nameInputRef = useRef<TextInput>(null);
 
@@ -73,6 +83,14 @@ export default function ProfileScreen() {
                 // Default to default avatar if none exist
                 console.log('[Profile] Using default avatar, none found');
                 setSelectedAvatar('avatar_default');
+            }
+
+            // Load Economy for Frames
+            const eco = await economyService.getEconomy();
+            if (eco) {
+                setUnlockedFrames(eco.unlockedFrames || []);
+                setActiveFrame(eco.activeFrame || null);
+                setCochonsGiven(eco.cochonsGiven ?? 0);
             }
         } else {
             console.log('[Profile] No user found, using defaults');
@@ -128,6 +146,17 @@ export default function ProfileScreen() {
         }
     };
 
+    const handleFrameSelect = async (frameId: LeagueFrameId | null) => {
+        if (!user) return;
+        setActiveFrame(frameId);
+        try {
+            await economyService.equipLeagueFrame(user.uid, frameId);
+            setLastSaved(new Date());
+        } catch (e) {
+            console.error('[Profile] Error equiping frame:', e);
+        }
+    };
+
     const renderAvatarGrid = () => (
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>Votre avatar</Text>
@@ -155,7 +184,78 @@ export default function ProfileScreen() {
         </View>
     );
 
+    const renderFramesGrid = () => {
+        if (unlockedFrames.length === 0) return null;
+        
+        return (
+            <View style={[styles.section, { marginTop: 15 }]}>
+                <Text style={styles.sectionTitle}>Cadres Ligue des Cochons</Text>
+                
+                <View style={styles.framesGrid}>
+                    <TouchableOpacity
+                        style={[styles.frameOption, activeFrame === null && styles.selectedFrameOption]}
+                        onPress={() => handleFrameSelect(null)}
+                    >
+                        <Text style={{ color: '#FFF', fontSize: 12, fontWeight: 'bold' }}>Aucun</Text>
+                    </TouchableOpacity>
 
+                    {unlockedFrames.map((frameId) => (
+                        <TouchableOpacity
+                            key={frameId}
+                            style={[
+                                styles.frameOption,
+                                activeFrame === frameId && styles.selectedFrameOption
+                            ]}
+                            onPress={() => handleFrameSelect(frameId)}
+                        >
+                            <View style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }}>
+                                <AvatarFrame frameId={frameId} size={40} />
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+        );
+    };
+
+    const renderLeagueBlock = () => {
+        const grade = leagueService.getGradeFromCochons(cochonsGiven);
+        const nextThreshold = leagueService.getNextFrameThreshold(cochonsGiven);
+        const prevThreshold = (() => {
+            const ordered = [0, 30, 150, 250, 500];
+            const nIdx = ordered.indexOf(nextThreshold ?? 500);
+            return nIdx > 0 ? ordered[nIdx - 1] : 0;
+        })();
+        const progress = nextThreshold
+            ? Math.min((cochonsGiven - prevThreshold) / (nextThreshold - prevThreshold), 1)
+            : 1;
+
+        return (
+            <TouchableOpacity
+                style={styles.leagueBlock}
+                onPress={() => router.push('/ligue-cochons' as any)}
+                activeOpacity={0.85}
+            >
+                <View style={styles.leagueBlockHeader}>
+                    <Text style={styles.leagueBlockTitle}>🐷 Niveau Boucher</Text>
+                    <Ionicons name="chevron-forward" size={18} color="#FFD700" />
+                </View>
+                <Text style={styles.leagueGradeText}>
+                    {LEAGUE_ICONS[grade]} {LEAGUE_LABELS[grade]}
+                </Text>
+                <Text style={styles.leagueCochonsText}>{cochonsGiven} cochon{cochonsGiven !== 1 ? 's' : ''} donnés</Text>
+                {/* Mini barre de progression */}
+                <View style={styles.leagueMiniTrack}>
+                    <View style={[styles.leagueMiniBar, { width: `${progress * 100}%` as any }]} />
+                </View>
+                {nextThreshold && (
+                    <Text style={styles.leagueNextText}>
+                        {nextThreshold - cochonsGiven} cochon{(nextThreshold - cochonsGiven) !== 1 ? 's' : ''} avant le prochain palier
+                    </Text>
+                )}
+            </TouchableOpacity>
+        );
+    };
 
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
@@ -200,6 +300,14 @@ export default function ProfileScreen() {
                     >
                         <Ionicons name="home" size={28} color="#FFD700" />
                     </TouchableOpacity>
+                    {( __DEV__ || (typeof window !== 'undefined' && window.location.hostname === 'localhost')) && (
+                        <TouchableOpacity
+                            style={styles.devButton}
+                            onPress={() => router.push('/debug-ligue' as any)}
+                        >
+                            <Text style={styles.devButtonText}>🛠 Debug Ligue</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 <ScrollView
@@ -214,12 +322,15 @@ export default function ProfileScreen() {
                     {/* Main Container - Centered */}
                     <View style={styles.centerColumn}>
                         <View style={styles.avatarCircle}>
-                            <Image
-                                source={getAvatarImage(selectedAvatar || 'avatar_default')}
-                                style={styles.avatarCircleImage}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                            />
+                            <View style={styles.avatarCircleBorder}>
+                                <Image
+                                    source={getAvatarImage(selectedAvatar || 'avatar_default')}
+                                    style={styles.avatarCircleImage}
+                                    contentFit="cover"
+                                    cachePolicy="memory-disk"
+                                />
+                            </View>
+                            {activeFrame && <AvatarFrame frameId={activeFrame} size={86} />}
                         </View>
                         <View style={styles.headerInfo}>
                             <TextInput
@@ -256,12 +367,23 @@ export default function ProfileScreen() {
 
                         <View style={styles.avatarSelectionSmall}>
                             {renderAvatarGrid()}
+                            {renderFramesGrid()}
                         </View>
                     </View>
 
-                    {/* BOTTOM SECTION: Form Controls - ALWAYS VISIBLE */}
-                    <View style={{ marginTop: 20, marginBottom: 40 }}>
+                    {/* BOTTOM SECTION: Form Controls + League Block */}
+                    <View style={{ marginTop: 20, marginBottom: 40, gap: 16 }}>
+                        {renderLeagueBlock()}
                         {renderFormControls()}
+                        {/* 🛠 DEV ONLY — Debug Ligue */}
+                        {__DEV__ && (
+                            <TouchableOpacity
+                                style={styles.devButton}
+                                onPress={() => router.push('/debug-ligue' as any)}
+                            >
+                                <Text style={styles.devButtonText}>🛠 Debug Ligue des Cochons</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -311,7 +433,7 @@ const styles = StyleSheet.create({
         width: 86,
         height: 86,
         borderRadius: 43,
-        backgroundColor: '#FFD700',
+        backgroundColor: 'rgba(255,215,0,0.2)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 10,
@@ -320,6 +442,12 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 5,
+        overflow: 'visible',
+    },
+    avatarCircleBorder: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 43,
         overflow: 'hidden',
         borderWidth: 3,
         borderColor: '#FFD700',
@@ -398,6 +526,29 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 40,
     },
+    // --- Cadres Grid ---
+    framesGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        paddingHorizontal: 10,
+        gap: 15,
+        marginTop: 5,
+    },
+    frameOption: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    selectedFrameOption: {
+        borderColor: '#FFD700',
+        backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    },
 
     // ─── Actions ───
     formSection: {
@@ -447,5 +598,71 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
     },
 
+    // ─── Bloc Ligue des Cochons ───
+    leagueBlock: {
+        width: '100%',
+        maxWidth: 320,
+        alignSelf: 'center',
+        backgroundColor: 'rgba(255,215,0,0.07)',
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,215,0,0.3)',
+        padding: 16,
+        gap: 6,
+    },
+    leagueBlockHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    leagueBlockTitle: {
+        color: '#FFD700',
+        fontSize: 14,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    leagueGradeText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    leagueCochonsText: {
+        color: 'rgba(255,255,255,0.55)',
+        fontSize: 12,
+    },
+    leagueMiniTrack: {
+        height: 6,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 3,
+        overflow: 'hidden',
+        marginVertical: 2,
+    },
+    leagueMiniBar: {
+        height: '100%',
+        backgroundColor: '#FFD700',
+        borderRadius: 3,
+    },
+    leagueNextText: {
+        color: 'rgba(255,255,255,0.45)',
+        fontSize: 11,
+        fontStyle: 'italic',
+    },
+
+    // ─── DEV Button ───
+    devButton: {
+        alignSelf: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,100,0,0.4)',
+        backgroundColor: 'rgba(255,100,0,0.08)',
+    },
+    devButtonText: {
+        color: 'rgba(255,150,50,0.8)',
+        fontSize: 12,
+        fontWeight: '700',
+    },
 
 });

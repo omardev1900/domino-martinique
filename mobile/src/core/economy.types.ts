@@ -6,6 +6,19 @@
  * Il ne contient AUCUNE logique métier — uniquement des interfaces et types.
  */
 
+// ─── Ligue des Cochons — Cadres ─────────────────────────────────────────────────
+
+/** Identifiant unique d'un cadre d'avatar débloqué par la Ligue des Cochons */
+export type LeagueFrameId = 'frame_argent' | 'frame_or' | 'frame_diamant' | 'frame_feu';
+
+/** Événement de déblocage d'un palier de la Ligue — déclenche la modal de récompense */
+export interface FrameUnlockEvent {
+    grade: LeagueGrade;
+    frameId: LeagueFrameId;
+    coinsBonus: number;       // Coins offerts en récompense du palier
+    cochonsAtUnlock: number;  // Nombre de cochons donnés au moment du déblocage
+}
+
 // ─── Monnaies & Progression ───────────────────────────────────────────────────
 
 /** État économique complet d'un joueur */
@@ -14,8 +27,12 @@ export interface PlayerEconomy {
     xp: number;            // ⭐ Expérience cumulée totale
     level: number;         // Niveau courant dérivé de l'XP
     diamonds: number;      // 💎 Monnaie premium
-    leaguePoints: number;  // 🐷 Total cochons infligés (source de la ligue)
+    leaguePoints: number;  // 🐷 Total cochons infligés (alias cochonsGiven — source de la ligue)
     leagueGrade: LeagueGrade;
+    // ─── Ligue des Cochons ───
+    cochonsGiven?: number;           // 🐖 Compteur lifetime de cochons DONNÉS (by this player)
+    unlockedFrames?: LeagueFrameId[]; // Cadres avatar débloqués (liste des paliers atteints)
+    activeFrame?: LeagueFrameId | null; // Cadre actuellement équipé
     lastDailyRewardTimestamp?: number; // 📅 Dernier cadeau reçu (pour check quotidien)
 }
 
@@ -57,6 +74,10 @@ export interface RewardCalculationInput {
     tableTier: TableTier;
     /** Nombre de joueurs dans la partie */
     playerCount: number;
+    /** Nombre de cochons donné à vie AVANT ce match (pour calcul du déblocage) */
+    currentCochonsGiven?: number;
+    /** Cadres déjà débloqués (pour ne pas redonner la récompense) */
+    unlockedFrames?: LeagueFrameId[];
 }
 
 /** Snapshot des stats finales d'un joueur pour le calcul des rewards */
@@ -108,6 +129,10 @@ export interface MatchReward {
     previousLeaguePoints: number;
     newLeaguePoints: number;
     nextGradeThreshold: number | null; // null si grade max
+    // ─ Ligue des Cochons — Cadres
+    newCochonsGiven: number;                     // Nouveau total de cochons donnés
+    newlyUnlockedFrames: FrameUnlockEvent[];     // Paliers débloqués durant ce match (peut en avoir plusieurs)
+    frameCoinsBonus: number;                     // Total des coins offerts par les paliers débloqués
 
     // ─ Détail animable ligne par ligne (pour le rolling counter)
     breakdown: RewardBreakdown[];

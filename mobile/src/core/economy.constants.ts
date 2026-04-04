@@ -122,14 +122,38 @@ export const LEVEL_UP_CHESTS: LevelUpChest[] = [
 /** Bonus de coins au passage de chaque niveau (si pas dans LEVEL_UP_CHESTS) */
 export const DEFAULT_LEVEL_UP_COINS = 100;
 
-// ─── Ligue des Cochons ────────────────────────────────────────────────────────
+// ─── Ligue des Cochons ───────────────────────────────────────────────────
 
-/** Seuils de cochons pour chaque grade */
+/**
+ * Seuils de cochons DONNÉS pour débloquer chaque grade.
+ * Correspond aux paliers officiels « Niveau Boucher ».
+ */
 export const LEAGUE_THRESHOLDS: Record<LeagueGrade, number> = {
-    APPRENTI: 0,
-    MAITRE: 31,
-    ROI: 151,
-    LEGENDE: 500,
+    APPRENTI: 0,   // Grade de départ (pas encore de palier débloqué)
+    MAITRE: 30,    // 🥈 Apprenti Boucher
+    ROI: 150,      // 🥇 Maître Saucissier
+    LEGENDE: 250,  // 💎 Roi du Boudin (250 → palier 3 = ROI)
+                   // Note: 500 = Légende du Groin (grade max)
+};
+
+// Note: les seuils de DÉBLOCAGE des cadres sont les 4 paliers du brief :
+// 30, 150, 250, 500 — ils définissent les récompenses, pas les grades ci-dessus
+// Les grades (4 niveaux) sont recalculés depuis cochonsGiven.
+
+/** Seuils de cochons pour le déblocage des cadres (distinct des grades) */
+export const LEAGUE_FRAME_THRESHOLDS: Record<string, number> = {
+    APPRENTI: 30,   // 30 cochons → Cadre Argent
+    MAITRE:   150,  // 150 cochons → Cadre Or
+    ROI:      250,  // 250 cochons → Cadre Diamant Néon
+    LEGENDE:  500,  // 500 cochons → Cadre Ultimate Fire
+};
+
+/** Récompenses associées à chaque palier de la Ligue des Cochons */
+export const LEAGUE_FRAME_REWARDS: Record<LeagueGrade, { frameId: string; coinsBonus: number }> = {
+    APPRENTI: { frameId: 'frame_argent',  coinsBonus: 500 },
+    MAITRE:   { frameId: 'frame_or',      coinsBonus: 2000 },
+    ROI:      { frameId: 'frame_diamant', coinsBonus: 5000 },
+    LEGENDE:  { frameId: 'frame_feu',     coinsBonus: 10000 },
 };
 
 /** Ordre des grades du plus faible au plus fort */
@@ -145,8 +169,8 @@ export const LEAGUE_LABELS: Record<LeagueGrade, string> = {
 
 /** Emojis des grades */
 export const LEAGUE_ICONS: Record<LeagueGrade, string> = {
-    APPRENTI: '🔰',
-    MAITRE: '🥈',
+    APPRENTI: '🥈',
+    MAITRE: '🥇',
     ROI: '👑',
     LEGENDE: '🔥',
 };

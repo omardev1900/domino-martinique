@@ -16,7 +16,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from './firebase';
 import { LogService } from './LogService';
-import { PlayerEconomy, MatchReward, LeagueGrade, RewardCalculationInput } from '../economy.types';
+import { PlayerEconomy, MatchReward, LeagueGrade, RewardCalculationInput, LeagueFrameId } from '../economy.types';
 import { NEW_PLAYER_COINS, DAILY_REWARD_COINS } from '../economy.constants';
 import { getLevelFromXP, getLeagueGrade } from '../RewardEngine';
 
@@ -37,6 +37,10 @@ const DEFAULT_ECONOMY: PlayerEconomy = {
     diamonds: 0,
     leaguePoints: 0,
     leagueGrade: 'APPRENTI',
+    // ─── Ligue des Cochons ───
+    cochonsGiven: 0,
+    unlockedFrames: [],
+    activeFrame: null,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -130,6 +134,15 @@ class EconomyService {
             diamonds: current.diamonds + reward.diamondsEarned,
             leaguePoints: reward.newLeaguePoints,
             leagueGrade: reward.newGrade,
+            // ─── Ligue des Cochons ───
+            cochonsGiven: reward.newCochonsGiven,
+            unlockedFrames: [
+                ...new Set([
+                    ...(current.unlockedFrames ?? []),
+                    ...reward.newlyUnlockedFrames.map(e => e.frameId),
+                ])
+            ] as LeagueFrameId[],
+            activeFrame: current.activeFrame ?? null,
         };
 
         this.cached = updated;
@@ -177,6 +190,15 @@ class EconomyService {
                 diamonds: current.diamonds + reward.diamondsEarned,
                 leaguePoints: reward.newLeaguePoints,
                 leagueGrade: reward.newGrade,
+                // ─── Ligue des Cochons ───
+                cochonsGiven: reward.newCochonsGiven,
+                unlockedFrames: [
+                    ...new Set([
+                        ...(current.unlockedFrames ?? []),
+                        ...reward.newlyUnlockedFrames.map(e => e.frameId),
+                    ])
+                ] as LeagueFrameId[],
+                activeFrame: current.activeFrame ?? null,
             };
             this.cached = updated;
             await this.persistLocal(); // On sauvegarde juste dans le AsyncStorage pour l'application fluide
@@ -226,6 +248,30 @@ class EconomyService {
         if (!current.lastDailyRewardTimestamp) return true;
         const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
         return (Date.now() - current.lastDailyRewardTimestamp) >= TWENTY_FOUR_HOURS_MS;
+    }
+
+    /**
+     * Équipe un cadre pour le joueur.
+     * Met à jour localement et sur Firebase si authentifié.
+     */
+    async equipLeagueFrame(userId: string, frameId: LeagueFrameId | null): Promise<void> {
+        const current = await this.getEconomy();
+        
+        // Vérification de sécurité (bien que l'UI empêche de cliquer)
+        if (frameId && !(current.unlockedFrames || []).includes(frameId)) {
+            LogService.warn('EconomyService', `Tentative d'équipement d'un cadre non débloqué: ${frameId}`);
+            return;
+        }
+
+        const updated: PlayerEconomy = { ...current, activeFrame: frameId };
+        this.cached = updated;
+        await this.persistLocal();
+
+        if (userId && !userId.startsWith('guest_')) {
+            await this.pushToFirebase(userId, updated);
+        }
+
+        LogService.debug('EconomyService', `Cadre équipé avec succès : ${frameId}`);
     }
 
     /**
@@ -372,6 +418,10 @@ class EconomyService {
             diamonds: partial.diamonds ?? DEFAULT_ECONOMY.diamonds,
             leaguePoints,
             leagueGrade: (partial.leagueGrade as LeagueGrade) ?? getLeagueGrade(leaguePoints),
+            // ─── Ligue des Cochons (migration: valeurs par défaut pour les anciens profils) ───
+            cochonsGiven: partial.cochonsGiven ?? 0,
+            unlockedFrames: (partial.unlockedFrames as LeagueFrameId[]) ?? [],
+            activeFrame: (partial.activeFrame as LeagueFrameId | null) ?? null,
             lastDailyRewardTimestamp: partial.lastDailyRewardTimestamp,
         };
     }

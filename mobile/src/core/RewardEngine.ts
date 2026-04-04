@@ -24,7 +24,10 @@ import {
     PlayerMatchSnapshot,
     LevelUpChest,
     TableTier,
+    FrameUnlockEvent,
+    LeagueFrameId,
 } from './economy.types';
+
 
 import { GameState } from './types';
 import { LogService } from './services/LogService';
@@ -41,6 +44,8 @@ import {
     MAX_LEVEL,
     LEAGUE_THRESHOLDS,
     LEAGUE_GRADE_ORDER,
+    LEAGUE_FRAME_THRESHOLDS,
+    LEAGUE_FRAME_REWARDS,
     LEVEL_UP_CHESTS,
     DEFAULT_LEVEL_UP_COINS,
 } from './economy.constants';
@@ -350,17 +355,58 @@ export const RewardEngine = {
             }
         }
 
-        // ── 6. Calcul de Ligue ───────────────────────────────────────────────
+        // ── 6. Calcul de Ligue ──────────────────────────────────────
         const previousLeaguePoints = currentLeaguePoints;
         const newLeaguePoints = currentLeaguePoints + totalLeaguePoints;
         const previousGrade = getLeagueGrade(previousLeaguePoints);
         const newGrade = getLeagueGrade(newLeaguePoints);
         const gradeUp = newGrade !== previousGrade;
 
-        // ── 7. Construction du MatchReward Final ─────────────────────────────
+        // ── 6b. Ligue des Cochons — Déblocage de cadres ────────────────
+        // `totalLeaguePoints` = cochons INFLIGÉS dans ce match
+        const cochonsGivenBefore = input.currentCochonsGiven ?? 0;
+        const alreadyUnlocked = (input.unlockedFrames ?? []) as LeagueFrameId[];
+        const newCochonsGiven = cochonsGivenBefore + totalLeaguePoints;
+
+        const newlyUnlockedFrames: FrameUnlockEvent[] = [];
+        let frameCoinsBonus = 0;
+
+        for (const grade of LEAGUE_GRADE_ORDER) {
+            const threshold = LEAGUE_FRAME_THRESHOLDS[grade];
+            const frameReward = LEAGUE_FRAME_REWARDS[grade];
+            const frameId = frameReward.frameId as LeagueFrameId;
+
+            if (
+                newCochonsGiven >= threshold &&
+                cochonsGivenBefore < threshold &&
+                !alreadyUnlocked.includes(frameId)
+            ) {
+                newlyUnlockedFrames.push({
+                    grade: grade as import('./economy.types').LeagueGrade,
+                    frameId,
+                    coinsBonus: frameReward.coinsBonus,
+                    cochonsAtUnlock: newCochonsGiven,
+                });
+                frameCoinsBonus += frameReward.coinsBonus;
+            }
+        }
+
+        // Les coins des cadres s'ajoutent au détail
+        if (frameCoinsBonus > 0) {
+            adjustedBreakdown.push({
+                id: 'league_frame_unlock',
+                label: `👀 Palier Ligue débloqué (×${newlyUnlockedFrames.length})`,
+                coins: frameCoinsBonus,
+                xp: 0,
+                diamonds: 0,
+                leaguePoints: 0,
+            });
+        }
+
+        // ── 7. Construction du MatchReward Final ──────────────────────
         const matchReward: MatchReward = {
             // Totaux
-            coinsEarned: coinsEarned + chestCoins,
+            coinsEarned: coinsEarned + chestCoins + frameCoinsBonus,
             xpEarned: totalXP,
             diamondsEarned: totalDiamonds + chestDiamonds,
             leaguePointsEarned: totalLeaguePoints,
@@ -374,13 +420,18 @@ export const RewardEngine = {
             newXP,
             xpToNextLevel: xpLeft,
 
-            // Ligue
+            // Ligue (grades)
             previousGrade,
             newGrade,
             gradeUp,
             previousLeaguePoints,
             newLeaguePoints,
             nextGradeThreshold: nextLeagueThreshold(newGrade),
+
+            // Ligue des Cochons — Cadres
+            newCochonsGiven,
+            newlyUnlockedFrames,
+            frameCoinsBonus,
 
             // Détail animable
             breakdown: adjustedBreakdown,
@@ -394,6 +445,8 @@ export const RewardEngine = {
             newLevel: matchReward.newLevel,
             gradeUp: matchReward.gradeUp,
             newGrade: matchReward.newGrade,
+            newCochonsGiven: matchReward.newCochonsGiven,
+            framesUnlocked: matchReward.newlyUnlockedFrames.length,
             lines: adjustedBreakdown.length,
         });
 

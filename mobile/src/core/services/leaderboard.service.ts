@@ -25,6 +25,7 @@ export interface LeaderboardEntry {
     uid: string;
     displayName: string;
     avatarId: string;
+    activeFrame?: string;
     xp: number;
     coins: number;
     level: number;
@@ -39,7 +40,7 @@ export type LeaderboardCategory = 'XP' | 'COINS' | 'COCHONS';
 const CATEGORY_FIELD: Record<LeaderboardCategory, string> = {
     XP: 'economy.xp',
     COINS: 'economy.coins',
-    COCHONS: 'economy.leaguePoints',
+    COCHONS: 'economy.cochonsGiven',
 };
 
 class LeaderboardService {
@@ -77,6 +78,7 @@ class LeaderboardService {
                         displayName: data.displayName || data.email?.split('@')[0] || 'Joueur',
                         // Lire avatarId (nouveau champ) avec fallback vers avatarUrl (ancien champ)
                         avatarId: data.avatarId || data.avatarUrl || 'avatar_default',
+                        activeFrame: economy.activeFrame || null,
                         xp: economy.xp || 0,
                         coins: economy.coins || 0,
                         level: economy.level || 1,

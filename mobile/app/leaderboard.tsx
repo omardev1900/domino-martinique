@@ -14,6 +14,7 @@ import { economyService } from '../src/core/services/economy.service';
 import { getAvatarImage } from '../src/core/avatars';
 import { LEAGUE_LABELS, LEAGUE_ICONS } from '../src/core/economy.constants';
 import { PlayerProfile } from '../src/core/types';
+import { AvatarFrame } from '../src/components/AvatarFrame';
 
 export default function LeaderboardScreen() {
     const router = useRouter();
@@ -133,13 +134,16 @@ export default function LeaderboardScreen() {
                 </View>
 
                 {/* Avatar */}
-                <View style={styles.avatarContainer}>
-                    <Image
-                        source={avatarSrc}
-                        style={styles.avatarImage}
-                        contentFit="cover"
-                        cachePolicy="memory-disk"
-                    />
+                <View style={[styles.avatarContainer, item.activeFrame ? { overflow: 'visible', backgroundColor: 'transparent' } : null]}>
+                    <View style={{ width: '100%', height: '100%', borderRadius: 22, overflow: 'hidden', backgroundColor: 'rgba(255,215,0,0.2)' }}>
+                        <Image
+                            source={avatarSrc}
+                            style={styles.avatarImage}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                        />
+                    </View>
+                    {item.activeFrame && <AvatarFrame frameId={item.activeFrame} size={44} />}
                 </View>
 
                 {/* Nom et Ligue */}
