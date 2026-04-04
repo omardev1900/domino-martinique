@@ -273,11 +273,6 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             />
                         )}
                         
-                        {/* Cadre de Ligue des Cochons */}
-                        {player.activeFrame && (
-                            <AvatarFrame frameId={player.activeFrame} size={size} />
-                        )}
-
                         {/* BOUDE OVERLAY */}
                         {isBoude && (
                             <View style={styles.boudeOverlay}>
@@ -298,6 +293,11 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             </View>
                         )}
                     </View>
+
+                    {/* Cadre de Ligue des Cochons (Placé hors du overflow: hidden pour ne pas être rogné) */}
+                    {player.activeFrame && (
+                        <AvatarFrame frameId={player.activeFrame} size={size} />
+                    )}
 
                     {/* Timer Ring */}
                     {showTimer && isActive && (

@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
 import { EconomyHeader } from '../components/EconomyHeader';
+import { AvatarFrame } from '../components/AvatarFrame';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -134,18 +135,23 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                         </>
                     ) : (
                         <>
-                            <View style={[styles.avatar, slot.isCurrentUser && styles.avatarHighlight, { overflow: 'hidden' }]}>
-                                <Image
-                                    source={getAvatarImage(slot.player?.avatarId || 'avatar_default')}
-                                    style={{
-                                        width: 80 * 1.6,
-                                        height: 80 * 1.6,
-                                        position: 'absolute',
-                                        top: -(80 * 1.6 - 80) * 0.25,
-                                    }}
-                                    contentFit="cover"
-                                    cachePolicy="memory-disk"
-                                />
+                            <View style={{ justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                                <View style={[styles.avatar, slot.isCurrentUser && styles.avatarHighlight, { overflow: 'hidden', marginBottom: 0 }]}>
+                                    <Image
+                                        source={getAvatarImage(slot.player?.avatarId || 'avatar_default')}
+                                        style={{
+                                            width: 80 * 1.6,
+                                            height: 80 * 1.6,
+                                            position: 'absolute',
+                                            top: -(80 * 1.6 - 80) * 0.25,
+                                        }}
+                                        contentFit="cover"
+                                        cachePolicy="memory-disk"
+                                    />
+                                </View>
+                                {slot.player?.activeFrame && (
+                                    <AvatarFrame frameId={slot.player.activeFrame} size={80} />
+                                )}
                             </View>
                             <Text style={styles.playerName}>
                                 {slot.player!.displayName}

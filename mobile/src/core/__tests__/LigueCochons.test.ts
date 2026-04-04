@@ -12,6 +12,19 @@
  *  - Grade max (500 cochons)
  */
 
+// Mocks Firebase
+jest.mock('firebase/firestore', () => ({
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  updateDoc: jest.fn(),
+  arrayUnion: jest.fn(),
+  increment: jest.fn(),
+}));
+
+jest.mock('../services/firebase', () => ({
+  db: {},
+}));
+
 import { leagueService } from '../services/league.service';
 
 const NO_FRAMES: string[] = [];
