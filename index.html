@@ -7,20 +7,49 @@
   <title>Domino Martinique - Phase 1</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap"
     rel="stylesheet">
   <style>
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      background: radial-gradient(circle at center, #1a3c1a 0%, #0d1f0d 100%);
+      color: #f1f5f1;
     }
 
-    .font-premium {
-      font-family: 'Playfair+Display', serif;
+    .bg-immersive {
+      background: radial-gradient(circle at center, #1a3c1a 0%, #0d1f0d 100%);
+      position: relative;
     }
 
-    .wood-texture {
-      background-color: #2c1810;
-      background-image: url("https://www.transparenttextures.com/patterns/wood-pattern.png");
+    /* Tropical / Madras Pattern Overlay */
+    .bg-immersive::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: url("https://www.transparenttextures.com/patterns/leaf.png");
+      opacity: 0.04;
+      pointer-events: none;
+    }
+
+    .glass-gold {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .glass-gold:hover {
+      border-color: rgba(212, 175, 55, 0.8);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .gold-text {
+      color: #D4AF37;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
   </style>
   <script type="importmap">
