@@ -18,14 +18,16 @@ const App = () => {
         React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl mb-24' }, [
             // CTA Android (APK)
             React.createElement('a', {
-                href: '/domino-v1.apk',
+                href: 'https://drive.google.com/drive/folders/14_kyZqtlPCFD-aavt8c3amb3sJg4OXVZ?usp=sharing',
+                target: '_blank',
+                rel: 'noopener noreferrer',
                 className: 'glass-gold p-12 rounded-[40px] transition-all duration-500 hover:-translate-y-2 group text-center flex flex-col items-center'
             }, [
                 React.createElement('div', { className: 'w-20 h-20 bg-[#D4AF37] rounded-full flex items-center justify-center mb-6 shadow-lg shadow-yellow-900/20 group-hover:scale-110 transition-transform' }, [
                     React.createElement('span', { className: 'text-4xl' }, '🤖')
                 ]),
                 React.createElement('h2', { className: 'text-2xl font-bold mb-2' }, 'Android (APK)'),
-                React.createElement('p', { className: 'text-stone-400 font-light' }, 'Téléchargement direct pour une expérience optimale')
+                React.createElement('p', { className: 'text-stone-400 font-light' }, 'Accédez au dossier sécurisé pour télécharger la dernière version (.apk)')
             ]),
 
             // CTA Web / iOS
