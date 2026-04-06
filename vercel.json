@@ -1,12 +1,16 @@
 {
     "rewrites": [
         {
-            "source": "/mobile/:path*",
-            "destination": "/mobile/dist/:path*"
-        },
-        {
             "source": "/mobile",
             "destination": "/mobile/dist/index.html"
+        },
+        {
+            "source": "/mobile/:path([^.]+)",
+            "destination": "/mobile/dist/index.html"
+        },
+        {
+            "source": "/mobile/:path*",
+            "destination": "/mobile/dist/:path*"
         },
         {
             "source": "/((?!mobile|admin|api|.*\\.apk|.*\\.css|.*\\.tsx|.*\\.js).*)",
