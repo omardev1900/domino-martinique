@@ -1,5 +1,5 @@
-import React from 'react';
 import { createRoot } from 'react-dom/client';
+import React from 'react';
 
 const App = () => {
     return React.createElement('div', { className: 'flex flex-col items-center justify-center min-h-screen p-4 wood-texture' }, [
