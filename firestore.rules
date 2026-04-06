@@ -45,6 +45,12 @@ service cloud.firestore {
     match /tournaments/{id} {
       allow read: if request.auth != null;
       allow write: if isAdmin();
+      
+      // Les joueurs peuvent écrire leur propre document participant (pour rejoindre)
+      match /participants/{userId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // Logs des actions admin : écriture par les admins authentifiés, lecture admin uniquement

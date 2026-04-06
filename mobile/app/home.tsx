@@ -314,22 +314,33 @@ export default function HomeScreen() {
 
                     <Animated.View entering={FadeInUp.delay(600).duration(500)} style={[styles.cardWrapper, isLandscape && styles.cardWrapperLandscape]}>
                         <TouchableOpacity
-                            style={[styles.modeCard, { opacity: 0.5 }]}
-                            disabled={true}
-                            activeOpacity={1}
+                            style={styles.modeCard}
+                            onPress={() => {
+                                if (user?.uid?.startsWith('guest_')) {
+                                    Alert.alert(
+                                        'Accès Restreint',
+                                        'Les tournois requièrent un compte gratuit.',
+                                        [
+                                            { text: 'Plus tard', style: 'cancel' },
+                                            { text: 'Créer un compte', onPress: () => router.push('/login') }
+                                        ]
+                                    );
+                                } else {
+                                    // @ts-ignore - On ignore tant que l'écran n'est pas typé globalement
+                                    router.push('/tournaments');
+                                }
+                            }}
+                            activeOpacity={0.85}
                         >
                             <LinearGradient
                                 colors={['#FF9800', '#F57C00']}
                                 style={styles.cardGradient}
                             >
                                 <Text style={styles.cardIcon}>🏆</Text>
-                                <Text style={styles.cardTitle}>Tournoi</Text>
-                                <Text style={styles.cardDesc}>Prochainement</Text>
+                                <Text style={styles.cardTitle}>Tournois</Text>
+                                <Text style={styles.cardDesc}>Compétitions en cours</Text>
                             </LinearGradient>
                         </TouchableOpacity>
-                        <View style={styles.comingSoonBadge}>
-                            <Text style={styles.comingSoonText}>Bientôt</Text>
-                        </View>
                     </Animated.View>
                 </View>
             </ScrollView>

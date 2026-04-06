@@ -35,7 +35,7 @@ class SoundManager {
     // WEB AUTOPLAY GUARD: Browsers require a user gesture before calling .play()
     private userInteracted = Platform.OS !== 'web'; // true immediately on native, false on web
     private pendingMusicName: ('bgm1' | 'bgm2' | 'bgm3') | null = null;
-    private pendingMusicVolume = 0.5;
+    private pendingMusicVolume = 0.3;
 
     private constructor() { }
 
@@ -124,7 +124,7 @@ class SoundManager {
 
     // ─── Background Music ─────────────────────────────────────────────────────
 
-    async playMusic(name: 'bgm1' | 'bgm2' | 'bgm3', volume = 0.5) {
+    async playMusic(name: 'bgm1' | 'bgm2' | 'bgm3', volume = 0.3) {
         // On Web, defer until user has interacted (browser autoplay policy)
         if (!this.isAudioAllowed) {
             LogService.warn('SoundManager', `Audio blocked on Web (no gesture yet). Music "${name}" queued.`);

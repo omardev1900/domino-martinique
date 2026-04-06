@@ -7,14 +7,18 @@
     "icon": "./src/assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "statusBarHidden": true
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0d1f0d",
         "foregroundImage": "./src/assets/images/icon.png"
+      },
+      "statusBar": {
+        "hidden": true
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

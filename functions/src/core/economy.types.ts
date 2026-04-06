@@ -57,6 +57,8 @@ export interface RewardCalculationInput {
     tableTier: TableTier;
     /** Nombre de joueurs dans la partie */
     playerCount: number;
+    /** Identifiant du tournoi en cours (optionnel) */
+    tournamentId?: string;
 }
 
 /** Snapshot des stats finales d'un joueur pour le calcul des rewards */

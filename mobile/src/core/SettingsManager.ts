@@ -16,7 +16,7 @@ class SettingsManager {
     private isVibrationEnabled: boolean = true;
     private tableTheme: TableTheme = 'classic';
     private gameBgmTheme: BgmTheme = 'bgm1';
-    private bgmVolume: number = 0.5;
+    private bgmVolume: number = 0.25;
     private sfxVolume: number = 1.0;
 
     private constructor() { }
