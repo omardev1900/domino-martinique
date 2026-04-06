@@ -48,6 +48,12 @@
       "typedRoutes": true,
       "reactCompiler": true,
       "baseUrl": "/mobile"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c41e9fd3-2c51-4d26-874f-92f683280c81"
+      }
     }
   }
 }
