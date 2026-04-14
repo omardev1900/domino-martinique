@@ -273,12 +273,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             />
                         )}
                         
-                        {/* BOUDE OVERLAY */}
-                        {isBoude && (
-                            <View style={styles.boudeOverlay}>
-                                <Text style={styles.boudeText}>BOUDÉ</Text>
-                            </View>
-                        )}
+                        {/* L'overlay est supprimé ici pour laisser l'avatar visible */}
+
 
                         {/* DISCONNECTED OVERLAY (Priorité sur Bot) */}
                         {player.status === 'DISCONNECTED' ? (
@@ -359,12 +355,17 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                 }
 
                 {/* Info Block for Horizontal Layout */}
-                {
-                    isHorizontal && (
                         <View style={[
                             styles.opponentInfoBlock,
                             position === 'top-right' ? styles.opponentInfoBlockRight : styles.opponentInfoBlockLeft
                         ]}>
+                            {/* BOUDÉ LABEL FOR LOCAL PLAYER (Shows ABOVE name) */}
+                            {!position?.startsWith('top') && isBoude && (
+                                <Animated.View entering={ZoomIn.duration(300)} style={styles.boudeBadgeTop}>
+                                    <Text style={styles.boudeBadgeText}>🚫 BOUDÉ</Text>
+                                </Animated.View>
+                            )}
+
                             <Text style={styles.opponentNameText} numberOfLines={1}>{player.name}</Text>
                             <View style={styles.opponentStatsRow}>
                                 {gameMode === 'COCHON' && (
@@ -384,9 +385,14 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                     <Text style={styles.statValuePTS}>{ptsScore}</Text>
                                 </View>
                             </View>
+
+                            {/* BOUDÉ LABEL FOR OPPONENTS (Shows BELOW stats) */}
+                            {position?.startsWith('top') && isBoude && (
+                                <Animated.View entering={ZoomIn.duration(300)} style={styles.boudeBadgeBottom}>
+                                    <Text style={styles.boudeBadgeText}>🚫 BOUDÉ</Text>
+                                </Animated.View>
+                            )}
                         </View>
-                    )
-                }
                 {/* RENDER REMAINING HAND ON BOUDE */}
                 {showHandDominoes && player.hand && player.hand.length > 0 && (
                     <Animated.View
@@ -501,17 +507,27 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         opacity: 0.8,
     },
-    boudeOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(192, 57, 43, 0.8)', // Reddish overlay
-        justifyContent: 'center',
-        alignItems: 'center',
+    boudeBadgeTop: {
+        backgroundColor: '#C0392B',
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        borderRadius: 4,
+        marginBottom: 3,
+        alignSelf: 'center',
     },
-    boudeText: {
+    boudeBadgeBottom: {
+        backgroundColor: '#C0392B',
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        borderRadius: 4,
+        marginTop: 3,
+        alignSelf: 'center',
+    },
+    boudeBadgeText: {
         color: '#FFF',
-        fontWeight: 'bold',
-        fontSize: 12,
-        letterSpacing: 1,
+        fontWeight: '900',
+        fontSize: 8,
+        letterSpacing: 0.5,
     },
     botOverlay: {
         ...StyleSheet.absoluteFillObject,

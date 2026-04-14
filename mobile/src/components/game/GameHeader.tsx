@@ -14,6 +14,8 @@ export interface GameHeaderProps {
     onToggleRoomInfo: () => void;
     isSoundEnabled: boolean;
     onToggleSound: () => void;
+    isVibrationEnabled: boolean;
+    onToggleVibration: () => void;
     onOpenSettings: () => void;
     isFullscreen: boolean;
     onToggleFullscreen: () => void;
@@ -29,6 +31,8 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
     onToggleRoomInfo,
     isSoundEnabled,
     onToggleSound,
+    isVibrationEnabled,
+    onToggleVibration,
     onOpenSettings,
     isFullscreen,
     onToggleFullscreen,
@@ -103,6 +107,15 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
                     testID="btn-sound"
                 >
                     <Ionicons name={isSoundEnabled ? "volume-high" : "volume-mute"} size={22} color="#FFD700" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={onToggleVibration}
+                    activeOpacity={0.7}
+                    style={styles.controlBtn}
+                    testID="btn-vibration"
+                >
+                    <Ionicons name={isVibrationEnabled ? "phone-portrait-outline" : "phone-portrait-sharp"} size={22} color="#FFD700" />
                 </TouchableOpacity>
 
                 <TouchableOpacity

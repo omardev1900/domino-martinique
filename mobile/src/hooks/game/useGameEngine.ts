@@ -6,6 +6,7 @@ import { useBotDecision } from './useBotDecision';
 import { useAutoPass } from './useAutoPass';
 import { getValidMoves } from '../../core/DominoEngine';
 import SoundManager from '../../core/audio/SoundManager';
+import HapticManager from '../../core/audio/HapticManager';
 
 export interface UseGameEngineProps {
     gameState: GameState | null;
@@ -94,6 +95,14 @@ export const useGameEngine = ({
         isPaused,
         dispatch
     });
+
+    // 5. Vibration au début du tour du joueur
+    useEffect(() => {
+        if (!gameState || gameState.phase !== 'PLAYING') return;
+        if (gameState.currentPlayerId === localPlayerId) {
+            HapticManager.triggerImpact();
+        }
+    }, [gameState?.currentPlayerId, gameState?.turnId, localPlayerId]);
 
     const handlePlayDomino = async (domino: Domino) => {
         if (!gameState || isPaused) return;

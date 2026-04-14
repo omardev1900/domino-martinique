@@ -195,6 +195,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [showRoundResult, setShowRoundResult] = useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = useState(() => SettingsManager.getSettings().isSfxEnabled);
+    const [isVibrationEnabled, setIsVibrationEnabled] = useState(() => SettingsManager.getSettings().isVibrationEnabled);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [bannerState, setBannerState] = useState<'NONE' | 'MANCHE' | 'ROUND'>('NONE');
     const [playersChat, setPlayersChat] = useState<{ [playerId: string]: string | null }>({});
@@ -1033,6 +1034,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     onToggleSound={async () => {
                         const newState = await SoundManager.toggleMute();
                         setIsSoundEnabled(newState);
+                    }}
+                    isVibrationEnabled={isVibrationEnabled}
+                    onToggleVibration={async () => {
+                        const newState = !isVibrationEnabled;
+                        await SettingsManager.setVibrationEnabled(newState);
+                        setIsVibrationEnabled(newState);
                     }}
                     onOpenSettings={() => router.push('/modal')}
                     isFullscreen={isFullscreen}
