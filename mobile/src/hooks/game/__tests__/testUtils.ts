@@ -4,8 +4,8 @@ export const createBaseGameState = (overrides?: Partial<GameState>): GameState =
     return {
         gameId: 'test-game',
         players: [
-            { id: 'player1', name: 'Tester', hand: [], handSize: 0, currentMancheStars: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'HUMAN' },
-            { id: 'bot1', name: 'Bot 1', hand: [], handSize: 0, currentMancheStars: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, status: 'BOT' }
+            { id: 'player1', name: 'Tester', hand: [], handSize: 0, currentMancheStars: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'HUMAN' },
+            { id: 'bot1', name: 'Bot 1', hand: [], handSize: 0, currentMancheStars: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'BOT' }
         ],
         talonMort: [],
         table: { sequence: [], leftValue: null, rightValue: null },

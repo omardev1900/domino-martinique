@@ -154,7 +154,10 @@ export const finalizeRound = (
                 updatedPlayer = {
                     ...p,
                     mancheWins: p.mancheWins + 1,
-                    totalPoints: (p.totalPoints || 0) + bonus 
+                    totalPoints: (p.totalPoints || 0) + bonus,
+                    // ✅ B3 FIX: Le vainqueur cumule les cochons donnés (1 ou 2 selon les perdants à 0)
+                    totalCochonsInfliges: (p.totalCochonsInfliges || 0) + cochonCount,
+                    totalCochons: (p.totalCochons || 0) + cochonCount // On garde l'ancien champ par sécurité
                 };
             } else if (p.currentMancheStars === 0) {
                 historyPointsForManche = -1;
@@ -162,7 +165,7 @@ export const finalizeRound = (
                     ...p,
                     isCochon: true,
                     totalPoints: (p.totalPoints || 0) - 1, // Receives -1 for being cochon
-                    totalCochons: (p.totalCochons || 0) + 1
+                    totalCochonsSubis: (p.totalCochonsSubis || 0) + 1 // ✅ B3 FIX: Le perdant reçoit le cochon
                 };
             } else {
                 historyPointsForManche = p.currentMancheStars;
@@ -264,6 +267,8 @@ export const preparePlayersForNextRound = (
             mancheWins: originalPlayer?.mancheWins ?? 0,
             totalPoints: originalPlayer?.totalPoints ?? 0,
             totalCochons: originalPlayer?.totalCochons ?? 0,
+            totalCochonsInfliges: originalPlayer?.totalCochonsInfliges ?? 0,
+            totalCochonsSubis: originalPlayer?.totalCochonsSubis ?? 0,
             totalRoundWins: originalPlayer?.totalRoundWins ?? 0,
             status: originalPlayer?.status ?? 'HUMAN',
             wins: originalPlayer?.wins ?? 0,

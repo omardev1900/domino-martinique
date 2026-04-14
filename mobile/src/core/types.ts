@@ -35,7 +35,9 @@ export interface Player {
     totalRoundWins: number; // POINTS DE ROUND (totalRoundWins) : Total des parties gagnées (persistant)
     totalPoints: number; // LE CAMION (totalMatchPoints) : Score cumulé (RoundWins + Bonus/Malus Cochon)
     isCochon: boolean;
-    totalCochons: number;
+    totalCochons: number; // Historique / Cumulé
+    totalCochonsInfliges: number; // ✅ NEW: Cochons donnés aux autres (Stats Vainqueur)
+    totalCochonsSubis: number; // ✅ NEW: Cochons reçus (Stats Perdant)
     status: PlayerStatus; // (Sprint 3-10) Remplace isBot et isDisconnected
     difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN'; // NEW: Niveau spécifique du bot
 }
