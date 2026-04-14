@@ -58,21 +58,28 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                     const canPlayByBoardRule = !disabled && checkValidMove(domino, leftValue, rightValue).canPlay;
                     const canPlay = canPlayByBoardRule && (!forcedPlayableDominoId || domino.id === forcedPlayableDominoId);
                     return (
+                        // ✅ FIX B1: Le style d'élévation (translateY) est sur un plain View PARENT.
+                        // L'Animated.View enfant gère uniquement l'animation d'entrée (FadeInDown).
+                        // Avant ce fix, FadeInDown et translateY étaient sur le même Animated.View :
+                        // FadeInDown remettait translateY à 0 pendant son animation, annulant l'élévation.
                         <View
                             key={domino.id}
                             ref={(el) => (tileRefs.current[domino.id] = el as any)}
+                            style={
+                                canPlay
+                                    ? styles.tileElevated
+                                    : disabled
+                                        ? styles.tileDisabled
+                                        // ✅ FIX B2: Pas de transform scale sur les tuiles non-jouables.
+                                        // L'ancien scale(0.92) + translateY(-25) sur les tuiles voisines
+                                        // créait le visuel "dominos qui se bousculent". Opacity seule = propre.
+                                        : styles.tileNotPlayable
+                            }
                         >
                             <Animated.View
                                 entering={FadeInDown.springify().damping(12).stiffness(100).delay(index * 120)}
                                 // 🚨 RADICAL FIX: On retire 'layout' car il cause des mutations sur objets gelés en React 19
-                                style={[
-                                    styles.tileWrapper,
-                                    canPlay
-                                        ? { transform: [{ translateY: -25 }], zIndex: 10, elevation: 15 }
-                                        : disabled
-                                            ? { zIndex: 1, elevation: 3 } // Pas mon tour : tuiles visibles, pas de réduction d'opacité
-                                            : { opacity: 0.5, transform: [{ scale: 0.92 }], zIndex: 1, elevation: 3 }, // Mon tour mais tuile non jouable
-                                ]}
+                                style={styles.tileWrapper}
                             >
                                 <DominoTile
                                     left={domino.left}
@@ -115,9 +122,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         flexGrow: 1,
         paddingHorizontal: 20,
-        paddingTop: 30, // Make natural room for the elevated domino
+        paddingTop: 35, // ++ Increased: make room for elevated domino (-25px) without clipping
         paddingBottom: 10,
-        gap: 8,
+        gap: 10, // ++ Slightly more breathing room between tiles
         overflow: 'visible',
     },
     tileWrapper: {
@@ -125,5 +132,24 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 6,
+    },
+    // ✅ B1 FIX: styles d'état sur le View parent (plain View, pas Animated.View)
+    // pour ne pas interférer avec l'animation entering FadeInDown
+    tileElevated: {
+        transform: [{ translateY: -25 }],
+        zIndex: 10,
+        elevation: 15,
+    },
+    tileDisabled: {
+        // Pas mon tour : tuiles visibles sans réduction d'opacité
+        zIndex: 1,
+        elevation: 3,
+    },
+    tileNotPlayable: {
+        // ✅ B2 FIX: Mon tour, tuile non jouable — opacity seule (pas de scale)
+        // L'ancien scale(0.92) créait un effet de "bousculade" avec les tuiles voisines élevées
+        opacity: 0.5,
+        zIndex: 1,
+        elevation: 3,
     },
 });

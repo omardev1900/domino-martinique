@@ -65,7 +65,7 @@ export default function SoloScreen() {
 
     // Ratios basés sur l'étalon Configuration (Icon 48, Title 16)
     // On utilise Math.max pour garantir une lisibilité minimale sur très petits écrans
-    const dynamicEmojiSize = Math.max(colWidth * 0.35, 24); 
+    const dynamicEmojiSize = Math.max(colWidth * 0.35, 24);
     const dynamicTitleSize = Math.max(colWidth * 0.14, 11);
 
     useFocusEffect(
@@ -150,190 +150,190 @@ export default function SoloScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-            <Animated.View entering={FadeInUp.delay(200)} style={{ width: '100%', alignItems: 'center' }}>
-                <View style={styles.contentContainer}>
-                    {/* STEP 1: MODE SELECTION */}
-                    {uiStep === 'MODE' && (
-                        <Animated.View entering={FadeInUp.duration(400)} style={styles.stepContainer}>
-                            <View style={[styles.largeModeContainer, isLandscape && styles.largeModeContainerLandscape]}>
-                                {/* VICTOIRE */}
-                                <TouchableOpacity
-                                    style={styles.largeModeCard}
-                                    onPress={() => { setGameMode('VICTOIRE'); setWinningCondition(5); setUiStep('CONFIG'); }}
-                                    activeOpacity={0.8}
-                                >
-                                    <LinearGradient colors={['#388E3C', '#66BB6A']} style={styles.largeModeGradient}>
-                                        <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🏆</Text>
-                                        <View style={styles.largeModeInfo}>
-                                            <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Victoire</Text>
-                                            <Text style={styles.largeModeDesc}>Le premier à gagner X rounds.</Text>
-                                        </View>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-
-                                {/* SCORE */}
-                                <TouchableOpacity
-                                    style={styles.largeModeCard}
-                                    onPress={() => { setGameMode('SCORE'); setWinningCondition(100); setUiStep('CONFIG'); }}
-                                    activeOpacity={0.8}
-                                >
-                                    <LinearGradient colors={['#0288D1', '#26C6DA']} style={styles.largeModeGradient}>
-                                        <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🎯</Text>
-                                        <View style={styles.largeModeInfo}>
-                                            <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Score</Text>
-                                            <Text style={styles.largeModeDesc}>Atteins l'objectif de points.</Text>
-                                        </View>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-
-                                {/* COCHON */}
-                                <TouchableOpacity
-                                    style={styles.largeModeCard}
-                                    onPress={() => { setGameMode('COCHON'); setWinningCondition(3); setUiStep('CONFIG'); }}
-                                    activeOpacity={0.8}
-                                >
-                                    <LinearGradient colors={['#EC407A', '#FF7043']} style={styles.largeModeGradient}>
-                                        <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🐷</Text>
-                                        <View style={styles.largeModeInfo}>
-                                            <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Cochons</Text>
-                                            <Text style={styles.largeModeDesc}>Évite de faire zéro point.</Text>
-                                        </View>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-
-                                {/* MANCHE */}
-                                <TouchableOpacity
-                                    style={styles.largeModeCard}
-                                    onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); setUiStep('CONFIG'); }}
-                                    activeOpacity={0.8}
-                                >
-                                    <LinearGradient colors={['#FFA000', '#FFD54F']} style={styles.largeModeGradient}>
-                                        <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🎲</Text>
-                                        <View style={styles.largeModeInfo}>
-                                            <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Manches</Text>
-                                            <Text style={styles.largeModeDesc}>Joue un nombre fixe de manches.</Text>
-                                        </View>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-                            </View>
-                        </Animated.View>
-                    )}
-
-                    {/* STEP 2: CONFIGURATION */}
-                    {uiStep === 'CONFIG' && (
-                        <Animated.View entering={FadeInLeft.duration(400)} style={styles.stepContainer}>
-                            <View style={styles.configSplitOuter}>
-                                {/* Left Col: Mode Preview */}
-                                <View style={styles.configLeftCol}>
-                                    <View style={[styles.largeModeCard, { width: '100%', aspectRatio: 1 }]}>
-                                        <LinearGradient 
-                                            colors={
-                                                gameMode === 'VICTOIRE' ? ['#388E3C', '#66BB6A'] :
-                                                gameMode === 'SCORE' ? ['#0288D1', '#26C6DA'] :
-                                                gameMode === 'COCHON' ? ['#EC407A', '#FF7043'] :
-                                                ['#FFA000', '#FFD54F']
-                                            } 
-                                            style={styles.largeModeGradient}
-                                        >
-                                            <Text style={[styles.largeModeEmoji, { fontSize: 48 }]}>
-                                                {gameMode === 'VICTOIRE' ? '🏆' : gameMode === 'SCORE' ? '🎯' : gameMode === 'COCHON' ? '🐷' : '🎲'}
-                                            </Text>
-                                            <Text style={[styles.largeModeTitle, { fontSize: 16 }]}>{gameMode}</Text>
+                <Animated.View entering={FadeInUp.delay(200)} style={{ width: '100%', alignItems: 'center' }}>
+                    <View style={styles.contentContainer}>
+                        {/* STEP 1: MODE SELECTION */}
+                        {uiStep === 'MODE' && (
+                            <Animated.View entering={FadeInUp.duration(400)} style={styles.stepContainer}>
+                                <View style={[styles.largeModeContainer, isLandscape && styles.largeModeContainerLandscape]}>
+                                    {/* VICTOIRE */}
+                                    <TouchableOpacity
+                                        style={styles.largeModeCard}
+                                        onPress={() => { setGameMode('VICTOIRE'); setWinningCondition(5); setUiStep('CONFIG'); }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <LinearGradient colors={['#388E3C', '#66BB6A']} style={styles.largeModeGradient}>
+                                            <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🏆</Text>
+                                            <View style={styles.largeModeInfo}>
+                                                <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Victoire</Text>
+                                                <Text style={styles.largeModeDesc}>Le premier à gagner X rounds.</Text>
+                                            </View>
                                         </LinearGradient>
-                                    </View>
-                                </View>
+                                    </TouchableOpacity>
 
-                                {/* Right Col: Settings */}
-                                <View style={styles.configRightCol}>
-                                    <View style={styles.paramsHorizontalStack}>
-                                        {/* 1. Difficulté */}
-                                        <View style={styles.paramItemHorizontal}>
-                                            <Text style={styles.paramLabelSmall}>DIFFICULTÉ</Text>
-                                            <View style={styles.diffToggleSmall}>
-                                                {['TI_MANMAY', 'MAPIPI', 'GRAN_MOUN'].map((d) => (
-                                                    <TouchableOpacity
-                                                        key={d}
-                                                        style={[styles.diffBtnSmall, difficulty === d && styles.activeDiffBtnSmall]}
-                                                        onPress={() => setDifficulty(d as any)}
-                                                    >
-                                                        <Text style={styles.diffIconSmall}>
-                                                            {d === 'TI_MANMAY' ? '🌱' : d === 'MAPIPI' ? '🌶️' : '👑'}
-                                                        </Text>
+                                    {/* SCORE */}
+                                    <TouchableOpacity
+                                        style={styles.largeModeCard}
+                                        onPress={() => { setGameMode('SCORE'); setWinningCondition(10); setUiStep('CONFIG'); }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <LinearGradient colors={['#0288D1', '#26C6DA']} style={styles.largeModeGradient}>
+                                            <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🎯</Text>
+                                            <View style={styles.largeModeInfo}>
+                                                <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Score</Text>
+                                                <Text style={styles.largeModeDesc}>Atteins l'objectif de points.</Text>
+                                            </View>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+
+                                    {/* COCHON */}
+                                    <TouchableOpacity
+                                        style={styles.largeModeCard}
+                                        onPress={() => { setGameMode('COCHON'); setWinningCondition(3); setUiStep('CONFIG'); }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <LinearGradient colors={['#EC407A', '#FF7043']} style={styles.largeModeGradient}>
+                                            <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🐷</Text>
+                                            <View style={styles.largeModeInfo}>
+                                                <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Cochons</Text>
+                                                <Text style={styles.largeModeDesc}>Évite de faire zéro point.</Text>
+                                            </View>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+
+                                    {/* MANCHE */}
+                                    <TouchableOpacity
+                                        style={styles.largeModeCard}
+                                        onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); setUiStep('CONFIG'); }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <LinearGradient colors={['#FFA000', '#FFD54F']} style={styles.largeModeGradient}>
+                                            <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🎲</Text>
+                                            <View style={styles.largeModeInfo}>
+                                                <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Manches</Text>
+                                                <Text style={styles.largeModeDesc}>Joue un nombre fixe de manches.</Text>
+                                            </View>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+                                </View>
+                            </Animated.View>
+                        )}
+
+                        {/* STEP 2: CONFIGURATION */}
+                        {uiStep === 'CONFIG' && (
+                            <Animated.View entering={FadeInLeft.duration(400)} style={styles.stepContainer}>
+                                <View style={styles.configSplitOuter}>
+                                    {/* Left Col: Mode Preview */}
+                                    <View style={styles.configLeftCol}>
+                                        <View style={[styles.largeModeCard, { width: '100%', aspectRatio: 1 }]}>
+                                            <LinearGradient
+                                                colors={
+                                                    gameMode === 'VICTOIRE' ? ['#388E3C', '#66BB6A'] :
+                                                        gameMode === 'SCORE' ? ['#0288D1', '#26C6DA'] :
+                                                            gameMode === 'COCHON' ? ['#EC407A', '#FF7043'] :
+                                                                ['#FFA000', '#FFD54F']
+                                                }
+                                                style={styles.largeModeGradient}
+                                            >
+                                                <Text style={[styles.largeModeEmoji, { fontSize: 48 }]}>
+                                                    {gameMode === 'VICTOIRE' ? '🏆' : gameMode === 'SCORE' ? '🎯' : gameMode === 'COCHON' ? '🐷' : '🎲'}
+                                                </Text>
+                                                <Text style={[styles.largeModeTitle, { fontSize: 16 }]}>{gameMode}</Text>
+                                            </LinearGradient>
+                                        </View>
+                                    </View>
+
+                                    {/* Right Col: Settings */}
+                                    <View style={styles.configRightCol}>
+                                        <View style={styles.paramsHorizontalStack}>
+                                            {/* 1. Difficulté */}
+                                            <View style={styles.paramItemHorizontal}>
+                                                <Text style={styles.paramLabelSmall}>DIFFICULTÉ</Text>
+                                                <View style={styles.diffToggleSmall}>
+                                                    {['TI_MANMAY', 'MAPIPI', 'GRAN_MOUN'].map((d) => (
+                                                        <TouchableOpacity
+                                                            key={d}
+                                                            style={[styles.diffBtnSmall, difficulty === d && styles.activeDiffBtnSmall]}
+                                                            onPress={() => setDifficulty(d as any)}
+                                                        >
+                                                            <Text style={styles.diffIconSmall}>
+                                                                {d === 'TI_MANMAY' ? '🌱' : d === 'MAPIPI' ? '🌶️' : '👑'}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                                <Text style={styles.paramSubtext}>{difficulty === 'TI_MANMAY' ? 'Facile' : difficulty === 'MAPIPI' ? 'Moyen' : 'Difficile'}</Text>
+                                            </View>
+
+                                            {/* 2. Objectif */}
+                                            <View style={styles.paramItemHorizontal}>
+                                                <Text style={styles.paramLabelSmall}>OBJECTIF</Text>
+                                                <View style={styles.stepperSmall}>
+                                                    <TouchableOpacity onPress={() => updateTarget(-1)} style={styles.stepBtnSmall}>
+                                                        <Ionicons name="remove" size={18} color="#FFF" />
                                                     </TouchableOpacity>
-                                                ))}
+                                                    <Text style={styles.stepValueSmall}>{winningCondition}</Text>
+                                                    <TouchableOpacity onPress={() => updateTarget(1)} style={styles.stepBtnSmall}>
+                                                        <Ionicons name="add" size={18} color="#FFF" />
+                                                    </TouchableOpacity>
+                                                </View>
+                                                <Text style={styles.paramSubtext}>
+                                                    {gameMode === 'VICTOIRE' ? 'Victoires' : gameMode === 'MANCHE' ? 'Manches' : gameMode === 'COCHON' ? 'Cochons' : 'Points'}
+                                                </Text>
                                             </View>
-                                            <Text style={styles.paramSubtext}>{difficulty === 'TI_MANMAY' ? 'Facile' : difficulty === 'MAPIPI' ? 'Moyen' : 'Difficile'}</Text>
-                                        </View>
 
-                                        {/* 2. Objectif */}
-                                        <View style={styles.paramItemHorizontal}>
-                                            <Text style={styles.paramLabelSmall}>OBJECTIF</Text>
-                                            <View style={styles.stepperSmall}>
-                                                <TouchableOpacity onPress={() => updateTarget(-1)} style={styles.stepBtnSmall}>
-                                                    <Ionicons name="remove" size={18} color="#FFF" />
-                                                </TouchableOpacity>
-                                                <Text style={styles.stepValueSmall}>{winningCondition}</Text>
-                                                <TouchableOpacity onPress={() => updateTarget(1)} style={styles.stepBtnSmall}>
-                                                    <Ionicons name="add" size={18} color="#FFF" />
-                                                </TouchableOpacity>
+                                            {/* 3. Vitesse */}
+                                            <View style={styles.paramItemHorizontal}>
+                                                <Text style={styles.paramLabelSmall}>VITESSE</Text>
+                                                <View style={styles.stepperSmall}>
+                                                    <TouchableOpacity onPress={() => setTurnDuration(prev => {
+                                                        const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+                                                        const idx = steps.indexOf(prev);
+                                                        return idx > 0 ? steps[idx - 1] : steps[0];
+                                                    })} style={styles.stepBtnSmall}>
+                                                        <Ionicons name="remove" size={18} color="#FFF" />
+                                                    </TouchableOpacity>
+                                                    <Text style={styles.stepValueSmall}>{turnDuration === 0 ? '∞' : turnDuration}</Text>
+                                                    <TouchableOpacity onPress={() => setTurnDuration(prev => {
+                                                        const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+                                                        const idx = steps.indexOf(prev);
+                                                        return idx < steps.length - 1 ? steps[idx + 1] : steps[steps.length - 1];
+                                                    })} style={styles.stepBtnSmall}>
+                                                        <Ionicons name="add" size={18} color="#FFF" />
+                                                    </TouchableOpacity>
+                                                </View>
+                                                <Text style={styles.paramSubtext}>{turnDuration === 0 ? 'Illimité' : 'secondes'}</Text>
                                             </View>
-                                            <Text style={styles.paramSubtext}>
-                                                {gameMode === 'VICTOIRE' ? 'Victoires' : gameMode === 'MANCHE' ? 'Manches' : gameMode === 'COCHON' ? 'Cochons' : 'Points'}
-                                            </Text>
-                                        </View>
-
-                                        {/* 3. Vitesse */}
-                                        <View style={styles.paramItemHorizontal}>
-                                            <Text style={styles.paramLabelSmall}>VITESSE</Text>
-                                            <View style={styles.stepperSmall}>
-                                                <TouchableOpacity onPress={() => setTurnDuration(prev => {
-                                                    const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
-                                                    const idx = steps.indexOf(prev);
-                                                    return idx > 0 ? steps[idx - 1] : steps[0];
-                                                })} style={styles.stepBtnSmall}>
-                                                    <Ionicons name="remove" size={18} color="#FFF" />
-                                                </TouchableOpacity>
-                                                <Text style={styles.stepValueSmall}>{turnDuration === 0 ? '∞' : turnDuration}</Text>
-                                                <TouchableOpacity onPress={() => setTurnDuration(prev => {
-                                                    const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
-                                                    const idx = steps.indexOf(prev);
-                                                    return idx < steps.length - 1 ? steps[idx + 1] : steps[steps.length - 1];
-                                                })} style={styles.stepBtnSmall}>
-                                                    <Ionicons name="add" size={18} color="#FFF" />
-                                                </TouchableOpacity>
-                                            </View>
-                                            <Text style={styles.paramSubtext}>{turnDuration === 0 ? 'Illimité' : 'secondes'}</Text>
                                         </View>
                                     </View>
                                 </View>
-                            </View>
 
 
-                            {/* Play Button */}
-                            <View style={[styles.playButtonWrapper, isLandscape && styles.playButtonWrapperLandscape]}>
-                                <TouchableOpacity style={[styles.playButton, isLandscape && styles.playButtonLandscape]} onPress={startGame} activeOpacity={0.8}>
-                                    <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.playGradient}>
-                                        <View style={styles.playContent}>
-                                            <View style={styles.costContainer}>
-                                                <Text style={{ fontSize: isLandscape ? 14 : 18 }}>🪙</Text>
-                                                <Text style={[styles.costText, isLandscape && styles.costTextLandscape]}>-{TABLE_CONFIGS[tableTier].buyIn}</Text>
+                                {/* Play Button */}
+                                <View style={[styles.playButtonWrapper, isLandscape && styles.playButtonWrapperLandscape]}>
+                                    <TouchableOpacity style={[styles.playButton, isLandscape && styles.playButtonLandscape]} onPress={startGame} activeOpacity={0.8}>
+                                        <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.playGradient}>
+                                            <View style={styles.playContent}>
+                                                <View style={styles.costContainer}>
+                                                    <Text style={{ fontSize: isLandscape ? 14 : 18 }}>🪙</Text>
+                                                    <Text style={[styles.costText, isLandscape && styles.costTextLandscape]}>-{TABLE_CONFIGS[tableTier].buyIn}</Text>
+                                                </View>
+                                                <View style={styles.playDivider} />
+                                                <Text style={[styles.playText, isLandscape && styles.playTextLandscape]}>C'EST PARTI !</Text>
                                             </View>
-                                            <View style={styles.playDivider} />
-                                            <Text style={[styles.playText, isLandscape && styles.playTextLandscape]}>C'EST PARTI !</Text>
-                                        </View>
-                                    </LinearGradient>
-                                </TouchableOpacity>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
 
-                                {debitFeedback && (
-                                    <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
-                                        {debitFeedback} débités
-                                    </Animated.Text>
-                                )}
-                            </View>
-                        </Animated.View>
-                    )}
-                </View>
-            </Animated.View>
+                                    {debitFeedback && (
+                                        <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
+                                            {debitFeedback} débités
+                                        </Animated.Text>
+                                    )}
+                                </View>
+                            </Animated.View>
+                        )}
+                    </View>
+                </Animated.View>
             </ScrollView>
         </LinearGradient>
     );
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
         gap: 20,
     },
     largeModeCard: {
-        width: '23%', 
+        width: '23%',
         borderRadius: 18,
         overflow: 'hidden',
         elevation: 5,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         padding: 4, // Reduced to maximize content space
-        gap: 2, 
+        gap: 2,
     },
     largeModeEmoji: {
         // fontSize removed for dynamic style
