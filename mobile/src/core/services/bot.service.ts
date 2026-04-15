@@ -21,7 +21,7 @@ export const LOCAL_BOTS_FALLBACK: Record<'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN', B
         { id: 'bot_mapipi_2', name: 'Maxime', avatarId: 'avatar_maxime', difficulty: 'MAPIPI' },
         { id: 'bot_mapipi_3', name: 'Tatie', avatarId: 'avatar_tatie', difficulty: 'MAPIPI' },
         { id: 'bot_mapipi_4', name: 'Jojo', avatarId: 'avatar_jojo', difficulty: 'MAPIPI' },
-        { id: 'bot_mapipi_5', name: 'Béké', avatarId: 'avatar_beke', difficulty: 'MAPIPI' }
+        { id: 'bot_mapipi_5', name: 'Chabine', avatarId: 'avatar_chabine', difficulty: 'MAPIPI' }
     ],
     'GRAN_MOUN': [
         { id: 'bot_gran_1', name: 'Tonton-Léon', avatarId: 'avatar_tonton_leon', difficulty: 'GRAN_MOUN' },

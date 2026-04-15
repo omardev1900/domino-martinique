@@ -1,28 +1,30 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Domino Martiniquais",
+    "slug": "domino-martinique",
     "version": "1.0.0",
     "orientation": "landscape",
     "icon": "./src/assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "domino-martinique",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "statusBarHidden": true
+      "statusBarHidden": true,
+      "bundleIdentifier": "com.dominomartinique.mobile"
     },
     "android": {
+      "package": "com.dominomartinique.mobile",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
       "adaptiveIcon": {
         "backgroundColor": "#0d1f0d",
         "foregroundImage": "./src/assets/images/icon.png"
       },
       "statusBar": {
         "hidden": true
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.aboumalak.mobile"
+      }
     },
     "web": {
       "output": "single",

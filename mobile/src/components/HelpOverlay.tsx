@@ -19,7 +19,7 @@ interface HelpOverlayProps {
     onClose: () => void;
 }
 
-type TabType = 'BASES' | 'MODES' | 'COCHON' | 'ECONOMIE' | 'LIGUE';
+type TabType = 'BASES' | 'MODES' | 'COCHON' | 'ECONOMIE' | 'LIGUE' | 'DON';
 
 export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) => {
     const { width, height } = useWindowDimensions();
@@ -189,6 +189,28 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
         </ScrollView>
     );
 
+    const renderDon = () => (
+        <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+            <Section title="Soutenir le projet" icon="🙏">
+                <Text style={styles.para}>Domino Martiniquais est un projet indépendant développé avec passion pour notre culture.</Text>
+                <Text style={styles.para}>Si le jeu te plaît, un don — même symbolique — nous aide à continuer à améliorer l'expérience pour toute la communauté.</Text>
+            </Section>
+
+            <Section title="Faire un don via Revolut" icon="💳">
+                <Text style={styles.para}>Lien Revolut :</Text>
+                <Text style={[styles.para, styles.link]}>revolut.me/mdc-domino</Text>
+                <Text style={[styles.para, { marginTop: 6 }]}>Chaque contribution compte. Merci pour ton soutien ! 🙌</Text>
+            </Section>
+
+            <Section title="Coordonnées bancaires (MDC)" icon="🏦">
+                <Text style={styles.para}><Text style={styles.bold}>Bénéficiaire :</Text> Association MDC Martinique</Text>
+                <Text style={styles.para}><Text style={styles.bold}>IBAN :</Text> FR76 XXXX XXXX XXXX XXXX XXXX XXX</Text>
+                <Text style={styles.para}><Text style={styles.bold}>BIC :</Text> XXXXFRPP</Text>
+                <Text style={[styles.para, { opacity: 0.5, fontSize: 12 }]}>* Coordonnées à compléter par l'équipe MDC.</Text>
+            </Section>
+        </ScrollView>
+    );
+
     return (
         <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
             <View style={styles.container}>
@@ -218,6 +240,7 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
                                 {renderTabButton('COCHON', 'Cochon', '🐷')}
                                 {renderTabButton('ECONOMIE', 'Gains', '💰')}
                                 {renderTabButton('LIGUE', 'Ligue', '🏆')}
+                                {renderTabButton('DON', 'Donner', '🤝')}
                             </ScrollView>
                         </View>
 
@@ -228,6 +251,7 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
                             {activeTab === 'COCHON' && renderCochon()}
                             {activeTab === 'ECONOMIE' && renderEconomie()}
                             {activeTab === 'LIGUE' && renderLigue()}
+                            {activeTab === 'DON' && renderDon()}
                         </View>
                     </LinearGradient>
                 </Animated.View>
@@ -393,5 +417,10 @@ const styles = StyleSheet.create({
     gradeDesc: {
         color: 'rgba(255,255,255,0.5)',
         fontSize: 12,
+    },
+    link: {
+        color: '#6BE5FF',
+        fontWeight: 'bold',
+        textDecorationLine: 'underline',
     },
 });

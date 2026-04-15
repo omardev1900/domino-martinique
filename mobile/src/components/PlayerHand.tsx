@@ -84,7 +84,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                                 <DominoTile
                                     left={domino.left}
                                     right={domino.right}
-                                    size={42}
+                                    size={38}
                                     orientation="vertical"
                                     onPress={() => handleTilePress(domino)}
                                     disabled={!canPlay || disabled}
@@ -146,9 +146,8 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     tileNotPlayable: {
-        // ✅ B2 FIX: Mon tour, tuile non jouable — opacity seule (pas de scale)
-        // L'ancien scale(0.92) créait un effet de "bousculade" avec les tuiles voisines élevées
-        opacity: 0.5,
+        // ✅ A3 FIX: Mon tour, tuile non jouable — aucun grisage (opacity supprimée)
+        // Le grisage gênait le joueur dans le choix de son domino (feedback client A3)
         zIndex: 1,
         elevation: 3,
     },
