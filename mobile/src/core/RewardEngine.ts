@@ -463,10 +463,12 @@ export const RewardEngine = {
         currentLevel: number;
         currentXP: number;
         currentLeaguePoints: number;
+        currentCochonsGiven?: number;
+        unlockedFrames?: LeagueFrameId[];
         tableTier: TableTier;
         isSoloMode: boolean;
     }): RewardCalculationInput {
-        const { gameState, localPlayerId, currentLevel, currentXP, currentLeaguePoints, tableTier, isSoloMode } = params;
+        const { gameState, localPlayerId, currentLevel, currentXP, currentLeaguePoints, currentCochonsGiven, unlockedFrames, tableTier, isSoloMode } = params;
 
         // Classement final
         const sortedPlayers = [...gameState.players].sort((a, b) => {
@@ -503,6 +505,8 @@ export const RewardEngine = {
             currentLevel,
             currentLeaguePoints,
             currentXP,
+            currentCochonsGiven,
+            unlockedFrames,
             gameMode: isSoloMode ? 'SOLO' : gameState.gameMode,
             tableTier,
             playerCount: isSoloMode ? 1 : gameState.players.length,

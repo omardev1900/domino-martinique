@@ -61,7 +61,7 @@ export default function HomeScreen() {
     const [user, setUser] = useState<PlayerProfile | null>(null);
     const [reconnectRoomId, setReconnectRoomId] = useState<string | null>(null);
     const [economyRefresh, setEconomyRefresh] = useState(0);
-    const [leaguePoints, setLeaguePoints] = useState(0);
+    const [cochonsGiven, setCochonsGiven] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showDailyReward, setShowDailyReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
@@ -70,7 +70,7 @@ export default function HomeScreen() {
     useFocusEffect(
         useCallback(() => {
             economyService.getEconomy().then(eco => {
-                setLeaguePoints(eco.leaguePoints || 0);
+                setCochonsGiven(eco.cochonsGiven || 0);
             });
             authService.getCurrentUser().then(u => {
                 setUser(u);
@@ -86,7 +86,7 @@ export default function HomeScreen() {
                     economyService.syncFromFirebase(u.uid).then(async () => {
                         // Refresh local economy state after sync
                         const syncedEco = await economyService.getEconomy();
-                        setLeaguePoints(syncedEco.leaguePoints || 0);
+                        setCochonsGiven(syncedEco.cochonsGiven || 0);
                         // Vérification du cadeau quotidien (sans le créditer — le modal s'en charge)
                         const isAvailable = await economyService.isDailyRewardAvailable();
                         if (isAvailable) {
@@ -268,7 +268,7 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {user && (
-                    <LeagueProgressWidget points={leaguePoints} />
+                    <LeagueProgressWidget points={cochonsGiven} />
                 )}
 
                 <View style={[styles.cardsContainer, isLandscape && styles.cardsContainerLandscape]}>

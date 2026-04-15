@@ -91,14 +91,29 @@ class EconomyService {
             const snap = await getDoc(userRef);
 
             if (snap.exists()) {
-                const remoteEconomy = snap.data().economy as Partial<PlayerEconomy> | undefined;
+                const data = snap.data();
+                const remoteEconomy = data.economy as Partial<PlayerEconomy> | undefined;
+                const remoteStats = data.stats as any; 
+
                 if (remoteEconomy) {
                     const local = await this.getEconomy();
+                    
+                    // 🛡️ MIGRATION / RESTAURATION COCHONS [2026-04-15]
+                    // Si l'ancien bug avait remis economy.cochonsGiven à 0,
+                    // On ressuscite la vraie valeur depuis les stats qui elles n'ont pas perdu la mémoire.
+                    if (remoteStats && typeof remoteStats.totalCochonsInflicted === 'number') {
+                        remoteEconomy.cochonsGiven = Math.max(remoteEconomy.cochonsGiven || 0, remoteStats.totalCochonsInflicted);
+                    }
+
                     // Prendre le maximum (évite la perte de données si offline)
                     const merged = this.mergeEconomies(local, remoteEconomy);
                     this.cached = merged;
                     await this.persistLocal();
-                    LogService.info('EconomyService', 'Economy synced from Firebase.');
+                    
+                    // Push the restored economy back to firebase to fix the remote state
+                    await this.pushToFirebase(uid, merged);
+                    
+                    LogService.info('EconomyService', 'Economy synced and restored from Firebase.');
                     return;
                 }
             }
@@ -398,6 +413,10 @@ class EconomyService {
             level: getLevelFromXP(mergedXP),
             leaguePoints: mergedLeaguePoints,
             leagueGrade: getLeagueGrade(mergedLeaguePoints),
+            // ─── Ligue des Cochons (conservation des champs) ───
+            cochonsGiven: Math.max(local.cochonsGiven ?? 0, remote.cochonsGiven ?? 0),
+            unlockedFrames: remote.unlockedFrames ?? local.unlockedFrames ?? [],
+            activeFrame: remote.activeFrame !== undefined ? remote.activeFrame : local.activeFrame ?? null,
             lastDailyRewardTimestamp: Math.max(
                 local.lastDailyRewardTimestamp ?? 0,
                 remote.lastDailyRewardTimestamp ?? 0

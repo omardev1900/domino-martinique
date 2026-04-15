@@ -158,7 +158,7 @@ export default function StatsScreen() {
                     <Text style={styles.statLineIcon}>🐷</Text>
                     <Text style={styles.statLineLabel}>COCHONS</Text>
                     <View style={styles.statLineDotted} />
-                    <Text style={styles.statLineValue}>{playerStats.totalCochonsInflicted.toLocaleString()}</Text>
+                    <Text style={styles.statLineValue}>{(economy.cochonsGiven || 0).toLocaleString()}</Text>
                 </View>
 
                 <View style={styles.statLine}>
@@ -287,8 +287,8 @@ const styles = StyleSheet.create({
     contentLayout: {
         flex: 1,
         flexDirection: 'row',
-        padding: 10,
-        gap: 10,
+        padding: 8, // Réduit de 10 à 8
+        gap: 8, // Réduit de 10 à 8
     },
     bloc: {
         flex: 1,
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.15)',
-        padding: 12,
+        padding: 10, // Réduit de 12 à 10
         justifyContent: 'space-between',
     },
     blocA: {
@@ -388,17 +388,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: 'rgba(255,255,255,0.03)',
         paddingHorizontal: 15,
-        paddingVertical: 12,
+        paddingVertical: 8, // Réduit de 12 à 8
         borderRadius: 10,
+        marginBottom: 6, // Ajoute un petit margin-bottom
     },
     statLineIcon: {
-        fontSize: 22,
-        marginRight: 10,
-        width: 30,
+        fontSize: 20, // Réduit de 22 à 20
+        marginRight: 8, // Réduit de 10 à 8
+        width: 25, // Réduit de 30 à 25
         textAlign: 'center',
     },
     statLineLabel: {
-        fontSize: 14,
+        fontSize: 13, // Réduit de 14 à 13
         color: 'rgba(255,255,255,0.7)',
         fontWeight: 'bold',
         letterSpacing: 1,
@@ -408,7 +409,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
         borderStyle: 'dashed',
-        marginHorizontal: 10,
+        marginHorizontal: 8,
         position: 'relative',
         top: 6,
     },

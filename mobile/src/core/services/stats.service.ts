@@ -196,14 +196,29 @@ class StatsService {
             if (userSnap.exists()) {
                 const remoteData = userSnap.data().stats;
                 if (remoteData) {
-                    // MIGRATION LOGIC: 
-                    // We sum numerical stats and merge histories
+                    // MIGRATION LOGIC & BUG FIX [2026-04-15]:
+                    // The old Math.max approach compounded stats generated from the double-recording bug (which recorded every manche as a match).
+                    // We now strictly rebuild gamesPlayed, gamesWon, and totalPointsAccumulated directly from the merged matchHistory, 
+                    // which contains the true canonical record of the matches.
+                    // (Max history is 20, but this cleanly fixes the bloated numbers for testers).
+                    const mergedHistory = this.mergeMatchHistories(localStats.matchHistory, remoteData.matchHistory || []);
+                    
+                    let realGamesPlayed = mergedHistory.length;
+                    let realGamesWon = 0;
+                    let realPoints = 0;
+                    mergedHistory.forEach(record => {
+                        if (record.result === 'WIN') realGamesWon++;
+                        realPoints += (record.score || 0);
+                    });
+
                     const mergedStats: PlayerStats = {
-                        gamesPlayed: Math.max(localStats.gamesPlayed, remoteData.gamesPlayed || 0),
-                        gamesWon: Math.max(localStats.gamesWon, remoteData.gamesWon || 0),
+                        gamesPlayed: realGamesPlayed,
+                        gamesWon: realGamesWon,
+                        // Note: We leave totalCochonsInflicted here but UI now reads economy.cochonsGiven 
+                        // because economy is the verified source of truth via Cloud Functions.
                         totalCochonsInflicted: Math.max(localStats.totalCochonsInflicted, remoteData.totalCochonsInflicted || 0),
-                        totalPointsAccumulated: Math.max(localStats.totalPointsAccumulated, remoteData.totalPointsAccumulated || 0),
-                        matchHistory: this.mergeMatchHistories(localStats.matchHistory, remoteData.matchHistory || []),
+                        totalPointsAccumulated: realPoints,
+                        matchHistory: mergedHistory,
                         // Economy — take the max (server is source of truth if higher)
                         coins: Math.max(localStats.coins, remoteData.coins || 0),
                         xp: Math.max(localStats.xp, remoteData.xp || 0),

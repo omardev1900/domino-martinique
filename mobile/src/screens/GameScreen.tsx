@@ -317,8 +317,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const statsRecordedRef = useRef(false);
     const [matchReward, setMatchReward] = useState<MatchReward | null>(null);
     const [showRewardOverlay, setShowRewardOverlay] = useState(false);
-    // Economy context (loaded on mount, used for reward calculation)
-    const playerEconomyRef = useRef({ level: 1, xp: 0, leaguePoints: 0 });
+    const playerEconomyRef = useRef<{ level: number; xp: number; leaguePoints: number; cochonsGiven?: number; unlockedFrames?: any[] }>({ level: 1, xp: 0, leaguePoints: 0 });
 
     // Load economy on mount
     useEffect(() => {
@@ -327,6 +326,8 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 level: eco.level,
                 xp: eco.xp,
                 leaguePoints: eco.leaguePoints,
+                cochonsGiven: eco.cochonsGiven,
+                unlockedFrames: eco.unlockedFrames,
             };
         }).catch(console.error);
     }, []);
@@ -360,50 +361,48 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     .filter(p => p.id !== localPlayerId)
                     .map(p => ({ name: p.name, avatarId: p.avatarId || 'avatar_default' }));
 
-                // 1. Record basic match stats (existing system)
-                // ✅ FIX [2026-04-15]: Use totalCochonsInfliges (cochons GIVEN to opponents, permanent counter)
-                // instead of totalCochons which was ambiguous and mapped to cochons RECEIVED (malus).
-                // totalCochonsInfliges is correctly incremented by ScoringEngine at each manche end.
-                statsService.recordMatchResult({
-                    result,
-                    cochons: localPlayer.totalCochonsInfliges || 0,
-                    points: localPlayer.totalPoints || 0,
-                    opponents: opponentsData,
-                    mode: isSoloMode ? 'SOLO' : 'MULTIPLAYER',
-                    userId: userId
-                }).catch(err => console.error('📊 Stats recording failed:', err));
-
-                // 2. Calculate & apply economy rewards (new system)
-                try {
-                    const rewardInput = RewardEngine.buildInputFromGameState({
-                        gameState,
-                        localPlayerId,
-                        currentLevel: playerEconomyRef.current.level,
-                        currentXP: playerEconomyRef.current.xp,
-                        currentLeaguePoints: playerEconomyRef.current.leaguePoints,
-                        tableTier: activeTableTier, // ✅ Vient du param de navigation
-                        isSoloMode,
-                    });
-
-                    // ✅ Exécution sécurisée côté serveur (Backend Banker)
-                    economyService.processServerReward(rewardInput, userId)
-                        .then(reward => {
-                            setMatchReward(reward);
-                            console.log('💰 [GameScreen] Server Economy rewards applied:', {
-                                coins: reward.coinsEarned,
-                                xp: reward.xpEarned,
-                                leveledUp: reward.leveledUp,
-                                gradeUp: reward.gradeUp,
-                            });
-                        })
-                        .catch(err => {
-                            console.error('[Economy] Server calculation failed:', err);
+                const processMatchEnd = async () => {
+                    try {
+                        // 1. Calculate & apply economy rewards (new system) FIRST
+                        const rewardInput = RewardEngine.buildInputFromGameState({
+                            gameState,
+                            localPlayerId,
+                            currentLevel: playerEconomyRef.current.level,
+                            currentXP: playerEconomyRef.current.xp,
+                            currentLeaguePoints: playerEconomyRef.current.leaguePoints,
+                            currentCochonsGiven: playerEconomyRef.current.cochonsGiven || 0,
+                            unlockedFrames: playerEconomyRef.current.unlockedFrames || [],
+                            tableTier: activeTableTier,
+                            isSoloMode,
                         });
 
-                } catch (err) {
-                    console.error('[Economy] RewardEngine calculation failed:', err);
-                }
+                        // ✅ Exécution sécurisée côté serveur (Backend Banker)
+                        const reward = await economyService.processServerReward(rewardInput, userId);
+                        setMatchReward(reward);
+                        console.log('💰 [GameScreen] Server Economy rewards applied:', {
+                            coins: reward.coinsEarned,
+                            xp: reward.xpEarned,
+                            leveledUp: reward.leveledUp,
+                            gradeUp: reward.gradeUp,
+                        });
 
+                        // 2. Record basic match stats ONLY IF economy succeeds
+                        // ✅ FIX [2026-04-15]: Use totalCochonsInfliges (cochons GIVEN to opponents, permanent counter)
+                        // instead of totalCochons which was ambiguous and mapped to cochons RECEIVED (malus).
+                        await statsService.recordMatchResult({
+                            result,
+                            cochons: localPlayer.totalCochonsInfliges || 0,
+                            points: localPlayer.totalPoints || 0,
+                            opponents: opponentsData,
+                            mode: isSoloMode ? 'SOLO' : 'MULTIPLAYER',
+                            userId: userId
+                        });
+                    } catch (err) {
+                        console.error('❌ [GameScreen] Match end processing failed:', err);
+                    }
+                };
+
+                processMatchEnd();
                 statsRecordedRef.current = true;
             }
         } else if (gameState?.phase !== 'MATCH_END' && gameState?.phase !== 'MANCHE_END') {
