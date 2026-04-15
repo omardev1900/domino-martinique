@@ -137,12 +137,11 @@ class StatsService {
 
         console.log('📊 Stats updated with history:', stats);
 
-        // Synchroniser leaguePoints avec totalCochonsInflicted
-        // pour que le leaderboard "Cochons" affiche la même valeur que la page stats
-        await economyService.setEconomy(
-            { leaguePoints: stats.totalCochonsInflicted },
-            userId
-        );
+        // ✅ FIX [2026-04-15]: Removed leaguePoints override here.
+        // Previously, this was setting leaguePoints = stats.totalCochonsInflicted (local AsyncStorage value),
+        // which would OVERWRITE the Firebase value with a local counter that resets on reinstall.
+        // leaguePoints are now managed EXCLUSIVELY by RewardEngine via processServerReward() in GameScreen.
+        // This prevents race conditions and ensures Firebase remains the single source of truth.
 
         // If logged in, sync to Firebase
         if (userId && !userId.startsWith('guest_')) {

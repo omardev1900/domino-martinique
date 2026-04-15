@@ -361,9 +361,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     .map(p => ({ name: p.name, avatarId: p.avatarId || 'avatar_default' }));
 
                 // 1. Record basic match stats (existing system)
+                // ✅ FIX [2026-04-15]: Use totalCochonsInfliges (cochons GIVEN to opponents, permanent counter)
+                // instead of totalCochons which was ambiguous and mapped to cochons RECEIVED (malus).
+                // totalCochonsInfliges is correctly incremented by ScoringEngine at each manche end.
                 statsService.recordMatchResult({
                     result,
-                    cochons: localPlayer.totalCochons || 0,
+                    cochons: localPlayer.totalCochonsInfliges || 0,
                     points: localPlayer.totalPoints || 0,
                     opponents: opponentsData,
                     mode: isSoloMode ? 'SOLO' : 'MULTIPLAYER',

@@ -28,6 +28,7 @@ import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../src/core/avatars
 import { EconomyHeader } from '../src/components/EconomyHeader';
 import { DailyRewardModal } from '../src/components/DailyRewardModal';
 import { HelpOverlay } from '../src/components/HelpOverlay';
+import { LeagueProgressWidget } from '../src/components/LeagueProgressWidget';
 
 const MadrasPattern = () => (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -60,6 +61,7 @@ export default function HomeScreen() {
     const [user, setUser] = useState<PlayerProfile | null>(null);
     const [reconnectRoomId, setReconnectRoomId] = useState<string | null>(null);
     const [economyRefresh, setEconomyRefresh] = useState(0);
+    const [leaguePoints, setLeaguePoints] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showDailyReward, setShowDailyReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
@@ -67,6 +69,9 @@ export default function HomeScreen() {
 
     useFocusEffect(
         useCallback(() => {
+            economyService.getEconomy().then(eco => {
+                setLeaguePoints(eco.leaguePoints || 0);
+            });
             authService.getCurrentUser().then(u => {
                 setUser(u);
                 if (u && !u.uid.startsWith('guest_')) {
@@ -79,6 +84,9 @@ export default function HomeScreen() {
                         u.avatarId || u.avatarUrl || 'avatar_default'
                     );
                     economyService.syncFromFirebase(u.uid).then(async () => {
+                        // Refresh local economy state after sync
+                        const syncedEco = await economyService.getEconomy();
+                        setLeaguePoints(syncedEco.leaguePoints || 0);
                         // Vérification du cadeau quotidien (sans le créditer — le modal s'en charge)
                         const isAvailable = await economyService.isDailyRewardAvailable();
                         if (isAvailable) {
@@ -259,6 +267,10 @@ export default function HomeScreen() {
                 ]}
                 showsVerticalScrollIndicator={false}
             >
+                {user && (
+                    <LeagueProgressWidget points={leaguePoints} />
+                )}
+
                 <View style={[styles.cardsContainer, isLandscape && styles.cardsContainerLandscape]}>
                     <Animated.View entering={FadeInUp.delay(200).duration(500)} style={[styles.cardWrapper, isLandscape && styles.cardWrapperLandscape]}>
                         <TouchableOpacity
@@ -509,8 +521,8 @@ const styles = StyleSheet.create({
     cardsContainer: {
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 20,
-        paddingVertical: 20,
+        gap: 12, // Reduced from 20
+        paddingVertical: 8, // Reduced from 20
     },
     cardsContainerLandscape: {
         flexDirection: 'row',
@@ -541,21 +553,21 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 120, // Reduced from 140
+        minHeight: 100, // Reduced from 120
     },
     cardIcon: {
-        fontSize: 40,
-        marginBottom: 8,
+        fontSize: 32, // Reduced from 40
+        marginBottom: 4, // Reduced from 8
     },
     cardTitle: {
-        fontSize: 20,
+        fontSize: 18, // Reduced from 20
         fontWeight: 'bold',
         color: '#FFFFFF',
-        marginBottom: 4,
+        marginBottom: 2, // Reduced from 4
         textAlign: 'center',
     },
     cardDesc: {
-        fontSize: 13,
+        fontSize: 12, // Reduced from 13
         color: 'rgba(255,255,255,0.85)',
         textAlign: 'center',
     },

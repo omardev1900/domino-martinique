@@ -71,11 +71,14 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
     // Les manches sont passées manuellement par l'utilisateur (ou l'hôte)
 
-    // 📊 STATS: Record match result for every completed manche
+    // 📊 STATS: Record match result for every completed manche (but NOT at match end — GameScreen handles that)
     useEffect(() => {
         if (hasRecordedStats.current) return;
-        // Only record when a manche is actually resolved
-        if (!isMancheOver && !isBoudé) return;
+        // Only record when a manche is resolved AND the match is NOT over yet
+        // ✅ FIX [2026-04-15]: Added !isMatchOver guard to prevent double-recording:
+        // when the last manche triggers MATCH_END, both GameOverScreen and GameScreen
+        // were calling recordMatchResult(), causing cochons to be counted twice.
+        if ((!isMancheOver && !isBoudé) || isMatchOver) return;
         hasRecordedStats.current = true;
 
         const currentPlayer = gameState.players.find(p => p.id === currentUserId);
