@@ -19,12 +19,12 @@ interface HelpOverlayProps {
     onClose: () => void;
 }
 
-type TabType = 'BASES' | 'MODES' | 'COCHON' | 'ECONOMIE' | 'LIGUE' | 'DON';
+type TabType = 'REGLES' | 'RECOMPENSES' | 'DON';
 
 export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) => {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
-    const [activeTab, setActiveTab] = useState<TabType>('BASES');
+    const [activeTab, setActiveTab] = useState<TabType>('REGLES');
 
     // Animations
     const opacityValue = useSharedValue(0);
@@ -64,7 +64,7 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
         </TouchableOpacity>
     );
 
-    const renderBases = () => (
+    const renderRegles = () => (
         <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
             <Section title="Le But du Jeu" icon="🎯">
                 <Text style={styles.para}>Le domino martiniquais se joue à <Text style={styles.bold}>3 joueurs</Text> avec un jeu de double-six (28 dominos).</Text>
@@ -86,48 +86,21 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
                 <Text style={styles.para}>Si plus personne ne peut jouer, la partie est bloquée. Le joueur ayant le <Text style={styles.bold}>moins de points</Text> en main remporte la manche.</Text>
                 <Text style={styles.para}>En cas d'égalité parfaite, la manche est nulle.</Text>
             </Section>
-        </ScrollView>
-    );
-
-    const renderModes = () => (
-        <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-            <Section title="Mode Manche" icon="🔢">
-                <Text style={styles.para}>Le match se termine quand un joueur atteint un nombre défini de manches gagnées (ex: 3 manches).</Text>
-            </Section>
-            
-            <Section title="Mode Score" icon="📈">
-                <Text style={styles.para}>On cumule les points de victoire à chaque manche jusqu'à atteindre le score cible.</Text>
+            <Section title="Parties & Modes" icon="🎮">
+                <Text style={styles.para}><Text style={styles.bold}>Mode Manche :</Text> Le match se termine quand un joueur atteint un nombre défini de manches gagnées.</Text>
+                <Text style={styles.para}><Text style={styles.bold}>Mode Score :</Text> On cumule les points de victoire à chaque manche jusqu'à atteindre le score cible.</Text>
+                <Text style={styles.para}><Text style={styles.bold}>Mode Cochon :</Text> Le match s'arrête dès que 3 Cochons ont été distribués.</Text>
             </Section>
 
-            <Section title="Mode Cochon" icon="🐷">
-                <Text style={styles.para}>Le match s'arrête dès que <Text style={styles.bold}>3 Cochons</Text> ont été distribués au total durant la partie.</Text>
+            <Section title="Le Cochon 🐷" icon="🐽">
+                <Text style={styles.para}>Un joueur est <Text style={styles.bold}>"Cochon"</Text> s'il termine une manche avec <Text style={styles.bold}>0 victoire</Text> (Cochon simple) ou 2 joueurs le sont (Double Cochon).</Text>
+                <Text style={styles.para}>Donner un cochon rapporte un <Text style={styles.bold}>bonus massif</Text> mais finir cochon donne une pénalité (-1 pt).</Text>
+                <Text style={styles.para}><Text style={styles.bold}>Le Chiré :</Text> Si tous gagnent 1 manche (1-1-1), le jeu est "Chiré". Aucun cochon n'est distribué.</Text>
             </Section>
         </ScrollView>
     );
 
-    const renderCochon = () => (
-        <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-            <Section title="C'est quoi un Cochon ?" icon="🐷">
-                <Text style={styles.para}>Un joueur est déclaré <Text style={styles.bold}>"Cochon"</Text> s'il termine une manche avec <Text style={styles.bold}>0 victoire</Text> alors que le match continue.</Text>
-            </Section>
-
-            <Section title="Cochon Simple vs Double" icon="🔥">
-                <Text style={styles.para}><Text style={styles.bold}>Cochon Simple :</Text> Un seul adversaire finit à 0.</Text>
-                <Text style={styles.para}><Text style={styles.bold}>Double Cochon :</Text> Les deux adversaires finissent à 0 (Score total: 3 - 0 - 0).</Text>
-            </Section>
-
-            <Section title="Gains & Pénalités" icon="⚖️">
-                <Text style={styles.para}>Donner un cochon rapporte un <Text style={styles.bold}>bonus massif</Text> de Coins et de Points de Ligue.</Text>
-                <Text style={styles.para}>Finir cochon entraîne une <Text style={styles.bold}>pénalité de points (-1)</Text> et aucun gain de Coins pour la manche.</Text>
-            </Section>
-
-            <Section title="Le Chiré" icon="✂️">
-                <Text style={styles.para}>Si tous les joueurs gagnent au moins une manche (1-1-1), le jeu est "Chiré". Personne n'est cochon, aucun bonus de cochon n'est distribué.</Text>
-            </Section>
-        </ScrollView>
-    );
-
-    const renderEconomie = () => (
+    const renderRecompenses = () => (
         <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
             <Section title="Les Pièces (Coins)" icon="🪙">
                 <Text style={styles.para}>C'est votre argent de jeu. Utilisez-le pour payer le <Text style={styles.bold}>Buy-in</Text> des tables Multijoueurs.</Text>
@@ -146,17 +119,8 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
             <Section title="Les Coffres de Niveau" icon="📦">
                 <Text style={styles.para}>À chaque passage de niveau, vous recevez un coffre contenant des récompenses aléatoires ou fixes.</Text>
             </Section>
-        </ScrollView>
-    );
-
-    const renderLigue = () => (
-        <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-            <Section title="Les Points de Ligue" icon="🐷">
-                <Text style={styles.para}>Vous gagnez des points de ligue uniquement en <Text style={styles.bold}>infligeant des cochons</Text> à vos adversaires.</Text>
-                <Text style={styles.para}>C'est la mesure de votre domination réelle sur le tapis.</Text>
-            </Section>
-
-            <Section title="Hiérarchie des Grades" icon="🎖️">
+            <Section title="La Ligue des Cochons" icon="🏆">
+                <Text style={styles.para}>Gagnez des points de ligue <Text style={styles.bold}>en infligeant des cochons</Text>.</Text>
                 <View style={styles.gradeRow}>
                     <Text style={styles.gradeBadge}>🥉</Text>
                     <View>
@@ -191,22 +155,39 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
 
     const renderDon = () => (
         <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-            <Section title="Soutenir le projet" icon="🙏">
-                <Text style={styles.para}>Domino Martiniquais est un projet indépendant développé avec passion pour notre culture.</Text>
-                <Text style={styles.para}>Si le jeu te plaît, un don — même symbolique — nous aide à continuer à améliorer l'expérience pour toute la communauté.</Text>
+            <Section title="Soutenir le Domino Martiniquais" icon="🤝">
+                <Text style={styles.para}>
+                    Bonjour à tous et bienvenue !{"\n"}
+                    Je suis Manuel Voitier, Martiniquais passionné et créateur de ce jeu. J'ai développé cette application avec un objectif de cœur : mettre à l'honneur notre tradition locale, le célèbre "Domino Cochon".
+                </Text>
             </Section>
 
-            <Section title="Faire un don via Revolut" icon="💳">
-                <Text style={styles.para}>Lien Revolut :</Text>
-                <Text style={[styles.para, styles.link]}>revolut.me/mdc-domino</Text>
-                <Text style={[styles.para, { marginTop: 6 }]}>Chaque contribution compte. Merci pour ton soutien ! 🙌</Text>
+            <Section title="1️⃣ Soutenir le Développement" icon="📱">
+                <Text style={styles.para}>
+                    Si vous appréciez l'application et que vous souhaitez m'aider à l'améliorer (nouvelles fonctionnalités, maintenance, mises à jour), vous pouvez me soutenir directement via ce lien :
+                </Text>
+                <Text style={[styles.para, styles.link]}>revolut.me/manuelvoitier</Text>
             </Section>
 
-            <Section title="Coordonnées bancaires (MDC)" icon="🏦">
-                <Text style={styles.para}><Text style={styles.bold}>Bénéficiaire :</Text> Association MDC Martinique</Text>
-                <Text style={styles.para}><Text style={styles.bold}>IBAN :</Text> FR76 XXXX XXXX XXXX XXXX XXXX XXX</Text>
-                <Text style={styles.para}><Text style={styles.bold}>BIC :</Text> XXXXFRPP</Text>
-                <Text style={[styles.para, { opacity: 0.5, fontSize: 12 }]}>* Coordonnées à compléter par l'équipe MDC.</Text>
+            <Section title="2️⃣ Soutenir l'Association (Défiscalisé)" icon="🏦">
+                <Text style={styles.para}>
+                    Au-delà de ce jeu numérique, je suis également le Président de l'association Martinique Domino Club (MDC). Notre but est de proposer des tournois physiques de grande ampleur et de faire rayonner le domino martiniquais.
+                </Text>
+                <Text style={styles.para}>
+                    <Text style={styles.bold}>📄 Avantage Fiscal :</Text> Nous délivrons le reçu fiscal (CERFA) vous permettant de bénéficier d'une déduction de vos impôts. Vous pouvez effectuer votre don par virement bancaire :
+                </Text>
+                <Text style={styles.para}><Text style={styles.bold}>Bénéficiaire :</Text> Martinique Domino Club</Text>
+                <Text style={styles.para}><Text style={styles.bold}>IBAN :</Text> FR76 1010 7003 8000 9340 7864 262</Text>
+            </Section>
+
+            <Section title="Contact & Remerciements" icon="💬">
+                <Text style={styles.para}>
+                    Nous vous remercions du fond du cœur pour votre soutien, qu'il s'agisse d'un don, de votre participation à nos tournois, ou simplement en partageant ce jeu autour de vous !
+                </Text>
+                <Text style={styles.para}>
+                    <Text style={styles.bold}>📞 Contact (CERFA/Partenariats) :</Text> 0696 31 43 01
+                </Text>
+                <Text style={[styles.para, { marginTop: 10, fontStyle: 'italic' }]}>À la MDC, pour nous le domino est un sport ! 🏆</Text>
             </Section>
         </ScrollView>
     );
@@ -235,22 +216,16 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
                         {/* Tabs Navigation (Moved to Top) */}
                         <View style={styles.tabsWrapper}>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
-                                {renderTabButton('BASES', 'Bases', '🎲')}
-                                {renderTabButton('MODES', 'Modes', '🎮')}
-                                {renderTabButton('COCHON', 'Cochon', '🐷')}
-                                {renderTabButton('ECONOMIE', 'Gains', '💰')}
-                                {renderTabButton('LIGUE', 'Ligue', '🏆')}
-                                {renderTabButton('DON', 'Donner', '🤝')}
+                                {renderTabButton('REGLES', 'Règles', '🎲')}
+                                {renderTabButton('RECOMPENSES', 'Récompenses', '💰')}
+                                {renderTabButton('DON', 'Soutenir MDC', '🤝')}
                             </ScrollView>
                         </View>
 
                         {/* Content Area */}
                         <View style={styles.body}>
-                            {activeTab === 'BASES' && renderBases()}
-                            {activeTab === 'MODES' && renderModes()}
-                            {activeTab === 'COCHON' && renderCochon()}
-                            {activeTab === 'ECONOMIE' && renderEconomie()}
-                            {activeTab === 'LIGUE' && renderLigue()}
+                            {activeTab === 'REGLES' && renderRegles()}
+                            {activeTab === 'RECOMPENSES' && renderRecompenses()}
                             {activeTab === 'DON' && renderDon()}
                         </View>
                     </LinearGradient>
