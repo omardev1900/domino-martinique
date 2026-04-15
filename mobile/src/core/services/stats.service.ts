@@ -15,6 +15,7 @@ export interface MatchRecord {
     cochons: number;
     opponents: { name: string; avatarId: string }[];
     mode: string;
+    roundsWon?: number; // ✅ Ajout des manches gagnées dans le match
 }
 
 export interface PlayerStats {
@@ -22,6 +23,7 @@ export interface PlayerStats {
     gamesWon: number;
     totalCochonsInflicted: number;
     totalPointsAccumulated: number;
+    totalRoundsWon: number; // ✅ Manches/Rounds gagnés (lifetime)
     matchHistory: MatchRecord[];
     // ─── Economy & Progression ───
     coins: number;
@@ -36,6 +38,7 @@ export interface PlayerStats {
 const DEFAULT_STATS: PlayerStats = {
     gamesPlayed: 0,
     gamesWon: 0,
+    totalRoundsWon: 0,
     totalCochonsInflicted: 0,
     totalPointsAccumulated: 0,
     matchHistory: [],
@@ -65,6 +68,7 @@ class StatsService {
                 this.cachedStats = {
                     gamesPlayed: parsed.gamesPlayed ?? 0,
                     gamesWon: parsed.gamesWon ?? 0,
+                    totalRoundsWon: parsed.totalRoundsWon ?? 0,
                     totalCochonsInflicted: parsed.totalCochonsInflicted ?? 0,
                     totalPointsAccumulated: parsed.totalPointsAccumulated ?? 0,
                     matchHistory: parsed.matchHistory ?? [],
@@ -107,15 +111,17 @@ class StatsService {
         result: 'WIN' | 'LOSS' | 'DRAW';
         cochons: number;
         points: number;
+        roundsWon?: number;
         opponents: { name: string; avatarId: string }[];
         mode: string;
         userId?: string; // Optional: sync immediately if provided
     }): Promise<void> {
         const stats = await this.getStats();
-        const { result, cochons, points, opponents, mode, userId } = params;
+        const { result, cochons, points, roundsWon = 0, opponents, mode, userId } = params;
 
         stats.gamesPlayed += 1;
         if (result === 'WIN') stats.gamesWon += 1;
+        stats.totalRoundsWon += roundsWon;
         stats.totalCochonsInflicted += cochons;
         stats.totalPointsAccumulated += points;
 
@@ -126,6 +132,7 @@ class StatsService {
             result,
             score: points,
             cochons: cochons,
+            roundsWon,
             opponents,
             mode
         };
@@ -162,6 +169,7 @@ class StatsService {
                 stats: {
                     gamesPlayed: stats.gamesPlayed,
                     gamesWon: stats.gamesWon,
+                    totalRoundsWon: stats.totalRoundsWon,
                     totalCochonsInflicted: stats.totalCochonsInflicted,
                     totalPointsAccumulated: stats.totalPointsAccumulated,
                     matchHistory: stats.matchHistory,
@@ -206,14 +214,17 @@ class StatsService {
                     let realGamesPlayed = mergedHistory.length;
                     let realGamesWon = 0;
                     let realPoints = 0;
+                    let realRoundsWon = 0;
                     mergedHistory.forEach(record => {
                         if (record.result === 'WIN') realGamesWon++;
                         realPoints += (record.score || 0);
+                        realRoundsWon += (record.roundsWon || 0);
                     });
 
                     const mergedStats: PlayerStats = {
                         gamesPlayed: realGamesPlayed,
                         gamesWon: realGamesWon,
+                        totalRoundsWon: Math.max(localStats.totalRoundsWon || 0, remoteData.totalRoundsWon || 0, realRoundsWon),
                         // Note: We leave totalCochonsInflicted here but UI now reads economy.cochonsGiven 
                         // because economy is the verified source of truth via Cloud Functions.
                         totalCochonsInflicted: Math.max(localStats.totalCochonsInflicted, remoteData.totalCochonsInflicted || 0),

@@ -1,11 +1,52 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInUp, withTiming, useSharedValue, useAnimatedProps, Easing } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+function WinRateCircle({ rate }: { rate: number }) {
+    const size = 65;
+    const strokeWidth = 6;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+
+    const progress = useSharedValue(0);
+    React.useEffect(() => {
+        progress.value = withTiming(rate / 100, { duration: 1500, easing: Easing.out(Easing.cubic) });
+    }, [rate]);
+
+    const animatedProps = useAnimatedProps(() => ({
+        strokeDashoffset: circumference * (1 - progress.value)
+    }));
+
+    return (
+        <View style={{ alignItems: 'center', justifyContent: 'center', position: 'relative', width: size, height: size }}>
+            <Svg width={size} height={size}>
+                <Defs>
+                    <SvgGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0" stopColor="#FFD700" stopOpacity="1" />
+                        <Stop offset="1" stopColor="#FF3366" stopOpacity="1" />
+                    </SvgGradient>
+                </Defs>
+                <Circle stroke="rgba(255,255,255,0.1)" fill="none" cx={size / 2} cy={size / 2} r={radius} strokeWidth={strokeWidth} />
+                <AnimatedCircle
+                    stroke="url(#grad)" fill="none" cx={size / 2} cy={size / 2} r={radius}
+                    strokeWidth={strokeWidth} strokeDasharray={`${circumference} ${circumference}`}
+                    animatedProps={animatedProps} strokeLinecap="round" rotation="-90" origin={`${size / 2}, ${size / 2}`}
+                />
+            </Svg>
+            <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '900' }}>{rate}%</Text>
+            </View>
+        </View>
+    );
+}
 
 import { statsService, PlayerStats } from '../src/core/services/stats.service';
 import { economyService } from '../src/core/services/economy.service';
@@ -50,6 +91,14 @@ export default function StatsScreen() {
             console.error('Failed to load economy', error);
         }
     };
+
+    const records = useMemo(() => {
+        if (!playerStats?.matchHistory) return { maxScore: 0, maxCochons: 0 };
+        return playerStats.matchHistory.reduce((acc, match) => ({
+            maxScore: Math.max(acc.maxScore, match.score || 0),
+            maxCochons: Math.max(acc.maxCochons, match.cochons || 0)
+        }), { maxScore: 0, maxCochons: 0 });
+    }, [playerStats?.matchHistory]);
 
     const loadPlayerStats = async () => {
         setIsLoading(true);
@@ -140,33 +189,49 @@ export default function StatsScreen() {
 
         return (
             <Animated.View entering={FadeInUp.delay(200).duration(500)} style={[styles.bloc, styles.blocB]}>
-                <View style={styles.statLine}>
-                    <Text style={styles.statLineIcon}>🎮</Text>
-                    <Text style={styles.statLineLabel}>PARTIES</Text>
-                    <View style={styles.statLineDotted} />
-                    <Text style={styles.statLineValue}>{playerStats.gamesPlayed.toLocaleString()}</Text>
+                
+                {/* Ligne Win Rate (Visuelle) */}
+                <View style={styles.winRateRow}>
+                    <WinRateCircle rate={winRate} />
+                    <View style={styles.winRateInfos}>
+                        <Text style={styles.winRateTitle}>TAUX DE VICTOIRE</Text>
+                        <Text style={styles.winRateSub}>{playerStats.gamesWon} / {playerStats.gamesPlayed} Matchs Gagnés</Text>
+                        <Text style={styles.winRateSub}>{(playerStats.totalRoundsWon || 0).toLocaleString()} Manches Gagnées</Text>
+                    </View>
                 </View>
+                
+                <View style={styles.separator} />
 
-                <View style={styles.statLine}>
-                    <Text style={styles.statLineIcon}>🏆</Text>
-                    <Text style={styles.statLineLabel}>VICTOIRES</Text>
-                    <View style={styles.statLineDotted} />
-                    <Text style={styles.statLineValue}>{playerStats.gamesWon.toLocaleString()} <Text style={styles.statLineSubValue}>({winRate}%)</Text></Text>
-                </View>
-
+                {/* Score Cumulés */}
                 <View style={styles.statLine}>
                     <Text style={styles.statLineIcon}>🐷</Text>
-                    <Text style={styles.statLineLabel}>COCHONS</Text>
+                    <Text style={styles.statLineLabel}>COCHONS (LIGUE)</Text>
                     <View style={styles.statLineDotted} />
-                    <Text style={styles.statLineValue}>{(economy.cochonsGiven || 0).toLocaleString()}</Text>
+                    <Text style={[styles.statLineValue, { color: '#FF3366' }]}>{(economy.cochonsGiven || 0).toLocaleString()}</Text>
                 </View>
 
                 <View style={styles.statLine}>
                     <Text style={styles.statLineIcon}>✨</Text>
-                    <Text style={styles.statLineLabel}>POINTS</Text>
+                    <Text style={styles.statLineLabel}>TOTAL POINTS</Text>
                     <View style={styles.statLineDotted} />
                     <Text style={[styles.statLineValue, { color: '#FFD700' }]}>{playerStats.totalPointsAccumulated.toLocaleString()}</Text>
                 </View>
+
+                {/* Records Section */}
+                <View style={styles.recordsSection}>
+                    <Text style={styles.recordsTitle}>RECORDS (SUR LES 20 DERNIERS MATCHS)</Text>
+                    <View style={styles.recordsCards}>
+                        <View style={styles.recordCard}>
+                            <Text style={styles.recordCardValue}>{records.maxScore}</Text>
+                            <Text style={styles.recordCardLabel}>Max Pts</Text>
+                        </View>
+                        <View style={styles.recordCard}>
+                            <Text style={[styles.recordCardValue, { color: '#FF3366' }]}>{records.maxCochons}</Text>
+                            <Text style={styles.recordCardLabel}>Max Cochons</Text>
+                        </View>
+                    </View>
+                </View>
+                
             </Animated.View>
         );
     };
@@ -202,6 +267,12 @@ export default function StatsScreen() {
                             <TouchableOpacity onPress={() => setHistoryModalVisible(false)} style={styles.modalCloseButton}>
                                 <Ionicons name="close-circle" size={30} color="#FFD700" />
                             </TouchableOpacity>
+                        </View>
+                        <View style={styles.modalInfoBanner}>
+                            <Ionicons name="information-circle" size={16} color="#60DCFF" style={{ marginRight: 6 }} />
+                            <Text style={styles.modalInfoText}>
+                                Seuls les 20 derniers matchs sont affichés. Vos compteurs globaux (Cochons, Points) intègrent vos statistiques complètes, à vie.
+                            </Text>
                         </View>
                         <View style={{ flex: 1 }}>
                             <MatchHistory history={playerStats?.matchHistory || []} />
@@ -423,6 +494,69 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.5)',
         fontWeight: 'normal',
     },
+    separator: {
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        marginVertical: 10,
+    },
+    winRateRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 5,
+    },
+    winRateInfos: {
+        marginLeft: 15,
+        flex: 1,
+    },
+    winRateTitle: {
+        fontSize: 14,
+        fontWeight: '900',
+        color: '#FFF',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+    winRateSub: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.6)',
+        marginBottom: 2,
+    },
+    recordsSection: {
+        marginTop: 10,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderRadius: 12,
+        padding: 10,
+    },
+    recordsTitle: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.5)',
+        fontWeight: 'bold',
+        letterSpacing: 1,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    recordsCards: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 15,
+    },
+    recordCard: {
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,215,0,0.05)',
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderRadius: 8,
+        minWidth: 80,
+    },
+    recordCardValue: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#FFF',
+        paddingBottom: 2,
+    },
+    recordCardLabel: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.7)',
+    },
 
     // --- MODAL ---
     modalOverlay: {
@@ -456,6 +590,21 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,215,0,0.2)',
         backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    modalInfoBanner: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(96,220,255,0.1)',
+        padding: 10,
+        margin: 10,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    modalInfoText: {
+        flex: 1,
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 11,
+        fontStyle: 'italic',
+        lineHeight: 16,
     },
     modalTitle: {
         color: '#FFD700',

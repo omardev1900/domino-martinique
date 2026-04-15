@@ -393,6 +393,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                             result,
                             cochons: localPlayer.totalCochonsInfliges || 0,
                             points: localPlayer.totalPoints || 0,
+                            roundsWon: localPlayer.mancheWins || 0,
                             opponents: opponentsData,
                             mode: isSoloMode ? 'SOLO' : 'MULTIPLAYER',
                             userId: userId
