@@ -81,6 +81,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             gameMode={gameState.gameMode}
                             showHandDominoes={false}
                             skinConfig={skinConfig}
+                            dimmed={isPlaying && gameState.currentPlayerId !== opponents[0]?.id}
                         />
                     </Animated.View>
                 </View>
@@ -119,6 +120,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             gameMode={gameState.gameMode}
                             showHandDominoes={false}
                             skinConfig={skinConfig}
+                            dimmed={isPlaying && gameState.currentPlayerId !== opponents[1]?.id}
                         />
                     </Animated.View>
                 </View>
@@ -156,6 +158,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             gameMode={gameState.gameMode}
                             showHandDominoes={false}
                             skinConfig={skinConfig}
+                            dimmed={isPlaying && gameState.currentPlayerId !== localPlayerId}
                         />
                     </Animated.View>
                 </View>

@@ -33,6 +33,7 @@ interface PlayerAvatarProps {
     gameMode?: string; // NEW: The current game mode to conditionally show specific stats
     showHandDominoes?: boolean; // NEW: Reveal remaining dominoes in hand
     skinConfig?: SkinConfig; // NEW: Skin configuration for dominoes
+    dimmed?: boolean; // NEW: Theatrical focus (dimmed if waiting)
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -58,7 +59,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     isBotPlaying = false,
     gameMode,
     showHandDominoes = false,
-    skinConfig
+    skinConfig,
+    dimmed = false
 }) => {
     const strokeWidth = 3; // Reduced from 4
     const radius = (size - strokeWidth) / 2;
@@ -66,9 +68,20 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
 
     const animatedProgress = useSharedValue(1);
     const breatheValue = useSharedValue(1);
+    const pingValue = useSharedValue(0); // NEW: Pulsing halo
     const shakeOffset = useSharedValue(0);
     const [secondsLeft, setSecondsLeft] = useState(timerDuration);
     const scaleAnim = useRef(new RNAnimated.Value(1)).current;
+    const opacityAnim = useRef(new RNAnimated.Value(1)).current; // NEW: Theatrical focus
+
+    // Theatrical Focus Transition
+    useEffect(() => {
+        RNAnimated.timing(opacityAnim, {
+            toValue: dimmed ? 0.45 : 1, // 45% opacity for waiting players
+            duration: 400,
+            useNativeDriver: true
+        }).start();
+    }, [dimmed]);
 
     // Shake effect for Boude
     useEffect(() => {
@@ -112,6 +125,14 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                 true
             );
 
+            // Ping Halo effect for active player
+            pingValue.value = 0;
+            pingValue.value = withRepeat(
+                withTiming(1, { duration: 1500, easing: Easing.out(Easing.ease) }),
+                -1,
+                false
+            );
+
             return () => {
                 clearInterval(interval);
                 // We don't reset breatheValue here to allow it to stay at 1 when paused
@@ -122,16 +143,23 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                 // Keep current progress
                 animatedProgress.value = animatedProgress.value;
                 breatheValue.value = withTiming(1);
+                pingValue.value = 0;
             } else {
                 animatedProgress.value = 1;
                 setSecondsLeft(timerDuration);
                 breatheValue.value = 1;
+                pingValue.value = 0;
             }
         }
     }, [showTimer, isActive, isPaused, timerDuration]);
 
     const animatedAvatarStyle = useAnimatedStyle(() => ({
         transform: [{ scale: breatheValue.value }],
+    }));
+
+    const pingStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: 1 + pingValue.value * 0.8 }], // Expands up to 1.8x
+        opacity: 0.6 * (1 - pingValue.value) // Fades out as it expands
     }));
 
     // Timeout Trigger Effect
@@ -201,7 +229,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             styles.container,
             isHorizontal && position !== 'top-right' && styles.containerRow,
             isHorizontal && position === 'top-right' && styles.containerRowReverse,
-            { transform: [{ scale: scaleAnim }] }
+            { transform: [{ scale: scaleAnim }], opacity: opacityAnim }
         ]}>
             <Animated.View style={[
                 shakeAnimatedStyle,
@@ -230,6 +258,21 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                 )}
 
                 <Animated.View style={[{ width: size + 12, height: size + 12, alignItems: 'center', justifyContent: 'center' }, animatedAvatarStyle]}>
+                    
+                    {/* Pulsing Ping Halo */}
+                    {showTimer && isActive && (
+                        <Animated.View style={[
+                            {
+                                position: 'absolute',
+                                width: size,
+                                height: size,
+                                borderRadius: size / 2,
+                                backgroundColor: '#FFD700',
+                            },
+                            pingStyle
+                        ]} />
+                    )}
+
                     {/* Avatar Circle */}
                     <View
                         style={[
