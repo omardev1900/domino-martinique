@@ -14,7 +14,6 @@ import { SkinConfig } from '../core/store.types';
 // ═══════════════════════════════════════════════════════════════════════════
 //  GRID CONSTANTS — Never change with screen size. Only 'scale' adapts.
 // ═══════════════════════════════════════════════════════════════════════════
-const TILES_PER_ROW = 8; // ++ Increased from 6 to 8 for better landscape support
 const T = 42;                 // base unit (half-tile)
 const H_W = T * 2;            // horizontal tile width (84)
 const H_H = T;                // horizontal tile height (42)
@@ -64,7 +63,10 @@ interface GameTableProps {
 //  coordinates for rendering.
 // ═══════════════════════════════════════════════════════════════════════════
 
-function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
+function computeBidirectionalLayout(
+    sequence: GameState['table']['sequence'], 
+    tilesPerRow: number
+): {
     tiles: PlacedTile[];
     bounds: { minX: number; minY: number; maxX: number; maxY: number };
 } {
@@ -142,7 +144,7 @@ function computeBidirectionalLayout(sequence: GameState['table']['sequence']): {
             const item = chain[i];
             const isDouble = item.domino.isDouble;
 
-            if (rowCount >= TILES_PER_ROW && i < chain.length - 1) {
+            if (rowCount >= tilesPerRow && i < chain.length - 1) {
                 // ── CORNER TILE ──────────────────────────────────────────
                 const cW = V_W;
                 const cH = V_H;
@@ -281,8 +283,14 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
     }));
 
     // ── Compute layout ───────────────────────────────────────────────────
+    // Si on a "4", la gauche peut faire 4 dominos, la droite 4 = ligne de 9 dominos.
+    // L'utilisateur veut max ~10 dominos de large.
+    // Portrait: 3 (gauche) + 1 (centre) + 3 (droite) = 7 dominos de large max !
+    // Paysage: 5 (gauche) + 1 (centre) + 5 (droite) = 11 dominos de large max !
+    const tilesPerRow = isLandscape ? 5 : 3;
+
     const { placedTiles, canvasW, canvasH, offsetX, offsetY } = useMemo(() => {
-        const { tiles, bounds } = computeBidirectionalLayout(gameState.table.sequence);
+        const { tiles, bounds } = computeBidirectionalLayout(gameState.table.sequence, tilesPerRow);
         const w = bounds.maxX - bounds.minX;
         const h = bounds.maxY - bounds.minY;
         // Translate all tiles so that top-left = (0,0) in the canvas
@@ -292,16 +300,19 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
     }, [gameState.table.sequence]);
 
     // ── Scale constraints to fit safe zone ─────────────────────────
-    const safeXPadd = 40; // 20px padding left/right
-    const safeYPadd = 40; // 20px padding top/bottom
+    // Augmentation MAJEURE des marges : exclure complètement les avatars du bord gauche/droit
+    const safeXPadd = isLandscape ? 120 : 160; // 80px pris par chaque joueur (gauche/droite)
+    const safeYPadd = isLandscape ? 80 : 140; // Espace supplémentaire en haut pour les avatars du haut
+
     const availW = screenWidth - safeXPadd;
 
     // Approximating safe area height by removing typical HUD dimensions (header + bottom bar)
-    const hudOffset = isLandscape ? 140 : 240; // ++ Increased breathing room
+    const hudOffset = isLandscape ? 140 : 250; // Breathing room for bottom controls 
     const availH = screenHeight - hudOffset - safeYPadd;
 
     // Scale down to fit available space. Cap at 1.0 to ensure tiles start large but never exceed safe area.
-    const boardScale = Math.min(1, availW / Math.max(canvasW, 1), availH / Math.max(canvasH, 1));
+    // Ajout explicite d'un * 0.93 pour s'assurer que si ça touche les limites calculées, il y a encore du "vide" protecteur
+    const boardScale = Math.min(1, availW / Math.max(canvasW, 1), availH / Math.max(canvasH, 1)) * 0.93;
     const scaledW = canvasW * boardScale;
     const scaledH = canvasH * boardScale;
 
