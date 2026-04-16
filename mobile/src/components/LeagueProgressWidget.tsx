@@ -1,14 +1,16 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LEAGUE_FRAME_THRESHOLDS, LEAGUE_LABELS, LEAGUE_ICONS } from '../core/economy.constants';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInUp, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
 
 interface LeagueProgressWidgetProps {
     points: number;
+    onInfoPress?: () => void;
 }
 
-export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ points }) => {
+export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ points, onInfoPress }) => {
     // Current grade computation
     const currentGrade = useMemo(() => {
         if (points >= LEAGUE_FRAME_THRESHOLDS.LEGENDE) return 'LEGENDE';
@@ -38,7 +40,16 @@ export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ poin
                 colors={['#0A1938', '#010619']}
                 style={styles.gradientCard}
             >
-                <Text style={styles.title}>{title}</Text>
+                <View style={styles.headerRow}>
+                    <Text style={styles.title}>{title}</Text>
+                    <TouchableOpacity 
+                        style={styles.infoButton} 
+                        onPress={onInfoPress}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="information-circle-outline" size={24} color="#FFD700" />
+                    </TouchableOpacity>
+                </View>
 
                 <View style={styles.milestonesContainer}>
                     {milestones.map((m, index) => {
@@ -108,8 +119,21 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
         marginBottom: 8,
         textShadowColor: 'rgba(255,215,0,0.5)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 6,
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    infoButton: {
+        padding: 4,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 215, 0, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 215, 0, 0.3)',
     },
     milestonesContainer: {
         height: 44,

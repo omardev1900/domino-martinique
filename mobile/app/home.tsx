@@ -29,6 +29,7 @@ import { EconomyHeader } from '../src/components/EconomyHeader';
 import { DailyRewardModal } from '../src/components/DailyRewardModal';
 import { HelpOverlay } from '../src/components/HelpOverlay';
 import { LeagueProgressWidget } from '../src/components/LeagueProgressWidget';
+import { LeagueInfoModal } from '../src/components/LeagueInfoModal';
 
 const MadrasPattern = () => (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -66,6 +67,7 @@ export default function HomeScreen() {
     const [showDailyReward, setShowDailyReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
     const [showHelp, setShowHelp] = useState(false);
+    const [showLeagueModal, setShowLeagueModal] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
@@ -268,7 +270,10 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {user && (
-                    <LeagueProgressWidget points={cochonsGiven} />
+                    <LeagueProgressWidget 
+                        points={cochonsGiven} 
+                        onInfoPress={() => setShowLeagueModal(true)} 
+                    />
                 )}
 
                 <View style={[styles.cardsContainer, isLandscape && styles.cardsContainerLandscape]}>
@@ -412,6 +417,12 @@ export default function HomeScreen() {
                     </Animated.View>
                 </View>
             </Modal>
+
+            {/* League Info Modal */}
+            <LeagueInfoModal 
+                visible={showLeagueModal} 
+                onClose={() => setShowLeagueModal(false)} 
+            />
         </LinearGradient>
     );
 }
