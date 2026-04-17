@@ -311,6 +311,18 @@ export default function HomeScreen() {
                                 colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
                                 style={styles.newsGradientCompact}
                             >
+                                {currentNews?.imageUrl && (
+                                    <Image 
+                                        source={{ uri: currentNews.imageUrl }} 
+                                        style={StyleSheet.absoluteFill} 
+                                        resizeMode="cover" 
+                                    />
+                                )}
+                                <LinearGradient
+                                    colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
+                                    style={StyleSheet.absoluteFill}
+                                />
+                                
                                 <View style={styles.newsHeaderRow}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                                         <Ionicons name="newspaper-outline" size={16} color="#FFD700" />
@@ -811,8 +823,8 @@ const styles = StyleSheet.create({
     },
     newsTextCompact: {
         color: 'rgba(255,255,255,0.85)',
-        fontSize: 10,
-        lineHeight: 14,
+        fontSize: 13,
+        lineHeight: 18,
         marginBottom: 6,
     },
     playCardCompact: {

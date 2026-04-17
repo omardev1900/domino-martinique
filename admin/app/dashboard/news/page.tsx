@@ -14,6 +14,15 @@ import {
   serverTimestamp,
   Timestamp 
 } from 'firebase/firestore';
+import { 
+  storage 
+} from '@/lib/firebase';
+import { 
+  ref, 
+  uploadBytes, 
+  getDownloadURL,
+  deleteObject
+} from 'firebase/storage';
 import { logAdminAction } from '@/lib/adminLog';
 
 type NewsItem = {
@@ -24,6 +33,7 @@ type NewsItem = {
   createdAt: Timestamp;
   active: boolean;
   priority: number;
+  imageUrl?: string;
 };
 
 export default function NewsPage() {
@@ -37,6 +47,9 @@ export default function NewsPage() {
   const [fullText, setFullText] = useState('');
   const [priority, setPriority] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchNews();
@@ -59,13 +72,70 @@ export default function NewsPage() {
     }
   };
 
+  const convertToWebP = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Optional: Resize if too big (e.g., max 1200px)
+          const MAX_WIDTH = 1200;
+          if (width > MAX_WIDTH) {
+            height = (MAX_WIDTH / width) * height;
+            width = MAX_WIDTH;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Canvas conversion failed'));
+          }, 'image/webp', 0.8);
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !content) return;
 
     setSaving(true);
+    setUploading(true);
     try {
-      const newsData = {
+      let imageUrl = news.find(n => n.id === editingId)?.imageUrl || null;
+
+      // Handle Image Upload
+      if (imageFile) {
+        const webpBlob = await convertToWebP(imageFile);
+        const fileName = `${Date.now()}.webp`;
+        const storageRef = ref(storage, `news/${fileName}`);
+        const uploadResult = await uploadBytes(storageRef, webpBlob);
+        imageUrl = await getDownloadURL(uploadResult.ref);
+      }
+
+      const newsData: any = {
         title,
         content,
         fullText,
@@ -73,6 +143,8 @@ export default function NewsPage() {
         active: true,
         createdAt: editingId ? (news.find(n => n.id === editingId)?.createdAt || serverTimestamp()) : serverTimestamp(),
       };
+
+      if (imageUrl) newsData.imageUrl = imageUrl;
 
       if (editingId) {
         await updateDoc(doc(db, 'news', editingId), newsData);
@@ -89,6 +161,7 @@ export default function NewsPage() {
       alert('Erreur lors de l\'enregistrement');
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   };
 
@@ -120,6 +193,8 @@ export default function NewsPage() {
     setContent(item.content);
     setFullText(item.fullText || '');
     setPriority(item.priority || 0);
+    setImagePreview(item.imageUrl || null);
+    setImageFile(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -129,6 +204,8 @@ export default function NewsPage() {
     setContent('');
     setFullText('');
     setPriority(0);
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   return (
@@ -157,6 +234,44 @@ export default function NewsPage() {
                   className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm focus:border-yellow-400 focus:outline-none transition-colors"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Image d'illustration</label>
+                <div className="space-y-3">
+                  {imagePreview && (
+                    <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-950 border border-gray-800">
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => { setImageFile(null); setImagePreview(null); }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label 
+                      htmlFor="image-upload"
+                      className="flex items-center justify-center w-full px-4 py-3 bg-gray-950 border border-dashed border-gray-800 rounded-xl text-gray-400 text-sm cursor-pointer hover:border-yellow-400 hover:text-yellow-400 transition-all"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {imageFile ? 'Changer l\'image' : 'Sélectionner une image (WebP auto)'}
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -200,7 +315,7 @@ export default function NewsPage() {
                   disabled={saving}
                   className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-3 rounded-xl transition-all disabled:opacity-50"
                 >
-                  {saving ? 'Enregistrement...' : editingId ? 'Mettre à jour' : 'Publier'}
+                  {saving ? (uploading ? 'Upload Image...' : 'Enregistrement...') : editingId ? 'Mettre à jour' : 'Publier'}
                 </button>
                 {editingId && (
                   <button
@@ -264,8 +379,17 @@ export default function NewsPage() {
                           </button>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-white font-medium text-sm">{item.title}</p>
-                          <p className="text-gray-500 text-xs truncate max-w-xs">{item.content}</p>
+                          <div className="flex items-center gap-3">
+                            {item.imageUrl && (
+                              <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-gray-800">
+                                <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-white font-medium text-sm">{item.title}</p>
+                              <p className="text-gray-500 text-xs truncate max-w-xs">{item.content}</p>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-gray-400 text-xs">
                           {item.createdAt?.toDate().toLocaleDateString('fr-FR')}

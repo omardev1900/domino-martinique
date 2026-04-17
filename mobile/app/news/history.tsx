@@ -6,7 +6,9 @@ import {
     TouchableOpacity,
     ScrollView,
     ActivityIndicator,
-    Platform
+    Platform,
+    Image,
+    Dimensions
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -98,6 +100,15 @@ export default function NewsHistoryScreen() {
                                     colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
                                     style={styles.cardGradient}
                                 >
+                                    {item.imageUrl && (
+                                        <View style={styles.imageContainer}>
+                                            <Image 
+                                                source={{ uri: item.imageUrl }} 
+                                                style={styles.cardImage}
+                                                resizeMode="cover"
+                                            />
+                                        </View>
+                                    )}
                                     <View style={styles.cardHeader}>
                                         <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
                                         {item.priority > 0 && (
@@ -242,5 +253,17 @@ const styles = StyleSheet.create({
         fontSize: 16,
         textAlign: 'center',
         marginTop: 20,
+    },
+    imageContainer: {
+        width: '100%',
+        height: 150,
+        borderRadius: 8,
+        overflow: 'hidden',
+        marginBottom: 15,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+    },
+    cardImage: {
+        width: '100%',
+        height: '100%',
     }
 });

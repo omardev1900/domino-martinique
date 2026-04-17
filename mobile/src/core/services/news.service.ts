@@ -75,6 +75,7 @@ export const NewsService = {
             createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
             active: data.active ?? true,
             priority: data.priority ?? 0,
+            imageUrl: data.imageUrl,
         };
     }
 };

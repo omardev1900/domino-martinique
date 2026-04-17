@@ -1,0 +1,17 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Dossier actualités
+    match /news/{allPaths=**} {
+      // Lecture publique pour l'application mobile
+      allow read: if true;
+      // Écriture réservée aux utilisateurs authentifiés (Admins)
+      allow write: if request.auth != null;
+    }
+    
+    // Autres fichiers (par défaut : accès refusé)
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

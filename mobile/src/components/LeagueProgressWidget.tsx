@@ -109,6 +109,7 @@ const styles = StyleSheet.create({
     gradientCard: {
         borderRadius: 12,
         padding: 12,
+        paddingHorizontal: 20,
         borderWidth: 1,
         borderColor: 'rgba(255, 215, 0, 0.2)',
     },

@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Dimensions, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
+import Animated, { FadeInLeft, FadeInRight, ZoomIn } from 'react-native-reanimated';
 import { LEAGUE_FRAME_THRESHOLDS, LEAGUE_ICONS } from '../core/economy.constants';
 
 interface LeagueInfoModalProps {
@@ -10,7 +10,7 @@ interface LeagueInfoModalProps {
     onClose: () => void;
 }
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const RANKS = [
     {
@@ -49,8 +49,7 @@ const RANKS = [
 
 export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClose }) => {
     
-    // The simplified static gauge for the top
-    const renderGauge = () => {
+    const renderLeftPanel = () => {
         const milestones = [
             { value: LEAGUE_FRAME_THRESHOLDS.APPRENTI, icon: LEAGUE_ICONS.APPRENTI, label: '30' },
             { value: LEAGUE_FRAME_THRESHOLDS.MAITRE, icon: LEAGUE_ICONS.MAITRE, label: '150' },
@@ -59,27 +58,75 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
         ];
         
         return (
-            <View style={styles.gaugeContainer}>
-                <View style={styles.milestonesContainer}>
-                    {milestones.map((m, index) => {
-                        const leftPercent = (m.value / 500) * 100;
-                        return (
-                            <View key={index} style={[styles.milestoneItem, { left: `${leftPercent}%` }]}>
-                                <Text style={styles.gaugeIcon}>{m.icon}</Text>
-                                <Text style={styles.gaugeLabel}>{m.label}</Text>
+            <Animated.View entering={FadeInLeft.duration(600)} style={styles.leftPanel}>
+                <View style={styles.header}>
+                    <Ionicons name="trophy" size={32} color="#FFD700" />
+                    <Text style={styles.title}>LIGUE DES COCHONS</Text>
+                </View>
+
+                <View style={styles.horizontalGaugeContainer}>
+                    <View style={styles.milestonesHorizontal}>
+                        {milestones.map((m, index) => (
+                            <View key={index} style={styles.milestoneHorizontalItem}>
+                                <Text style={styles.gaugeIconSmall}>{m.icon}</Text>
+                                <Text style={styles.gaugeScoreSmall}>{m.value}</Text>
                             </View>
-                        );
-                    })}
+                        ))}
+                    </View>
+                    <View style={styles.horizontalBarTrack}>
+                        <LinearGradient
+                            colors={['#FFD700', '#FFA500']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.horizontalBarFill}
+                        />
+                    </View>
                 </View>
-                <View style={styles.progressBarTrack}>
-                    <LinearGradient
-                        colors={['#FFD700', '#FFA500']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={[styles.progressBarFill, { width: '100%' }]}
-                    />
+
+                <Text style={styles.infoText}>
+                    Donnez des cochons pour grimper dans les rangs et débloquer des cadres exclusifs et des récompenses !
+                </Text>
+            </Animated.View>
+        );
+    };
+
+    const renderRightPanel = () => {
+        return (
+            <Animated.View entering={FadeInRight.duration(600).delay(200)} style={styles.rightPanel}>
+                <View style={styles.grid}>
+                    {RANKS.map((rank, idx) => (
+                        <Animated.View 
+                            key={idx} 
+                            entering={ZoomIn.delay(400 + (idx * 100))}
+                            style={styles.cardContainer}
+                        >
+                            <LinearGradient
+                                colors={rank.gradient as [string, string]}
+                                style={[styles.card, { borderColor: rank.frameBorderColor }]}
+                            >
+                                <View style={styles.cardInfo}>
+                                    <Text style={[styles.rankScore, { color: rank.frameBorderColor }]}>{rank.score}</Text>
+                                    <Text style={styles.rankName}>{rank.name}</Text>
+                                </View>
+                                
+                                <View style={[styles.avatarFrame, {
+                                    borderColor: rank.frameBorderColor,
+                                    shadowColor: rank.frameBorderColor,
+                                    shadowRadius: 5,
+                                    elevation: 5,
+                                }]}>
+                                    <View style={[styles.innerFrame, { borderColor: rank.frameBorderColor }]} />
+                                </View>
+
+                                <View style={styles.rewardBadge}>
+                                    <Ionicons name="cash-outline" size={10} color="#FFD700" />
+                                    <Text style={styles.rewardText}>{rank.coins}</Text>
+                                </View>
+                            </LinearGradient>
+                        </Animated.View>
+                    ))}
                 </View>
-            </View>
+            </Animated.View>
         );
     };
 
@@ -87,227 +134,173 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
         <Modal
             visible={visible}
             transparent
-            animationType="fade"
+            animationType="slide"
             onRequestClose={onClose}
         >
-            <View style={styles.overlay}>
-                <Animated.View entering={FadeInUp.duration(400)} style={styles.modalContent}>
-                    
-                    <LinearGradient colors={['#07132B', '#020614']} style={styles.modalGradient}>
-                        
-                        {/* Header */}
-                        <View style={styles.header}>
-                            <Ionicons name="trophy" size={28} color="#FFD700" style={styles.headerIcon} />
-                            <Text style={styles.title}>LIGUE DES COCHONS</Text>
-                            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                                <Ionicons name="close" size={28} color="#FFF" />
-                            </TouchableOpacity>
-                        </View>
+            <SafeAreaView style={styles.overlay}>
+                <LinearGradient colors={['#0A1938', '#010619']} style={styles.background}>
+                    <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                        <Ionicons name="close-circle" size={32} color="rgba(255,255,255,0.4)" />
+                    </TouchableOpacity>
 
-                        {/* Top Gauge Demo */}
-                        {renderGauge()}
-
-                        {/* Ranks Row */}
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                            <View style={styles.gridContainer}>
-                                {RANKS.map((rank, idx) => (
-                                    <Animated.View 
-                                        key={idx} 
-                                        entering={FadeIn.delay(300 + (idx * 150))}
-                                        style={styles.cardWrapper}
-                                    >
-                                        <LinearGradient
-                                            colors={rank.gradient as [string, string]}
-                                            style={[styles.card, { borderColor: rank.frameBorderColor }]}
-                                        >
-                                            <View style={styles.rankHeader}>
-                                                <Text style={[styles.rankScore, { color: rank.frameBorderColor }]}>{rank.score}</Text>
-                                                <Text style={styles.rankName} numberOfLines={1}>{rank.name}</Text>
-                                            </View>
-                                            
-                                            {/* The Simulated "Frame" (Cadre Profil) */}
-                                            <View style={[styles.avatarFrame, {
-                                                borderColor: rank.frameBorderColor,
-                                                shadowColor: rank.frameBorderColor,
-                                                shadowOffset: { width: 0, height: 0 },
-                                                shadowOpacity: 1,
-                                                shadowRadius: 10,
-                                                elevation: 8,
-                                            }]}>
-                                                <View style={[styles.innerFrame, { borderColor: rank.frameBorderColor }]} />
-                                            </View>
-
-                                            <View style={styles.rewardBox}>
-                                                <Ionicons name="logo-bitcoin" size={12} color="#FFD700" style={{marginRight: 2}}/>
-                                                <Text style={styles.rewardText} numberOfLines={1}>{rank.coins} COINS</Text>
-                                            </View>
-                                        </LinearGradient>
-                                    </Animated.View>
-                                ))}
-                            </View>
-                        </ScrollView>
-
-                        </LinearGradient>
-                    </Animated.View>
-                </View>
-            </Modal>
-        );
-    };
+                    <View style={styles.content}>
+                        {renderLeftPanel()}
+                        {renderRightPanel()}
+                    </View>
+                </LinearGradient>
+            </SafeAreaView>
+        </Modal>
+    );
+};
 
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: '#07132B',
+        backgroundColor: '#010619',
     },
-    modalContent: {
+    background: {
         flex: 1,
-        width: '100%',
-        height: '100%',
-    },
-    modalGradient: {
-        flex: 1,
-        width: '100%',
-        paddingHorizontal: 10,
-        paddingTop: 50, // Laisse de l'espace pour le notch
-        paddingBottom: 20,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 30, // Un peu plus espacé du titre
-        position: 'relative',
-        width: '100%',
-        paddingHorizontal: 15,
-    },
-    headerIcon: {
-        marginRight: 8,
-    },
-    title: {
-        color: '#FFD700',
-        fontSize: 20, // Légèrement réduit
-        fontWeight: '900',
-        textAlign: 'center',
-        textTransform: 'uppercase',
-        letterSpacing: 1.5,
+        padding: 15,
     },
     closeButton: {
         position: 'absolute',
-        right: 0,
-        padding: 5,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 20,
+        top: 15,
+        right: 15,
+        zIndex: 10,
     },
-    
-    // Static Gauge
-    gaugeContainer: {
-        marginBottom: 25, // Réduit (était 40)
-        paddingHorizontal: 10,
-    },
-    milestonesContainer: {
-        height: 40,
+    content: {
+        flex: 1,
         flexDirection: 'row',
-        position: 'relative',
-        marginBottom: 10,
-    },
-    milestoneItem: {
-        position: 'absolute',
         alignItems: 'center',
-        transform: [{ translateX: -15 }],
-        width: 30,
+        gap: 15,
     },
-    gaugeIcon: {
-        fontSize: 18,
-        marginBottom: 4,
+    // Left Panel
+    leftPanel: {
+        flex: 0.45,
+        justifyContent: 'center',
+        paddingRight: 5,
     },
-    gaugeLabel: {
+    header: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    title: {
         color: '#FFD700',
-        fontSize: 12,
-        fontWeight: 'bold',
+        fontSize: 16,
+        fontWeight: '900',
+        textAlign: 'center',
+        marginTop: 5,
+        letterSpacing: 1,
     },
-    progressBarTrack: {
-        height: 12,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 6,
-        overflow: 'hidden',
+    horizontalGaugeContainer: {
+        width: '100%',
+        marginVertical: 15,
+    },
+    horizontalBarTrack: {
+        width: '100%',
+        height: 10,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 5,
         borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.2)',
+        borderColor: 'rgba(255,215,0,0.1)',
+        overflow: 'hidden',
     },
-    progressBarFill: {
+    horizontalBarFill: {
+        width: '100%',
         height: '100%',
-        borderRadius: 6,
+        borderRadius: 5,
     },
-
-    // Cards Horizontal Row
-    scrollContent: {
-        flexGrow: 1,
-        alignItems: 'center', // Centrer verticalement
-        justifyContent: 'center', // Centrer horizontalement
+    milestonesHorizontal: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginBottom: 8,
+    },
+    milestoneHorizontalItem: {
+        alignItems: 'center',
+    },
+    gaugeIconSmall: {
+        fontSize: 18,
+    },
+    gaugeScoreSmall: {
+        color: '#FFD700',
+        fontSize: 11,
+        fontWeight: '900',
+    },
+    infoText: {
+        color: 'rgba(255,255,255,0.4)',
+        fontSize: 11,
+        textAlign: 'center',
+        lineHeight: 16,
         marginTop: 10,
     },
-    gridContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        gap: 8, // Espace entre les cartes
+    // Right Panel
+    rightPanel: {
+        flex: 0.55,
+        justifyContent: 'center',
     },
-    cardWrapper: {
-        width: 90, // Réduit de moitié visuellement par rapport à une grille
-        height: 140, // Hauteur très compacte
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        justifyContent: 'center',
+        maxWidth: 240, // Force 2x2 by limiting total width
+        alignSelf: 'center',
+    },
+    cardContainer: {
+        width: '48%',
+        aspectRatio: 0.9, 
+        maxWidth: 110, // Keep them small as requested
     },
     card: {
         flex: 1,
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
-        padding: 5, // Très peu de padding intérieur
+        padding: 8,
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    rankHeader: {
+    cardInfo: {
         alignItems: 'center',
-        paddingVertical: 2,
     },
     rankScore: {
         fontSize: 18,
         fontWeight: '900',
-        textShadowColor: 'rgba(0,0,0,0.8)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
-        marginBottom: -2, // Rapproche du texte en dessous
     },
     rankName: {
         color: '#FFF',
-        fontSize: 9, // Plus petit
+        fontSize: 9,
         fontWeight: '700',
         letterSpacing: 0.5,
-        textAlign: 'center',
-        textShadowColor: 'rgba(0,0,0,0.8)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
+        marginTop: 1,
     },
     avatarFrame: {
-        width: 45, // Petit cadre
-        height: 55,
+        width: 40,
+        height: 50,
         borderWidth: 2,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        marginVertical: 4,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        marginVertical: 2,
     },
     innerFrame: {
         width: '80%',
         height: '80%',
         borderWidth: 1,
-        opacity: 0.7,
+        opacity: 0.5,
     },
-    rewardBox: {
+    rewardBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 2,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 8,
+        gap: 3,
     },
     rewardText: {
         color: '#FFD700',
-        fontWeight: 'bold',
+        fontWeight: '900',
         fontSize: 10,
     }
 });

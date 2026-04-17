@@ -33,6 +33,7 @@ import {
     QuerySnapshot,
     setDoc
 } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import { GameRoom, GameState, PlayerProfile, RoomStatus, GameMode } from '../types';
 import { LogService } from './LogService';
 import { roomNameSchema } from '../validation/schemas';
@@ -63,6 +64,7 @@ const firestoreSettings = Platform.OS === 'web'
     : {}; // On Mobile, simplified init or use specific RN persistence if enabled
 
 export const db = initializeFirestore(app, firestoreSettings);
+export const storage = getStorage(app);
 
 // Initialize Auth with cross-platform persistence
 let authInstance;
