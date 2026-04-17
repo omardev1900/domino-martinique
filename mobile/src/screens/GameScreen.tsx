@@ -753,12 +753,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             fullState.players[0].avatarId = playerAvatarId as AvatarId;
 
             fullState.players[1].name = botProfiles[0].name;
-            fullState.players[1].avatarId = botProfiles[0].avatarId as AvatarId;
+            fullState.players[1].avatarId = (botProfiles[0].imageUrl || botProfiles[0].avatarId) as AvatarId;
             fullState.players[1].difficulty = botDifficulty;
 
             if (fullState.players.length > 2) {
                 fullState.players[2].name = botProfiles[1].name;
-                fullState.players[2].avatarId = botProfiles[1].avatarId as AvatarId;
+                fullState.players[2].avatarId = (botProfiles[1].imageUrl || botProfiles[1].avatarId) as AvatarId;
                 fullState.players[2].difficulty = botDifficulty;
             }
 

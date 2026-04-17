@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
 
@@ -8,6 +10,7 @@ type BotProfile = {
   id: string;
   name: string;
   avatarId: string;
+  imageUrl?: string; // URL distante (prioritaire)
   difficulty: Difficulty;
   isLocal?: boolean; // local fallback (non modifiable)
 };
@@ -22,7 +25,7 @@ const LOCAL_BOTS: BotProfile[] = [
   { id: 'bot_mapipi_2', name: 'Maxime', avatarId: 'avatar_maxime', difficulty: 'MAPIPI', isLocal: true },
   { id: 'bot_mapipi_3', name: 'Tatie', avatarId: 'avatar_tatie', difficulty: 'MAPIPI', isLocal: true },
   { id: 'bot_mapipi_4', name: 'Jojo', avatarId: 'avatar_jojo', difficulty: 'MAPIPI', isLocal: true },
-  { id: 'bot_mapipi_5', name: 'Béké', avatarId: 'avatar_beke', difficulty: 'MAPIPI', isLocal: true },
+  { id: 'bot_mapipi_5', name: 'Chabine', avatarId: 'avatar_chabine', difficulty: 'MAPIPI', isLocal: true },
   { id: 'bot_gran_1', name: 'Tonton-Léon', avatarId: 'avatar_tonton_leon', difficulty: 'GRAN_MOUN', isLocal: true },
   { id: 'bot_gran_2', name: 'Eudorge', avatarId: 'avatar_eudorge', difficulty: 'GRAN_MOUN', isLocal: true },
   { id: 'bot_gran_3', name: 'Man-Zouzou', avatarId: 'avatar_man_zouzou', difficulty: 'GRAN_MOUN', isLocal: true },
@@ -47,6 +50,56 @@ export default function BotsPage() {
   const [filter, setFilter] = useState<Difficulty | 'all'>('all');
   const [tab, setTab] = useState<'remote' | 'local'>('remote');
   const [feedback, setFeedback] = useState('');
+  const [initializing, setInitializing] = useState(false);
+
+  // Image Upload State
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const convertToWebP = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_SIZE = 400; // Les avatars n'ont pas besoin d'être géants
+          if (width > MAX_SIZE || height > MAX_SIZE) {
+            if (width > height) {
+              height = (MAX_SIZE / width) * height;
+              width = MAX_SIZE;
+            } else {
+              width = (MAX_SIZE / height) * width;
+              height = MAX_SIZE;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Conversion échouée'));
+          }, 'image/webp', 0.8);
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
@@ -65,26 +118,67 @@ export default function BotsPage() {
     if (!editing?.name?.trim() || !editing.difficulty) return;
     setSaving(true);
     try {
+      let imageUrl = editing.imageUrl || '';
+
+      if (imageFile) {
+        setUploading(true);
+        const webpBlob = await convertToWebP(imageFile);
+        const fileName = `${Date.now()}.webp`;
+        const storageRef = ref(storage, `bots/${fileName}`);
+        const uploadResult = await uploadBytes(storageRef, webpBlob);
+        imageUrl = await getDownloadURL(uploadResult.ref);
+        setUploading(false);
+      }
+
+      const botData = { ...editing, imageUrl };
+
       const res = await fetch('/api/bots', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editing),
+        body: JSON.stringify(botData),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       showFeedback(editing.id ? 'Bot mis à jour.' : 'Bot créé.');
       setEditing(null);
+      setImageFile(null);
+      setImagePreview(null);
       fetch_();
     } catch (err: any) { showFeedback(`Erreur: ${err.message}`); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Voulez-vous vraiment supprimer ce bot ?')) return;
     setDeleting(id);
     try {
       await fetch('/api/bots', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
       fetch_();
     } catch { } finally { setDeleting(null); }
+  };
+
+  const handleInitialize = async () => {
+    if (!confirm('Voulez-vous copier les 15 bots par défaut vers Firestore ?')) return;
+    setInitializing(true);
+    let count = 0;
+    try {
+      for (const bot of LOCAL_BOTS) {
+        // Envoi simple pour chaque bot (l'API gère le doublon si l'ID existe déjà)
+        const { isLocal, ...botData } = bot;
+        await fetch('/api/bots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(botData),
+        });
+        count++;
+      }
+      showFeedback(`${count} bots synchronisés avec Firestore.`);
+      fetch_();
+    } catch (err: any) {
+      showFeedback(`Erreur lors de l'initialisation: ${err.message}`);
+    } finally {
+      setInitializing(false);
+    }
   };
 
   const allBots = tab === 'remote' ? remoteBots : LOCAL_BOTS;
@@ -102,10 +196,19 @@ export default function BotsPage() {
             {remoteBots.length} bots distants · 15 bots locaux (fallback)
           </p>
         </div>
-        <button onClick={() => setEditing({ ...EMPTY })}
-          className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm rounded-xl transition-all shadow-lg shadow-yellow-400/20">
-          + Nouveau bot
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleInitialize}
+            disabled={initializing}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium text-sm rounded-xl border border-gray-700 transition-all disabled:opacity-50"
+          >
+            {initializing ? 'Initialisation…' : '🔄 Initialiser Firestore'}
+          </button>
+          <button onClick={() => setEditing({ ...EMPTY })}
+            className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm rounded-xl transition-all shadow-lg shadow-yellow-400/20">
+            + Nouveau bot
+          </button>
+        </div>
       </div>
 
       {feedback && (
@@ -192,8 +295,12 @@ export default function BotsPage() {
                     <tr key={bot.id} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm border ${meta.color}`}>
-                            {bot.name[0].toUpperCase()}
+                          <div className={`w-9 h-9 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm border ${meta.color}`}>
+                            {bot.imageUrl ? (
+                              <img src={bot.imageUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              bot.name[0].toUpperCase()
+                            )}
                           </div>
                           <p className="text-white font-medium text-sm">{bot.name}</p>
                         </div>
@@ -215,10 +322,14 @@ export default function BotsPage() {
                       {tab === 'remote' && (
                         <td className="px-4 py-3.5 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => setEditing({ id: bot.id, name: bot.name, avatarId: bot.avatarId, difficulty: bot.difficulty })}
-                              className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 rounded-lg transition-all">
-                              Modifier
-                            </button>
+                            <button onClick={() => {
+                                setEditing({ id: bot.id, name: bot.name, avatarId: bot.avatarId, imageUrl: bot.imageUrl, difficulty: bot.difficulty });
+                                setImagePreview(bot.imageUrl || null);
+                                setImageFile(null);
+                              }}
+                                className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 rounded-lg transition-all">
+                                Modifier
+                              </button>
                             <button onClick={() => handleDelete(bot.id)} disabled={deleting === bot.id}
                               className="text-xs px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg transition-all disabled:opacity-50">
                               {deleting === bot.id ? '…' : 'Supprimer'}
@@ -240,41 +351,82 @@ export default function BotsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setEditing(null)}>
           <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-white font-bold text-lg mb-5">{editing.id ? 'Modifier le bot' : 'Nouveau bot'}</h2>
+            
             <div className="space-y-4">
+              {/* Nom du bot */}
               <div>
                 <label className="text-gray-400 text-xs font-medium block mb-1.5">Nom du bot *</label>
-                <input type="text" value={editing.name || ''} onChange={(e) => setEditing((p) => ({ ...p!, name: e.target.value }))}
+                <input 
+                  type="text" 
+                  value={editing.name || ''} 
+                  onChange={(e) => setEditing((p) => ({ ...p!, name: e.target.value }))}
                   placeholder="Ex: Ti-Sonson"
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors" 
+                />
               </div>
+
+              {/* Avatar Photo */}
               <div>
-                <label className="text-gray-400 text-xs font-medium block mb-1.5">Avatar ID</label>
-                <input type="text" value={editing.avatarId || ''} onChange={(e) => setEditing((p) => ({ ...p!, avatarId: e.target.value }))}
-                  placeholder="Ex: avatar_ti_sonson"
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
-                <p className="text-gray-600 text-xs mt-1">Correspond à l&apos;assetId de l&apos;avatar dans l&apos;app</p>
+                <label className="text-gray-400 text-xs font-medium block mb-1.5">Avatar (Photo)</label>
+                <div className="space-y-3">
+                  {imagePreview && (
+                    <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-gray-950 border border-gray-800 mx-auto">
+                      <img src={imagePreview} alt="Bot" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }}
+                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  <div className="relative">
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" id="bot-image-upload" />
+                    <label htmlFor="bot-image-upload" className="flex items-center justify-center w-full px-4 py-2.5 bg-gray-800 border border-dashed border-gray-700 rounded-xl text-gray-400 text-xs cursor-pointer hover:border-yellow-400 hover:text-yellow-400 transition-all">
+                      {imageFile ? 'Changer la photo' : 'Uploader une photo (WebP)'}
+                    </label>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="text-gray-400 text-xs font-medium block mb-1.5">Difficulté *</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(Object.entries(DIFF_META) as [Difficulty, typeof DIFF_META[Difficulty]][]).map(([d, m]) => (
-                    <button key={d} onClick={() => setEditing((p) => ({ ...p!, difficulty: d }))}
-                      className={`p-3 rounded-xl border text-sm font-medium transition-all text-center ${editing.difficulty === d ? `${m.color} ring-2 ring-offset-1 ring-offset-gray-900 ring-current/40` : 'bg-gray-800 text-gray-500 border-gray-700 hover:text-gray-300'}`}>
-                      <p className="text-lg mb-1">{m.icon}</p>
-                      <p>{m.label}</p>
-                      <p className="text-xs opacity-70">{m.desc}</p>
-                    </button>
-                  ))}
+
+              {/* Config Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Asset ID Local</label>
+                  <input 
+                    type="text" 
+                    value={editing.avatarId || ''} 
+                    onChange={(e) => setEditing((p) => ({ ...p!, avatarId: e.target.value }))}
+                    placeholder="Ex: Chip_1"
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors" 
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Difficulté *</label>
+                  <select 
+                    value={editing.difficulty} 
+                    onChange={(e) => setEditing((p) => ({ ...p!, difficulty: e.target.value as Difficulty }))}
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors"
+                  >
+                    <option value="TI_MANMAY">Ti Manmay</option>
+                    <option value="MAPIPI">Mapipi</option>
+                    <option value="GRAN_MOUN">Gran Moun</option>
+                  </select>
                 </div>
               </div>
             </div>
+
+            {/* Footer Actions */}
             <div className="mt-6 flex gap-3">
               <button onClick={() => setEditing(null)}
                 className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 font-medium text-sm rounded-xl transition-all">
                 Annuler
               </button>
-              <button onClick={handleSave} disabled={saving || !editing.name?.trim()}
-                className="flex-1 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm rounded-xl transition-all disabled:opacity-40">
+              <button 
+                onClick={handleSave} 
+                disabled={saving || !editing.name?.trim()}
+                className="flex-1 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm rounded-xl transition-all disabled:opacity-40"
+              >
                 {saving ? 'Sauvegarde…' : editing.id ? 'Mettre à jour' : 'Créer le bot'}
               </button>
             </div>

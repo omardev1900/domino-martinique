@@ -5,30 +5,19 @@ export interface BotProfile {
     id: string;
     name: string;
     avatarId: string;
+    imageUrl?: string; // URL distante optionnelle
     difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
 }
 
 export const LOCAL_BOTS_FALLBACK: Record<'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN', BotProfile[]> = {
     'TI_MANMAY': [
-        { id: 'bot_ti_1', name: 'Ti-Sonson', avatarId: 'avatar_ti_sonson', difficulty: 'TI_MANMAY' },
-        { id: 'bot_ti_2', name: 'Man-Yaya', avatarId: 'avatar_man_yaya', difficulty: 'TI_MANMAY' },
-        { id: 'bot_ti_3', name: 'Doudou', avatarId: 'avatar_doudou', difficulty: 'TI_MANMAY' },
-        { id: 'bot_ti_4', name: 'Chabin', avatarId: 'avatar_chabin', difficulty: 'TI_MANMAY' },
-        { id: 'bot_ti_5', name: 'Fifine', avatarId: 'avatar_fifine', difficulty: 'TI_MANMAY' }
+        { id: 'bot_ti_1', name: 'Ti-Sonson', avatarId: 'avatar_ti_sonson', difficulty: 'TI_MANMAY' }
     ],
     'MAPIPI': [
-        { id: 'bot_mapipi_1', name: 'Dédé', avatarId: 'avatar_dede', difficulty: 'MAPIPI' },
-        { id: 'bot_mapipi_2', name: 'Maxime', avatarId: 'avatar_maxime', difficulty: 'MAPIPI' },
-        { id: 'bot_mapipi_3', name: 'Tatie', avatarId: 'avatar_tatie', difficulty: 'MAPIPI' },
-        { id: 'bot_mapipi_4', name: 'Jojo', avatarId: 'avatar_jojo', difficulty: 'MAPIPI' },
-        { id: 'bot_mapipi_5', name: 'Chabine', avatarId: 'avatar_chabine', difficulty: 'MAPIPI' }
+        { id: 'bot_mapipi_1', name: 'Dédé', avatarId: 'avatar_dede', difficulty: 'MAPIPI' }
     ],
     'GRAN_MOUN': [
-        { id: 'bot_gran_1', name: 'Tonton-Léon', avatarId: 'avatar_tonton_leon', difficulty: 'GRAN_MOUN' },
-        { id: 'bot_gran_2', name: 'Eudorge', avatarId: 'avatar_eudorge', difficulty: 'GRAN_MOUN' },
-        { id: 'bot_gran_3', name: 'Man-Zouzou', avatarId: 'avatar_man_zouzou', difficulty: 'GRAN_MOUN' },
-        { id: 'bot_gran_4', name: 'Papi-Jo', avatarId: 'avatar_papi_jo', difficulty: 'GRAN_MOUN' },
-        { id: 'bot_gran_5', name: 'Tante-Rose', avatarId: 'avatar_tante_rose', difficulty: 'GRAN_MOUN' }
+        { id: 'bot_gran_1', name: 'Tonton-Léon', avatarId: 'avatar_tonton_leon', difficulty: 'GRAN_MOUN' }
     ]
 };
 
@@ -53,6 +42,7 @@ class BotService {
                     id: doc.id,
                     name: data.name,
                     avatarId: data.avatarId,
+                    imageUrl: data.imageUrl,
                     difficulty: data.difficulty
                 } as BotProfile);
             });
