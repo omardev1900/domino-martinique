@@ -93,7 +93,12 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 opacityValue.value = withTiming(1, { duration: 500 });
             }
 
-            SoundManager.playSound('end');
+            // Gestion des sons selon le résultat
+            if (isMatchOver) {
+                SoundManager.playEvent(isMeWinner ? 'WIN' : 'LOSE');
+            } else {
+                SoundManager.playEvent('ROUND_END');
+            }
         } else {
             if (reducedMotion) {
                 scaleValue.value = 0.5;

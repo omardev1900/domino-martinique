@@ -20,7 +20,7 @@ const H_H = T;                // horizontal tile height (42)
 const V_W = T;                // vertical tile width (42)
 const V_H = T * 2;            // vertical tile height (84)
 const GAP = 1;                // tiny visual breathing without visible empty gap
-const ROW_GAP = 50;           // ++ Increased gap for better aération
+const ROW_GAP = 30;           // ++ Reduced gap to avoid vertical bloating
 const CELL = H_W + GAP;       // one grid cell advance (88)
 const ROW_STEP = V_H + ROW_GAP; // vertical step between rows (134)
 
@@ -287,7 +287,10 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
     // L'utilisateur veut max ~10 dominos de large.
     // Portrait: 3 (gauche) + 1 (centre) + 3 (droite) = 7 dominos de large max !
     // Paysage: 5 (gauche) + 1 (centre) + 5 (droite) = 11 dominos de large max !
-    const tilesPerRow = isLandscape ? 5 : 3;
+    // Augmentation de tilesPerRow : on laisse la ligne s'étirer plus loin
+    // avant de commencer le serpent. Le zoom automatique (boardScale)
+    // s'occupera de réduire la taille des dominos si nécessaire.
+    const tilesPerRow = isLandscape ? 10 : 6;
 
     const { placedTiles, canvasW, canvasH, offsetX, offsetY } = useMemo(() => {
         const { tiles, bounds } = computeBidirectionalLayout(gameState.table.sequence, tilesPerRow);
@@ -301,7 +304,7 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
 
     // ── Scale constraints to fit safe zone ─────────────────────────
     // Augmentation MAJEURE des marges : exclure complètement les avatars du bord gauche/droit
-    const safeXPadd = isLandscape ? 120 : 160; // 80px pris par chaque joueur (gauche/droite)
+    const safeXPadd = isLandscape ? 100 : 100; // Zone moins restrictive pour laisser respirer la largeur
     const safeYPadd = isLandscape ? 80 : 140; // Espace supplémentaire en haut pour les avatars du haut
 
     const availW = screenWidth - safeXPadd;

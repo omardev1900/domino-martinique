@@ -25,6 +25,7 @@ const navItems = [
   { href: '/dashboard/logs', label: 'Logs admin', icon: '📋' },
   { href: '/dashboard/notifications', label: 'Notifications', icon: '📣' },
   { href: '/dashboard/news', label: 'Actualités', icon: '📰' },
+  { href: '/dashboard/audio', label: 'Musiques', icon: '🎵' },
 ];
 
 export default function Sidebar({ user }: SidebarProps) {
