@@ -137,29 +137,29 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                         </>
                     ) : (
                         <>
-                            <View style={{ justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                            <View style={{ justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
                                 <View style={[styles.avatar, slot.isCurrentUser && styles.avatarHighlight, { overflow: 'hidden', marginBottom: 0 }]}>
                                     <Image
                                         source={getAvatarImage(slot.player?.avatarId || 'avatar_default')}
                                         style={{
-                                            width: 80 * 1.6,
-                                            height: 80 * 1.6,
+                                            width: 64 * 1.6,
+                                            height: 64 * 1.6,
                                             position: 'absolute',
-                                            top: -(80 * 1.6 - 80) * 0.25,
+                                            top: -(64 * 1.6 - 64) * 0.25,
                                         }}
                                         contentFit="cover"
                                         cachePolicy="memory-disk"
                                     />
                                 </View>
                                 {slot.player?.activeFrame && (
-                                    <AvatarFrame frameId={slot.player.activeFrame} size={80} />
+                                    <AvatarFrame frameId={slot.player.activeFrame} size={64} />
                                 )}
                             </View>
-                            <Text style={styles.playerName}>
+                            <Text style={styles.playerName} numberOfLines={1}>
                                 {slot.player!.displayName}
                             </Text>
                             <Text style={styles.playerStatus}>
-                                {slot.isCurrentUser ? '(You)' : slot.isHost ? 'HOST' : 'Player'}
+                                {slot.isCurrentUser ? '(Vous)' : slot.isHost ? 'HÔTE' : 'Joueur'}
                             </Text>
                         </>
                     )}
@@ -175,52 +175,44 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
             {...({ ref: rootRef, tabIndex: -1 } as any)}
         >
             <Animated.View entering={FadeIn.delay(100)} style={styles.header}>
-                <View style={styles.headerTop}>
+                <View style={styles.headerLeft}>
                     <EconomyHeader />
                 </View>
-                <Text style={styles.roomCode}>Code : {roomData.roomId}</Text>
-                {roomData.isPrivate ? (
-                    <Text style={styles.roomTypeBadge}>🔒 Privée</Text>
-                ) : (
-                    <Text style={styles.roomTypeBadge}>🌍 Publique</Text>
-                )}
-            </Animated.View>
-
-            {/* Share Button */}
-            <Animated.View entering={FadeIn.delay(150)} style={styles.shareContainer}>
-                <TouchableOpacity style={styles.shareButton} onPress={shareToWhatsApp}>
-                    <Ionicons name="logo-whatsapp" size={20} color="#FFF" />
-                    <Text style={styles.shareButtonText}>Inviter via WhatsApp</Text>
-                </TouchableOpacity>
-            </Animated.View>
-
-            {/* Player Cards - Center */}
-            <View style={styles.playersContainer}>
-                {slots.map((slot, index) => renderPlayerCard(slot, index))}
-            </View>
-
-            {/* Game Options - Read-Only */}
-            <Animated.View entering={FadeIn.delay(400)} style={styles.optionsSection}>
-                <Text style={styles.sectionTitle}>CONFIGURATION DE LA TABLE</Text>
-                <View style={styles.optionsRow}>
-                    <View style={styles.optionChip}>
-                        <Text style={styles.optionChipLabel}>Mode</Text>
-                        <Text style={styles.optionChipValue}>{MODE_LABELS[gameMode] || gameMode}</Text>
-                    </View>
-                    <View style={styles.optionChip}>
-                        <Text style={styles.optionChipLabel}>Objectif</Text>
-                        <Text style={styles.optionChipValue}>{winningCondition} {MODE_UNIT_LABELS[gameMode]}</Text>
-                    </View>
-                    <View style={styles.optionChip}>
-                        <Text style={styles.optionChipLabel}>Tour</Text>
-                        <Text style={styles.optionChipValue}>{turnDuration === 0 ? 'Illimité' : `${turnDuration}s`}</Text>
-                    </View>
-                    <View style={styles.optionChip}>
-                        <Text style={styles.optionChipLabel}>Dominos</Text>
-                        <Text style={styles.optionChipValue}>{startingHandSize}</Text>
+                <View style={styles.headerRight}>
+                    <TouchableOpacity style={styles.shareIconButton} onPress={shareToWhatsApp} activeOpacity={0.7}>
+                        <Ionicons name="logo-whatsapp" size={24} color="#FFF" />
+                    </TouchableOpacity>
+                    <View style={styles.roomInfoContainer}>
+                        <Text style={styles.roomCode}>Code : {roomData.roomId}</Text>
                     </View>
                 </View>
             </Animated.View>
+
+            <View style={styles.mainContent}>
+                {/* Game Options - Left Side 2x2 Grid */}
+                <Animated.View entering={FadeIn.delay(400)} style={styles.optionsSection}>
+                    <Text style={styles.sectionTitle}>TABLE</Text>
+                    <View style={styles.optionsGrid}>
+                        <View style={styles.optionChip}>
+                            <Text style={styles.optionChipLabel}>Mode</Text>
+                            <Text style={styles.optionChipValue}>{MODE_LABELS[gameMode] || gameMode}</Text>
+                        </View>
+                        <View style={styles.optionChip}>
+                            <Text style={styles.optionChipLabel}>Objectif</Text>
+                            <Text style={styles.optionChipValue}>{winningCondition} {MODE_UNIT_LABELS[gameMode]}</Text>
+                        </View>
+                        <View style={styles.optionChip}>
+                            <Text style={styles.optionChipLabel}>Tour</Text>
+                            <Text style={styles.optionChipValue}>{turnDuration === 0 ? '∞' : `${turnDuration}s`}</Text>
+                        </View>
+                    </View>
+                </Animated.View>
+
+                {/* Player Cards - Right/Center */}
+                <View style={styles.playersContainer}>
+                    {slots.map((slot, index) => renderPlayerCard(slot, index))}
+                </View>
+            </View>
 
             {/* Action Button - Bottom */}
             <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.footer}>
@@ -274,71 +266,79 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         paddingHorizontal: 20,
-        paddingVertical: 40,
+        paddingVertical: 20,
     },
     // ─── Header ─────────────────────────────────────────────────
-    headerTop: {
-        width: '100%',
-        alignItems: 'flex-start',
-        marginBottom: 8,
-    },
     header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 30,
+    },
+    headerLeft: {
+        flex: 1,
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.2)',
+    },
+    roomInfoContainer: {
+        alignItems: 'flex-start',
     },
     roomCode: {
         fontSize: 16,
         color: '#FFD700',
         fontWeight: 'bold',
         letterSpacing: 2,
-        marginBottom: 6,
     },
     roomTypeBadge: {
-        fontSize: 13,
+        fontSize: 11,
         color: 'rgba(255,255,255,0.5)',
+        textTransform: 'uppercase',
     },
-    shareContainer: {
+    shareIconButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#25D366',
+        justifyContent: 'center',
         alignItems: 'center',
-        marginTop: -15, // Pull up closer to header
-        marginBottom: 20,
-    },
-    shareButton: {
-        flexDirection: 'row',
-        backgroundColor: '#25D366', // WhatsApp color
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        alignItems: 'center',
-        gap: 8,
-        elevation: 3,
+        elevation: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.3,
         shadowRadius: 3,
     },
-    shareButtonText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-        fontSize: 14,
+    // ─── Main Content ───────────────────────────────────────────
+    mainContent: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 20,
     },
-    // ─── Player Cards ───────────────────────────────────────────
+    // ─── Player Cards (Reduced -20%) ────────────────────────────
     playersContainer: {
+        flex: 3,
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 12,
-        marginBottom: 20,
-        flex: 1,
-        alignItems: 'center',
+        gap: 10,
     },
     playerCardWrapper: {
         flex: 1,
-        maxWidth: 120,
+        maxWidth: 96, // Reduced from 120
     },
     playerCard: {
         backgroundColor: 'rgba(255,255,255,0.06)',
-        borderRadius: 20,
-        paddingVertical: 16,
-        paddingHorizontal: 8,
+        borderRadius: 16,
+        paddingVertical: 12,
+        paddingHorizontal: 6,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
@@ -348,98 +348,100 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,215,0,0.08)',
     },
     avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 64, // Reduced from 80
+        height: 64, // Reduced from 80
+        borderRadius: 32,
         backgroundColor: '#2d5f2e',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 10,
     },
     avatarHighlight: {
-        borderWidth: 3,
+        borderWidth: 2,
         borderColor: '#FFD700',
     },
     emptyAvatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 64, // Reduced from 80
+        height: 64, // Reduced from 80
+        borderRadius: 32,
         backgroundColor: 'rgba(255,255,255,0.05)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: 8,
         borderWidth: 2,
         borderColor: 'rgba(255,255,255,0.1)',
         borderStyle: 'dashed',
     },
     silhouetteIcon: {
-        fontSize: 32,
+        fontSize: 24,
         opacity: 0.3,
     },
     playerName: {
         color: '#FFF',
         fontWeight: 'bold',
-        fontSize: 13,
+        fontSize: 12,
         textAlign: 'center',
     },
     playerStatus: {
         color: 'rgba(255,255,255,0.4)',
-        fontSize: 11,
-        marginTop: 2,
+        fontSize: 10,
+        marginTop: 1,
     },
     emptyText: {
         color: 'rgba(255,255,255,0.3)',
-        fontSize: 12,
+        fontSize: 10,
         fontStyle: 'italic',
     },
-    // ─── Options Section (Read-only) ────────────────────────────
+    // ─── Options Section (2x2 Grid) ─────────────────────────────
     optionsSection: {
+        flex: 1.5,
         backgroundColor: 'rgba(0,0,0,0.2)',
         borderRadius: 16,
-        padding: 16,
-        marginBottom: 20,
+        padding: 10,
         borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.15)',
+        maxWidth: 160,
+        justifyContent: 'center',
     },
     sectionTitle: {
-        fontSize: 11,
+        fontSize: 8,
         fontWeight: 'bold',
         color: '#FFD700',
         textAlign: 'center',
         letterSpacing: 2,
-        marginBottom: 12,
+        marginBottom: 8,
     },
-    optionsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        gap: 10,
+    optionsGrid: {
+        flexDirection: 'column',
+        gap: 6,
     },
     optionChip: {
-        flex: 1,
+        width: '100%',
         backgroundColor: 'rgba(255,255,255,0.06)',
-        borderRadius: 12,
-        paddingVertical: 10,
-        paddingHorizontal: 8,
+        borderRadius: 8,
+        paddingVertical: 6,
+        paddingHorizontal: 4,
         alignItems: 'center',
     },
     optionChipLabel: {
-        fontSize: 10,
+        fontSize: 8,
         color: 'rgba(255,255,255,0.4)',
         textTransform: 'uppercase',
         letterSpacing: 1,
-        marginBottom: 4,
+        marginBottom: 2,
     },
     optionChipValue: {
-        fontSize: 14,
+        fontSize: 12,
         color: '#FFD700',
         fontWeight: 'bold',
     },
-    // ─── Footer / Action ────────────────────────────────────────
+    // ─── Footer ─────────────────────────────────────────────────
     footer: {
+        marginTop: 20,
         alignItems: 'center',
     },
     actionButton: {
         width: '100%',
+        maxWidth: 400,
         borderRadius: 16,
         overflow: 'hidden',
         elevation: 6,
@@ -452,27 +454,27 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     buttonGradient: {
-        paddingVertical: 18,
+        paddingVertical: 16,
         paddingHorizontal: 24,
         alignItems: 'center',
     },
     actionButtonText: {
         color: '#FFF',
         fontWeight: 'bold',
-        fontSize: 18,
+        fontSize: 16,
         letterSpacing: 1,
     },
     autoStartHint: {
         color: 'rgba(255,255,255,0.4)',
-        fontSize: 12,
-        marginTop: 8,
+        fontSize: 11,
+        marginTop: 6,
     },
     waitingContainer: {
-        paddingVertical: 20,
+        paddingVertical: 15,
     },
     waitingText: {
         color: 'rgba(255,255,255,0.5)',
-        fontSize: 16,
+        fontSize: 14,
         fontStyle: 'italic',
     },
 });
