@@ -58,11 +58,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore with Persistence
-export const db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager()
-    })
-});
+const firestoreSettings = Platform.OS === 'web' 
+    ? { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }
+    : {}; // On Mobile, simplified init or use specific RN persistence if enabled
+
+export const db = initializeFirestore(app, firestoreSettings);
 
 // Initialize Auth with cross-platform persistence
 let authInstance;

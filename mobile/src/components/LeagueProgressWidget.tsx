@@ -8,9 +8,10 @@ import Animated, { FadeInUp, useAnimatedStyle, withRepeat, withTiming, withSeque
 interface LeagueProgressWidgetProps {
     points: number;
     onInfoPress?: () => void;
+    style?: any;
 }
 
-export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ points, onInfoPress }) => {
+export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ points, onInfoPress, style }) => {
     // Current grade computation
     const currentGrade = useMemo(() => {
         if (points >= LEAGUE_FRAME_THRESHOLDS.LEGENDE) return 'LEGENDE';
@@ -35,7 +36,7 @@ export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ poin
     ];
 
     return (
-        <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.container}>
+        <Animated.View entering={FadeInUp.delay(100).duration(500)} style={[styles.container, style]}>
             <LinearGradient
                 colors={['#0A1938', '#010619']}
                 style={styles.gradientCard}

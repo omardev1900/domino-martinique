@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
     StyleSheet,
@@ -30,6 +30,7 @@ import { DailyRewardModal } from '../src/components/DailyRewardModal';
 import { HelpOverlay } from '../src/components/HelpOverlay';
 import { LeagueProgressWidget } from '../src/components/LeagueProgressWidget';
 import { LeagueInfoModal } from '../src/components/LeagueInfoModal';
+import { NewsService, NewsItem } from '../src/core/services/news.service';
 
 const MadrasPattern = () => (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -66,6 +67,8 @@ export default function HomeScreen() {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showDailyReward, setShowDailyReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
+    const [newsList, setNewsList] = useState<NewsItem[]>([]);
+    const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
     const [showHelp, setShowHelp] = useState(false);
     const [showLeagueModal, setShowLeagueModal] = useState(false);
 
@@ -99,8 +102,24 @@ export default function HomeScreen() {
                 }
             });
             setEconomyRefresh(v => v + 1); // force EconomyHeader refresh
+            
+            // Récupérer les 5 dernières news actives
+            NewsService.getFeaturedNews(5).then(setNewsList);
         }, [])
     );
+
+    // Carousel Timer: Alterner les news toutes les 5 secondes
+    useEffect(() => {
+        if (newsList.length <= 1) return;
+
+        const timer = setInterval(() => {
+            setCurrentNewsIndex(prev => (prev + 1) % newsList.length);
+        }, 5000);
+
+        return () => clearInterval(timer);
+    }, [newsList]);
+
+    const currentNews = newsList[currentNewsIndex];
 
     useFocusEffect(
         useCallback(() => {
@@ -269,93 +288,82 @@ export default function HomeScreen() {
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                {user && (
-                    <LeagueProgressWidget 
-                        points={cochonsGiven} 
-                        onInfoPress={() => setShowLeagueModal(true)} 
-                    />
-                )}
+                <View style={styles.topCardsRow}>
+                    {/* 1. Bloc Niveau Cochon - ENLARGED AGAIN */}
+                    {user && (
+                        <View style={[styles.topCardWrapper, { flex: 1.5 }]}>
+                            <LeagueProgressWidget 
+                                points={cochonsGiven} 
+                                onInfoPress={() => setShowLeagueModal(true)}
+                                style={styles.leagueWidgetCompact}
+                            />
+                        </View>
+                    )}
 
-                <View style={[styles.cardsContainer, isLandscape && styles.cardsContainerLandscape]}>
-                    <Animated.View entering={FadeInUp.delay(200).duration(500)} style={[styles.cardWrapper, isLandscape && styles.cardWrapperLandscape]}>
-                        <TouchableOpacity
-                            style={styles.modeCard}
-                            onPress={() => router.push('/solo')}
-                            activeOpacity={0.85}
+                    {/* 2. Nouveau bloc Actualités - CAROUSEL */}
+                    <Animated.View entering={FadeInUp.delay(200).duration(500)} style={[styles.topCardWrapper, { flex: 0.9 }]}>
+                        <TouchableOpacity 
+                            style={styles.newsContainerCompact}
+                            onPress={() => router.push('/news/history')}
+                            activeOpacity={0.7}
                         >
                             <LinearGradient
-                                colors={['#4CAF50', '#2E7D32']}
-                                style={styles.cardGradient}
+                                colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+                                style={styles.newsGradientCompact}
                             >
-                                <Text style={styles.cardIcon}>🎮</Text>
-                                <Text style={styles.cardTitle}>Mode Solo</Text>
-                                <Text style={styles.cardDesc}>Jouer contre le Bot</Text>
+                                <View style={styles.newsHeaderRow}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                        <Ionicons name="newspaper-outline" size={16} color="#FFD700" />
+                                        <Text style={styles.newsTitleCompact}>ACTUS</Text>
+                                    </View>
+                                    {newsList.length > 1 && (
+                                        <View style={styles.carouselIndicators}>
+                                            {newsList.map((_, i) => (
+                                                <View 
+                                                    key={i} 
+                                                    style={[
+                                                        styles.indicator, 
+                                                        i === currentNewsIndex && styles.indicatorActive
+                                                    ]} 
+                                                />
+                                            ))}
+                                        </View>
+                                    )}
+                                </View>
+                                <Animated.View 
+                                    key={currentNews?.id || 'empty'} 
+                                    entering={FadeInUp.duration(400)}
+                                    style={{ flex: 1 }}
+                                >
+                                    <Text style={styles.newsTextCompact} numberOfLines={3}>
+                                        {currentNews ? currentNews.content : "Chargement des actualités..."}
+                                    </Text>
+                                </Animated.View>
+                                <View style={styles.newsReadMore}>
+                                    <Text style={[styles.newsReadMoreText, { fontSize: 11 }]}>
+                                        Détails
+                                    </Text>
+                                    <Ionicons name="chevron-forward" size={10} color="#42A5F5" />
+                                </View>
                             </LinearGradient>
                         </TouchableOpacity>
                     </Animated.View>
 
-                    <Animated.View entering={FadeInUp.delay(400).duration(500)} style={[styles.cardWrapper, isLandscape && styles.cardWrapperLandscape]}>
+                    {/* 3. Bouton Principal JOUER - REDUCED AGAIN */}
+                    <Animated.View entering={FadeInUp.delay(400).duration(500)} style={[styles.topCardWrapper, { flex: 0.6 }]}>
                         <TouchableOpacity
-                            style={styles.modeCard}
-                            onPress={() => {
-                                if (user?.uid?.startsWith('guest_')) {
-                                    Alert.alert(
-                                        'Accès Restreint',
-                                        'Le mode multijoueur requiert un compte gratuit pour jouer avec des amis, gagner des Coins et être classé.',
-                                        [
-                                            { text: 'Plus tard', style: 'cancel' },
-                                            { text: 'Créer un compte', onPress: () => router.push('/login') }
-                                        ]
-                                    );
-                                } else {
-                                    router.push('/lobby');
-                                }
-                            }}
-                            activeOpacity={0.85}
+                            style={styles.playCardCompact}
+                            onPress={() => router.push('/game-modes')}
+                            activeOpacity={0.8}
                         >
                             <LinearGradient
-                                colors={['#1565C0', '#42A5F5']}
-                                style={styles.cardGradient}
+                                colors={['#FFD700', '#FF8C00']}
+                                style={styles.playGradientCompact}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
                             >
-                                <Text style={styles.cardIcon}>{user?.uid?.startsWith('guest_') ? '🔒' : '👥'}</Text>
-                                <Text style={styles.cardTitle}>Multijoueurs</Text>
-                                <Text style={styles.cardDesc}>
-                                    {user?.uid?.startsWith('guest_') ? 'Nécessite un compte' : 'Jouer contre des amis'}
-                                </Text>
-                                {user?.uid?.startsWith('guest_') && (
-                                    <View style={styles.lockOverlay} />
-                                )}
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </Animated.View>
-
-                    <Animated.View entering={FadeInUp.delay(600).duration(500)} style={[styles.cardWrapper, isLandscape && styles.cardWrapperLandscape]}>
-                        <TouchableOpacity
-                            style={styles.modeCard}
-                            onPress={() => {
-                                if (user?.uid?.startsWith('guest_')) {
-                                    Alert.alert(
-                                        'Accès Restreint',
-                                        'Les tournois requièrent un compte gratuit.',
-                                        [
-                                            { text: 'Plus tard', style: 'cancel' },
-                                            { text: 'Créer un compte', onPress: () => router.push('/login') }
-                                        ]
-                                    );
-                                } else {
-                                    // @ts-ignore - On ignore tant que l'écran n'est pas typé globalement
-                                    router.push('/tournaments');
-                                }
-                            }}
-                            activeOpacity={0.85}
-                        >
-                            <LinearGradient
-                                colors={['#FF9800', '#F57C00']}
-                                style={styles.cardGradient}
-                            >
-                                <Text style={styles.cardIcon}>🏆</Text>
-                                <Text style={styles.cardTitle}>Tournois</Text>
-                                <Text style={styles.cardDesc}>Compétitions en cours</Text>
+                                <Text style={styles.playIconCompact}>🎲</Text>
+                                <Text style={styles.playTextCompact}>JOUER</Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     </Animated.View>
@@ -678,5 +686,159 @@ const styles = StyleSheet.create({
         color: '#1A0E2E',
         fontSize: 14,
         fontWeight: '900',
+    },
+    newsContainer: {
+        width: '100%',
+        marginTop: 15,
+        marginBottom: 30,
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+    },
+    newsGradient: {
+        padding: 18,
+    },
+    newsHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    carouselIndicators: {
+        flexDirection: 'row',
+        gap: 3,
+    },
+    indicator: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+    },
+    indicatorActive: {
+        backgroundColor: '#FFD700',
+        width: 8,
+    },
+    newsTitle: {
+        color: '#FFD700',
+        fontWeight: 'bold',
+        fontSize: 14,
+        letterSpacing: 1,
+    },
+    newsText: {
+        color: 'rgba(255,255,255,0.85)',
+        fontSize: 13,
+        lineHeight: 20,
+        marginBottom: 12,
+    },
+    newsReadMore: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    newsReadMoreText: {
+        color: '#42A5F5',
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    playButtonWrapper: {
+        alignItems: 'center',
+        marginTop: '5%',
+        marginBottom: 20,
+    },
+    playButton: {
+        borderRadius: 35,
+        overflow: 'hidden',
+        elevation: 12,
+        shadowColor: '#FF9800',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        width: '80%',
+        maxWidth: 300,
+    },
+    playButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 18,
+        gap: 12,
+    },
+    playButtonIcon: {
+        fontSize: 28,
+    },
+    playButtonText: {
+        color: '#1A0E2E',
+        fontSize: 24,
+        fontWeight: '900',
+        letterSpacing: 2,
+    },
+    topCardsRow: {
+        flexDirection: 'row',
+        width: '100%',
+        gap: 8,
+        paddingHorizontal: 10,
+        marginTop: 15,
+        marginBottom: 20,
+        alignItems: 'stretch',
+        height: 140, // Height determined to fit all 3 properly
+    },
+    topCardWrapper: {
+        flex: 1,
+    },
+    leagueWidgetCompact: {
+        maxWidth: '100%',
+        marginBottom: 0,
+        height: '100%',
+    },
+    newsContainerCompact: {
+        flex: 1,
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    newsGradientCompact: {
+        flex: 1,
+        padding: 10,
+    },
+    newsTitleCompact: {
+        color: '#FFD700',
+        fontWeight: 'bold',
+        fontSize: 11,
+        letterSpacing: 1,
+    },
+    newsTextCompact: {
+        color: 'rgba(255,255,255,0.85)',
+        fontSize: 10,
+        lineHeight: 14,
+        marginBottom: 6,
+    },
+    playCardCompact: {
+        flex: 1,
+        borderRadius: 12,
+        overflow: 'hidden',
+        elevation: 8,
+        shadowColor: '#FF9800',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 5,
+    },
+    playGradientCompact: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 10,
+        gap: 5,
+    },
+    playIconCompact: {
+        fontSize: 24,
+    },
+    playTextCompact: {
+        color: '#1A0E2E',
+        fontSize: 16,
+        fontWeight: '900',
+        letterSpacing: 1,
     },
 });

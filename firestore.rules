@@ -60,6 +60,12 @@ service cloud.firestore {
       allow update, delete: if false; // Les logs sont immuables
     }
 
+    // Actualités (News) : Lecture pour tous, écriture pour les admins
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Configuration globale du jeu
     match /config/{docId} {
       allow read: if request.auth != null; // Lecture par tous (utile pour le mobile)

@@ -16,7 +16,7 @@
     "android": {
       "package": "com.dominomartinique.mobile",
       "versionCode": 1,
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false,
       "adaptiveIcon": {
         "backgroundColor": "#0d1f0d",

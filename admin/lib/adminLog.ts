@@ -10,7 +10,11 @@ export type LogAction =
   | 'close_room'
   | 'cleanup_rooms'
   | 'save_config'
-  | 'send_notification';
+  | 'send_notification'
+  | 'create_news'
+  | 'edit_news'
+  | 'delete_news'
+  | 'toggle_news';
 
 export type AdminLogEntry = {
   action: LogAction;

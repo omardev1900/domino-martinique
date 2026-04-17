@@ -24,6 +24,7 @@ const navItems = [
   { href: '/dashboard/tournaments', label: 'Tournois', icon: '🥊' },
   { href: '/dashboard/logs', label: 'Logs admin', icon: '📋' },
   { href: '/dashboard/notifications', label: 'Notifications', icon: '📣' },
+  { href: '/dashboard/news', label: 'Actualités', icon: '📰' },
 ];
 
 export default function Sidebar({ user }: SidebarProps) {
