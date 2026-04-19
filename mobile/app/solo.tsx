@@ -10,6 +10,8 @@ import { authService } from '../src/core/services/auth.service';
 import { PlayerProfile } from '../src/core/types';
 import { economyService } from '../src/core/services/economy.service';
 import { TABLE_CONFIGS } from '../src/core/economy.constants';
+import { GameModeCard } from '../src/components/GameModeCard';
+import { SelectedModeHeader } from '../src/components/SelectedModeHeader';
 import { TableTier } from '../src/core/economy.types';
 import { EconomyHeader } from '../src/components/EconomyHeader';
 import Svg, { Rect, Defs, Pattern } from 'react-native-svg';
@@ -39,6 +41,20 @@ const MadrasPattern = () => (
 
 type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
 type GameMode = 'MANCHE' | 'SCORE' | 'COCHON' | 'VICTOIRE';
+
+const MODE_LABELS: Record<GameMode, string> = {
+    VICTOIRE: 'Victoire',
+    MANCHE: 'Manche',
+    SCORE: 'Score',
+    COCHON: 'Cochon',
+};
+
+const MODE_UNIT_LABELS: Record<GameMode, string> = {
+    VICTOIRE: 'Victoires',
+    MANCHE: 'Manches',
+    SCORE: 'Points',
+    COCHON: 'Cochons',
+};
 
 export default function SoloScreen() {
     const router = useRouter();
@@ -155,95 +171,71 @@ export default function SoloScreen() {
                         {/* STEP 1: MODE SELECTION */}
                         {uiStep === 'MODE' && (
                             <Animated.View entering={FadeInUp.duration(400)} style={styles.stepContainer}>
-                                <View style={[styles.largeModeContainer, isLandscape && styles.largeModeContainerLandscape]}>
-                                    {/* VICTOIRE */}
-                                    <TouchableOpacity
-                                        style={styles.largeModeCard}
+                                <View style={styles.modesVerticalList}>
+                                    <GameModeCard
+                                        id="VICTOIRE"
+                                        title="Victoire"
+                                        description="Le premier à gagner un nombre défini de rounds."
+                                        icon="🏆"
+                                        colors={['#388E3C', '#66BB6A']}
                                         onPress={() => { setGameMode('VICTOIRE'); setWinningCondition(5); setUiStep('CONFIG'); }}
-                                        activeOpacity={0.8}
-                                    >
-                                        <LinearGradient colors={['#388E3C', '#66BB6A']} style={styles.largeModeGradient}>
-                                            <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🏆</Text>
-                                            <View style={styles.largeModeInfo}>
-                                                <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Victoire</Text>
-                                                <Text style={styles.largeModeDesc}>Le premier à gagner X rounds.</Text>
-                                            </View>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
-
-                                    {/* SCORE */}
-                                    <TouchableOpacity
-                                        style={styles.largeModeCard}
-                                        onPress={() => { setGameMode('SCORE'); setWinningCondition(10); setUiStep('CONFIG'); }}
-                                        activeOpacity={0.8}
-                                    >
-                                        <LinearGradient colors={['#0288D1', '#26C6DA']} style={styles.largeModeGradient}>
-                                            <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🎯</Text>
-                                            <View style={styles.largeModeInfo}>
-                                                <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Score</Text>
-                                                <Text style={styles.largeModeDesc}>Atteins l'objectif de points.</Text>
-                                            </View>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
-
-                                    {/* COCHON */}
-                                    <TouchableOpacity
-                                        style={styles.largeModeCard}
+                                        delay={100}
+                                    />
+                                    <GameModeCard
+                                        id="SCORE"
+                                        title="Score"
+                                        description="Atteins l'objectif de points pour gagner la partie."
+                                        icon="🎯"
+                                        colors={['#0288D1', '#26C6DA']}
+                                        onPress={() => { setGameMode('SCORE'); setWinningCondition(100); setUiStep('CONFIG'); }}
+                                        delay={200}
+                                    />
+                                    <GameModeCard
+                                        id="COCHON"
+                                        title="Cochons"
+                                        description="Évite de rester à zéro point pour ne pas être le cochon !"
+                                        icon="🐷"
+                                        colors={['#EC407A', '#FF7043']}
                                         onPress={() => { setGameMode('COCHON'); setWinningCondition(3); setUiStep('CONFIG'); }}
-                                        activeOpacity={0.8}
-                                    >
-                                        <LinearGradient colors={['#EC407A', '#FF7043']} style={styles.largeModeGradient}>
-                                            <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🐷</Text>
-                                            <View style={styles.largeModeInfo}>
-                                                <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Cochons</Text>
-                                                <Text style={styles.largeModeDesc}>Évite de faire zéro point.</Text>
-                                            </View>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
-
-                                    {/* MANCHE */}
-                                    <TouchableOpacity
-                                        style={styles.largeModeCard}
+                                        delay={300}
+                                    />
+                                    <GameModeCard
+                                        id="MANCHE"
+                                        title="Manches"
+                                        description="Joue un nombre fixe de manches et gagne au total."
+                                        icon="🎲"
+                                        colors={['#FFA000', '#FFD54F']}
                                         onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); setUiStep('CONFIG'); }}
-                                        activeOpacity={0.8}
-                                    >
-                                        <LinearGradient colors={['#FFA000', '#FFD54F']} style={styles.largeModeGradient}>
-                                            <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🎲</Text>
-                                            <View style={styles.largeModeInfo}>
-                                                <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Manches</Text>
-                                                <Text style={styles.largeModeDesc}>Joue un nombre fixe de manches.</Text>
-                                            </View>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
+                                        delay={400}
+                                    />
                                 </View>
                             </Animated.View>
                         )}
 
                         {/* STEP 2: CONFIGURATION */}
                         {uiStep === 'CONFIG' && (
-                            <Animated.View entering={FadeInLeft.duration(400)} style={styles.stepContainer}>
-                                <View style={styles.configSplitOuter}>
-                                    {/* Left Col: Mode Preview */}
-                                    <View style={styles.configLeftCol}>
-                                        <View style={[styles.largeModeCard, { width: '100%', aspectRatio: 1 }]}>
-                                            <LinearGradient
-                                                colors={
-                                                    gameMode === 'VICTOIRE' ? ['#388E3C', '#66BB6A'] :
-                                                        gameMode === 'SCORE' ? ['#0288D1', '#26C6DA'] :
-                                                            gameMode === 'COCHON' ? ['#EC407A', '#FF7043'] :
-                                                                ['#FFA000', '#FFD54F']
-                                                }
-                                                style={styles.largeModeGradient}
-                                            >
-                                                <Text style={[styles.largeModeEmoji, { fontSize: 48 }]}>
-                                                    {gameMode === 'VICTOIRE' ? '🏆' : gameMode === 'SCORE' ? '🎯' : gameMode === 'COCHON' ? '🐷' : '🎲'}
-                                                </Text>
-                                                <Text style={[styles.largeModeTitle, { fontSize: 16 }]}>{gameMode}</Text>
-                                            </LinearGradient>
-                                        </View>
-                                    </View>
+                            <Animated.View entering={FadeInUp.duration(400)} style={styles.stepContainer}>
+                                <SelectedModeHeader
+                                    title={MODE_LABELS[gameMode]}
+                                    description={
+                                        gameMode === 'VICTOIRE' ? 'Premier à gagner rounds' :
+                                        gameMode === 'SCORE' ? 'Objectif de points' :
+                                        gameMode === 'COCHON' ? 'Éviter les cochons' : 'Nombre de manches'
+                                    }
+                                    icon={gameMode === 'VICTOIRE' ? '🏆' : gameMode === 'SCORE' ? '🎯' : gameMode === 'COCHON' ? '🐷' : '🎲'}
+                                    colors={
+                                        gameMode === 'VICTOIRE' ? ['#388E3C', '#66BB6A'] :
+                                        gameMode === 'SCORE' ? ['#0288D1', '#26C6DA'] :
+                                        gameMode === 'COCHON' ? ['#EC407A', '#FF7043'] :
+                                        ['#FFA000', '#FFD54F']
+                                    }
+                                    onBack={() => setUiStep('MODE')}
+                                    onActionPress={startGame}
+                                    actionCost={TABLE_CONFIGS[tableTier].buyIn}
+                                />
 
-                                    {/* Right Col: Settings */}
+                                <View style={styles.configSplitOuter}>
+                                    {/* Right Col: Settings (Now full width) */}
                                     <View style={styles.configRightCol}>
                                         <View style={styles.paramsHorizontalStack}>
                                             {/* 1. Difficulté */}
@@ -278,7 +270,7 @@ export default function SoloScreen() {
                                                     </TouchableOpacity>
                                                 </View>
                                                 <Text style={styles.paramSubtext}>
-                                                    {gameMode === 'VICTOIRE' ? 'Victoires' : gameMode === 'MANCHE' ? 'Manches' : gameMode === 'COCHON' ? 'Cochons' : 'Points'}
+                                                    {MODE_UNIT_LABELS[gameMode]}
                                                 </Text>
                                             </View>
 
@@ -309,27 +301,11 @@ export default function SoloScreen() {
                                 </View>
 
 
-                                {/* Play Button */}
-                                <View style={[styles.playButtonWrapper, isLandscape && styles.playButtonWrapperLandscape]}>
-                                    <TouchableOpacity style={[styles.playButton, isLandscape && styles.playButtonLandscape]} onPress={startGame} activeOpacity={0.8}>
-                                        <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.playGradient}>
-                                            <View style={styles.playContent}>
-                                                <View style={styles.costContainer}>
-                                                    <Text style={{ fontSize: isLandscape ? 14 : 18 }}>🪙</Text>
-                                                    <Text style={[styles.costText, isLandscape && styles.costTextLandscape]}>-{TABLE_CONFIGS[tableTier].buyIn}</Text>
-                                                </View>
-                                                <View style={styles.playDivider} />
-                                                <Text style={[styles.playText, isLandscape && styles.playTextLandscape]}>C'EST PARTI !</Text>
-                                            </View>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
-
-                                    {debitFeedback && (
-                                        <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
-                                            {debitFeedback} débités
-                                        </Animated.Text>
-                                    )}
-                                </View>
+                                {debitFeedback && (
+                                    <Animated.Text entering={FadeInLeft.duration(200)} style={styles.debitFeedback}>
+                                        {debitFeedback} débités
+                                    </Animated.Text>
+                                )}
                             </Animated.View>
                         )}
                     </View>
@@ -412,19 +388,11 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
-    largeModeContainer: {
+    modesVerticalList: {
         width: '100%',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 6,
-        gap: 10,
-    },
-    largeModeContainerLandscape: {
-        justifyContent: 'center',
-        gap: 20,
+        paddingHorizontal: 4,
     },
     largeModeCard: {
-        width: '23%',
         borderRadius: 18,
         overflow: 'hidden',
         elevation: 5,
@@ -432,7 +400,6 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
         shadowRadius: 5,
-        aspectRatio: 1, // Full square for better ratio control
     },
     largeModeGradient: {
         flex: 1,

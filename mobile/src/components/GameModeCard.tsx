@@ -4,7 +4,6 @@ import {
     Text, 
     TouchableOpacity, 
     StyleSheet, 
-    Animated as RNAnimated 
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -38,31 +37,38 @@ export const GameModeCard: React.FC<GameModeCardProps> = ({
             <TouchableOpacity
                 style={[styles.card, compact && styles.cardCompact]}
                 onPress={onPress}
-                activeOpacity={0.75}
+                activeOpacity={0.8}
             >
-                <LinearGradient 
-                    colors={colors} 
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={[styles.gradient, compact && styles.gradientCompact]}
-                >
-                    <View style={[styles.iconBg, compact && styles.iconBgCompact]}>
-                        <Text style={[styles.emoji, compact && styles.emojiCompact]}>{icon}</Text>
-                    </View>
+                <View style={styles.cardInner}>
+                    {/* Shadow/Glow effect behind the icon */}
+                    <View style={[styles.glow, { backgroundColor: colors[0] }]} />
                     
+                    <View style={styles.iconContainer}>
+                        <LinearGradient 
+                            colors={colors} 
+                            style={styles.iconGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <Text style={styles.iconEmoji}>{icon}</Text>
+                        </LinearGradient>
+                    </View>
+
                     <View style={styles.content}>
-                        <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>
-                        <Text style={[styles.description, compact && styles.descriptionCompact]} numberOfLines={1}>
+                        <Text style={styles.title}>{title}</Text>
+                        <Text style={styles.description} numberOfLines={2}>
                             {description}
                         </Text>
                     </View>
-                    
-                    <Ionicons 
-                        name="chevron-forward-outline" 
-                        size={compact ? 16 : 20} 
-                        color="rgba(255,255,255,0.3)" 
-                    />
-                </LinearGradient>
+
+                    <View style={styles.actionContainer}>
+                        <Ionicons 
+                            name="chevron-forward" 
+                            size={20} 
+                            color="rgba(255,255,255,0.2)" 
+                        />
+                    </View>
+                </View>
             </TouchableOpacity>
         </Animated.View>
     );
@@ -71,74 +77,73 @@ export const GameModeCard: React.FC<GameModeCardProps> = ({
 const styles = StyleSheet.create({
     wrapper: {
         width: '100%',
+        marginBottom: 12,
     },
     card: {
-        borderRadius: 20,
-        overflow: 'hidden',
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35,
-        shadowRadius: 10,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.12)',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        overflow: 'hidden',
     },
     cardCompact: {
-        borderRadius: 16,
-        elevation: 4,
+        borderRadius: 18,
     },
-    gradient: {
+    cardInner: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
-        minHeight: 85,
     },
-    gradientCompact: {
-        padding: 12,
-        minHeight: 70,
+    glow: {
+        position: 'absolute',
+        top: '10%',
+        left: 10,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        opacity: 0.15,
+        filter: 'blur(20px)', // Note: This might need specific handling or just remain symbolic for some platforms
     },
-    iconBg: {
-        width: 52,
-        height: 52,
-        borderRadius: 16,
-        backgroundColor: 'rgba(0,0,0,0.25)',
+    iconContainer: {
+        marginRight: 16,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+    },
+    iconGradient: {
+        width: 60,
+        height: 60,
+        borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
-    iconBgCompact: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        marginRight: 12,
-    },
-    emoji: {
-        fontSize: 30,
-    },
-    emojiCompact: {
-        fontSize: 24,
+    iconEmoji: {
+        fontSize: 32,
     },
     content: {
         flex: 1,
+        justifyContent: 'center',
     },
     title: {
-        fontSize: 19,
+        fontSize: 18,
         fontWeight: '900',
         color: '#FFFFFF',
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    titleCompact: {
-        fontSize: 16,
+        letterSpacing: 1,
     },
     description: {
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.55)',
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.5)',
         marginTop: 2,
+        lineHeight: 16,
         fontWeight: '500',
     },
-    descriptionCompact: {
-        fontSize: 11,
-        marginTop: 0,
+    actionContainer: {
+        marginLeft: 8,
     },
 });
+

@@ -29,6 +29,8 @@ import { economyService } from '../src/core/services/economy.service';
 import { TABLE_CONFIGS } from '../src/core/economy.constants';
 import { TableTier } from '../src/core/economy.types';
 import { EconomyHeader } from '../src/components/EconomyHeader';
+import { GameModeCard } from '../src/components/GameModeCard';
+import { SelectedModeHeader } from '../src/components/SelectedModeHeader';
 import Svg, { Rect, Defs, Pattern } from 'react-native-svg';
 
 const MadrasPattern = () => (
@@ -351,92 +353,68 @@ export default function LobbyScreen() {
         <Animated.View entering={FadeIn.delay(200)} style={styles.createContent}>
             {uiStep === 'MODE' ? (
                 <View style={styles.stepContainer}>
-                    <View style={styles.largeModeContainer}>
-                        {/* VICTOIRE */}
-                        <TouchableOpacity
-                            style={styles.largeModeCard}
+                    <View style={styles.modesVerticalList}>
+                        <GameModeCard
+                            id="VICTOIRE"
+                            title="Victoire"
+                            description="Le premier à gagner un nombre défini de rounds."
+                            icon="🏆"
+                            colors={['#388E3C', '#66BB6A']}
                             onPress={() => { setGameMode('VICTOIRE'); setWinningCondition(5); setUiStep('CONFIG'); }}
-                            activeOpacity={0.8}
-                        >
-                            <LinearGradient colors={['#388E3C', '#66BB6A']} style={styles.largeModeGradient}>
-                                <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🏆</Text>
-                                <View style={styles.largeModeInfo}>
-                                    <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Victoire</Text>
-                                    <Text style={styles.largeModeDesc}>Le premier à gagner X rounds.</Text>
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        {/* SCORE */}
-                        <TouchableOpacity
-                            style={styles.largeModeCard}
+                            delay={100}
+                        />
+                        <GameModeCard
+                            id="SCORE"
+                            title="Score"
+                            description="Atteins l'objectif de points pour gagner la partie."
+                            icon="🎯"
+                            colors={['#0288D1', '#26C6DA']}
                             onPress={() => { setGameMode('SCORE'); setWinningCondition(100); setUiStep('CONFIG'); }}
-                            activeOpacity={0.8}
-                        >
-                            <LinearGradient colors={['#0288D1', '#26C6DA']} style={styles.largeModeGradient}>
-                                <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🎯</Text>
-                                <View style={styles.largeModeInfo}>
-                                    <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Score</Text>
-                                    <Text style={styles.largeModeDesc}>Atteins l'objectif de points.</Text>
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        {/* COCHON */}
-                        <TouchableOpacity
-                            style={styles.largeModeCard}
+                            delay={200}
+                        />
+                        <GameModeCard
+                            id="COCHON"
+                            title="Cochons"
+                            description="Évite de rester à zéro point pour ne pas être le cochon !"
+                            icon="🐷"
+                            colors={['#EC407A', '#FF7043']}
                             onPress={() => { setGameMode('COCHON'); setWinningCondition(3); setUiStep('CONFIG'); }}
-                            activeOpacity={0.8}
-                        >
-                            <LinearGradient colors={['#EC407A', '#FF7043']} style={styles.largeModeGradient}>
-                                <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🐷</Text>
-                                <View style={styles.largeModeInfo}>
-                                    <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Cochons</Text>
-                                    <Text style={styles.largeModeDesc}>Évite de faire zéro point.</Text>
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        {/* MANCHE */}
-                        <TouchableOpacity
-                            style={styles.largeModeCard}
+                            delay={300}
+                        />
+                        <GameModeCard
+                            id="MANCHE"
+                            title="Manches"
+                            description="Joue un nombre fixe de manches et gagne au total."
+                            icon="🎲"
+                            colors={['#FFA000', '#FFD54F']}
                             onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); setUiStep('CONFIG'); }}
-                            activeOpacity={0.8}
-                        >
-                            <LinearGradient colors={['#FFA000', '#FFD54F']} style={styles.largeModeGradient}>
-                                <Text style={[styles.largeModeEmoji, { fontSize: dynamicEmojiSize }]}>🎲</Text>
-                                <View style={styles.largeModeInfo}>
-                                    <Text style={[styles.largeModeTitle, { fontSize: dynamicTitleSize }]}>Manches</Text>
-                                    <Text style={styles.largeModeDesc}>Joue un nombre fixe de manches.</Text>
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
+                            delay={400}
+                        />
                     </View>
                 </View>
             ) : (
                 <View style={styles.stepContainer}>
-                    <View style={styles.configSplitOuter}>
-                        {/* Left Col: Mode Preview */}
-                        <View style={styles.configLeftCol}>
-                            <View style={[styles.largeModeCard, { width: '100%', aspectRatio: 1 }]}>
-                                <LinearGradient 
-                                    colors={
-                                        gameMode === 'VICTOIRE' ? ['#388E3C', '#66BB6A'] :
-                                        gameMode === 'SCORE' ? ['#0288D1', '#26C6DA'] :
-                                        gameMode === 'COCHON' ? ['#EC407A', '#FF7043'] :
-                                        ['#FFA000', '#FFD54F']
-                                    } 
-                                    style={styles.largeModeGradient}
-                                >
-                                    <Text style={[styles.largeModeEmoji, { fontSize: 48 }]}>
-                                        {gameMode === 'VICTOIRE' ? '🏆' : gameMode === 'SCORE' ? '🎯' : gameMode === 'COCHON' ? '🐷' : '🎲'}
-                                    </Text>
-                                    <Text style={[styles.largeModeTitle, { fontSize: 16 }]}>{MODE_LABELS[gameMode]}</Text>
-                                </LinearGradient>
-                            </View>
-                        </View>
+                    <SelectedModeHeader
+                        title={MODE_LABELS[gameMode]}
+                        description={
+                            gameMode === 'VICTOIRE' ? 'Premier à gagner rounds' :
+                            gameMode === 'SCORE' ? 'Objectif de points' :
+                            gameMode === 'COCHON' ? 'Éviter les cochons' : 'Nombre de manches'
+                        }
+                        icon={gameMode === 'VICTOIRE' ? '🏆' : gameMode === 'SCORE' ? '🎯' : gameMode === 'COCHON' ? '🐷' : '🎲'}
+                        colors={
+                            gameMode === 'VICTOIRE' ? ['#388E3C', '#66BB6A'] :
+                            gameMode === 'SCORE' ? ['#0288D1', '#26C6DA'] :
+                            gameMode === 'COCHON' ? ['#EC407A', '#FF7043'] :
+                            ['#FFA000', '#FFD54F']
+                        }
+                        onBack={() => setUiStep('MODE')}
+                        onActionPress={handleCreateRoom}
+                        actionCost={TABLE_CONFIGS[tableTier].buyIn}
+                    />
 
-                        {/* Right Col: Settings */}
+                    <View style={styles.configSplitOuter}>
+                        {/* Right Col: Settings (Now full width) */}
                         <View style={styles.configRightCol}>
                             <View style={styles.paramsHorizontalStack}>
                                 {/* 1. Visibilité */}
@@ -500,38 +478,6 @@ export default function LobbyScreen() {
                         </View>
                     </View>
 
-                    {/* Action Bar */}
-                    <View style={[styles.bottomActionsRow, isLandscape && styles.bottomActionsRowLandscape]}>
-                        <View style={{ flex: 1, gap: 4 }}>
-                            <TextInput
-                                style={[styles.bottomInput, roomError && { borderColor: '#FF3B30', borderWidth: 1 }]}
-                                placeholder="Nom de la table (optionnel)"
-                                placeholderTextColor="rgba(255,255,255,0.4)"
-                                value={roomNameInput}
-                                onChangeText={(text) => {
-                                    setRoomNameInput(text);
-                                    if (roomError) setRoomError(null);
-                                }}
-                                maxLength={40}
-                            />
-                            {roomError && <Text style={styles.errorTextSmall}>{roomError}</Text>}
-                        </View>
-
-                        <View style={[styles.playButtonWrapper, isLandscape && styles.playButtonWrapperLandscape]}>
-                            <TouchableOpacity style={[styles.playButton, isLandscape && styles.playButtonLandscape]} onPress={handleCreateRoom} activeOpacity={0.8}>
-                                <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.playGradient}>
-                                    <View style={styles.playContent}>
-                                        <View style={styles.costContainerCompact}>
-                                            <Text style={{ fontSize: isLandscape ? 12 : 14 }}>🪙</Text>
-                                            <Text style={[styles.costTextCompact, isLandscape && styles.costTextLandscape]}>-{TABLE_CONFIGS[tableTier].buyIn}</Text>
-                                        </View>
-                                        <View style={styles.playDividerSmall} />
-                                        <Text style={[styles.playText, isLandscape && styles.playTextLandscape]}>CRÉER</Text>
-                                    </View>
-                                </LinearGradient>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
                 </View>
             )}
 
@@ -763,6 +709,10 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         textTransform: 'uppercase',
         letterSpacing: 1,
+    },
+    modesVerticalList: {
+        width: '100%',
+        paddingHorizontal: 4,
     },
     largeModeContainer: {
         width: '100%',
