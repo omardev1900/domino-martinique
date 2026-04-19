@@ -29,7 +29,7 @@ export default function GameModesScreen() {
                 <Animated.View entering={FadeInUp.delay(100).duration(400)} style={[styles.cardWrapper, isLandscape && styles.cardWrapperLandscape]}>
                     <TouchableOpacity
                         style={styles.modeCard}
-                        onPress={() => { router.back(); setTimeout(() => router.push('/solo'), 300); }}
+                        onPress={() => router.replace('/solo')}
                         activeOpacity={0.85}
                     >
                         <LinearGradient colors={['#4CAF50', '#2E7D32']} style={styles.cardGradient}>
@@ -44,21 +44,18 @@ export default function GameModesScreen() {
                     <TouchableOpacity
                         style={styles.modeCard}
                         onPress={() => {
-                            router.back();
-                            setTimeout(() => {
-                                if (user?.uid?.startsWith('guest_')) {
-                                    Alert.alert(
-                                        'Accès Restreint',
-                                        'Le mode multijoueur requiert un compte gratuit pour jouer avec des amis, gagner des Coins et être classé.',
-                                        [
-                                            { text: 'Plus tard', style: 'cancel' },
-                                            { text: 'Créer un compte', onPress: () => router.push('/login') }
-                                        ]
-                                    );
-                                } else {
-                                    router.push('/lobby');
-                                }
-                            }, 300);
+                            if (user?.uid?.startsWith('guest_')) {
+                                Alert.alert(
+                                    'Accès Restreint',
+                                    'Le mode multijoueur requiert un compte gratuit pour jouer avec des amis, gagner des Coins et être classé.',
+                                    [
+                                        { text: 'Plus tard', style: 'cancel' },
+                                        { text: 'Créer un compte', onPress: () => router.replace('/login') }
+                                    ]
+                                );
+                            } else {
+                                router.replace('/lobby');
+                            }
                         }}
                         activeOpacity={0.85}
                     >
@@ -77,22 +74,19 @@ export default function GameModesScreen() {
                     <TouchableOpacity
                         style={styles.modeCard}
                         onPress={() => {
-                            router.back();
-                            setTimeout(() => {
-                                if (user?.uid?.startsWith('guest_')) {
-                                    Alert.alert(
-                                        'Accès Restreint',
-                                        'Les tournois requièrent un compte gratuit.',
-                                        [
-                                            { text: 'Plus tard', style: 'cancel' },
-                                            { text: 'Créer un compte', onPress: () => router.push('/login') }
-                                        ]
-                                    );
-                                } else {
-                                    // @ts-ignore
-                                    router.push('/tournaments');
-                                }
-                            }, 300);
+                            if (user?.uid?.startsWith('guest_')) {
+                                Alert.alert(
+                                    'Accès Restreint',
+                                    'Les tournois requièrent un compte gratuit.',
+                                    [
+                                        { text: 'Plus tard', style: 'cancel' },
+                                        { text: 'Créer un compte', onPress: () => router.replace('/login') }
+                                    ]
+                                );
+                            } else {
+                                // @ts-ignore
+                                router.replace('/tournaments');
+                            }
                         }}
                         activeOpacity={0.85}
                     >
