@@ -49,8 +49,12 @@ export default function RootLayout() {
 
         // Android Immersive Mode
         if (Platform.OS === 'android') {
-          await NavigationBar.setVisibilityAsync('hidden');
-          await NavigationBar.setBehaviorAsync('overlay-swipe');
+          try {
+            await NavigationBar.setVisibilityAsync('hidden');
+            await NavigationBar.setBehaviorAsync('overlay-swipe');
+          } catch (e) {
+            // Support errors on newer Android versions with edge-to-edge
+          }
         }
 
         // Start menu music immediately

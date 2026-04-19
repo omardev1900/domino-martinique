@@ -1,5 +1,7 @@
 import { createAudioPlayer, AudioPlayer, setAudioModeAsync, AudioSource } from 'expo-audio';
 import { Platform } from 'react-native';
+import { db } from '../services/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import SettingsManager from '../SettingsManager';
 import { LogService } from '../services/LogService';
 
