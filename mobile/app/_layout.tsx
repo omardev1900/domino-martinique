@@ -51,7 +51,8 @@ export default function RootLayout() {
         if (Platform.OS === 'android') {
           try {
             await NavigationBar.setVisibilityAsync('hidden');
-            await NavigationBar.setBehaviorAsync('overlay-swipe');
+            // 'inset-touch' or 'overlay-swipe' are best for full immersion
+            await NavigationBar.setBehaviorAsync('inset-touch');
           } catch (e) {
             // Support errors on newer Android versions with edge-to-edge
           }
@@ -145,7 +146,7 @@ export default function RootLayout() {
             />
           </Stack>
 
-          <StatusBar style="light" />
+          <StatusBar hidden={true} />
         </LinearGradient>
       </ThemeProvider>
     </GestureHandlerRootView>
