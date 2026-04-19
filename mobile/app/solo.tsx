@@ -208,6 +208,15 @@ export default function SoloScreen() {
                                         onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); setUiStep('CONFIG'); }}
                                         delay={400}
                                     />
+
+                                    {/* Scroll Hint */}
+                                    <Animated.View 
+                                        entering={FadeIn.delay(1200).duration(800)}
+                                        style={styles.scrollHint}
+                                    >
+                                        <Text style={styles.scrollHintText}>Plus de modes</Text>
+                                        <Ionicons name="chevron-down" size={14} color="rgba(255,255,255,0.4)" />
+                                    </Animated.View>
                                 </View>
                             </Animated.View>
                         )}
@@ -451,6 +460,20 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         textDecorationLine: 'underline',
         marginTop: 2,
+    },
+    scrollHint: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        marginTop: 4,
+        paddingBottom: 10,
+    },
+    scrollHintText: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.4)',
+        fontWeight: '600',
+        textTransform: 'uppercase',
     },
     // Split View Config
     configSplitOuter: {

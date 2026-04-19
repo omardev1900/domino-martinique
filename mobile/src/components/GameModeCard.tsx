@@ -77,7 +77,7 @@ export const GameModeCard: React.FC<GameModeCardProps> = ({
 const styles = StyleSheet.create({
     wrapper: {
         width: '100%',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     card: {
         borderRadius: 24,
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     cardInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
+        padding: 12,
     },
     glow: {
         position: 'absolute',
@@ -113,23 +113,23 @@ const styles = StyleSheet.create({
         shadowRadius: 5,
     },
     iconGradient: {
-        width: 60,
-        height: 60,
-        borderRadius: 18,
+        width: 52,
+        height: 52,
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.2)',
     },
     iconEmoji: {
-        fontSize: 32,
+        fontSize: 28,
     },
     content: {
         flex: 1,
         justifyContent: 'center',
     },
     title: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '900',
         color: '#FFFFFF',
         textTransform: 'uppercase',
