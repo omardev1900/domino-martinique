@@ -1,10 +1,7 @@
 {
   "expo": {
-    "extra": {
-      "eas": {
-        "projectId": "8dcd64b6-823e-4283-a863-5fccc3954e90"
-      }
-    },
+    "name": "Domino Martiniquais",
+    "slug": "domino-martinique",
     "android": {
       "package": "com.dominomartinique.mobile"
     }
