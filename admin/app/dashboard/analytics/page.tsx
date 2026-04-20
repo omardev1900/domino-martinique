@@ -91,7 +91,6 @@ export default function AnalyticsPage() {
   const [modeStats, setModeStats] = useState<ModeStats[]>([]);
   const [winCondData, setWinCondData] = useState<WinCondBucket[]>([]);
   const [diffData, setDiffData] = useState<{ label: string; count: number }[]>([]);
-  const [soloMultiData, setSoloMultiData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalRooms, setTotalRooms] = useState(0);
   const [avgPerDay, setAvgPerDay] = useState(0);
@@ -120,8 +119,6 @@ export default function AnalyticsPage() {
         const modeBuckets: Record<string, number> = { MANCHE: 0, VICTOIRE: 0, SCORE: 0, COCHON: 0 };
         const winCondBuckets = new Map<string, number>();
         const diffBuckets: Record<string, number> = {};
-        let soloCount = 0;
-        let multiCount = 0;
 
         snap.docs.forEach((d) => {
           const data = d.data();
@@ -152,10 +149,8 @@ export default function AnalyticsPage() {
           const diff = data.difficulty || 'N/A';
           diffBuckets[diff] = (diffBuckets[diff] ?? 0) + 1;
 
-          // Solo / Multi
-          const roomMode = (data.mode || '').toUpperCase();
-          if (roomMode === 'SOLO') soloCount++;
-          else multiCount++;
+          // Solo / Multi removal
+
         });
 
         // ── Derived arrays ────────────────────────────────────────────────────
@@ -188,11 +183,6 @@ export default function AnalyticsPage() {
             count,
           }));
 
-        const smArr = [
-          { name: 'Multi', value: multiCount, color: '#facc15' },
-          { name: 'Solo', value: soloCount, color: '#6b7280' },
-        ].filter((x) => x.value > 0);
-
         const peak = dayArr.reduce((best, cur) => (cur.parties > best.parties ? cur : best), dayArr[0]);
         const peakH = Array.from(hourBuckets.entries()).reduce(
           (best, [h, v]) => (v > best[1] ? [h, v] : best),
@@ -204,7 +194,6 @@ export default function AnalyticsPage() {
         setModeStats(modeArr);
         setWinCondData(winCondArr);
         setDiffData(diffArr);
-        setSoloMultiData(smArr);
         setTotalRooms(total);
         setAvgPerDay(Math.round(total / days));
         setPeakDay(peak);
@@ -284,18 +273,26 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
             </div>
 
-            {/* Solo vs Multi donut */}
+            {/* Modes de jeu donut */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 flex flex-col">
-              <h2 className="text-white font-semibold mb-1">Solo vs Multijoueur</h2>
-              <p className="text-gray-500 text-xs mb-4">Répartition des parties</p>
-              {soloMultiData.length === 0 ? (
+              <h2 className="text-white font-semibold mb-1">Répartition des modes</h2>
+              <p className="text-gray-500 text-xs mb-4">Fréquence des variantes jouées</p>
+              {modeStats.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Aucune donnée</div>
               ) : (
                 <>
                   <ResponsiveContainer width="100%" height={160}>
                     <PieChart>
-                      <Pie data={soloMultiData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value" paddingAngle={3}>
-                        {soloMultiData.map((entry, i) => (
+                      <Pie
+                        data={modeStats}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={70}
+                        dataKey="count"
+                        paddingAngle={3}
+                      >
+                        {modeStats.map((entry, i) => (
                           <Cell key={i} fill={entry.color} />
                         ))}
                       </Pie>
@@ -303,13 +300,13 @@ export default function AnalyticsPage() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="mt-2 space-y-2">
-                    {soloMultiData.map((entry) => (
-                      <div key={entry.name} className="flex items-center justify-between text-sm">
+                    {modeStats.map((entry) => (
+                      <div key={entry.mode} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
-                          <span className="text-gray-300">{entry.name}</span>
+                          <span className="text-gray-300">{MODE_LABELS[entry.mode] || entry.mode}</span>
                         </div>
-                        <span className="text-white font-semibold">{entry.value}</span>
+                        <span className="text-white font-semibold">{entry.count}</span>
                       </div>
                     ))}
                   </div>
@@ -318,44 +315,16 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Row 2 : Modes de jeu */}
+          {/* Row 2 : Conditions de victoire & Difficulté IA */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Mode bars */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-white font-semibold mb-1">Répartition par mode de jeu</h2>
-              <p className="text-gray-500 text-xs mb-5">MANCHE · VICTOIRE · SCORE · COCHON</p>
-              {modeStats.length === 0 ? (
-                <p className="text-gray-600 text-sm text-center py-6">Aucune donnée</p>
-              ) : (
-                <div className="space-y-4">
-                  {modeStats.map((m) => (
-                    <div key={m.mode}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-sm font-medium text-gray-300">{MODE_LABELS[m.mode] ?? m.mode}</span>
-                        <span className="text-sm font-bold text-white">
-                          {m.count} <span className="text-gray-500 font-normal text-xs">({m.pct}%)</span>
-                        </span>
-                      </div>
-                      <div className="h-2.5 bg-gray-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${m.pct}%`, backgroundColor: m.color }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Winning condition horizontal bars */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-white font-semibold mb-1">Conditions de victoire les plus jouées</h2>
-              <p className="text-gray-500 text-xs mb-5">Objectif choisi à la création de la partie</p>
+              <h2 className="text-white font-semibold mb-1">Conditions de victoire</h2>
+              <p className="text-gray-500 text-xs mb-5">Objectifs de fin de partie les plus choisis</p>
               {winCondData.length === 0 ? (
                 <p className="text-gray-600 text-sm text-center py-6">Aucune donnée</p>
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={winCondData} layout="vertical" margin={{ top: 0, right: 8, left: 8, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" horizontal={false} />
                     <XAxis type="number" allowDecimals={false} tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -363,7 +332,6 @@ export default function AnalyticsPage() {
                     <Tooltip {...darkTooltip} formatter={(v: number) => [`${v} partie${v !== 1 ? 's' : ''}`, '']} />
                     <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                       {winCondData.map((entry, i) => {
-                        // Color bar by detected mode in label
                         const color = entry.label.includes('Manche') ? '#facc15'
                           : entry.label.includes('Victoire') ? '#34d399'
                           : entry.label.includes('Score') ? '#60a5fa'
@@ -376,45 +344,33 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               )}
             </div>
-          </div>
 
-          {/* Row 3 : Heures de pointe + Difficulté */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Hours bar */}
-            <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-white font-semibold mb-1">Heures de pointe</h2>
-              <p className="text-gray-500 text-xs mb-6">Distribution des parties par heure de la journée</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={hourData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
-                  <XAxis dataKey="heure" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} interval={2} />
-                  <YAxis allowDecimals={false} tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip {...darkTooltip} formatter={(v: number) => [`${v} partie${v !== 1 ? 's' : ''}`, '']} />
-                  <Bar dataKey="parties" fill="#facc15" radius={[4, 4, 0, 0]} fillOpacity={0.8} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Difficulty */}
+            {/* Difficulty BarChart (Moved from Row 3) */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-white font-semibold mb-1">Difficulté IA</h2>
-              <p className="text-gray-500 text-xs mb-5">Niveau choisi en mode solo</p>
+              <h2 className="text-white font-semibold mb-1">Niveaux de difficulté IA</h2>
+              <p className="text-gray-500 text-xs mb-5">Répartition du niveau des bots en mode solo</p>
               {diffData.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center text-gray-600 text-sm py-6">Aucune donnée</div>
               ) : (
-                <div className="space-y-3 mt-4">
+                <div className="space-y-4 mt-6">
                   {diffData.map((d, i) => {
                     const colors = ['#34d399', '#facc15', '#f87171', '#9ca3af'];
                     const total = diffData.reduce((s, x) => s + x.count, 0);
                     const pct = total > 0 ? Math.round((d.count / total) * 100) : 0;
                     return (
                       <div key={i}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-gray-300">{d.label}</span>
-                          <span className="text-sm font-bold text-white">{d.count} <span className="text-gray-500 font-normal text-xs">({pct}%)</span></span>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-medium text-gray-300">{d.label}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{d.count} parties</span>
+                            <span className="text-sm font-bold text-white">{pct}%</span>
+                          </div>
                         </div>
-                        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: colors[i % colors.length] }} />
+                        <div className="h-2.5 bg-gray-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%`, backgroundColor: colors[i % colors.length] }}
+                          />
                         </div>
                       </div>
                     );
@@ -422,6 +378,21 @@ export default function AnalyticsPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Row 3 : Heures de pointe */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h2 className="text-white font-semibold mb-1">Heures de pointe</h2>
+            <p className="text-gray-500 text-xs mb-6">Distribution des parties par heure de la journée</p>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={hourData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                <XAxis dataKey="heure" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} interval={1} />
+                <YAxis allowDecimals={false} tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip {...darkTooltip} formatter={(v: number) => [`${v} partie${v !== 1 ? 's' : ''}`, '']} />
+                <Bar dataKey="parties" fill="#facc15" radius={[4, 4, 0, 0]} fillOpacity={0.8} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </>
       )}
