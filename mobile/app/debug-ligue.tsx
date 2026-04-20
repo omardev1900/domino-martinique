@@ -285,7 +285,7 @@ export default function DebugLigueScreen() {
                                 onPress={() => { setLastUnlockedGrade(grade); setShowUnlockModal(true); }}
                             >
                                 <Text style={styles.modalTestEmoji}>{LEAGUE_ICONS[grade]}</Text>
-                                <Text style={styles.modalTestLabel}>{LEAGUE_LABELS[grade].split(' ')[0]}</Text>
+                                <Text style={styles.modalTestLabel}>{LEAGUE_LABELS[grade]}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -294,7 +294,7 @@ export default function DebugLigueScreen() {
                 {/* ─── Info technique ─── */}
                 <View style={styles.infoCard}>
                     <Text style={styles.infoTitle}>État calculé</Text>
-                    <Text style={styles.infoRow}>grade: <Text style={styles.infoVal}>{grade}</Text></Text>
+                    <Text style={styles.infoRow}>grade: <Text style={styles.infoVal}>{LEAGUE_LABELS[grade]}</Text></Text>
                     <Text style={styles.infoRow}>nextThreshold: <Text style={styles.infoVal}>{nextThreshold ?? 'null (max)'}</Text></Text>
                     <Text style={styles.infoRow}>unlockedFrames: <Text style={styles.infoVal}>[{unlockedFrames.join(', ') || 'aucun'}]</Text></Text>
                     <Text style={styles.infoRow}>activeFrame: <Text style={styles.infoVal}>{activeFrameId ?? 'null'}</Text></Text>

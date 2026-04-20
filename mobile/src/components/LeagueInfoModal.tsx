@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInLeft, FadeInRight, ZoomIn } from 'react-native-reanimated';
-import { LEAGUE_FRAME_THRESHOLDS, LEAGUE_ICONS } from '../core/economy.constants';
+import { LEAGUE_FRAME_THRESHOLDS, LEAGUE_ICONS, LEAGUE_LABELS } from '../core/economy.constants';
 
 interface LeagueInfoModalProps {
     visible: boolean;
@@ -16,7 +16,7 @@ const { width, height } = Dimensions.get('window');
 const RANKS = [
     {
         score: '30',
-        name: 'APPRENTI',
+        name: LEAGUE_LABELS.APPRENTI,
         coins: 500,
         frameBorderColor: '#C0C0C0', // Silver
         frameGlowColor: 'rgba(192,192,192,0.3)',
@@ -24,7 +24,7 @@ const RANKS = [
     },
     {
         score: '150',
-        name: 'MAÎTRE',
+        name: LEAGUE_LABELS.MAITRE,
         coins: 2000,
         frameBorderColor: '#FFD700', // Gold
         frameGlowColor: 'rgba(255,215,0,0.5)',
@@ -32,7 +32,7 @@ const RANKS = [
     },
     {
         score: '250',
-        name: 'ROI',
+        name: LEAGUE_LABELS.ROI,
         coins: 5000,
         frameBorderColor: '#00EAFF', // Blue Neon
         frameGlowColor: 'rgba(0,234,255,0.7)',
@@ -40,7 +40,7 @@ const RANKS = [
     },
     {
         score: '500',
-        name: 'LÉGENDE',
+        name: LEAGUE_LABELS.LEGENDE,
         coins: 10000,
         frameBorderColor: '#FF3300', // Red/Flames
         frameGlowColor: 'rgba(255,51,0,0.8)',

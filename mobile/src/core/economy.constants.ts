@@ -129,11 +129,11 @@ export const DEFAULT_LEVEL_UP_COINS = 100;
  * Correspond aux paliers officiels « Niveau Boucher ».
  */
 export const LEAGUE_THRESHOLDS: Record<LeagueGrade, number> = {
-    APPRENTI: 0,   // Grade de départ (pas encore de palier débloqué)
-    MAITRE: 30,    // 🥈 Apprenti Boucher
-    ROI: 150,      // 🥇 Maître Saucissier
-    LEGENDE: 250,  // 💎 Roi du Boudin (250 → palier 3 = ROI)
-                   // Note: 500 = Légende du Groin (grade max)
+    APPRENTI: 0,   // Grade de départ
+    MAITRE: 30,    // 🥈 Apprenti Boucher (Seuil de déblocage)
+    ROI: 150,      // 🥇 Maître Saucissier (Seuil de déblocage)
+    LEGENDE: 250,  // 👑 Roi du Boudin (Seuil de déblocage)
+                   // Note: 500 = Légende du Groin (Grade max)
 };
 
 // Note: les seuils de DÉBLOCAGE des cadres sont les 4 paliers du brief :

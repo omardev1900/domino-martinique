@@ -187,7 +187,7 @@ export default function SoloScreen() {
                                         description="Atteins l'objectif de points pour gagner la partie."
                                         icon="🎯"
                                         colors={['#0288D1', '#26C6DA']}
-                                        onPress={() => { setGameMode('SCORE'); setWinningCondition(100); setUiStep('CONFIG'); }}
+                                        onPress={() => { setGameMode('SCORE'); setWinningCondition(10); setUiStep('CONFIG'); }}
                                         delay={200}
                                     />
                                     <GameModeCard
