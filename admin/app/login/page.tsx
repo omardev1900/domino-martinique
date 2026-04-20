@@ -19,7 +19,7 @@ export default function LoginPage() {
       if (user) {
         const adminDoc = await getDoc(doc(db, 'admins', user.uid));
         if (adminDoc.exists()) {
-          router.replace('/dashboard');
+          router.replace('/dashboard/analytics');
           return;
         }
       }
@@ -42,7 +42,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.replace('/dashboard');
+      router.replace('/dashboard/analytics');
     } catch (err: unknown) {
       const errorCode = (err as { code?: string })?.code;
       if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password') {

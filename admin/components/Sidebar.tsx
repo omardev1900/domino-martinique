@@ -12,10 +12,10 @@ type SidebarProps = {
 };
 
 const navItems = [
-  { href: '/dashboard', label: 'Vue d\'ensemble', icon: '📊' },
+  { href: '/dashboard/analytics', label: 'Dashboard', icon: '📈' },
+  { href: '/dashboard/overview', label: 'Vue d\'ensemble', icon: '📊' },
   { href: '/dashboard/players', label: 'Joueurs', icon: '👥' },
   { href: '/dashboard/tables', label: 'Tables en cours', icon: '🎲' },
-  { href: '/dashboard/analytics', label: 'Activité', icon: '📈' },
   { href: '/dashboard/bans', label: 'Bans', icon: '🚫' },
   { href: '/dashboard/config', label: 'Configuration', icon: '⚙️' },
   { href: '/dashboard/leaderboard', label: 'Classement', icon: '🏆' },
