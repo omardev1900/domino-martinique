@@ -84,6 +84,7 @@ export class StoreService {
                     rewards: data.rewards,
                     assetId: data.assetId || 'default_asset',
                     imageUrl: data.imageUrl,
+                    skinConfig: data.skinConfig,
                 });
             });
             return catalog;

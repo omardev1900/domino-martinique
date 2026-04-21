@@ -50,6 +50,51 @@ export const STORE_CATALOG: StoreItem[] = [
         assetId: 'classic'
     },
     {
+        id: 'skin_ivory_pure',
+        name: 'Ivoire Pur',
+        description: 'Blanc cassé lumineux, points noirs profonds.',
+        type: 'SKIN',
+        rarity: 'COMMON',
+        priceCoins: 0,
+        assetId: 'ivory_pure',
+        skinConfig: {
+            tableBackgroundColor: '#2C4A2E',
+            dominoBackgroundColor: '#f8f4e8',
+            dominoDotColor: '#1a1a1a',
+            dominoLineColor: 'rgba(0,0,0,0.2)'
+        }
+    },
+    {
+        id: 'skin_darkwood_free',
+        name: 'Bois Sombre',
+        description: 'Acajou foncé avec points ivoire.',
+        type: 'SKIN',
+        rarity: 'COMMON',
+        priceCoins: 0,
+        assetId: 'darkwood_free',
+        skinConfig: {
+            tableBackgroundColor: '#1a0f08',
+            dominoBackgroundColor: '#3a2515',
+            dominoDotColor: '#f5ecd5',
+            dominoLineColor: 'rgba(245,236,213,0.25)'
+        }
+    },
+    {
+        id: 'skin_bone',
+        name: 'Os & Charbon',
+        description: 'Os naturel, points charbon doux. Look moderne.',
+        type: 'SKIN',
+        rarity: 'COMMON',
+        priceCoins: 0,
+        assetId: 'bone',
+        skinConfig: {
+            tableBackgroundColor: '#2C4A2E',
+            dominoBackgroundColor: '#ebe3d0',
+            dominoDotColor: '#2d2a24',
+            dominoLineColor: 'rgba(0,0,0,0.18)'
+        }
+    },
+    {
         id: 'skin_neon',
         name: 'Cyber Néon',
         description: 'Des dominos brillants pour la nuit.',
@@ -111,7 +156,7 @@ export const STORE_CATALOG: StoreItem[] = [
 ];
 
 // Helper pour récupérer rapidement les items par défaut offerts à tous
-export const DEFAULT_OWNED_ITEMS = ['avatar_classic', 'skin_classic'];
+export const DEFAULT_OWNED_ITEMS = ['avatar_classic', 'skin_classic', 'skin_ivory_pure', 'skin_darkwood_free', 'skin_bone'];
 
 export const DEFAULT_INVENTORY = {
     ownedItems: DEFAULT_OWNED_ITEMS,

@@ -2,8 +2,13 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, doc, setDoc } from 'firebase/firestore';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url'; // <-- Nouvel import obligatoire pour ESM
 
-// Load environment variables from .env if running from script
+// 1. Recréer __dirname pour l'environnement ES Module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 2. Load environment variables from .env if running from script
 const envPath = path.join(__dirname, '../.env');
 if (fs.existsSync(envPath)) {
     const env = fs.readFileSync(envPath, 'utf8').split('\n');
@@ -82,6 +87,51 @@ const STORE_CATALOG = [
     },
 
     // --- SKINS (Dominos) ---
+    {
+        id: 'skin_ivory_pure',
+        name: 'Ivoire Pur',
+        description: 'Blanc cassé lumineux, points noirs profonds.',
+        type: 'SKIN',
+        rarity: 'COMMON',
+        priceCoins: 0,
+        assetId: 'ivory_pure',
+        skinConfig: {
+            tableBackgroundColor: '#2C4A2E',
+            dominoBackgroundColor: '#f8f4e8',
+            dominoDotColor: '#1a1a1a',
+            dominoLineColor: 'rgba(0,0,0,0.2)'
+        }
+    },
+    {
+        id: 'skin_darkwood_free',
+        name: 'Bois Sombre',
+        description: 'Acajou foncé avec points ivoire.',
+        type: 'SKIN',
+        rarity: 'COMMON',
+        priceCoins: 0,
+        assetId: 'darkwood_free',
+        skinConfig: {
+            tableBackgroundColor: '#1a0f08',
+            dominoBackgroundColor: '#3a2515',
+            dominoDotColor: '#f5ecd5',
+            dominoLineColor: 'rgba(245,236,213,0.25)'
+        }
+    },
+    {
+        id: 'skin_bone',
+        name: 'Os & Charbon',
+        description: 'Os naturel, points charbon doux. Look moderne.',
+        type: 'SKIN',
+        rarity: 'COMMON',
+        priceCoins: 0,
+        assetId: 'bone',
+        skinConfig: {
+            tableBackgroundColor: '#2C4A2E',
+            dominoBackgroundColor: '#ebe3d0',
+            dominoDotColor: '#2d2a24',
+            dominoLineColor: 'rgba(0,0,0,0.18)'
+        }
+    },
     {
         id: 'skin_classic',
         name: 'Standard',
