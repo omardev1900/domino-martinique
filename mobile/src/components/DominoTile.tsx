@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { FadeIn, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, interpolateColor } from 'react-native-reanimated';
-import Svg, { Circle, Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { DominoSide } from '../core/types';
 import HapticManager from '../core/audio/HapticManager';
 import { SkinConfig } from '../core/store.types';
@@ -158,26 +159,14 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                     animatedGlowStyle,
                 ]}
             >
-                {/* Visual Background with SVG Gradients */}
-                <View style={StyleSheet.absoluteFill}>
-                    <Svg width="100%" height="100%">
-                        <Defs>
-                            <LinearGradient id="bgGradient_dynamic" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <Stop offset="0%" stopColor={gradientColors[0]} />
-                                <Stop offset="50%" stopColor={gradientColors[1]} />
-                                <Stop offset="100%" stopColor={gradientColors[2]} />
-                            </LinearGradient>
-                        </Defs>
-                        <Rect
-                            x="0"
-                            y="0"
-                            width="100%"
-                            height="100%"
-                            rx={8}
-                            fill="url(#bgGradient_dynamic)"
-                        />
-                    </Svg>
-                </View>
+                {/* Visual Background with native Linear Gradient (respecte le borderRadius du parent, pas de double antialiasing) */}
+                <LinearGradient
+                    colors={[gradientColors[0], gradientColors[1], gradientColors[2]] as const}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                />
+
 
                 {/* Left/Top Half */}
                 <View style={styles.half}>
@@ -208,7 +197,7 @@ export const DominoTile: React.FC<DominoTileProps> = ({
 
 const styles = StyleSheet.create({
     baseContainer: {
-        backgroundColor: '#FFFFF0',
+        backgroundColor: '#eee8aa',
         borderRadius: 8,
         overflow: 'hidden',
         alignItems: 'center',
