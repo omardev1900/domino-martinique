@@ -59,6 +59,7 @@ export const STORE_CATALOG: StoreItem[] = [
         assetId: 'ivory_pure',
         skinConfig: {
             tableBackgroundColor: '#2C4A2E',
+            boardColor: '#7B3434',
             dominoBackgroundColor: '#f8f4e8',
             dominoDotColor: '#1a1a1a',
             dominoLineColor: 'rgba(0,0,0,0.2)'
@@ -74,6 +75,7 @@ export const STORE_CATALOG: StoreItem[] = [
         assetId: 'darkwood_free',
         skinConfig: {
             tableBackgroundColor: '#1a0f08',
+            boardColor: '#1B5E20',
             dominoBackgroundColor: '#3a2515',
             dominoDotColor: '#f5ecd5',
             dominoLineColor: 'rgba(245,236,213,0.25)'
@@ -89,6 +91,7 @@ export const STORE_CATALOG: StoreItem[] = [
         assetId: 'bone',
         skinConfig: {
             tableBackgroundColor: '#2C4A2E',
+            boardColor: '#1C2333',
             dominoBackgroundColor: '#ebe3d0',
             dominoDotColor: '#2d2a24',
             dominoLineColor: 'rgba(0,0,0,0.18)'

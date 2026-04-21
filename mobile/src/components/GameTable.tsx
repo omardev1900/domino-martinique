@@ -332,7 +332,7 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
     }, [placedTiles]);
 
     return (
-        <View style={[styles.container, isLandscape && styles.containerLandscape, skinConfig ? { backgroundColor: skinConfig.tableBackgroundColor } : {}]}>
+        <View style={[styles.container, isLandscape && styles.containerLandscape, skinConfig ? { backgroundColor: skinConfig.boardColor ?? skinConfig.tableBackgroundColor } : {}]}>
             {/* Outer wrapper at SCALED size to preserve document flow & auto-centering */}
             <View style={{ width: scaledW, height: scaledH, justifyContent: 'center', alignItems: 'center' }}>
                 {/* Inner canvas at NATURAL size but scaled via transform */}

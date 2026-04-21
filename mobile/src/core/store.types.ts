@@ -3,6 +3,7 @@ export type StoreItemRarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
 
 export interface SkinConfig {
     tableBackgroundColor: string;
+    boardColor?: string;          // Couleur du plateau de jeu (fallback sur tableBackgroundColor)
     dominoBackgroundColor: string;
     dominoDotColor: string;
     dominoLineColor: string;

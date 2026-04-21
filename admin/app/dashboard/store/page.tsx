@@ -5,6 +5,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 type ItemType = 'SKIN' | 'AVATAR' | 'CURRENCY_PACK' | 'EMOTE';
 type Rarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
 
+type SkinConfig = {
+  tableBackgroundColor: string;
+  boardColor?: string;
+  dominoBackgroundColor: string;
+  dominoDotColor: string;
+  dominoLineColor: string;
+};
+
 type StoreItem = {
   firestoreId?: string;
   id: string;
@@ -17,6 +25,7 @@ type StoreItem = {
   rewards?: { coins?: number; diamonds?: number };
   assetId: string;
   imageUrl?: string;
+  skinConfig?: SkinConfig;
 };
 
 const TYPE_META: Record<ItemType, { label: string; icon: string; color: string }> = {
@@ -269,6 +278,50 @@ export default function StorePage() {
                     <label className="text-gray-400 text-xs font-medium block mb-1.5">Récompense 💎 Diamants</label>
                     <input type="number" min="0" value={editing.rewards?.diamonds ?? ''} onChange={(e) => setEditing((p) => ({ ...p!, rewards: { ...p!.rewards, diamonds: parseInt(e.target.value) || 0 } }))}
                       className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
+                  </div>
+                </div>
+              )}
+              {editing.type === 'SKIN' && (
+                <div className="p-3 bg-purple-500/5 border border-purple-500/20 rounded-xl space-y-3">
+                  <p className="text-purple-300 text-xs font-semibold uppercase tracking-wider">🎨 Configuration skin (skinConfig)</p>
+                  {([
+                    { key: 'tableBackgroundColor', label: 'Table — fond extérieur', placeholder: '#105B3A' },
+                    { key: 'boardColor',            label: 'Plateau — surface de jeu', placeholder: '#1B5E20' },
+                    { key: 'dominoBackgroundColor', label: 'Dominos — fond',           placeholder: '#FFFFFF' },
+                    { key: 'dominoDotColor',        label: 'Dominos — points',         placeholder: '#000000' },
+                    { key: 'dominoLineColor',       label: 'Dominos — ligne centrale', placeholder: '#000000' },
+                  ] as { key: keyof SkinConfig; label: string; placeholder: string }[]).map(({ key, label, placeholder }) => {
+                    const val = (editing.skinConfig as SkinConfig | undefined)?.[key] ?? '';
+                    const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(val);
+                    return (
+                      <div key={key} className="flex items-center justify-between gap-3">
+                        <label className="text-gray-400 text-xs font-medium flex-1">{label}</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={isValidHex ? val : '#000000'}
+                            onChange={(e) => setEditing((p) => ({ ...p!, skinConfig: { ...(p!.skinConfig as SkinConfig), [key]: e.target.value } }))}
+                            className="w-8 h-8 rounded cursor-pointer border border-gray-600 bg-transparent"
+                          />
+                          <input
+                            type="text"
+                            value={val}
+                            onChange={(e) => setEditing((p) => ({ ...p!, skinConfig: { ...(p!.skinConfig as SkinConfig), [key]: e.target.value } }))}
+                            placeholder={placeholder}
+                            className="w-28 bg-gray-800 border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-purple-400 transition-colors"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div
+                    className="mt-2 h-8 rounded-lg border border-gray-700 flex overflow-hidden"
+                    title="Aperçu des couleurs"
+                  >
+                    {(['tableBackgroundColor', 'boardColor', 'dominoBackgroundColor', 'dominoDotColor'] as (keyof SkinConfig)[]).map((k) => {
+                      const c = (editing.skinConfig as SkinConfig | undefined)?.[k];
+                      return c ? <div key={k} className="flex-1" style={{ backgroundColor: c }} title={k} /> : null;
+                    })}
                   </div>
                 </div>
               )}
