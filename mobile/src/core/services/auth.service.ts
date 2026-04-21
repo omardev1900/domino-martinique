@@ -33,9 +33,7 @@ class AuthService {
             const profile = this.mapFirebaseUserToProfile(user);
             await this.activateSession(profile);
             await statsService.syncWithFirebase(profile.uid);
-            // S'assurer que displayName et avatarId sont écrits dans Firestore
-            // pour que le leaderboard affiche le bon nom/avatar
-            await economyService.syncProfileToFirebase(
+            await economyService.syncProfileMetadata(
                 profile.uid,
                 profile.displayName,
                 profile.avatarId || 'avatar_default'
@@ -58,8 +56,7 @@ class AuthService {
             const profile = this.mapFirebaseUserToProfile(user);
             await this.activateSession(profile);
             await statsService.syncWithFirebase(profile.uid);
-            // Créer le document Firestore avec displayName et avatarId dès l'inscription
-            await economyService.syncProfileToFirebase(
+            await economyService.syncProfileMetadata(
                 profile.uid,
                 profile.displayName,
                 profile.avatarId || 'avatar_default'

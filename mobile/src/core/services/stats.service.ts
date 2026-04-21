@@ -230,12 +230,13 @@ class StatsService {
                         totalCochonsInflicted: Math.max(localStats.totalCochonsInflicted, remoteData.totalCochonsInflicted || 0),
                         totalPointsAccumulated: realPoints,
                         matchHistory: mergedHistory,
-                        // Economy — take the max (server is source of truth if higher)
-                        coins: Math.max(localStats.coins, remoteData.coins || 0),
-                        xp: Math.max(localStats.xp, remoteData.xp || 0),
-                        level: Math.max(localStats.level, remoteData.level || 1),
-                        diamonds: Math.max(localStats.diamonds, remoteData.diamonds || 0),
-                        leaguePoints: Math.max(localStats.leaguePoints, remoteData.leaguePoints || 0),
+                        // Firestore est source de vérité pour les champs économiques.
+                        // Ne jamais utiliser Math.max ici : ça empêcherait l'admin de corriger un solde.
+                        coins: remoteData.coins ?? localStats.coins,
+                        xp: remoteData.xp ?? localStats.xp,
+                        level: remoteData.level ?? localStats.level,
+                        diamonds: remoteData.diamonds ?? localStats.diamonds,
+                        leaguePoints: remoteData.leaguePoints ?? localStats.leaguePoints,
                         leagueGrade: remoteData.leagueGrade || localStats.leagueGrade,
                         inventory: remoteData.inventory || localStats.inventory,
                     };

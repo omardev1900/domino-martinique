@@ -38,7 +38,7 @@ export default function LeaderboardScreen() {
             // Sync le displayName et avatarId vers Firestore pour les joueurs
             // déjà connectés dont le document n'a jamais eu ces champs.
             if (!u.uid.startsWith('guest_')) {
-                economyService.syncProfileToFirebase(
+                economyService.syncProfileMetadata(
                     u.uid,
                     u.displayName,
                     u.avatarId || u.avatarUrl || 'avatar_default'

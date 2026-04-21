@@ -12,7 +12,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from './firebase';
 import { LogService } from './LogService';
@@ -105,23 +105,21 @@ class EconomyService {
                         remoteEconomy.cochonsGiven = Math.max(remoteEconomy.cochonsGiven || 0, remoteStats.totalCochonsInflicted);
                     }
 
-                    // Prendre le maximum (évite la perte de données si offline)
+                    // Firestore est source de vérité : on met à jour le cache local uniquement.
+                    // On ne repousse JAMAIS les données locales vers Firestore ici.
                     const merged = this.mergeEconomies(local, remoteEconomy);
                     this.cached = merged;
                     await this.persistLocal();
-                    
-                    // Push the restored economy back to firebase to fix the remote state
-                    await this.pushToFirebase(uid, merged);
-                    
-                    LogService.info('EconomyService', 'Economy synced and restored from Firebase.');
+
+                    LogService.info('EconomyService', 'Economy hydrated from Firebase.');
                     return;
                 }
             }
 
-            // Aucune donnée remote → push les données locales
+            // Aucune donnée remote = nouveau compte → initialiser Firestore avec les valeurs par défaut
             const local = await this.getEconomy();
             await this.pushToFirebase(uid, local);
-            LogService.info('EconomyService', 'Local economy pushed to Firebase.');
+            LogService.info('EconomyService', 'New account: default economy pushed to Firebase.');
         } catch (e) {
             LogService.error('EconomyService', 'syncFromFirebase error:', e);
         }
@@ -341,15 +339,51 @@ class EconomyService {
      * Écrit displayName et avatarId dans Firestore pour que le leaderboard
      * puisse afficher le vrai nom et l'avatar du joueur.
      * À appeler après signIn() ou signUp().
+     * ⚠️ N'écrit JAMAIS les données économiques — Firestore est la source de vérité.
      */
-    async syncProfileToFirebase(uid: string, displayName: string, avatarId: string): Promise<void> {
+    async syncProfileMetadata(uid: string, displayName: string, avatarId: string): Promise<void> {
         if (uid.startsWith('guest_')) return;
         try {
-            const economy = await this.getEconomy();
-            await this.pushToFirebase(uid, economy, { displayName, avatarId });
+            const userRef = doc(db, 'users', uid);
+            await setDoc(userRef, { displayName, avatarId }, { merge: true });
+            LogService.info('EconomyService', 'Profile metadata synced.', displayName);
         } catch (e) {
-            LogService.error('EconomyService', 'syncProfileToFirebase error:', e);
+            LogService.error('EconomyService', 'syncProfileMetadata error:', e);
         }
+    }
+
+    /**
+     * Ouvre un écouteur temps réel sur l'économie du joueur dans Firestore.
+     * Met à jour le cache local et notifie le callback à chaque changement.
+     * Retourne la fonction d'unsubscribe — à appeler au logout ou unmount.
+     *
+     * ⚠️ Cet écouteur est STRICTEMENT en lecture. Il n'écrit jamais dans Firestore.
+     *    Toute écriture depuis ici recréerait la race condition qu'on vient de corriger.
+     */
+    listenToEconomy(uid: string, onUpdate: (economy: PlayerEconomy) => void): () => void {
+        if (uid.startsWith('guest_')) return () => {};
+
+        const userRef = doc(db, 'users', uid);
+        const unsubscribe = onSnapshot(
+            userRef,
+            (snap) => {
+                if (!snap.exists()) return;
+                const remoteEconomy = snap.data().economy as Partial<PlayerEconomy> | undefined;
+                if (!remoteEconomy) return;
+
+                // Firestore → cache local → UI. Jamais l'inverse.
+                const hydrated = this.mergeWithDefaults(remoteEconomy);
+                this.cached = hydrated;
+                this.persistLocal();
+                onUpdate({ ...hydrated });
+                LogService.info('EconomyService', 'onSnapshot: economy updated in real-time.');
+            },
+            (error) => {
+                LogService.error('EconomyService', 'listenToEconomy error:', error);
+            }
+        );
+
+        return unsubscribe;
     }
 
     /**

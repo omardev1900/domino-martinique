@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     View,
     StyleSheet,
@@ -72,38 +72,49 @@ export default function HomeScreen() {
     const [showHelp, setShowHelp] = useState(false);
     const [showLeagueModal, setShowLeagueModal] = useState(false);
 
+    // Ref pour l'unsubscribe du listener Firestore — nettoyé au démontage du composant
+    const economyListenerRef = useRef<(() => void) | null>(null);
+
+    // Lance le listener temps réel une seule fois au montage.
+    // Firestore est la source de vérité : le callback met à jour le state local sans jamais écrire dans Firestore.
+    useEffect(() => {
+        authService.getCurrentUser().then(u => {
+            setUser(u);
+            if (u && !u.uid.startsWith('guest_')) {
+                // Profil uniquement (displayName, avatarId) — jamais les données économiques
+                economyService.syncProfileMetadata(
+                    u.uid,
+                    u.displayName,
+                    u.avatarId || u.avatarUrl || 'avatar_default'
+                );
+                // Listener temps réel : Firestore → cache local → UI
+                economyListenerRef.current = economyService.listenToEconomy(u.uid, (eco) => {
+                    setCochonsGiven(eco.cochonsGiven || 0);
+                    setEconomyRefresh(v => v + 1);
+                });
+            }
+        });
+
+        return () => {
+            economyListenerRef.current?.();
+            economyListenerRef.current = null;
+        };
+    }, []);
+
+    // Au focus : sync des stats de jeu + vérification cadeau quotidien + news.
+    // Aucune écriture economy ici — le listener onSnapshot s'en charge.
     useFocusEffect(
         useCallback(() => {
-            economyService.getEconomy().then(eco => {
-                setCochonsGiven(eco.cochonsGiven || 0);
-            });
-            authService.getCurrentUser().then(u => {
-                setUser(u);
+            authService.getCurrentUser().then(async u => {
                 if (u && !u.uid.startsWith('guest_')) {
-                    console.log('🔄 HomeScreen: Forcing stats sync for', u.displayName);
                     statsService.syncWithFirebase(u.uid);
-                    // Écrire displayName + avatarId dans Firestore pour le leaderboard
-                    economyService.syncProfileToFirebase(
-                        u.uid,
-                        u.displayName,
-                        u.avatarId || u.avatarUrl || 'avatar_default'
-                    );
-                    economyService.syncFromFirebase(u.uid).then(async () => {
-                        // Refresh local economy state after sync
-                        const syncedEco = await economyService.getEconomy();
-                        setCochonsGiven(syncedEco.cochonsGiven || 0);
-                        // Vérification du cadeau quotidien (sans le créditer — le modal s'en charge)
-                        const isAvailable = await economyService.isDailyRewardAvailable();
-                        if (isAvailable) {
-                            setDailyRewardAmount(DAILY_REWARD_COINS);
-                            setShowDailyReward(true);
-                        }
-                    }).catch(console.error);
+                    const isAvailable = await economyService.isDailyRewardAvailable();
+                    if (isAvailable) {
+                        setDailyRewardAmount(DAILY_REWARD_COINS);
+                        setShowDailyReward(true);
+                    }
                 }
             });
-            setEconomyRefresh(v => v + 1); // force EconomyHeader refresh
-            
-            // Récupérer les 5 dernières news actives
             NewsService.getFeaturedNews(5).then(setNewsList);
         }, [])
     );
