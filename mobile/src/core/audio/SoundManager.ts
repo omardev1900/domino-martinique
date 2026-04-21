@@ -20,7 +20,7 @@ class SoundManager {
     private currentMusic: AudioPlayer | null = null;
     private currentMusicName: SoundName | null = null;
     private baseMusicVolume = 0.3; // Volume de base cible pour la musique en cours
-    private duckingTimeout: NodeJS.Timeout | null = null;
+    private duckingTimeout: ReturnType<typeof setTimeout> | null = null;
 
     // DEBOUNCE: Track last play time per sound to prevent saturation
     private lastPlayTime: Record<string, number> = {};
@@ -64,9 +64,7 @@ class SoundManager {
             try {
                 await setAudioModeAsync({
                     allowsRecording: false,
-                    playsInSilentMode: true,
-                    interruptionModeIOS: 1, // DoNotMix
-                    shouldRouteThroughEarpieceAndroid: false
+                    playsInSilentMode: true
                 });
             } catch (e) {
                 LogService.warn('SoundManager', 'setAudioModeAsync issue', e);
@@ -162,8 +160,10 @@ class SoundManager {
                 this.currentMusic = player;
                 this.currentMusicName = name;
                 
+                const musicMultiplier = settings.isSfxEnabled ? 1 : 0;
+                
                 // Entrée en fondu
-                await this.fadeMusic(this.baseMusicVolume * settings.bgmVolume, 1000);
+                await this.fadeMusic(this.baseMusicVolume * settings.bgmVolume * musicMultiplier, 1000);
             }
         } catch (error) {
             LogService.warn('SoundManager', `Music error "${name}"`, error);
@@ -201,8 +201,10 @@ class SoundManager {
         // Rétablir le volume après 800ms
         this.duckingTimeout = setTimeout(() => {
             if (this.currentMusic) {
-                // Rétablissement progressif (simple)
-                this.currentMusic.volume = targetVol;
+                // Rétablissement progressif (simple) - vérifie si le son est toujours activé
+                const finalSettings = SettingsManager.getSettings();
+                const multiplier = finalSettings.isSfxEnabled ? 1 : 0;
+                this.currentMusic.volume = targetVol * multiplier;
             }
             this.duckingTimeout = null;
         }, 800);
@@ -221,7 +223,10 @@ class SoundManager {
         for (let i = 1; i <= steps; i++) {
             await new Promise(res => setTimeout(res, stepTime));
             if (this.currentMusic) {
-                this.currentMusic.volume = Math.max(0, Math.min(1, startVol + (volStep * i)));
+                const currentSettings = SettingsManager.getSettings();
+                const multiplier = currentSettings.isSfxEnabled ? 1 : 0;
+                const calculatedVol = startVol + (volStep * i);
+                this.currentMusic.volume = Math.max(0, Math.min(1, calculatedVol * multiplier));
             }
         }
     }
@@ -231,8 +236,11 @@ class SoundManager {
      */
     private startWatchdog() {
         setInterval(() => {
+            const settings = SettingsManager.getSettings();
+            // Ne rien relancer si le son global (SFX) est coupé
+            if (!settings.isSfxEnabled) return;
+
             if (this.currentMusic && !this.currentMusic.playing && this.currentMusicName) {
-                const settings = SettingsManager.getSettings();
                 if (settings.bgmVolume > 0) {
                     LogService.info('SoundManager', 'Watchdog: Music stalled, restarting...');
                     this.currentMusic.play();
@@ -303,8 +311,33 @@ class SoundManager {
     async updateVolumes() {
         const settings = SettingsManager.getSettings();
         if (this.currentMusic) {
-            this.currentMusic.volume = this.baseMusicVolume * settings.bgmVolume;
+            if (!settings.isSfxEnabled || settings.bgmVolume <= 0) {
+                // Si on coupe le son, on met en pause la musique au lieu de juste baisser le volume
+                if (this.currentMusic.playing) {
+                    this.currentMusic.pause();
+                }
+            } else {
+                // Si on réactive le son, on s'assure que la musique repart
+                if (!this.currentMusic.playing && this.currentMusicName) {
+                    this.currentMusic.play();
+                }
+                this.currentMusic.volume = this.baseMusicVolume * settings.bgmVolume;
+            }
         }
+    }
+
+    /**
+     * Bascule l'état sonore global (SFX) et met à jour les volumes.
+     * Retourne le nouvel état (true = activé, false = muet).
+     */
+    async toggleMute(): Promise<boolean> {
+        const settings = SettingsManager.getSettings();
+        const newState = !settings.isSfxEnabled;
+        
+        await SettingsManager.setSfxEnabled(newState);
+        await this.updateVolumes();
+        
+        return newState;
     }
 
     async unloadSounds() {
