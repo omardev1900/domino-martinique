@@ -592,6 +592,7 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
         roundNumber: isMancheEnd ? 1 : (activeState.roundNumber || 0) + 1,
         mancheNumber: isMancheEnd ? (activeState.mancheNumber || 1) + 1 : (activeState.mancheNumber || 1),
         tiedPlayerIds: undefined, // R2-B2 : effacé ici — l'appelant le re-injecte si c'est une redonne sur égalité
+        boudePlayerId: null,      // R2-B8 : réinitialiser le badge Boudé à chaque nouveau round
     };
 };
 
