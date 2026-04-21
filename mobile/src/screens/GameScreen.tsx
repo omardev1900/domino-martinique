@@ -524,20 +524,24 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             return () => clearTimeout(timer);
         }
 
-        if (gameState.phase === 'MANCHE_END' || gameState.phase === 'MATCH_END') {
-            // Fin de manche/match : RoundResultCard 5s, PUIS UnifiedResultOverlay
+        if (gameState.phase === 'MANCHE_END') {
+            // Fin de manche : RoundResultCard 5s, PUIS UnifiedResultOverlay
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
                 setShowScoreboard(true);
             }, 5000);
-            return () => {
-                clearTimeout(timer);
-                if (gameState.phase === 'MATCH_END') {
-                     // Ensure scoreboard shows if component unmounts or phase changes abruptly
-                     setShowScoreboard(true); 
-                }
-            };
+            return () => clearTimeout(timer);
+        }
+
+        if (gameState.phase === 'MATCH_END') {
+            // Fin de match : affichage temporaire du RoundResultCard (2.5s) PUIS UnifiedResultOverlay
+            setShowRoundResult(true);
+            const timer = setTimeout(() => {
+                setShowRoundResult(false);
+                setShowScoreboard(true);
+            }, 2500);
+            return () => clearTimeout(timer);
         }
     }, [gameState?.phase, isLocalHost]);
 

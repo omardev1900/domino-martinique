@@ -133,15 +133,21 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
 
             {/* UNIFIED SCORE OVERLAY */}
             {showScoreOverlay && gameState && (
-                <UnifiedResultOverlay
-                    gameState={gameState}
-                    visible={showScoreOverlay}
-                    currentUserId={localPlayerId}
-                    onContinue={onOverlayContinue}
-                    onLeave={onLeaveRoom}
-                    isHost={isHost}
-                    matchReward={matchReward}
-                />
+                <Animated.View 
+                    style={{ ...StyleSheet.absoluteFillObject, zIndex: 2000 }}
+                    entering={reducedMotion ? undefined : FadeIn}
+                    exiting={reducedMotion ? undefined : FadeOut}
+                >
+                    <UnifiedResultOverlay
+                        gameState={gameState}
+                        visible={showScoreOverlay}
+                        currentUserId={localPlayerId}
+                        onContinue={onOverlayContinue}
+                        onLeave={onLeaveRoom}
+                        isHost={isHost}
+                        matchReward={matchReward}
+                    />
+                </Animated.View>
             )}
 
 
