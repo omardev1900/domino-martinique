@@ -9,7 +9,8 @@ export type ActionCommand =
     | { type: 'PASS_TURN'; playerId: PlayerId }
     | { type: 'TIMEOUT'; playerId: PlayerId; turnId?: number }
     | { type: 'NEXT_ROUND'; stateOverride?: GameState }
-    | { type: 'RESOLVE_BOUDE' };
+    | { type: 'RESOLVE_BOUDE' }
+    | { type: 'MARK_BOUDE'; playerId: PlayerId; turnId: number };
 
 export interface UseActionDispatcherProps {
     gameState: GameState | null;
@@ -62,14 +63,22 @@ export const useActionDispatcher = ({
         // Vérification globale canAction (C'est son tour ? Verrou libre ? Immunité (timeouts/auto-pass) ?)
         if (command.type === 'PLAY_TILE' || command.type === 'PASS_TURN' || command.type === 'TIMEOUT') {
             const isAuto = command.type === 'TIMEOUT' || command.type === 'PASS_TURN';
-            // On distingue l'immunité : 
+            // On distingue l'immunité :
             // - Les pass auto (boudé) ont besoin d'être fluides (1.5s de délai total d'animation, donc 1s d'immunité suffit).
             // - Les Timeouts (fin de chrono) sont des sécurités critiques (5s anti-cascade).
             const minAgeMs = command.type === 'TIMEOUT' ? 5000 : 1000;
-            
+
             if (!canAction(command.playerId, { isAuto, minAgeMs })) {
                 return;
             }
+        }
+
+        // MARK_BOUDE : vérifs minimales (tour du joueur, turnId, phase, non déjà marqué)
+        if (command.type === 'MARK_BOUDE') {
+            if (gameState.phase !== 'PLAYING') return;
+            if (gameState.currentPlayerId !== command.playerId) return;
+            if (gameState.turnId !== command.turnId) return;
+            if (gameState.boudePlayerId === command.playerId) return;
         }
 
         // Tente d'acquérir le verrou
@@ -132,8 +141,8 @@ export const useActionDispatcher = ({
                         // TIE = même manche, étoiles inchangées, nouveau round (nouvelle donne)
                         // On incrémente le compteur pour le garde-fou C5
                         const nextTieCount = (gameState.reDealCount || 0) + 1;
-                        const stateForRedeal = { 
-                            ...resolvedState, 
+                        const stateForRedeal = {
+                            ...resolvedState,
                             phase: 'PARTIE_END' as GamePhase,
                             reDealCount: nextTieCount
                         };
@@ -141,6 +150,12 @@ export const useActionDispatcher = ({
                     } else {
                         newState = resolvedState;
                     }
+                    break;
+                }
+                case 'MARK_BOUDE': {
+                    // R2-B1 : on marque le joueur boudé dans le state partagé (Firestore) pour que
+                    // tous les clients voient l'animation, pas seulement le joueur concerné.
+                    newState = { ...gameState, boudePlayerId: command.playerId };
                     break;
                 }
             }
@@ -163,7 +178,7 @@ export const useActionDispatcher = ({
                     console.error('[ActionDispatcher] Sound error:', e);
                 }
 
-                if (command.type !== 'NEXT_ROUND' && command.type !== 'RESOLVE_BOUDE') {
+                if (command.type !== 'NEXT_ROUND' && command.type !== 'RESOLVE_BOUDE' && command.type !== 'MARK_BOUDE') {
                     setOvertime(null);
                     clearAllTurnTimers();
                 }

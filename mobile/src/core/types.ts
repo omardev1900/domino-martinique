@@ -73,6 +73,7 @@ export interface GameState {
     mancheNumber: number; // NEW: Numéro de la manche en cours
     startingHandSize: number;
     reDealCount?: number; // ✅ NOUVEAU : Compteur de redonnes consécutives (C5)
+    boudePlayerId?: PlayerId | null; // R2-B1 : joueur actuellement boudé (visible par tous les clients via Firestore)
 }
 
 

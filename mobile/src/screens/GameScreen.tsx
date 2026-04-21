@@ -160,8 +160,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         handleTimeout,
         handleOverlayContinue,
         pendingDomino,
-        isProcessingMove,
-        visualBoudePlayerId
+        isProcessingMove
     } = useGameEngine({
         gameState,
         localPlayerId,
@@ -1062,7 +1061,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     localPlayer={localPlayer as any}
                     gameState={gameState}
                     localPlayerId={localPlayerId}
-                    boudedPlayerId={visualBoudePlayerId}
+                    boudedPlayerId={gameState.boudePlayerId ?? null}
                     playersChat={playersChat as any}
                     overtime={overtime}
                     isBotPlaying={isProcessingMove}

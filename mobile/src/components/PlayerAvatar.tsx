@@ -69,7 +69,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const animatedProgress = useSharedValue(1);
     const breatheValue = useSharedValue(1);
     const pingValue = useSharedValue(0); // NEW: Pulsing halo
-    const shakeOffset = useSharedValue(0);
+    const boudeBlink = useSharedValue(1); // R2-B1 : clignotement continu pendant le Boudé
     const [secondsLeft, setSecondsLeft] = useState(timerDuration);
     const scaleAnim = useRef(new RNAnimated.Value(1)).current;
     const opacityAnim = useRef(new RNAnimated.Value(1)).current; // NEW: Theatrical focus
@@ -83,22 +83,25 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
         }).start();
     }, [dimmed]);
 
-    // Shake effect for Boude
+    // R2-B1 : Clignotement continu de l'avatar pendant l'état Boudé
     useEffect(() => {
         if (isBoude) {
-            shakeOffset.value = withSequence(
-                withTiming(-10, { duration: 50 }),
-                withTiming(10, { duration: 50 }),
-                withTiming(-10, { duration: 50 }),
-                withTiming(10, { duration: 50 }),
-                withTiming(0, { duration: 50 })
+            boudeBlink.value = withRepeat(
+                withSequence(
+                    withTiming(0.25, { duration: 250 }),
+                    withTiming(1, { duration: 250 })
+                ),
+                -1,
+                true
             );
+        } else {
+            boudeBlink.value = withTiming(1, { duration: 150 });
         }
     }, [isBoude]);
 
     // Timer Countdown Effect
     useEffect(() => {
-        if (showTimer && isActive && !isPaused) {
+        if (showTimer && isActive && !isPaused && !isBoude) {
             // Start countdown
             const interval = setInterval(() => {
                 setSecondsLeft(prev => {
@@ -151,7 +154,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                 pingValue.value = 0;
             }
         }
-    }, [showTimer, isActive, isPaused, timerDuration]);
+    }, [showTimer, isActive, isPaused, timerDuration, isBoude]);
 
     const animatedAvatarStyle = useAnimatedStyle(() => ({
         transform: [{ scale: breatheValue.value }],
@@ -164,16 +167,16 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
 
     // Timeout Trigger Effect
     useEffect(() => {
-        if (showTimer && isActive && secondsLeft === 0) {
+        if (showTimer && isActive && !isBoude && secondsLeft === 0) {
             if (onTimeout) {
                 onTimeout();
             }
         }
-    }, [secondsLeft, showTimer, isActive, onTimeout]);
+    }, [secondsLeft, showTimer, isActive, isBoude, onTimeout]);
 
     // BOMB ANIMATION EFFECT (Scale pulse at 0s or Overtime)
     useEffect(() => {
-        const shouldPulse = showTimer && isActive && !isPaused && (secondsLeft === 0 || (overtime !== null && overtime > 0));
+        const shouldPulse = showTimer && isActive && !isPaused && !isBoude && (secondsLeft === 0 || (overtime !== null && overtime > 0));
 
         if (shouldPulse) {
             const animation = RNAnimated.loop(
@@ -198,7 +201,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
         } else {
             scaleAnim.setValue(1);
         }
-    }, [secondsLeft, overtime, showTimer, isActive, isPaused]);
+    }, [secondsLeft, overtime, showTimer, isActive, isPaused, isBoude]);
 
     const animatedProps = useAnimatedProps(() => ({
         strokeDashoffset: circumference * (1 - animatedProgress.value),
@@ -218,11 +221,14 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const imageScale = 1.8;
     const imageSize = size * imageScale;
     const imageOffset = -(imageSize - size) * 0.25;
-    const shakeAnimatedStyle = useAnimatedStyle(() => {
+    const boudeBlinkStyle = useAnimatedStyle(() => {
         return {
-            transform: [{ translateX: shakeOffset.value }]
+            opacity: boudeBlink.value
         };
     });
+
+    // R2-B1 : quand le joueur est boudé, on masque le compteur/anneau/halo — avatar normal + clignotement
+    const showTimerUi = showTimer && isActive && !isBoude;
 
     return (
         <RNAnimated.View style={[
@@ -232,7 +238,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             { transform: [{ scale: scaleAnim }], opacity: opacityAnim }
         ]}>
             <Animated.View style={[
-                shakeAnimatedStyle,
+                boudeBlinkStyle,
                 isHorizontal && position !== 'top-right' && styles.containerRow,
                 isHorizontal && position === 'top-right' && styles.containerRowReverse,
             ]}>
@@ -260,7 +266,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                 <Animated.View style={[{ width: size + 12, height: size + 12, alignItems: 'center', justifyContent: 'center' }, animatedAvatarStyle]}>
                     
                     {/* Pulsing Ping Halo */}
-                    {showTimer && isActive && (
+                    {showTimerUi && (
                         <Animated.View style={[
                             {
                                 position: 'absolute',
@@ -284,12 +290,12 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                 borderWidth: isActive ? 3 : 2,
                                 borderColor: isActive ? '#FFD700' : 'rgba(255,255,255,0.3)',
                                 overflow: 'hidden',
-                                backgroundColor: (isActive && (secondsLeft === 0 || overtime !== null)) ? '#FF0000' : 'rgba(50,50,50,0.9)'
+                                backgroundColor: (showTimerUi && (secondsLeft === 0 || overtime !== null)) ? '#FF0000' : 'rgba(50,50,50,0.9)'
                             },
                             isActive && styles.activeGlow,
                         ]}
                     >
-                        {showTimer && isActive ? (
+                        {showTimerUi ? (
                             <Text style={[
                                 styles.countdown,
                                 { fontSize: size / 2.2 },
@@ -339,7 +345,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     )}
 
                     {/* Timer Ring */}
-                    {showTimer && isActive && (
+                    {showTimerUi && (
                         <Svg
                             width={size + 12}
                             height={size + 12}

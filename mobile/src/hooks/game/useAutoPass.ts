@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import { GameState, Domino } from '../../core/types';
+import { useEffect, useRef } from 'react';
+import { GameState } from '../../core/types';
 import { getValidMoves } from '../../core/DominoEngine';
 import SoundManager from '../../core/audio/SoundManager';
 import { ActionCommand } from './useActionDispatcher';
+
+// R2-M1 : Délai d'affichage du Boudé avant passage au joueur suivant.
+// Laisse le temps à tous les clients de voir l'animation via Firestore.
+const BOUDE_DISPLAY_MS = 2000;
 
 export interface UseAutoPassProps {
     gameState: GameState | null;
@@ -19,8 +23,6 @@ export const useAutoPass = ({
     isPaused,
     dispatch
 }: UseAutoPassProps) => {
-    const [visualBoudePlayerId, setVisualBoudePlayerId] = useState<string | null>(null);
-
     // Garder une ref du dispatch et de l'état pour les timeouts
     const dispatchRef = useRef(dispatch);
     useEffect(() => { dispatchRef.current = dispatch; });
@@ -30,7 +32,6 @@ export const useAutoPass = ({
 
     useEffect(() => {
         if (!gameState || gameState.phase !== 'PLAYING' || isPaused) {
-            setVisualBoudePlayerId(null);
             return;
         }
 
@@ -45,10 +46,7 @@ export const useAutoPass = ({
             right: gameState.table.rightValue
         });
 
-        if (validMoves.length > 0) {
-            setVisualBoudePlayerId(null);
-            return;
-        }
+        if (validMoves.length > 0) return;
 
         // 2. Déterminer si cette instance doit piloter l'auto-pass
         // Cas A : C'est le tour physique du joueur local (Humain)
@@ -62,8 +60,12 @@ export const useAutoPass = ({
 
         const capturedTurnId = gameState.turnId;
 
-        // 3. Séquence visuelle
-        setVisualBoudePlayerId(currentPlayerId);
+        // 3. Marquer le joueur boudé dans le state partagé (Firestore) pour que tous les clients voient l'anim
+        dispatchRef.current({
+            type: 'MARK_BOUDE',
+            playerId: currentPlayerId,
+            turnId: capturedTurnId
+        });
         try {
             SoundManager.playSound('toktok');
         } catch (e) {
@@ -78,14 +80,10 @@ export const useAutoPass = ({
                     playerId: currentPlayerId
                 });
             }
-            setVisualBoudePlayerId(null);
-        }, 1500);
+        }, BOUDE_DISPLAY_MS);
 
         return () => {
             clearTimeout(timer);
-            setVisualBoudePlayerId(null);
         };
     }, [gameState?.turnId, isPaused, localPlayerId, isLocalHost]);
-
-    return { visualBoudePlayerId };
 };

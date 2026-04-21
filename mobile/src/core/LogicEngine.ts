@@ -361,6 +361,7 @@ export const handleTurn = (
     const nextIdx = (currentIdx + 1) % newState.players.length;
     newState.currentPlayerId = newState.players[nextIdx].id;
     newState.turnId = (newState.turnId ?? 0) + 1;
+    newState.boudePlayerId = null;
 
     return newState;
 };
@@ -424,6 +425,7 @@ export const passTurn = (
     const nextIdx = (currentIdx + 1) % newState.players.length;
     newState.currentPlayerId = newState.players[nextIdx].id;
     newState.turnId = (newState.turnId ?? 0) + 1;
+    newState.boudePlayerId = null;
 
     return newState;
 };

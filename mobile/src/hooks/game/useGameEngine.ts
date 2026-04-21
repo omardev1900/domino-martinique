@@ -87,8 +87,8 @@ export const useGameEngine = ({
         dispatch
     });
 
-    // 4. Gérer l'auto-pass visuel (Boudé)
-    const { visualBoudePlayerId } = useAutoPass({
+    // 4. Gérer l'auto-pass (Boudé) — l'état visuel vit dans gameState.boudePlayerId
+    useAutoPass({
         gameState,
         localPlayerId,
         isLocalHost,
@@ -221,7 +221,6 @@ export const useGameEngine = ({
         pendingDomino,
         setPendingDomino,
         isProcessingMove: turnManager.isProcessingMove.current,
-        visualBoudePlayerId,
         turnManager
     };
 };
