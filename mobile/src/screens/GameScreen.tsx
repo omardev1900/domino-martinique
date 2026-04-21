@@ -306,7 +306,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const isGameOver = gameState?.phase === 'MATCH_END' || gameState?.phase === 'MANCHE_END'
         || gameState?.phase === 'PARTIE_END' || gameState?.phase === 'BOUDE';
     // showScoreOverlay : uniquement MANCHE_END / MATCH_END — PARTIE_END est géré par RoundResultCard + auto-continue
-    const showScoreOverlay = (gameState?.phase === 'MANCHE_END' || gameState?.phase === 'MATCH_END') && (showScoreboard || gameState?.phase === 'MATCH_END');
+    // ✅ FIX [R2-B7] : on exclut la période d'affichage du RoundResultCard (zIndex 1500) pour éviter
+    // qu'il masque l'UnifiedResultOverlay en fin de match.
+    const showScoreOverlay = (gameState?.phase === 'MANCHE_END' || gameState?.phase === 'MATCH_END')
+        && (showScoreboard || gameState?.phase === 'MATCH_END')
+        && !showRoundResult;
 
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
