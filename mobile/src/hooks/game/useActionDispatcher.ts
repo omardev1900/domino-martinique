@@ -136,7 +136,7 @@ export const useActionDispatcher = ({
                 case 'RESOLVE_BOUDE': {
                     if (!isLocalHost) break; // Seul l'hôte pilote la transition
                     if (gameState.phase !== 'BOUDE') break;
-                    const { newState: resolvedState, isTie } = resolveBoude(gameState);
+                    const { newState: resolvedState, isTie, tiedPlayerIds } = resolveBoude(gameState);
                     if (isTie) {
                         // TIE = même manche, étoiles inchangées, nouveau round (nouvelle donne)
                         // On incrémente le compteur pour le garde-fou C5
@@ -146,7 +146,8 @@ export const useActionDispatcher = ({
                             phase: 'PARTIE_END' as GamePhase,
                             reDealCount: nextTieCount
                         };
-                        newState = computeNextRoundState(stateForRedeal, startingHandSize);
+                        // R2-B2 : re-injecter tiedPlayerIds après le redeal pour forcer le plus grand double
+                        newState = { ...computeNextRoundState(stateForRedeal, startingHandSize), tiedPlayerIds };
                     } else {
                         newState = resolvedState;
                     }

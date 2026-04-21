@@ -1,5 +1,5 @@
 
-import { dealGame, checkValidMove, determineFirstPlayer, determineWinnerOnBoudé, calculateHandPoints, passTurn, handleTurn, getForcedOpeningDominoId } from '../LogicEngine';
+import { dealGame, checkValidMove, determineFirstPlayer, determineWinnerOnBoudé, calculateHandPoints, passTurn, handleTurn, getForcedOpeningDominoId, getForcedTieBreakDominoId } from '../LogicEngine';
 import { Domino, Player, DominoSide, GameState } from '../types';
 import { createBaseGameState } from '../../hooks/game/__tests__/testUtils';
 
@@ -220,6 +220,61 @@ describe('Opening rule (round 1 / manche 1)', () => {
         const newState = handleTurn(state, 'p1', d65);
         expect(newState.table.sequence).toHaveLength(1);
         expect(newState.table.sequence[0].domino.id).toBe('d65');
+    });
+});
+
+describe('getForcedTieBreakDominoId — R2-B2', () => {
+    const d66: Domino = { id: 'dtie66', left: 6, right: 6, isDouble: true };
+    const d33: Domino = { id: 'dtie33', left: 3, right: 3, isDouble: true };
+    const d52: Domino = { id: 'dtie52', left: 5, right: 2, isDouble: false };
+
+    const tiedState: GameState = {
+        gameId: 'g1',
+        players: [
+            { id: 'p1', name: 'A', hand: [d66, d52], handSize: 2, currentMancheStars: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'HUMAN' },
+            { id: 'p2', name: 'B', hand: [d33, d52], handSize: 2, currentMancheStars: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'BOT' },
+            { id: 'p3', name: 'C', hand: [d52],      handSize: 1, currentMancheStars: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'BOT' },
+        ],
+        talonMort: [], table: { sequence: [], leftValue: null, rightValue: null },
+        currentPlayerId: 'p1', phase: 'PLAYING', firstPlayerOfRound: null, history: [],
+        winningCondition: 3, gameMode: 'MANCHE', mancheResult: null, turnDuration: 30,
+        lastActionTimestamp: 0, turnId: 0, mancheHistory: [], roundNumber: 2, mancheNumber: 1,
+        startingHandSize: 7,
+        tiedPlayerIds: ['p1', 'p2'], // p3 n'est pas à égalité
+    };
+
+    it('retourne le plus grand double pour le joueur à égalité qui le possède', () => {
+        expect(getForcedTieBreakDominoId(tiedState, 'p1')).toBe('dtie66');
+    });
+
+    it('retourne null pour un joueur à égalité qui ne possède pas le plus grand double', () => {
+        expect(getForcedTieBreakDominoId(tiedState, 'p2')).toBeNull();
+    });
+
+    it('retourne null pour un joueur NON à égalité', () => {
+        expect(getForcedTieBreakDominoId(tiedState, 'p3')).toBeNull();
+    });
+
+    it('retourne null quand la table n\'est plus vide (contrainte levée après le 1er coup)', () => {
+        const stateAfterFirstPlay: GameState = {
+            ...tiedState,
+            table: { sequence: [{ domino: d66, side: 'right' as any }], leftValue: 6, rightValue: 6 },
+        };
+        expect(getForcedTieBreakDominoId(stateAfterFirstPlay, 'p1')).toBeNull();
+    });
+
+    it('retourne null quand tiedPlayerIds est absent', () => {
+        const noTieState: GameState = { ...tiedState, tiedPlayerIds: undefined };
+        expect(getForcedTieBreakDominoId(noTieState, 'p1')).toBeNull();
+    });
+
+    it('handleTurn rejette un domino non-forcé pour un joueur à égalité', () => {
+        expect(() => handleTurn(tiedState, 'p1', d52)).toThrow("Tie-break rule:");
+    });
+
+    it('handleTurn accepte le plus grand double pour le joueur à égalité', () => {
+        const newState = handleTurn(tiedState, 'p1', d66);
+        expect(newState.table.sequence[0].domino.id).toBe('dtie66');
     });
 });
 

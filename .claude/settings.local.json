@@ -14,7 +14,8 @@
       "Bash(w32tm /resync /force)",
       "Bash(powershell -Command \"w32tm /resync /force\")",
       "Bash(powershell -Command \"Start-Service W32Time; w32tm /resync /force\")",
-      "Bash(npm install recharts)"
+      "Bash(npm install recharts)",
+      "Bash(npx jest *)"
     ]
   }
 }

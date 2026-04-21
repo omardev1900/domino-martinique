@@ -1,6 +1,6 @@
 import { Domino, DominoSide, GameState } from './types';
 import { getBotMove as getEngineBotMove, ValidMove } from './DominoEngine';
-import { getForcedOpeningDominoId } from './LogicEngine';
+import { getForcedOpeningDominoId, getForcedTieBreakDominoId } from './LogicEngine';
 import { LogService } from './services/LogService';
 
 /**
@@ -63,7 +63,7 @@ export const computeBotDecision = (gameState: GameState, playerId: string): BotD
     const player = gameState.players.find(p => p.id === playerId);
     if (!player) return null;
 
-    const forcedOpeningId = getForcedOpeningDominoId(gameState, playerId);
+    const forcedOpeningId = getForcedOpeningDominoId(gameState, playerId) ?? getForcedTieBreakDominoId(gameState, playerId);
     if (forcedOpeningId) {
         const forcedTile = player.hand.find(t => t.id === forcedOpeningId);
         if (forcedTile) {

@@ -22,7 +22,7 @@ import { QuickChat } from '../components/QuickChat';
 import { RoundResultCard } from '../components/game/RoundResultCard';
 
 // Core
-import { determineFirstPlayer, dealGameSolo, getForcedOpeningDominoId, dealGame } from '../core/LogicEngine';
+import { determineFirstPlayer, dealGameSolo, getForcedOpeningDominoId, getForcedTieBreakDominoId, dealGame } from '../core/LogicEngine';
 import { getValidMoves } from '../core/DominoEngine';
 import { GameState, Player, PlayerId, GamePhase, Domino, GameRoom, GameMode } from '@/core/types';
 import { leaveRoom, startGame, clearRematchVotes, updatePlayerChat, resetRoomToLobby, markPlayerAsDebited, markRoomAsFinished } from '../core/services/firebase';
@@ -671,7 +671,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
     const forcedOpeningDominoId = useMemo(() => {
         if (!gameState) return null;
-        return getForcedOpeningDominoId(gameState, localPlayerId);
+        // Règle ouverture match (round 1, manche 1)
+        const opening = getForcedOpeningDominoId(gameState, localPlayerId);
+        if (opening) return opening;
+        // R2-B2 : règle égalité — premier coup du round après redonne, joueurs à égalité uniquement
+        return getForcedTieBreakDominoId(gameState, localPlayerId);
     }, [gameState, localPlayerId]);
 
     // Check if player has ANY playable domino (NEW: Before early return for hooks safety)

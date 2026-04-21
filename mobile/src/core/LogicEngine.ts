@@ -45,6 +45,30 @@ export const getForcedOpeningDominoId = (gameState: GameState, playerId: PlayerI
 };
 
 /**
+ * R2-B2 — Après une redonne sur égalité, force le joueur à égalité qui possède
+ * le plus grand double à le jouer en premier.
+ * S'applique uniquement au premier coup du round (table vide) et uniquement
+ * aux joueurs listés dans tiedPlayerIds.
+ */
+export const getForcedTieBreakDominoId = (gameState: GameState, playerId: PlayerId): string | null => {
+    const tiedIds = gameState.tiedPlayerIds;
+    if (!tiedIds || tiedIds.length === 0) return null;
+    if (!tiedIds.includes(playerId)) return null;
+
+    // La contrainte ne s'applique qu'au premier coup (table vide)
+    const isTableEmpty = gameState.table.leftValue === null && gameState.table.rightValue === null;
+    if (!isTableEmpty) return null;
+
+    // Plus grand double parmi les joueurs à égalité uniquement
+    const tiedPlayers = gameState.players.filter(p => tiedIds.includes(p.id));
+    const highestDouble = findHighestDouble(tiedPlayers);
+    if (!highestDouble) return null;
+    if (highestDouble.playerId !== playerId) return null;
+
+    return highestDouble.domino.id;
+};
+
+/**
  * Mélange des dominos avec l'algorithme de Fisher-Yates
  */
 export const shuffleDeck = (): Domino[] => {
@@ -266,6 +290,11 @@ export const handleTurn = (
         throw new Error("Opening rule: highest double must be played on round 1 / manche 1.");
     }
 
+    const forcedTieBreakDominoId = getForcedTieBreakDominoId(gameState, playerId);
+    if (forcedTieBreakDominoId && domino.id !== forcedTieBreakDominoId) {
+        throw new Error("Tie-break rule: the tied player with the highest double must play it first.");
+    }
+
     // 1. Validation Logic with the new engine
     const allValidMoves = getValidMoves([domino], {
         left: gameState.table.leftValue,
@@ -435,19 +464,22 @@ export const passTurn = (
  */
 import { determineWinnerOnBoudé } from './ScoringEngine';
 
-export const resolveBoude = (gameState: GameState): { newState: GameState; isTie: boolean } => {
+export const resolveBoude = (gameState: GameState): { newState: GameState; isTie: boolean; tiedPlayerIds?: PlayerId[] } => {
     let winnerId = determineWinnerOnBoudé(gameState.players);
 
     // ✅ GARDE-FOU ANTI-BOUCLE (C5) : Au-delà de 2 égalités de points, on force un gagnant
     const currentTieCount = gameState.reDealCount || 0;
     if (winnerId === 'TIE' && currentTieCount >= 2) {
-        console.warn(`[LogicEngine] Tie limit reached (${currentTieCount + 1}-th tie). Forcing decision via determineFirstPlayer.`);
-        // Note: determineFirstPlayer cherche le plus haut domino (ou double) dans les mains
+        console.warn(`[LogicEngine] Tie limit reached (${currentTieCount + 1}-th tie). Forcing decision.`);
         winnerId = determineFirstPlayer(gameState.players);
     }
 
     if (winnerId === 'TIE') {
-        return { newState: gameState, isTie: true };
+        // R2-B2 : identifier les joueurs à égalité pour forcer leur plus grand double au prochain round
+        const scores = gameState.players.map(p => ({ id: p.id, score: p.hand.reduce((s, d) => s + d.left + d.right, 0) }));
+        const minScore = Math.min(...scores.map(s => s.score));
+        const tiedPlayerIds = scores.filter(s => s.score === minScore).map(s => s.id);
+        return { newState: gameState, isTie: true, tiedPlayerIds };
     }
 
     // Gagnant trouvé ou forcé -> On réinitialise le compteur
@@ -558,7 +590,8 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
         lastActionTimestamp: Date.now(),
         turnId: 0, // Reset strict du turnId pour ce tour 1
         roundNumber: isMancheEnd ? 1 : (activeState.roundNumber || 0) + 1,
-        mancheNumber: isMancheEnd ? (activeState.mancheNumber || 1) + 1 : (activeState.mancheNumber || 1)
+        mancheNumber: isMancheEnd ? (activeState.mancheNumber || 1) + 1 : (activeState.mancheNumber || 1),
+        tiedPlayerIds: undefined, // R2-B2 : effacé ici — l'appelant le re-injecte si c'est une redonne sur égalité
     };
 };
 
