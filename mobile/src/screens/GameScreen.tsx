@@ -13,6 +13,7 @@ import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
 import { GameHeader } from '../components/game/GameHeader';
+import { GameOptionsMenu } from '../components/game/GameOptionsMenu';
 import { GameOverlays } from '../components/game/GameOverlays';
 import { PlayerArea } from '../components/game/PlayerArea';
 import { ActionFooter } from '../components/game/ActionFooter';
@@ -106,6 +107,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const isLocalHost = isSoloMode || (roomData?.createdBy === localPlayerId);
 
     const [isPaused, setIsPaused] = useState(false);
+    const [showOptions, setShowOptions] = useState(false);
 
     let handleTimeoutCb = (pId: string, turnId?: number) => {
         // Will be wired to the engine
@@ -120,7 +122,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         clearAllTurnTimers
     } = useGameTimers({
         gameState,
-        isPaused,
+        isPaused: isPaused || showOptions,
         localPlayerId,
         onTimeout: (pId, turnId) => handleTimeoutCb(pId, turnId)
     });
@@ -166,7 +168,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         localPlayerId,
         isSoloMode,
         gameId,
-        isPaused,
+        isPaused: isPaused || showOptions,
         isLocalHost,
         roomData,
         userId,
@@ -189,13 +191,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
 
     // -- 5. UI State remaining --
-    const [showRoomInfo, setShowRoomInfo] = useState(false);
+    const [showRoomInfo] = useState(false); // conservé pour GameOverlays, non déclenché depuis le header
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [showRoundResult, setShowRoundResult] = useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = useState(() => SettingsManager.getSettings().isSfxEnabled);
     const [isVibrationEnabled, setIsVibrationEnabled] = useState(() => SettingsManager.getSettings().isVibrationEnabled);
-    const [isFullscreen, setIsFullscreen] = useState(false);
     const [bannerState, setBannerState] = useState<'NONE' | 'MANCHE' | 'ROUND'>('NONE');
     const [playersChat, setPlayersChat] = useState<{ [playerId: string]: string | null }>({});
     const chatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -264,26 +265,6 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             }
         });
     }, [roomData?.quickChats]);
-    // Fullscreen API (web only)
-    useEffect(() => {
-        if (Platform.OS !== 'web') return;
-        const handleChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', handleChange);
-        return () => document.removeEventListener('fullscreenchange', handleChange);
-    }, []);
-
-    const toggleFullscreen = useCallback(() => {
-        if (Platform.OS !== 'web') return;
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                console.warn('Fullscreen request failed:', err);
-            });
-        } else {
-            document.exitFullscreen();
-        }
-    }, []);
 
     const [hiddenDominoId, setHiddenDominoId] = useState<string | null>(null);
     const [flyingDomino, setFlyingDomino] = useState<FlyingDominoData | null>(null);
@@ -1039,11 +1020,16 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 <GameHeader
                     gameState={gameState}
                     insets={insets}
+                    onOpenOptions={() => setShowOptions(true)}
+                />
+
+                <GameOptionsMenu
+                    visible={showOptions}
+                    onClose={() => setShowOptions(false)}
                     isSoloMode={isSoloMode}
-                    isPaused={isPaused}
-                    onTogglePause={() => setIsPaused(!isPaused)}
-                    showRoomInfo={showRoomInfo}
-                    onToggleRoomInfo={() => setShowRoomInfo(!showRoomInfo)}
+                    gameState={gameState}
+                    gameId={gameId}
+                    roomData={roomData}
                     isSoundEnabled={isSoundEnabled}
                     onToggleSound={async () => {
                         const newState = await SoundManager.toggleMute();
@@ -1055,9 +1041,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         await SettingsManager.setVibrationEnabled(newState);
                         setIsVibrationEnabled(newState);
                     }}
-                    onOpenSettings={() => router.push('/modal')}
-                    isFullscreen={isFullscreen}
-                    onToggleFullscreen={toggleFullscreen}
+                    onQuitGame={handleLeaveRoom}
                 />
 
                 <GameTable
@@ -1077,7 +1061,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     playersChat={playersChat as any}
                     overtime={overtime}
                     isBotPlaying={isProcessingMove}
-                    isPaused={isPaused}
+                    isPaused={isPaused || showOptions}
                     insets={insets}
                     avatarRefs={avatarRefs}
                     getPlayerScore={getPlayerScore as any}
@@ -1101,7 +1085,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 forcedOpeningDominoId={forcedOpeningDominoId}
                 insets={insets}
                 onPlayDomino={wrappedHandlePlayDomino}
-                isPaused={isPaused}
+                isPaused={isPaused || showOptions}
                 skinConfig={playerSkinConfig}
             />
 
@@ -1113,7 +1097,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 isSoloMode={isSoloMode}
                 gameId={gameId}
                 showRoomInfo={showRoomInfo}
-                onCloseRoomInfo={() => setShowRoomInfo(false)}
+                onCloseRoomInfo={() => {}}
                 showScoreOverlay={showScoreOverlay}
                 localPlayerId={localPlayerId}
                 onOverlayContinue={interceptOverlayContinue}
