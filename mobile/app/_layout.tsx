@@ -6,7 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState, useCallback } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-import { Platform } from 'react-native';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import SoundManager from '@/core/audio/SoundManager';
@@ -34,6 +34,17 @@ export const unstable_settings = {
   initialRouteName: 'index',
 };
 
+async function applyImmersiveMode() {
+  if (Platform.OS !== 'android') return;
+  try {
+    await NavigationBar.setVisibilityAsync('hidden');
+    // overlay-swipe : la barre apparaît en overlay sur swipe puis se cache automatiquement
+    await NavigationBar.setBehaviorAsync('overlay-swipe');
+  } catch (_) {
+    // Certains Android 15+ avec edge-to-edge forcé peuvent rejeter ces appels
+  }
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [appReady, setAppReady] = useState(false);
@@ -47,15 +58,9 @@ export default function RootLayout() {
         // Preload audio assets
         await SoundManager.preloadSounds();
 
-        // Android Immersive Mode
+        // Android Immersive Mode — appel initial
         if (Platform.OS === 'android') {
-          try {
-            await NavigationBar.setVisibilityAsync('hidden');
-            // 'inset-touch' or 'overlay-swipe' are best for full immersion
-            await NavigationBar.setBehaviorAsync('inset-touch');
-          } catch (e) {
-            // Support errors on newer Android versions with edge-to-edge
-          }
+          await applyImmersiveMode();
         }
 
         // Start menu music immediately
@@ -74,6 +79,16 @@ export default function RootLayout() {
       }
     }
     prepare();
+  }, []);
+
+  // Re-applique l'immersive mode chaque fois que l'app repasse en foreground.
+  // Android réinitialise la nav bar après un passage en arrière-plan.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') applyImmersiveMode();
+    });
+    return () => subscription.remove();
   }, []);
 
   // Global Music Manager — switch BGM based on route
