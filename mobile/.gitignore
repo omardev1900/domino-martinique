@@ -45,3 +45,12 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Firebase Functions build artifacts
+functions/lib/
+
+# Agents IA & Temp files
+.claude/
+.agent/
+error.txt
+

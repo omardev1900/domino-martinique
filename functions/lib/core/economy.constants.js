@@ -7,7 +7,7 @@
  * Aucune constante économique ne doit être hardcodée ailleurs.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LEAGUE_ICONS = exports.LEAGUE_LABELS = exports.LEAGUE_GRADE_ORDER = exports.LEAGUE_THRESHOLDS = exports.DEFAULT_LEVEL_UP_COINS = exports.LEVEL_UP_CHESTS = exports.MAX_LEVEL = exports.COIN_MULTIPLIER_PER_LEVEL = exports.XP_GROWTH_RATE = exports.XP_PER_LEVEL_BASE = exports.DAILY_REWARD_COINS = exports.NEW_PLAYER_COINS = exports.SOLO_WIN_FLAT_REWARD = exports.POT_DISTRIBUTION = exports.RAKE_PERCENT = exports.TABLE_CONFIGS = exports.BASE_REWARDS = void 0;
+exports.LEAGUE_GRADE_COLORS = exports.LEAGUE_ICONS = exports.LEAGUE_LABELS = exports.LEAGUE_GRADE_ORDER = exports.LEAGUE_FRAME_REWARDS = exports.LEAGUE_FRAME_THRESHOLDS = exports.LEAGUE_THRESHOLDS = exports.DEFAULT_LEVEL_UP_COINS = exports.LEVEL_UP_CHESTS = exports.MAX_LEVEL = exports.COIN_MULTIPLIER_PER_LEVEL = exports.XP_GROWTH_RATE = exports.XP_PER_LEVEL_BASE = exports.DAILY_REWARD_COINS = exports.NEW_PLAYER_COINS = exports.SOLO_WIN_FLAT_REWARD = exports.POT_DISTRIBUTION = exports.RAKE_PERCENT = exports.TABLE_CONFIGS = exports.BASE_REWARDS = void 0;
 // ─── Matrice des Gains ────────────────────────────────────────────────────────
 /** Gains par événement de jeu (avant multiplicateur de niveau) */
 exports.BASE_REWARDS = {
@@ -105,28 +105,86 @@ exports.LEVEL_UP_CHESTS = [
 ];
 /** Bonus de coins au passage de chaque niveau (si pas dans LEVEL_UP_CHESTS) */
 exports.DEFAULT_LEVEL_UP_COINS = 100;
-// ─── Ligue des Cochons ────────────────────────────────────────────────────────
-/** Seuils de cochons pour chaque grade */
+// ─── Ligue des Cochons (8 paliers — décision client 22/04/2026) ──────────────
+/**
+ * Seuils de cochons DONNÉS pour atteindre chaque grade.
+ * Le grade est recalculé depuis cochonsGiven à chaque mise à jour.
+ */
 exports.LEAGUE_THRESHOLDS = {
-    APPRENTI: 0,
-    MAITRE: 31,
-    ROI: 151,
+    APPRENTI_1: 10, // Premier grade (joueurs < 10 cochons = sans grade)
+    APPRENTI_2: 10,
+    APPRENTI_3: 20,
+    MAITRE_1: 30,
+    MAITRE_2: 60,
+    MAITRE_3: 90,
+    ROI: 120,
+    LEGENDE: 250,
+};
+/**
+ * Seuils de cochons pour le DÉBLOCAGE du cadre associé à chaque grade.
+ * Franchir ce seuil = recevoir le cadre en récompense.
+ */
+exports.LEAGUE_FRAME_THRESHOLDS = {
+    APPRENTI_1: 10,
+    APPRENTI_2: 20,
+    APPRENTI_3: 30,
+    MAITRE_1: 60,
+    MAITRE_2: 90,
+    MAITRE_3: 120,
+    ROI: 250,
     LEGENDE: 500,
 };
+/** Récompenses associées à chaque palier (cadre + coins) */
+exports.LEAGUE_FRAME_REWARDS = {
+    APPRENTI_1: { frameId: 'frame_apprenti_1', coinsBonus: 200 },
+    APPRENTI_2: { frameId: 'frame_apprenti_2', coinsBonus: 300 },
+    APPRENTI_3: { frameId: 'frame_apprenti_3', coinsBonus: 500 },
+    MAITRE_1: { frameId: 'frame_maitre_1', coinsBonus: 600 },
+    MAITRE_2: { frameId: 'frame_maitre_2', coinsBonus: 800 },
+    MAITRE_3: { frameId: 'frame_maitre_3', coinsBonus: 1000 },
+    ROI: { frameId: 'frame_roi', coinsBonus: 5000 },
+    LEGENDE: { frameId: 'frame_legende', coinsBonus: 10000 },
+};
 /** Ordre des grades du plus faible au plus fort */
-exports.LEAGUE_GRADE_ORDER = ['APPRENTI', 'MAITRE', 'ROI', 'LEGENDE'];
-/** Labels affichés dans l'UI */
+exports.LEAGUE_GRADE_ORDER = [
+    'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',
+    'MAITRE_1', 'MAITRE_2', 'MAITRE_3',
+    'ROI', 'LEGENDE',
+];
+/** Labels affichés dans l'UI (R2-M6) */
 exports.LEAGUE_LABELS = {
-    APPRENTI: 'Apprenti Boucher',
-    MAITRE: 'Maître Saucissier',
+    APPRENTI_1: 'Apprenti 1',
+    APPRENTI_2: 'Apprenti 2',
+    APPRENTI_3: 'Apprenti 3',
+    MAITRE_1: 'Maître Saucissier 1',
+    MAITRE_2: 'Maître Saucissier 2',
+    MAITRE_3: 'Maître Saucissier 3',
     ROI: 'Roi du Boudin',
-    LEGENDE: 'Légende du Groin',
+    LEGENDE: 'Légende du Grouin',
 };
 /** Emojis des grades */
 exports.LEAGUE_ICONS = {
-    APPRENTI: '🔰',
-    MAITRE: '🥈',
+    APPRENTI_1: '🥈',
+    APPRENTI_2: '🥈',
+    APPRENTI_3: '🥈',
+    MAITRE_1: '🥇',
+    MAITRE_2: '🥇',
+    MAITRE_3: '🥇',
     ROI: '👑',
     LEGENDE: '🔥',
+};
+/**
+ * Couleur du cadre d'avatar en jeu par grade (R2-M3).
+ * Utilisé dans PlayerAvatar pour encadrer l'icône joueur.
+ */
+exports.LEAGUE_GRADE_COLORS = {
+    APPRENTI_1: '#C8C8C8', // Gris clair
+    APPRENTI_2: '#909090', // Gris
+    APPRENTI_3: '#505050', // Gris foncé
+    MAITRE_1: '#FFE066', // Jaune clair
+    MAITRE_2: '#FFD700', // Jaune
+    MAITRE_3: '#B8860B', // Jaune foncé
+    ROI: '#3A86FF', // Bleu
+    LEGENDE: '#DC143C', // Rouge
 };
 //# sourceMappingURL=economy.constants.js.map

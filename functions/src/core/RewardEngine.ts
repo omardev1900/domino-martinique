@@ -24,7 +24,10 @@ import {
     PlayerMatchSnapshot,
     LevelUpChest,
     TableTier,
+    FrameUnlockEvent,
+    LeagueFrameId,
 } from './economy.types';
+
 
 import { GameState } from './types';
 import { LogService } from './services/LogService';
@@ -41,6 +44,8 @@ import {
     MAX_LEVEL,
     LEAGUE_THRESHOLDS,
     LEAGUE_GRADE_ORDER,
+    LEAGUE_FRAME_THRESHOLDS,
+    LEAGUE_FRAME_REWARDS,
     LEVEL_UP_CHESTS,
     DEFAULT_LEVEL_UP_COINS,
 } from './economy.constants';
@@ -86,9 +91,10 @@ export function xpToNextLevel(totalXP: number, currentLevel: number): number {
 
 /**
  * Détermine le grade de Ligue des Cochons selon le nombre de cochons.
+ * Retourne null si le joueur est en dessous du premier seuil (< 10 cochons).
  */
-export function getLeagueGrade(leaguePoints: number): LeagueGrade {
-    let grade: LeagueGrade = 'APPRENTI';
+export function getLeagueGrade(leaguePoints: number): LeagueGrade | null {
+    let grade: LeagueGrade | null = null;
     for (const g of LEAGUE_GRADE_ORDER) {
         if (leaguePoints >= LEAGUE_THRESHOLDS[g]) {
             grade = g;
@@ -99,8 +105,10 @@ export function getLeagueGrade(leaguePoints: number): LeagueGrade {
 
 /**
  * Seuil du prochain grade de ligue, ou null si grade max.
+ * Si grade est null (joueur sans grade), retourne le premier seuil.
  */
-export function nextLeagueThreshold(grade: LeagueGrade): number | null {
+export function nextLeagueThreshold(grade: LeagueGrade | null): number | null {
+    if (grade === null) return LEAGUE_THRESHOLDS[LEAGUE_GRADE_ORDER[0]];
     const idx = LEAGUE_GRADE_ORDER.indexOf(grade);
     const next = LEAGUE_GRADE_ORDER[idx + 1];
     if (!next) return null;
@@ -350,17 +358,58 @@ export const RewardEngine = {
             }
         }
 
-        // ── 6. Calcul de Ligue ───────────────────────────────────────────────
+        // ── 6. Calcul de Ligue ──────────────────────────────────────
         const previousLeaguePoints = currentLeaguePoints;
         const newLeaguePoints = currentLeaguePoints + totalLeaguePoints;
         const previousGrade = getLeagueGrade(previousLeaguePoints);
         const newGrade = getLeagueGrade(newLeaguePoints);
         const gradeUp = newGrade !== previousGrade;
 
-        // ── 7. Construction du MatchReward Final ─────────────────────────────
+        // ── 6b. Ligue des Cochons — Déblocage de cadres ────────────────
+        // `totalLeaguePoints` = cochons INFLIGÉS dans ce match
+        const cochonsGivenBefore = input.currentCochonsGiven ?? 0;
+        const alreadyUnlocked = (input.unlockedFrames ?? []) as LeagueFrameId[];
+        const newCochonsGiven = cochonsGivenBefore + totalLeaguePoints;
+
+        const newlyUnlockedFrames: FrameUnlockEvent[] = [];
+        let frameCoinsBonus = 0;
+
+        for (const grade of LEAGUE_GRADE_ORDER) {
+            const threshold = LEAGUE_FRAME_THRESHOLDS[grade];
+            const frameReward = LEAGUE_FRAME_REWARDS[grade];
+            const frameId = frameReward.frameId as LeagueFrameId;
+
+            if (
+                newCochonsGiven >= threshold &&
+                cochonsGivenBefore < threshold &&
+                !alreadyUnlocked.includes(frameId)
+            ) {
+                newlyUnlockedFrames.push({
+                    grade: grade as import('./economy.types').LeagueGrade,
+                    frameId,
+                    coinsBonus: frameReward.coinsBonus,
+                    cochonsAtUnlock: newCochonsGiven,
+                });
+                frameCoinsBonus += frameReward.coinsBonus;
+            }
+        }
+
+        // Les coins des cadres s'ajoutent au détail
+        if (frameCoinsBonus > 0) {
+            adjustedBreakdown.push({
+                id: 'league_frame_unlock',
+                label: `👀 Palier Ligue débloqué (×${newlyUnlockedFrames.length})`,
+                coins: frameCoinsBonus,
+                xp: 0,
+                diamonds: 0,
+                leaguePoints: 0,
+            });
+        }
+
+        // ── 7. Construction du MatchReward Final ──────────────────────
         const matchReward: MatchReward = {
             // Totaux
-            coinsEarned: coinsEarned + chestCoins,
+            coinsEarned: coinsEarned + chestCoins + frameCoinsBonus,
             xpEarned: totalXP,
             diamondsEarned: totalDiamonds + chestDiamonds,
             leaguePointsEarned: totalLeaguePoints,
@@ -374,13 +423,18 @@ export const RewardEngine = {
             newXP,
             xpToNextLevel: xpLeft,
 
-            // Ligue
+            // Ligue (grades)
             previousGrade,
             newGrade,
             gradeUp,
             previousLeaguePoints,
             newLeaguePoints,
             nextGradeThreshold: nextLeagueThreshold(newGrade),
+
+            // Ligue des Cochons — Cadres
+            newCochonsGiven,
+            newlyUnlockedFrames,
+            frameCoinsBonus,
 
             // Détail animable
             breakdown: adjustedBreakdown,
@@ -394,6 +448,8 @@ export const RewardEngine = {
             newLevel: matchReward.newLevel,
             gradeUp: matchReward.gradeUp,
             newGrade: matchReward.newGrade,
+            newCochonsGiven: matchReward.newCochonsGiven,
+            framesUnlocked: matchReward.newlyUnlockedFrames.length,
             lines: adjustedBreakdown.length,
         });
 
@@ -410,10 +466,12 @@ export const RewardEngine = {
         currentLevel: number;
         currentXP: number;
         currentLeaguePoints: number;
+        currentCochonsGiven?: number;
+        unlockedFrames?: LeagueFrameId[];
         tableTier: TableTier;
         isSoloMode: boolean;
     }): RewardCalculationInput {
-        const { gameState, localPlayerId, currentLevel, currentXP, currentLeaguePoints, tableTier, isSoloMode } = params;
+        const { gameState, localPlayerId, currentLevel, currentXP, currentLeaguePoints, currentCochonsGiven, unlockedFrames, tableTier, isSoloMode } = params;
 
         // Classement final
         const sortedPlayers = [...gameState.players].sort((a, b) => {
@@ -450,6 +508,8 @@ export const RewardEngine = {
             currentLevel,
             currentLeaguePoints,
             currentXP,
+            currentCochonsGiven,
+            unlockedFrames,
             gameMode: isSoloMode ? 'SOLO' : gameState.gameMode,
             tableTier,
             playerCount: isSoloMode ? 1 : gameState.players.length,

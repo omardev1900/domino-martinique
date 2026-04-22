@@ -6,6 +6,23 @@
  * Il ne contient AUCUNE logique métier — uniquement des interfaces et types.
  */
 
+// ─── Ligue des Cochons — Cadres ─────────────────────────────────────────────────
+
+/** Identifiant unique d'un cadre d'avatar débloqué par la Ligue des Cochons */
+export type LeagueFrameId =
+    | 'frame_apprenti_1' | 'frame_apprenti_2' | 'frame_apprenti_3'
+    | 'frame_maitre_1'   | 'frame_maitre_2'   | 'frame_maitre_3'
+    | 'frame_roi'
+    | 'frame_legende';
+
+/** Événement de déblocage d'un palier de la Ligue — déclenche la modal de récompense */
+export interface FrameUnlockEvent {
+    grade: LeagueGrade;
+    frameId: LeagueFrameId;
+    coinsBonus: number;       // Coins offerts en récompense du palier
+    cochonsAtUnlock: number;  // Nombre de cochons donnés au moment du déblocage
+}
+
 // ─── Monnaies & Progression ───────────────────────────────────────────────────
 
 /** État économique complet d'un joueur */
@@ -14,12 +31,20 @@ export interface PlayerEconomy {
     xp: number;            // ⭐ Expérience cumulée totale
     level: number;         // Niveau courant dérivé de l'XP
     diamonds: number;      // 💎 Monnaie premium
-    leaguePoints: number;  // 🐷 Total cochons infligés (source de la ligue)
-    leagueGrade: LeagueGrade;
+    leaguePoints: number;        // 🐷 Total cochons infligés (alias cochonsGiven — source de la ligue)
+    leagueGrade: LeagueGrade | null; // null = joueur sans grade (< 10 cochons)
+    // ─── Ligue des Cochons ───
+    cochonsGiven?: number;           // 🐖 Compteur lifetime de cochons DONNÉS (by this player)
+    unlockedFrames?: LeagueFrameId[]; // Cadres avatar débloqués (liste des paliers atteints)
+    activeFrame?: LeagueFrameId | null; // Cadre actuellement équipé
     lastDailyRewardTimestamp?: number; // 📅 Dernier cadeau reçu (pour check quotidien)
 }
 
-export type LeagueGrade = 'APPRENTI' | 'MAITRE' | 'ROI' | 'LEGENDE';
+export type LeagueGrade =
+    | 'APPRENTI_1' | 'APPRENTI_2' | 'APPRENTI_3'
+    | 'MAITRE_1'   | 'MAITRE_2'   | 'MAITRE_3'
+    | 'ROI'
+    | 'LEGENDE';
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
@@ -57,7 +82,11 @@ export interface RewardCalculationInput {
     tableTier: TableTier;
     /** Nombre de joueurs dans la partie */
     playerCount: number;
-    /** Identifiant du tournoi en cours (optionnel) */
+    /** Nombre de cochons donné à vie AVANT ce match (pour calcul du déblocage) */
+    currentCochonsGiven?: number;
+    /** Cadres déjà débloqués (pour ne pas redonner la récompense) */
+    unlockedFrames?: LeagueFrameId[];
+    /** ID du tournoi actif (optionnel — uniquement en contexte tournoi) */
     tournamentId?: string;
 }
 
@@ -104,12 +133,16 @@ export interface MatchReward {
     xpToNextLevel: number;
 
     // ─ Ligue
-    previousGrade: LeagueGrade;
-    newGrade: LeagueGrade;
+    previousGrade: LeagueGrade | null;
+    newGrade: LeagueGrade | null;
     gradeUp: boolean;
     previousLeaguePoints: number;
     newLeaguePoints: number;
     nextGradeThreshold: number | null; // null si grade max
+    // ─ Ligue des Cochons — Cadres
+    newCochonsGiven: number;                     // Nouveau total de cochons donnés
+    newlyUnlockedFrames: FrameUnlockEvent[];     // Paliers débloqués durant ce match (peut en avoir plusieurs)
+    frameCoinsBonus: number;                     // Total des coins offerts par les paliers débloqués
 
     // ─ Détail animable ligne par ligne (pour le rolling counter)
     breakdown: RewardBreakdown[];

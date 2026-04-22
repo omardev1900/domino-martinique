@@ -27,14 +27,16 @@ export const processMatchReward = functions.https.onCall(async (data: { input: P
     let currentCoins = 0;
     let currentDiamonds = 0;
 
+    let existingEconomy: Record<string, any> = {};
     if (userSnap.exists) {
         const userData = userSnap.data();
         if (userData?.economy) {
-            currentXP = userData.economy.xp || 0;
-            currentLevel = userData.economy.level || 1;
-            currentLeaguePoints = userData.economy.leaguePoints || 0;
-            currentCoins = userData.economy.coins || 0;
-            currentDiamonds = userData.economy.diamonds || 0;
+            existingEconomy = userData.economy;
+            currentXP = existingEconomy.xp || 0;
+            currentLevel = existingEconomy.level || 1;
+            currentLeaguePoints = existingEconomy.leaguePoints || 0;
+            currentCoins = existingEconomy.coins || 0;
+            currentDiamonds = existingEconomy.diamonds || 0;
         }
     }
 
@@ -56,13 +58,18 @@ export const processMatchReward = functions.https.onCall(async (data: { input: P
     const newDiamonds = currentDiamonds + reward.diamondsEarned;
 
     const newEconomy = {
+        ...existingEconomy, // préserve lastDailyRewardTimestamp, activeFrame, etc.
         coins: newCoins,
         xp: reward.newXP,
         level: reward.newLevel,
         diamonds: newDiamonds,
         leaguePoints: reward.newLeaguePoints,
         leagueGrade: reward.newGrade,
-        // On ne touche pas au lastDailyRewardTimestamp ici
+        cochonsGiven: reward.newCochonsGiven,
+        unlockedFrames: [...new Set([
+            ...(existingEconomy.unlockedFrames || []),
+            ...reward.newlyUnlockedFrames.map((f: any) => f.frameId),
+        ])],
     };
 
     // 6. Sauvegarder l'économie du joueur

@@ -122,31 +122,92 @@ export const LEVEL_UP_CHESTS: LevelUpChest[] = [
 /** Bonus de coins au passage de chaque niveau (si pas dans LEVEL_UP_CHESTS) */
 export const DEFAULT_LEVEL_UP_COINS = 100;
 
-// ─── Ligue des Cochons ────────────────────────────────────────────────────────
+// ─── Ligue des Cochons (8 paliers — décision client 22/04/2026) ──────────────
 
-/** Seuils de cochons pour chaque grade */
+/**
+ * Seuils de cochons DONNÉS pour atteindre chaque grade.
+ * Le grade est recalculé depuis cochonsGiven à chaque mise à jour.
+ */
 export const LEAGUE_THRESHOLDS: Record<LeagueGrade, number> = {
-    APPRENTI: 0,
-    MAITRE: 31,
-    ROI: 151,
-    LEGENDE: 500,
+    APPRENTI_1: 10,   // Premier grade (joueurs < 10 cochons = sans grade)
+    APPRENTI_2: 10,
+    APPRENTI_3: 20,
+    MAITRE_1:   30,
+    MAITRE_2:   60,
+    MAITRE_3:   90,
+    ROI:        120,
+    LEGENDE:    250,
+};
+
+/**
+ * Seuils de cochons pour le DÉBLOCAGE du cadre associé à chaque grade.
+ * Franchir ce seuil = recevoir le cadre en récompense.
+ */
+export const LEAGUE_FRAME_THRESHOLDS: Record<LeagueGrade, number> = {
+    APPRENTI_1: 10,
+    APPRENTI_2: 20,
+    APPRENTI_3: 30,
+    MAITRE_1:   60,
+    MAITRE_2:   90,
+    MAITRE_3:   120,
+    ROI:        250,
+    LEGENDE:    500,
+};
+
+/** Récompenses associées à chaque palier (cadre + coins) */
+export const LEAGUE_FRAME_REWARDS: Record<LeagueGrade, { frameId: string; coinsBonus: number }> = {
+    APPRENTI_1: { frameId: 'frame_apprenti_1', coinsBonus: 200 },
+    APPRENTI_2: { frameId: 'frame_apprenti_2', coinsBonus: 300 },
+    APPRENTI_3: { frameId: 'frame_apprenti_3', coinsBonus: 500 },
+    MAITRE_1:   { frameId: 'frame_maitre_1',   coinsBonus: 600 },
+    MAITRE_2:   { frameId: 'frame_maitre_2',   coinsBonus: 800 },
+    MAITRE_3:   { frameId: 'frame_maitre_3',   coinsBonus: 1000 },
+    ROI:        { frameId: 'frame_roi',         coinsBonus: 5000 },
+    LEGENDE:    { frameId: 'frame_legende',     coinsBonus: 10000 },
 };
 
 /** Ordre des grades du plus faible au plus fort */
-export const LEAGUE_GRADE_ORDER: LeagueGrade[] = ['APPRENTI', 'MAITRE', 'ROI', 'LEGENDE'];
+export const LEAGUE_GRADE_ORDER: LeagueGrade[] = [
+    'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',
+    'MAITRE_1',   'MAITRE_2',   'MAITRE_3',
+    'ROI',        'LEGENDE',
+];
 
-/** Labels affichés dans l'UI */
+/** Labels affichés dans l'UI (R2-M6) */
 export const LEAGUE_LABELS: Record<LeagueGrade, string> = {
-    APPRENTI: 'Apprenti Boucher',
-    MAITRE: 'Maître Saucissier',
-    ROI: 'Roi du Boudin',
-    LEGENDE: 'Légende du Groin',
+    APPRENTI_1: 'Apprenti 1',
+    APPRENTI_2: 'Apprenti 2',
+    APPRENTI_3: 'Apprenti 3',
+    MAITRE_1:   'Maître Saucissier 1',
+    MAITRE_2:   'Maître Saucissier 2',
+    MAITRE_3:   'Maître Saucissier 3',
+    ROI:        'Roi du Boudin',
+    LEGENDE:    'Légende du Grouin',
 };
 
 /** Emojis des grades */
 export const LEAGUE_ICONS: Record<LeagueGrade, string> = {
-    APPRENTI: '🔰',
-    MAITRE: '🥈',
-    ROI: '👑',
-    LEGENDE: '🔥',
+    APPRENTI_1: '🥈',
+    APPRENTI_2: '🥈',
+    APPRENTI_3: '🥈',
+    MAITRE_1:   '🥇',
+    MAITRE_2:   '🥇',
+    MAITRE_3:   '🥇',
+    ROI:        '👑',
+    LEGENDE:    '🔥',
+};
+
+/**
+ * Couleur du cadre d'avatar en jeu par grade (R2-M3).
+ * Utilisé dans PlayerAvatar pour encadrer l'icône joueur.
+ */
+export const LEAGUE_GRADE_COLORS: Record<LeagueGrade, string> = {
+    APPRENTI_1: '#C8C8C8', // Gris clair
+    APPRENTI_2: '#909090', // Gris
+    APPRENTI_3: '#505050', // Gris foncé
+    MAITRE_1:   '#FFE066', // Jaune clair
+    MAITRE_2:   '#FFD700', // Jaune
+    MAITRE_3:   '#B8860B', // Jaune foncé
+    ROI:        '#3A86FF', // Bleu
+    LEGENDE:    '#DC143C', // Rouge
 };

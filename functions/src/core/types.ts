@@ -26,6 +26,7 @@ export interface Player {
     id: PlayerId;
     name: string;
     avatarId?: string;
+    activeFrame?: string; // NEW: Cadre Ligue des Cochons
     hand: Domino[];
     handSize: number;
     currentMancheStars: number; // ÉTOILES (currentMancheStars) : Victoires dans la manche en cours (0-3)
@@ -34,7 +35,9 @@ export interface Player {
     totalRoundWins: number; // POINTS DE ROUND (totalRoundWins) : Total des parties gagnées (persistant)
     totalPoints: number; // LE CAMION (totalMatchPoints) : Score cumulé (RoundWins + Bonus/Malus Cochon)
     isCochon: boolean;
-    totalCochons: number;
+    totalCochons: number; // Historique / Cumulé
+    totalCochonsInfliges: number; // ✅ NEW: Cochons donnés aux autres (Stats Vainqueur)
+    totalCochonsSubis: number; // ✅ NEW: Cochons reçus (Stats Perdant)
     status: PlayerStatus; // (Sprint 3-10) Remplace isBot et isDisconnected
     difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN'; // NEW: Niveau spécifique du bot
 }
@@ -70,6 +73,8 @@ export interface GameState {
     mancheNumber: number; // NEW: Numéro de la manche en cours
     startingHandSize: number;
     reDealCount?: number; // ✅ NOUVEAU : Compteur de redonnes consécutives (C5)
+    boudePlayerId?: PlayerId | null; // R2-B1 : joueur actuellement boudé (visible par tous les clients via Firestore)
+    tiedPlayerIds?: PlayerId[]; // R2-B2 : joueurs à égalité sur la partie bloquée — forcés à jouer leur plus grand double au prochain round
 }
 
 
@@ -100,7 +105,8 @@ export interface PlayerProfile {
     level?: number;          // Niveau dérivé de l'XP
     diamonds?: number;       // 💎 Monnaie premium
     leaguePoints?: number;   // 🐷 Cochons totaux (alias de totalCochonsInflicted)
-    leagueGrade?: string;    // Grade de ligue ('APPRENTI' | 'MAITRE' | 'ROI' | 'LEGENDE')
+    leagueGrade?: string;    // Grade de ligue (LeagueGrade — 8 paliers)
+    activeFrame?: string;    // Cadre de ligue équipé
     inventory?: PlayerInventory; // Cosmétiques possédés et équipés
     hasBeenDebited?: boolean; // NEW: Persistant buy-in check
 }

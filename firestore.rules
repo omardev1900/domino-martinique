@@ -66,6 +66,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Publicités (Ads) — Phase 1 : popup admin-managed.
+    // Lecture publique (mobile charge la liste au démarrage), écriture admin uniquement.
+    match /ads/{adId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Configuration globale du jeu
     match /config/{docId} {
       allow read: if request.auth != null; // Lecture par tous (utile pour le mobile)

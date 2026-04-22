@@ -116,6 +116,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         // Will be wired to the engine
     };
 
+    // Pub in-game : pause moteur + mémorisation de la transition en attente
+    const [isAdVisible, setIsAdVisible] = useState(false);
+    const isAdVisibleRef = useRef(false);
+    const pendingPhaseTransitionRef = useRef<(() => void) | null>(null);
+
     // -- 4. Timer Hook --
     const {
         timeLeft,
@@ -125,7 +130,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         clearAllTurnTimers
     } = useGameTimers({
         gameState,
-        isPaused: isPaused || showOptions,
+        isPaused: isPaused || showOptions || isAdVisible,
         localPlayerId,
         onTimeout: (pId, turnId) => handleTimeoutCb(pId, turnId)
     });
@@ -171,7 +176,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         localPlayerId,
         isSoloMode,
         gameId,
-        isPaused: isPaused || showOptions,
+        isPaused: isPaused || showOptions || isAdVisible,
         isLocalHost,
         roomData,
         userId,
@@ -504,7 +509,12 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
-                partieEndContinueRef.current();
+                // Si une pub est visible, mémorise la transition — elle sera exécutée à la fermeture
+                if (isAdVisibleRef.current) {
+                    pendingPhaseTransitionRef.current = () => partieEndContinueRef.current();
+                } else {
+                    partieEndContinueRef.current();
+                }
             }, 5000);
             return () => clearTimeout(timer);
         }
@@ -514,7 +524,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
-                setShowScoreboard(true);
+                if (isAdVisibleRef.current) {
+                    pendingPhaseTransitionRef.current = () => setShowScoreboard(true);
+                } else {
+                    setShowScoreboard(true);
+                }
             }, 5000);
             return () => clearTimeout(timer);
         }
@@ -524,7 +538,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
-                setShowScoreboard(true);
+                if (isAdVisibleRef.current) {
+                    pendingPhaseTransitionRef.current = () => setShowScoreboard(true);
+                } else {
+                    setShowScoreboard(true);
+                }
             }, 2500);
             return () => clearTimeout(timer);
         }
@@ -555,7 +573,11 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         }
         if (placement) {
             adService.getAdForPlacement(placement).then(ad => {
-                if (ad) setCurrentAd(ad);
+                if (ad) {
+                    isAdVisibleRef.current = true;
+                    setIsAdVisible(true);
+                    setCurrentAd(ad);
+                }
             });
         }
     }, [gameState?.phase]);
@@ -1150,8 +1172,20 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 />
             )}
 
-            {/* Pub in-game — overlay non-bloquant sur événements clés */}
-            <AdBannerModal ad={currentAd} onClose={() => setCurrentAd(null)} />
+            {/* Pub in-game — fermeture : dépause le jeu et exécute la transition en attente */}
+            <AdBannerModal
+                ad={currentAd}
+                onClose={() => {
+                    isAdVisibleRef.current = false;
+                    setIsAdVisible(false);
+                    setCurrentAd(null);
+                    const pending = pendingPhaseTransitionRef.current;
+                    if (pending) {
+                        pendingPhaseTransitionRef.current = null;
+                        pending();
+                    }
+                }}
+            />
         </View>
     );
 }
