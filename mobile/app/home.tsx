@@ -32,6 +32,9 @@ import { HelpOverlay } from '../src/components/HelpOverlay';
 import { LeagueProgressWidget } from '../src/components/LeagueProgressWidget';
 import { LeagueInfoModal } from '../src/components/LeagueInfoModal';
 import { NewsService, NewsItem } from '../src/core/services/news.service';
+import { adService } from '../src/core/services/ad.service';
+import { Ad } from '../src/core/ad.types';
+import { AdBannerModal } from '../src/components/AdBannerModal';
 
 const MadrasPattern = () => (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -73,6 +76,8 @@ export default function HomeScreen() {
     const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
     const [showHelp, setShowHelp] = useState(false);
     const [showLeagueModal, setShowLeagueModal] = useState(false);
+    const [adToShow, setAdToShow] = useState<Ad | null>(null);
+    const [pendingDailyReward, setPendingDailyReward] = useState(false);
 
     // Ref pour l'unsubscribe du listener Firestore — nettoyé au démontage du composant
     const economyListenerRef = useRef<(() => void) | null>(null);
@@ -104,17 +109,31 @@ export default function HomeScreen() {
         };
     }, []);
 
-    // Au focus : sync des stats de jeu + vérification cadeau quotidien + news.
+    // Au focus : sync stats + pub HOME (avant cadeau) + vérification cadeau quotidien + news.
     // Aucune écriture economy ici — le listener onSnapshot s'en charge.
     useFocusEffect(
         useCallback(() => {
             authService.getCurrentUser().then(async u => {
                 if (u && !u.uid.startsWith('guest_')) {
                     statsService.syncWithFirebase(u.uid);
-                    const isAvailable = await economyService.isDailyRewardAvailable();
-                    if (isAvailable) {
+
+                    // La pub HOME s'affiche AVANT le cadeau quotidien (spec R2-M7)
+                    const [ad, dailyAvailable] = await Promise.all([
+                        adService.getAdForPlacement('HOME'),
+                        economyService.isDailyRewardAvailable(),
+                    ]);
+
+                    if (dailyAvailable) {
                         setDailyRewardAmount(DAILY_REWARD_COINS);
-                        setShowDailyReward(true);
+                        if (ad) {
+                            // Pub d'abord → cadeau après fermeture
+                            setPendingDailyReward(true);
+                            setAdToShow(ad);
+                        } else {
+                            setShowDailyReward(true);
+                        }
+                    } else if (ad) {
+                        setAdToShow(ad);
                     }
                 }
             });
@@ -158,6 +177,14 @@ export default function HomeScreen() {
         await economyService.checkAndClaimDailyReward(user?.uid);
         setShowDailyReward(false);
         setEconomyRefresh(v => v + 1);
+    };
+
+    const handleAdClose = () => {
+        setAdToShow(null);
+        if (pendingDailyReward) {
+            setPendingDailyReward(false);
+            setShowDailyReward(true);
+        }
     };
 
     const handleReconnect = useCallback(() => {
@@ -408,6 +435,9 @@ export default function HomeScreen() {
                 visible={showHelp} 
                 onClose={() => setShowHelp(false)} 
             />
+
+            {/* Pub HOME — s'affiche avant le cadeau quotidien */}
+            <AdBannerModal ad={adToShow} onClose={handleAdClose} />
 
             {/* Daily Reward Modal — affiché uniquement si aucun modal de reconnexion */}
             <DailyRewardModal

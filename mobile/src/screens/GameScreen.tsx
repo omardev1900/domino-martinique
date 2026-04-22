@@ -49,6 +49,9 @@ import { RewardEngine } from '../core/RewardEngine';
 import { MatchReward, TableTier } from '../core/economy.types';
 import { TABLE_CONFIGS } from '../core/economy.constants';
 import { SkinConfig } from '../core/store.types';
+import { adService } from '../core/services/ad.service';
+import { Ad, AdPlacement } from '../core/ad.types';
+import { AdBannerModal } from '../components/AdBannerModal';
 
 interface GameScreenProps {
     gameId?: string;
@@ -299,6 +302,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [playerSkinConfig, setPlayerSkinConfig] = useState<SkinConfig | undefined>(undefined);
     const [profileLoaded, setProfileLoaded] = useState(false);
     const statsRecordedRef = useRef(false);
+    const [currentAd, setCurrentAd] = useState<Ad | null>(null);
     const [matchReward, setMatchReward] = useState<MatchReward | null>(null);
     const [showRewardOverlay, setShowRewardOverlay] = useState(false);
     const playerEconomyRef = useRef<{ level: number; xp: number; leaguePoints: number; cochonsGiven?: number; unlockedFrames?: any[] }>({ level: 1, xp: 0, leaguePoints: 0 });
@@ -537,6 +541,24 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             return () => clearTimeout(timer);
         }
     }, [gameState?.phase, isLocalHost]);
+
+    // Affichage des pubs en fin de round/manche/match — overlay non-bloquant
+    useEffect(() => {
+        if (!gameState) return;
+        let placement: AdPlacement | null = null;
+        if (isSoloMode) {
+            if (gameState.phase === 'PARTIE_END') placement = 'AFTER_ROUND_SOLO';
+            else if (gameState.phase === 'MANCHE_END') placement = 'END_OF_MANCHE_SOLO';
+            else if (gameState.phase === 'MATCH_END') placement = 'END_OF_MATCH_SOLO';
+        } else if (gameState.phase === 'MATCH_END') {
+            placement = 'END_OF_MATCH_MULTI';
+        }
+        if (placement) {
+            adService.getAdForPlacement(placement).then(ad => {
+                if (ad) setCurrentAd(ad);
+            });
+        }
+    }, [gameState?.phase]);
 
     // Auto-redirect non-hôtes quand l'hôte reset la room après le match
     useEffect(() => {
@@ -1127,6 +1149,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                     visible={showRoundResult}
                 />
             )}
+
+            {/* Pub in-game — overlay non-bloquant sur événements clés */}
+            <AdBannerModal ad={currentAd} onClose={() => setCurrentAd(null)} />
         </View>
     );
 }

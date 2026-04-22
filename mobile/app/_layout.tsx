@@ -11,6 +11,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import SoundManager from '@/core/audio/SoundManager';
 import SettingsManager from '@/core/SettingsManager';
+import { adService } from '@/core/services/ad.service';
 
 // Keep the native splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -54,6 +55,10 @@ export default function RootLayout() {
     async function prepare() {
       try {
         await SettingsManager.loadSettings();
+
+        // Réinitialise les cooldowns de session pub + charge les pubs actives (fire-and-forget)
+        await adService.resetSessionCooldowns();
+        adService.preload();
 
         // Preload audio assets
         await SoundManager.preloadSounds();

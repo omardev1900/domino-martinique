@@ -14,6 +14,9 @@ import { GameModeCard } from '../src/components/GameModeCard';
 import { SelectedModeHeader } from '../src/components/SelectedModeHeader';
 import { TableTier } from '../src/core/economy.types';
 import { EconomyHeader } from '../src/components/EconomyHeader';
+import { AdBannerModal } from '../src/components/AdBannerModal';
+import { adService } from '../src/core/services/ad.service';
+import { Ad } from '../src/core/ad.types';
 import Svg, { Rect, Defs, Pattern } from 'react-native-svg';
 
 const MadrasPattern = () => (
@@ -72,6 +75,7 @@ export default function SoloScreen() {
     const [economyRefresh, setEconomyRefresh] = useState(0);
     const [debitFeedback, setDebitFeedback] = useState<string | null>(null);
     const [uiStep, setUiStep] = useState<'MODE' | 'CONFIG'>('MODE');
+    const [adToShow, setAdToShow] = useState<Ad | null>(null);
 
     // --- Calculs de Scaling Dynamique (4 colonnes) ---
     const HORIZONTAL_PADDING = 48; // mainWrapper paddingHorizontal (24 * 2)
@@ -88,6 +92,9 @@ export default function SoloScreen() {
         React.useCallback(() => {
             authService.getCurrentUser().then(setUser);
             setEconomyRefresh(v => v + 1); // refresh EconomyHeader
+            adService.getAdForPlacement('BEFORE_SOLO').then(ad => {
+                if (ad) setAdToShow(ad);
+            });
         }, [])
     );
 
@@ -320,6 +327,7 @@ export default function SoloScreen() {
                     </View>
                 </Animated.View>
             </ScrollView>
+            <AdBannerModal ad={adToShow} onClose={() => setAdToShow(null)} />
         </LinearGradient>
     );
 }
