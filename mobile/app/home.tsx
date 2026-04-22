@@ -23,7 +23,8 @@ import { authService } from '../src/core/services/auth.service';
 import { statsService } from '../src/core/services/stats.service';
 import { economyService } from '../src/core/services/economy.service';
 import { PlayerProfile } from '../src/core/types';
-import { DAILY_REWARD_COINS } from '../src/core/economy.constants';
+import { DAILY_REWARD_COINS, LEAGUE_GRADE_COLORS } from '../src/core/economy.constants';
+import { LeagueGrade } from '../src/core/economy.types';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../src/core/avatars';
 import { EconomyHeader } from '../src/components/EconomyHeader';
 import { DailyRewardModal } from '../src/components/DailyRewardModal';
@@ -64,6 +65,7 @@ export default function HomeScreen() {
     const [reconnectRoomId, setReconnectRoomId] = useState<string | null>(null);
     const [economyRefresh, setEconomyRefresh] = useState(0);
     const [cochonsGiven, setCochonsGiven] = useState(0);
+    const [myLeagueGrade, setMyLeagueGrade] = useState<LeagueGrade | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showDailyReward, setShowDailyReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
@@ -90,6 +92,7 @@ export default function HomeScreen() {
                 // Listener temps réel : Firestore → cache local → UI
                 economyListenerRef.current = economyService.listenToEconomy(u.uid, (eco) => {
                     setCochonsGiven(eco.cochonsGiven || 0);
+                    setMyLeagueGrade(eco.leagueGrade ?? null);
                     setEconomyRefresh(v => v + 1);
                 });
             }
@@ -278,7 +281,14 @@ export default function HomeScreen() {
                             onPress={() => router.push('/modal')}
                             activeOpacity={0.8}
                         >
-                            <View style={styles.avatarCircle}>
+                            <View style={[
+                                styles.avatarCircle,
+                                myLeagueGrade && {
+                                    borderWidth: 2,
+                                    borderColor: LEAGUE_GRADE_COLORS[myLeagueGrade],
+                                    backgroundColor: 'transparent',
+                                },
+                            ]}>
                                 <Image
                                     source={getAvatarImage(user?.avatarUrl)}
                                     style={styles.avatarImage}

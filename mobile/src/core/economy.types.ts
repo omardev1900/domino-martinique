@@ -9,7 +9,11 @@
 // ─── Ligue des Cochons — Cadres ─────────────────────────────────────────────────
 
 /** Identifiant unique d'un cadre d'avatar débloqué par la Ligue des Cochons */
-export type LeagueFrameId = 'frame_argent' | 'frame_or' | 'frame_diamant' | 'frame_feu';
+export type LeagueFrameId =
+    | 'frame_apprenti_1' | 'frame_apprenti_2' | 'frame_apprenti_3'
+    | 'frame_maitre_1'   | 'frame_maitre_2'   | 'frame_maitre_3'
+    | 'frame_roi'
+    | 'frame_legende';
 
 /** Événement de déblocage d'un palier de la Ligue — déclenche la modal de récompense */
 export interface FrameUnlockEvent {
@@ -27,8 +31,8 @@ export interface PlayerEconomy {
     xp: number;            // ⭐ Expérience cumulée totale
     level: number;         // Niveau courant dérivé de l'XP
     diamonds: number;      // 💎 Monnaie premium
-    leaguePoints: number;  // 🐷 Total cochons infligés (alias cochonsGiven — source de la ligue)
-    leagueGrade: LeagueGrade;
+    leaguePoints: number;        // 🐷 Total cochons infligés (alias cochonsGiven — source de la ligue)
+    leagueGrade: LeagueGrade | null; // null = joueur sans grade (< 10 cochons)
     // ─── Ligue des Cochons ───
     cochonsGiven?: number;           // 🐖 Compteur lifetime de cochons DONNÉS (by this player)
     unlockedFrames?: LeagueFrameId[]; // Cadres avatar débloqués (liste des paliers atteints)
@@ -36,7 +40,11 @@ export interface PlayerEconomy {
     lastDailyRewardTimestamp?: number; // 📅 Dernier cadeau reçu (pour check quotidien)
 }
 
-export type LeagueGrade = 'APPRENTI' | 'MAITRE' | 'ROI' | 'LEGENDE';
+export type LeagueGrade =
+    | 'APPRENTI_1' | 'APPRENTI_2' | 'APPRENTI_3'
+    | 'MAITRE_1'   | 'MAITRE_2'   | 'MAITRE_3'
+    | 'ROI'
+    | 'LEGENDE';
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
@@ -78,6 +86,8 @@ export interface RewardCalculationInput {
     currentCochonsGiven?: number;
     /** Cadres déjà débloqués (pour ne pas redonner la récompense) */
     unlockedFrames?: LeagueFrameId[];
+    /** ID du tournoi actif (optionnel — uniquement en contexte tournoi) */
+    tournamentId?: string;
 }
 
 /** Snapshot des stats finales d'un joueur pour le calcul des rewards */
@@ -123,8 +133,8 @@ export interface MatchReward {
     xpToNextLevel: number;
 
     // ─ Ligue
-    previousGrade: LeagueGrade;
-    newGrade: LeagueGrade;
+    previousGrade: LeagueGrade | null;
+    newGrade: LeagueGrade | null;
     gradeUp: boolean;
     previousLeaguePoints: number;
     newLeaguePoints: number;

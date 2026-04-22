@@ -264,10 +264,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                             const icon = LEAGUE_ICONS[currentGrade];
                             const cochons = firstEvent.cochonsAtUnlock;
                             
-                            // Déduction du nom usuel du cadre
-                            const frameName = currentGrade === 'APPRENTI' ? 'CADRE ARGENT' : 
-                                              currentGrade === 'MAITRE' ? 'CADRE OR' : 
-                                              currentGrade === 'ROI' ? 'CADRE DIAMANT NÉON' : 'CADRE ULTIMATE FIRE';
+                            const frameName = `CADRE ${LEAGUE_LABELS[currentGrade].toUpperCase()}`;
 
                             // Calcul de la progression
                             let nextGrade: string | null = null;

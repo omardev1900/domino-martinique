@@ -46,7 +46,7 @@ interface EconomyHeaderProps {
 
 export function EconomyHeader({ refreshTrigger, onCoinsPress, onDiamondsPress, onXpPress, hideXp }: EconomyHeaderProps) {
     const [economy, setEconomy] = useState<PlayerEconomy>({
-        coins: 0, xp: 0, level: 1, diamonds: 0, leaguePoints: 0, leagueGrade: 'APPRENTI',
+        coins: 0, xp: 0, level: 1, diamonds: 0, leaguePoints: 0, leagueGrade: null,
     });
 
     const coinsScale = useSharedValue(1);

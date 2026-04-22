@@ -91,9 +91,10 @@ export function xpToNextLevel(totalXP: number, currentLevel: number): number {
 
 /**
  * Détermine le grade de Ligue des Cochons selon le nombre de cochons.
+ * Retourne null si le joueur est en dessous du premier seuil (< 10 cochons).
  */
-export function getLeagueGrade(leaguePoints: number): LeagueGrade {
-    let grade: LeagueGrade = 'APPRENTI';
+export function getLeagueGrade(leaguePoints: number): LeagueGrade | null {
+    let grade: LeagueGrade | null = null;
     for (const g of LEAGUE_GRADE_ORDER) {
         if (leaguePoints >= LEAGUE_THRESHOLDS[g]) {
             grade = g;
@@ -104,8 +105,10 @@ export function getLeagueGrade(leaguePoints: number): LeagueGrade {
 
 /**
  * Seuil du prochain grade de ligue, ou null si grade max.
+ * Si grade est null (joueur sans grade), retourne le premier seuil.
  */
-export function nextLeagueThreshold(grade: LeagueGrade): number | null {
+export function nextLeagueThreshold(grade: LeagueGrade | null): number | null {
+    if (grade === null) return LEAGUE_THRESHOLDS[LEAGUE_GRADE_ORDER[0]];
     const idx = LEAGUE_GRADE_ORDER.indexOf(grade);
     const next = LEAGUE_GRADE_ORDER[idx + 1];
     if (!next) return null;

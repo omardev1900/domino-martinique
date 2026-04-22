@@ -132,8 +132,15 @@ export default function LobbyScreen() {
                             router.replace({ pathname: '/login', params: { autoJoinRoomId } });
                             return;
                         }
-                        console.log('[Lobby] User loaded:', user.displayName, user.avatarId);
-                        setCurrentUser(user);
+                        // Enrichir le profil avec leagueGrade + activeFrame pour que
+                        // les adversaires voient le niveau en salle d'attente et en jeu
+                        const eco = await economyService.getEconomy();
+                        const enrichedUser: PlayerProfile = {
+                            ...user,
+                            leagueGrade: eco.leagueGrade ?? undefined,
+                            activeFrame: eco.activeFrame ?? undefined,
+                        };
+                        setCurrentUser(enrichedUser);
                         setEconomyRefresh(v => v + 1); // refresh EconomyHeader
                     } else {
                         // No user at all -> Login

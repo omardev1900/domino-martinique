@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInLeft, FadeInRight, ZoomIn } from 'react-native-reanimated';
-import { LEAGUE_FRAME_THRESHOLDS, LEAGUE_ICONS, LEAGUE_LABELS } from '../core/economy.constants';
+import { LEAGUE_FRAME_THRESHOLDS, LEAGUE_ICONS, LEAGUE_LABELS, LEAGUE_GRADE_COLORS, LEAGUE_FRAME_REWARDS } from '../core/economy.constants';
 
 interface LeagueInfoModalProps {
     visible: boolean;
@@ -14,48 +14,32 @@ interface LeagueInfoModalProps {
 const { width, height } = Dimensions.get('window');
 
 const RANKS = [
-    {
-        score: '30',
-        name: LEAGUE_LABELS.APPRENTI,
-        coins: 500,
-        frameBorderColor: '#C0C0C0', // Silver
-        frameGlowColor: 'rgba(192,192,192,0.3)',
-        gradient: ['#1A1A24', '#2D2D3F'],
-    },
-    {
-        score: '150',
-        name: LEAGUE_LABELS.MAITRE,
-        coins: 2000,
-        frameBorderColor: '#FFD700', // Gold
-        frameGlowColor: 'rgba(255,215,0,0.5)',
-        gradient: ['#2A2410', '#3A3215'],
-    },
-    {
-        score: '250',
-        name: LEAGUE_LABELS.ROI,
-        coins: 5000,
-        frameBorderColor: '#00EAFF', // Blue Neon
-        frameGlowColor: 'rgba(0,234,255,0.7)',
-        gradient: ['#0A1D36', '#0E2A4F'],
-    },
-    {
-        score: '500',
-        name: LEAGUE_LABELS.LEGENDE,
-        coins: 10000,
-        frameBorderColor: '#FF3300', // Red/Flames
-        frameGlowColor: 'rgba(255,51,0,0.8)',
-        gradient: ['#3A0D0D', '#541515'],
-    }
-];
+    { grade: 'APPRENTI_1' as const, gradient: ['#1A1A24', '#2D2D3F'] },
+    { grade: 'APPRENTI_2' as const, gradient: ['#141414', '#252525'] },
+    { grade: 'APPRENTI_3' as const, gradient: ['#0E0E0E', '#1A1A1A'] },
+    { grade: 'MAITRE_1'   as const, gradient: ['#2A2410', '#3A3215'] },
+    { grade: 'MAITRE_2'   as const, gradient: ['#2F2800', '#3F3600'] },
+    { grade: 'MAITRE_3'   as const, gradient: ['#1A1500', '#2A2200'] },
+    { grade: 'ROI'        as const, gradient: ['#0A1D36', '#0E2A4F'] },
+    { grade: 'LEGENDE'    as const, gradient: ['#3A0D0D', '#541515'] },
+].map(({ grade, gradient }) => ({
+    grade,
+    score: String(LEAGUE_FRAME_THRESHOLDS[grade]),
+    name: LEAGUE_LABELS[grade],
+    coins: LEAGUE_FRAME_REWARDS[grade].coinsBonus,
+    frameBorderColor: LEAGUE_GRADE_COLORS[grade],
+    frameGlowColor: LEAGUE_GRADE_COLORS[grade] + '80',
+    gradient,
+}));
 
 export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClose }) => {
     
     const renderLeftPanel = () => {
         const milestones = [
-            { value: LEAGUE_FRAME_THRESHOLDS.APPRENTI, icon: LEAGUE_ICONS.APPRENTI, label: '30' },
-            { value: LEAGUE_FRAME_THRESHOLDS.MAITRE, icon: LEAGUE_ICONS.MAITRE, label: '150' },
-            { value: LEAGUE_FRAME_THRESHOLDS.ROI, icon: LEAGUE_ICONS.ROI, label: '250' },
-            { value: LEAGUE_FRAME_THRESHOLDS.LEGENDE, icon: LEAGUE_ICONS.LEGENDE, label: '500' },
+            { value: LEAGUE_FRAME_THRESHOLDS.APPRENTI_3, icon: LEAGUE_ICONS.APPRENTI_3, label: '30' },
+            { value: LEAGUE_FRAME_THRESHOLDS.MAITRE_3,   icon: LEAGUE_ICONS.MAITRE_3,   label: '120' },
+            { value: LEAGUE_FRAME_THRESHOLDS.ROI,        icon: LEAGUE_ICONS.ROI,        label: '250' },
+            { value: LEAGUE_FRAME_THRESHOLDS.LEGENDE,    icon: LEAGUE_ICONS.LEGENDE,    label: '500' },
         ];
         
         return (
@@ -243,15 +227,15 @@ const styles = StyleSheet.create({
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        gap: 6,
         justifyContent: 'center',
-        maxWidth: 240, // Force 2x2 by limiting total width
+        maxWidth: 260,
         alignSelf: 'center',
     },
     cardContainer: {
-        width: '48%',
-        aspectRatio: 0.9, 
-        maxWidth: 110, // Keep them small as requested
+        width: '23%',
+        aspectRatio: 0.85,
+        maxWidth: 60,
     },
     card: {
         flex: 1,

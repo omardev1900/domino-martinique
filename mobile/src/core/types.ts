@@ -105,7 +105,7 @@ export interface PlayerProfile {
     level?: number;          // Niveau dérivé de l'XP
     diamonds?: number;       // 💎 Monnaie premium
     leaguePoints?: number;   // 🐷 Cochons totaux (alias de totalCochonsInflicted)
-    leagueGrade?: string;    // Grade de ligue ('APPRENTI' | 'MAITRE' | 'ROI' | 'LEGENDE')
+    leagueGrade?: string;    // Grade de ligue (LeagueGrade — 8 paliers)
     activeFrame?: string;    // Cadre de ligue équipé
     inventory?: PlayerInventory; // Cosmétiques possédés et équipés
     hasBeenDebited?: boolean; // NEW: Persistant buy-in check

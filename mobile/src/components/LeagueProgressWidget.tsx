@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LEAGUE_FRAME_THRESHOLDS, LEAGUE_LABELS, LEAGUE_ICONS } from '../core/economy.constants';
+import { LEAGUE_FRAME_THRESHOLDS, LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_GRADE_ORDER } from '../core/economy.constants';
+import { LeagueGrade } from '../core/economy.types';
+import { getLeagueGrade } from '../core/RewardEngine';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
 
@@ -12,27 +14,22 @@ interface LeagueProgressWidgetProps {
 }
 
 export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ points, onInfoPress, style }) => {
-    // Current grade computation
-    const currentGrade = useMemo(() => {
-        if (points >= LEAGUE_FRAME_THRESHOLDS.LEGENDE) return 'LEGENDE';
-        if (points >= LEAGUE_FRAME_THRESHOLDS.ROI) return 'ROI';
-        if (points >= LEAGUE_FRAME_THRESHOLDS.MAITRE) return 'MAITRE';
-        return 'APPRENTI';
-    }, [points]);
+    // Current grade computation (uses getLeagueGrade from RewardEngine)
+    const currentGrade = useMemo(() => getLeagueGrade(points), [points]);
 
-    const title = `NIVEAU ${LEAGUE_LABELS[currentGrade].toUpperCase()}`;
+    const title = currentGrade ? `NIVEAU ${LEAGUE_LABELS[currentGrade].toUpperCase()}` : 'SANS GRADE';
 
     // Progress computation
     const maxThreshold = LEAGUE_FRAME_THRESHOLDS.LEGENDE;
-    // Cap progress at maxThreshold
     const currentProgress = Math.min(points, maxThreshold);
     const progressPercentage = (currentProgress / maxThreshold) * 100;
 
+    // Show key milestones on the gauge (one per family)
     const milestones = [
-        { value: LEAGUE_FRAME_THRESHOLDS.APPRENTI, icon: LEAGUE_ICONS.APPRENTI, label: '30' },
-        { value: LEAGUE_FRAME_THRESHOLDS.MAITRE, icon: LEAGUE_ICONS.MAITRE, label: '150' },
-        { value: LEAGUE_FRAME_THRESHOLDS.ROI, icon: LEAGUE_ICONS.ROI, label: '250' },
-        { value: LEAGUE_FRAME_THRESHOLDS.LEGENDE, icon: LEAGUE_ICONS.LEGENDE, label: '500' },
+        { value: LEAGUE_FRAME_THRESHOLDS.APPRENTI_3, icon: LEAGUE_ICONS.APPRENTI_3, label: '30' },
+        { value: LEAGUE_FRAME_THRESHOLDS.MAITRE_3,   icon: LEAGUE_ICONS.MAITRE_3,   label: '120' },
+        { value: LEAGUE_FRAME_THRESHOLDS.ROI,        icon: LEAGUE_ICONS.ROI,        label: '250' },
+        { value: LEAGUE_FRAME_THRESHOLDS.LEGENDE,    icon: LEAGUE_ICONS.LEGENDE,    label: '500' },
     ];
 
     return (

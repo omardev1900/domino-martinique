@@ -36,7 +36,7 @@ const DEFAULT_ECONOMY: PlayerEconomy = {
     level: 1,
     diamonds: 0,
     leaguePoints: 0,
-    leagueGrade: 'APPRENTI',
+    leagueGrade: null,
     // ─── Ligue des Cochons ───
     cochonsGiven: 0,
     unlockedFrames: [],
@@ -156,6 +156,7 @@ class EconomyService {
                 ])
             ] as LeagueFrameId[],
             activeFrame: current.activeFrame ?? null,
+            lastDailyRewardTimestamp: current.lastDailyRewardTimestamp,
         };
 
         this.cached = updated;
@@ -212,6 +213,7 @@ class EconomyService {
                     ])
                 ] as LeagueFrameId[],
                 activeFrame: current.activeFrame ?? null,
+                lastDailyRewardTimestamp: current.lastDailyRewardTimestamp,
             };
             this.cached = updated;
             await this.persistLocal(); // On sauvegarde juste dans le AsyncStorage pour l'application fluide
@@ -431,6 +433,20 @@ class EconomyService {
     }
 
     /**
+     * Fallback Firestore : si leagueGrade est un ancien grade (4 paliers) ou invalide,
+     * on le recalcule depuis cochonsGiven.
+     */
+    private migrateGrade(raw: string | undefined, leaguePoints: number): LeagueGrade {
+        const VALID: string[] = [
+            'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',
+            'MAITRE_1', 'MAITRE_2', 'MAITRE_3',
+            'ROI', 'LEGENDE',
+        ];
+        if (raw && VALID.includes(raw)) return raw as LeagueGrade;
+        return getLeagueGrade(leaguePoints); // peut retourner null
+    }
+
+    /**
      * Fusionne deux économies.
      * Pour les pièces/diamants, on fait confiance au serveur (SEC-3).
      * Pour l'XP/Points de ligue, on prend le maximum pour éviter la frustration.
@@ -470,7 +486,7 @@ class EconomyService {
             level: partial.level ?? getLevelFromXP(xp),
             diamonds: partial.diamonds ?? DEFAULT_ECONOMY.diamonds,
             leaguePoints,
-            leagueGrade: (partial.leagueGrade as LeagueGrade) ?? getLeagueGrade(leaguePoints),
+            leagueGrade: this.migrateGrade(partial.leagueGrade, leaguePoints),
             // ─── Ligue des Cochons (migration: valeurs par défaut pour les anciens profils) ───
             cochonsGiven: partial.cochonsGiven ?? 0,
             unlockedFrames: (partial.unlockedFrames as LeagueFrameId[]) ?? [],

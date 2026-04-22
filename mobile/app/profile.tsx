@@ -24,7 +24,8 @@ import { PlayerProfile } from '../src/core/types';
 import { LeagueFrameId } from '../src/core/economy.types';
 import { AVAILABLE_AVATARS, getAvatarImage, AvatarId } from '../src/core/avatars';
 import { AvatarFrame } from '../src/components/AvatarFrame';
-import { LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_FRAME_THRESHOLDS } from '../src/core/economy.constants';
+import { LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_FRAME_THRESHOLDS, LEAGUE_GRADE_COLORS, LEAGUE_GRADE_ORDER } from '../src/core/economy.constants';
+import { LeagueGrade } from '../src/core/economy.types';
 import { leagueService } from '../src/core/services/league.service';
 export default function ProfileScreen() {
     const router = useRouter();
@@ -40,6 +41,7 @@ export default function ProfileScreen() {
     const [unlockedFrames, setUnlockedFrames] = useState<LeagueFrameId[]>([]);
     const [activeFrame, setActiveFrame] = useState<LeagueFrameId | null>(null);
     const [cochonsGiven, setCochonsGiven] = useState(0);
+    const [myLeagueGrade, setMyLeagueGrade] = useState<LeagueGrade | null>(null);
 
     const [isLoading, setIsLoading] = useState(false);
     const nameInputRef = useRef<TextInput>(null);
@@ -90,7 +92,9 @@ export default function ProfileScreen() {
             if (eco) {
                 setUnlockedFrames(eco.unlockedFrames || []);
                 setActiveFrame(eco.activeFrame || null);
-                setCochonsGiven(eco.cochonsGiven ?? 0);
+                const given = eco.cochonsGiven ?? 0;
+                setCochonsGiven(given);
+                setMyLeagueGrade(leagueService.getGradeFromCochons(given));
             }
         } else {
             console.log('[Profile] No user found, using defaults');
@@ -222,9 +226,10 @@ export default function ProfileScreen() {
         const grade = leagueService.getGradeFromCochons(cochonsGiven);
         const nextThreshold = leagueService.getNextFrameThreshold(cochonsGiven);
         const prevThreshold = (() => {
-            const ordered = [0, 30, 150, 250, 500];
-            const nIdx = ordered.indexOf(nextThreshold ?? 500);
-            return nIdx > 0 ? ordered[nIdx - 1] : 0;
+            if (!nextThreshold) return LEAGUE_FRAME_THRESHOLDS[LEAGUE_GRADE_ORDER[LEAGUE_GRADE_ORDER.length - 2]];
+            const thresholds = [0, ...LEAGUE_GRADE_ORDER.map(g => LEAGUE_FRAME_THRESHOLDS[g])];
+            const nIdx = thresholds.indexOf(nextThreshold);
+            return nIdx > 0 ? thresholds[nIdx - 1] : 0;
         })();
         const progress = nextThreshold
             ? Math.min((cochonsGiven - prevThreshold) / (nextThreshold - prevThreshold), 1)
@@ -241,7 +246,7 @@ export default function ProfileScreen() {
                     <Ionicons name="chevron-forward" size={18} color="#FFD700" />
                 </View>
                 <Text style={styles.leagueGradeText}>
-                    {LEAGUE_ICONS[grade]} {LEAGUE_LABELS[grade]}
+                    {grade ? `${LEAGUE_ICONS[grade]} ${LEAGUE_LABELS[grade]}` : '— Sans grade —'}
                 </Text>
                 <Text style={styles.leagueCochonsText}>{cochonsGiven} cochon{cochonsGiven !== 1 ? 's' : ''} donnés</Text>
                 {/* Mini barre de progression */}
@@ -322,7 +327,10 @@ export default function ProfileScreen() {
                     {/* Main Container - Centered */}
                     <View style={styles.centerColumn}>
                         <View style={styles.avatarCircle}>
-                            <View style={styles.avatarCircleBorder}>
+                            <View style={[
+                                styles.avatarCircleBorder,
+                                myLeagueGrade && { borderColor: LEAGUE_GRADE_COLORS[myLeagueGrade] },
+                            ]}>
                                 <Image
                                     source={getAvatarImage(selectedAvatar || 'avatar_default')}
                                     style={styles.avatarCircleImage}

@@ -82,7 +82,7 @@ class LeaderboardService {
                         xp: economy.xp || 0,
                         coins: economy.coins || 0,
                         level: economy.level || 1,
-                        leagueGrade: economy.leagueGrade || 'APPRENTI',
+                        leagueGrade: economy.leagueGrade || null,
                         leaguePoints: economy.leaguePoints || 0,
                         rank: currentRank++,
                     });

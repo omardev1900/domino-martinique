@@ -37,10 +37,14 @@ export interface LeagueCheckResult {
 
 /** Mapping grade → ID de cadre */
 const GRADE_TO_FRAME_ID: Record<LeagueGrade, LeagueFrameId> = {
-    APPRENTI: 'frame_argent',
-    MAITRE:   'frame_or',
-    ROI:      'frame_diamant',
-    LEGENDE:  'frame_feu',
+    APPRENTI_1: 'frame_apprenti_1',
+    APPRENTI_2: 'frame_apprenti_2',
+    APPRENTI_3: 'frame_apprenti_3',
+    MAITRE_1:   'frame_maitre_1',
+    MAITRE_2:   'frame_maitre_2',
+    MAITRE_3:   'frame_maitre_3',
+    ROI:        'frame_roi',
+    LEGENDE:    'frame_legende',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -88,10 +92,10 @@ class LeagueService {
 
     /**
      * Calcule le grade courant basé sur le total de cochons donnés.
-     * Utilise les seuils de déblocage (30/150/250/500).
+     * Retourne null si le joueur est en dessous du premier seuil (< 10 cochons).
      */
-    getGradeFromCochons(cochonsGiven: number): LeagueGrade {
-        let grade: LeagueGrade = 'APPRENTI';
+    getGradeFromCochons(cochonsGiven: number): LeagueGrade | null {
+        let grade: LeagueGrade | null = null;
         for (const g of LEAGUE_GRADE_ORDER) {
             if (cochonsGiven >= LEAGUE_THRESHOLDS[g]) {
                 grade = g;
@@ -220,8 +224,8 @@ class LeagueService {
                 cochonsGiven: 0,
                 unlockedFrames: [],
                 activeFrame: null,
-                leagueGrade: 'APPRENTI',
-                nextThreshold: 30,
+                leagueGrade: null,
+                nextThreshold: 10,
             };
         }
     }

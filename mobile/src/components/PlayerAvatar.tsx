@@ -10,6 +10,8 @@ import { DominoTile } from './DominoTile';
 import { SkinConfig } from '../core/store.types';
 import { ChatBubble } from './ChatBubble';
 import { AvatarFrame } from './AvatarFrame';
+import { LEAGUE_GRADE_COLORS } from '../core/economy.constants';
+import { LeagueGrade } from '../core/economy.types';
 
 interface PlayerAvatarProps {
     player: Player;
@@ -288,7 +290,10 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                 height: size,
                                 borderRadius: size / 2,
                                 borderWidth: isActive ? 3 : 2,
-                                borderColor: isActive ? '#FFD700' : 'rgba(255,255,255,0.3)',
+                                borderColor: isActive
+                                    ? '#FFD700'
+                                    : (player.leagueGrade && LEAGUE_GRADE_COLORS[player.leagueGrade as LeagueGrade])
+                                        || 'rgba(255,255,255,0.3)',
                                 overflow: 'hidden',
                                 backgroundColor: (showTimerUi && (secondsLeft === 0 || overtime !== null)) ? '#FF0000' : 'rgba(50,50,50,0.9)'
                             },

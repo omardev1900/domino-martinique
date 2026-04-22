@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
 import { EconomyHeader } from '../components/EconomyHeader';
 import { AvatarFrame } from '../components/AvatarFrame';
+import { LEAGUE_GRADE_COLORS } from '../core/economy.constants';
+import { LeagueGrade } from '../core/economy.types';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -138,7 +140,15 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                     ) : (
                         <>
                             <View style={{ justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                                <View style={[styles.avatar, slot.isCurrentUser && styles.avatarHighlight, { overflow: 'hidden', marginBottom: 0 }]}>
+                                <View style={[
+                                    styles.avatar,
+                                    slot.isCurrentUser && styles.avatarHighlight,
+                                    { overflow: 'hidden', marginBottom: 0 },
+                                    slot.player?.leagueGrade && !slot.isCurrentUser && {
+                                        borderWidth: 2,
+                                        borderColor: LEAGUE_GRADE_COLORS[slot.player.leagueGrade as LeagueGrade],
+                                    },
+                                ]}>
                                     <Image
                                         source={getAvatarImage(slot.player?.avatarId || 'avatar_default')}
                                         style={{

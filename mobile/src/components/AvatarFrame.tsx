@@ -2,7 +2,11 @@ import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Circle } from 'react-native-svg';
 
-export type LeagueFrameId = 'frame_argent' | 'frame_or' | 'frame_diamant' | 'frame_feu';
+export type LeagueFrameId =
+    | 'frame_apprenti_1' | 'frame_apprenti_2' | 'frame_apprenti_3'
+    | 'frame_maitre_1'   | 'frame_maitre_2'   | 'frame_maitre_3'
+    | 'frame_roi'
+    | 'frame_legende';
 
 interface AvatarFrameProps {
     frameId?: LeagueFrameId | string | null;
@@ -14,7 +18,7 @@ export const AvatarFrame: React.FC<AvatarFrameProps> = ({ frameId, size }) => {
     const rotateAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        if (frameId === 'frame_diamant' || frameId === 'frame_feu') {
+        if (frameId === 'frame_roi' || frameId === 'frame_legende') {
             // Pulsing effect for high-tier frames
             Animated.loop(
                 Animated.sequence([
@@ -32,7 +36,7 @@ export const AvatarFrame: React.FC<AvatarFrameProps> = ({ frameId, size }) => {
             ).start();
 
             // Rotation effect for fire
-            if (frameId === 'frame_feu') {
+            if (frameId === 'frame_legende') {
                 Animated.loop(
                     Animated.timing(rotateAnim, {
                         toValue: 1,
@@ -62,10 +66,14 @@ export const AvatarFrame: React.FC<AvatarFrameProps> = ({ frameId, size }) => {
 
     const getColors = () => {
         switch (frameId) {
-            case 'frame_argent': return ['#C0C0C0', '#FFFFFF', '#A9A9A9'];
-            case 'frame_or': return ['#FFD700', '#FFF8DC', '#FFA500'];
-            case 'frame_diamant': return ['#00FFFF', '#FF00FF', '#00FFFF'];
-            case 'frame_feu': return ['#FF0000', '#FF8C00', '#FFFF00', '#FF0000'];
+            case 'frame_apprenti_1': return ['#C8C8C8', '#E8E8E8', '#C0C0C0'];
+            case 'frame_apprenti_2': return ['#909090', '#B0B0B0', '#707070'];
+            case 'frame_apprenti_3': return ['#505050', '#707070', '#303030'];
+            case 'frame_maitre_1':   return ['#FFE066', '#FFF3A0', '#FFD700'];
+            case 'frame_maitre_2':   return ['#FFD700', '#FFF8DC', '#FFA500'];
+            case 'frame_maitre_3':   return ['#B8860B', '#DAA520', '#8B6914'];
+            case 'frame_roi':        return ['#3A86FF', '#74B9FF', '#2172E8'];
+            case 'frame_legende':    return ['#DC143C', '#FF4500', '#FFD700', '#DC143C'];
             default: return null;
         }
     };
@@ -80,7 +88,7 @@ export const AvatarFrame: React.FC<AvatarFrameProps> = ({ frameId, size }) => {
                 height: containerSize,
                 transform: [
                     { scale: pulseAnim },
-                    { rotate: frameId === 'frame_feu' ? spin : '0deg' }
+                    { rotate: frameId === 'frame_legende' ? spin : '0deg' }
                 ]
             }}>
                 <Svg width={containerSize} height={containerSize}>

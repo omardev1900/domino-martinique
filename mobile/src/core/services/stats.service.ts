@@ -48,7 +48,7 @@ const DEFAULT_STATS: PlayerStats = {
     level: 1,
     diamonds: 0,
     leaguePoints: 0,
-    leagueGrade: 'APPRENTI',
+    leagueGrade: null,
     inventory: DEFAULT_INVENTORY,
 };
 
@@ -78,7 +78,7 @@ class StatsService {
                     level: parsed.level ?? 1,
                     diamonds: parsed.diamonds ?? 0,
                     leaguePoints: parsed.leaguePoints ?? 0,
-                    leagueGrade: parsed.leagueGrade ?? 'APPRENTI',
+                    leagueGrade: parsed.leagueGrade ?? 'APPRENTI_1',
                     inventory: parsed.inventory ?? DEFAULT_INVENTORY,
                 };
             } else {
