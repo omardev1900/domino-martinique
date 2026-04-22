@@ -190,6 +190,8 @@ class AdService {
         return {
             id,
             title:      (data.title as string) ?? '',
+            // Rétrocompat : les pubs créées avant l'ajout du champ n'ont pas mediaType → 'IMAGE'
+            mediaType:  (data.mediaType as Ad['mediaType']) ?? 'IMAGE',
             imageUrl:   (data.imageUrl as string) ?? '',
             targetUrl:  (data.targetUrl as string | null) ?? null,
             active:     data.active === true,

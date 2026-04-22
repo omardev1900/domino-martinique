@@ -16,6 +16,7 @@ import { logAdminAction } from '@/lib/adminLog';
 
 // ─── Types (miroir de mobile/src/core/ad.types.ts) ────────────────────────────
 
+type AdMediaType = 'IMAGE' | 'VIDEO';
 type AdFrequency = 'EVERY_TIME' | 'ONCE_PER_SESSION' | 'ONCE_PER_DAY';
 type AdPlacement =
     | 'HOME'
@@ -78,6 +79,7 @@ export default function AdFormPage() {
 
     // Form fields
     const [title, setTitle] = useState('');
+    const [mediaType, setMediaType] = useState<AdMediaType>('IMAGE');
     const [imageUrl, setImageUrl] = useState('');
     const [targetUrl, setTargetUrl] = useState('');
     const [active, setActive] = useState(true);
@@ -95,6 +97,7 @@ export default function AdFormPage() {
                 if (!snap.exists()) { setNotFound(true); return; }
                 const d = snap.data();
                 setTitle(d.title ?? '');
+                setMediaType((d.mediaType as AdMediaType) ?? 'IMAGE');
                 setImageUrl(d.imageUrl ?? '');
                 setTargetUrl(d.targetUrl ?? '');
                 setActive(d.active !== false);
@@ -130,6 +133,7 @@ export default function AdFormPage() {
         try {
             const data = {
                 title: title.trim(),
+                mediaType,
                 imageUrl: imageUrl.trim(),
                 targetUrl: targetUrl.trim() || null,
                 active,
@@ -211,10 +215,42 @@ export default function AdFormPage() {
                             />
                         </div>
 
-                        {/* Image URL */}
+                        {/* Type de média */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-3">Type de média</label>
+                            <div className="flex gap-3">
+                                {([
+                                    { value: 'IMAGE', icon: '🖼️', label: 'Image' },
+                                    { value: 'VIDEO', icon: '🎬', label: 'Vidéo (.mp4)' },
+                                ] as const).map(opt => (
+                                    <label
+                                        key={opt.value}
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border cursor-pointer transition-colors flex-1 justify-center ${
+                                            mediaType === opt.value
+                                                ? 'bg-yellow-400/10 border-yellow-400/40 text-yellow-400'
+                                                : 'bg-gray-950 border-gray-800 text-gray-400 hover:border-gray-700'
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="mediaType"
+                                            value={opt.value}
+                                            checked={mediaType === opt.value}
+                                            onChange={() => setMediaType(opt.value)}
+                                            className="sr-only"
+                                        />
+                                        <span>{opt.icon}</span>
+                                        <span className="text-sm font-medium">{opt.label}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* URL du média */}
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-2">
-                                URL de l'image <span className="text-yellow-400">*</span>
+                                {mediaType === 'VIDEO' ? 'URL de la vidéo (.mp4)' : "URL de l'image"}{' '}
+                                <span className="text-yellow-400">*</span>
                             </label>
                             <input
                                 type="url"
@@ -225,12 +261,22 @@ export default function AdFormPage() {
                             />
                             {imageUrl && (
                                 <div className="mt-3 rounded-xl overflow-hidden bg-gray-800 max-h-36 flex justify-center items-center">
-                                    <img
-                                        src={imageUrl}
-                                        alt="Aperçu"
-                                        className="max-h-36 object-contain"
-                                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                    />
+                                    {mediaType === 'VIDEO' ? (
+                                        <video
+                                            src={imageUrl}
+                                            className="max-h-36 object-contain"
+                                            muted
+                                            controls
+                                            onError={e => { (e.target as HTMLVideoElement).style.display = 'none'; }}
+                                        />
+                                    ) : (
+                                        <img
+                                            src={imageUrl}
+                                            alt="Aperçu"
+                                            className="max-h-36 object-contain"
+                                            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                        />
+                                    )}
                                 </div>
                             )}
                         </div>

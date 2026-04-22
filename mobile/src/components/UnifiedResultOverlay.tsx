@@ -1,55 +1,60 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ScrollView, Modal } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+    View, Text, StyleSheet, TouchableOpacity,
+    useWindowDimensions, ScrollView,
+} from 'react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import { Image } from 'expo-image';
-import Animated, { FadeIn, SlideInDown, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withSpring, Easing, runOnJS, interpolate, Extrapolate, useReducedMotion } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import Animated, {
+    FadeIn, FadeInDown, FadeInUp, BounceIn, ZoomIn,
+    useSharedValue, useAnimatedStyle,
+    withSpring, withTiming,
+    useReducedMotion,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { GameState, Player, PlayerId, GameMode, MancheResult } from '@/core/types';
+import { GameState, Player } from '@/core/types';
 import { MatchReward } from '@/core/economy.types';
 import { getAvatarImage, AvatarId } from '@/core/avatars';
 import SoundManager from '@/core/audio/SoundManager';
-import HapticManager from '@/core/audio/HapticManager';
-import { DominoTile } from './DominoTile';
 import { calculateHandPoints } from '@/core/ScoringEngine';
-
 
 interface UnifiedResultOverlayProps {
     gameState: GameState;
     visible: boolean;
     currentUserId: string;
     onContinue: () => void;
-    onLeave?: () => void; // For match end
-    allReady?: boolean; // Signal from outside if needed, but we'll handle internally too
+    onLeave?: () => void;
+    allReady?: boolean;
     onAnimationFinished?: () => void;
     isHost?: boolean;
-    matchReward?: MatchReward | null; // Passer les requêtes de recompénses depuis GameScreen
+    matchReward?: MatchReward | null;
 }
-
-type OverlayMode = 'SIMPLE_WIN' | 'MANCHE_END' | 'MATCH_END' | 'BOUDE';
-type TabType = 'RESULTS' | 'HISTORY' | 'REWARDS';
 
 export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     gameState,
     visible,
     currentUserId,
     onContinue,
-    onLeave,
     isHost = true,
-    matchReward
+    matchReward,
 }) => {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
+    const reducedMotion = useReducedMotion();
 
-    // Derived State
-    const [activeTab, setActiveTab] = useState<TabType>('RESULTS');
+    const [showHistory, setShowHistory] = useState(false);
+    const confettiRef = useRef<ConfettiCannon>(null);
+
     const isMatchOver = gameState.phase === 'MATCH_END';
-    const isMancheOver = gameState.phase === 'MANCHE_END';
     const isBoude = gameState.phase === 'BOUDE';
-
     const mancheResult = gameState.mancheResult;
 
-    // Find Winners
+    // Reset history view each time the overlay opens
+    useEffect(() => {
+        if (visible) setShowHistory(false);
+    }, [visible]);
+
+    // ── Winners ────────────────────────────────────────────────────────────────
     const boudeWinnerId = (() => {
         if (!isBoude) return null;
         const scores = gameState.players.map(p => ({ id: p.id, score: calculateHandPoints(p.hand) }));
@@ -64,23 +69,28 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         return b.mancheWins - a.mancheWins;
     })[0];
 
-    const winnerId = isMatchOver ? matchOverallWinner?.id : (isBoude ? boudeWinnerId : (gameState.players.find(p => p.id === gameState.firstPlayerOfRound)?.id || gameState.players.find(p => p.hand.length === 0)?.id));
+    const winnerId = isMatchOver
+        ? matchOverallWinner?.id
+        : isBoude
+            ? boudeWinnerId
+            : (gameState.players.find(p => p.id === gameState.firstPlayerOfRound)?.id
+                || gameState.players.find(p => p.hand.length === 0)?.id);
+
     const isMeWinner = winnerId === currentUserId;
 
-    // animations
-    const reducedMotion = useReducedMotion();
+    // ── Panel animation ────────────────────────────────────────────────────────
     const scaleValue = useSharedValue(reducedMotion ? 1 : 0.5);
     const opacityValue = useSharedValue(reducedMotion ? 1 : 0);
 
-    const animatedContentStyle = useAnimatedStyle(() => ({
+    const animatedPanelStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scaleValue.value }],
-        opacity: opacityValue.value
+        opacity: opacityValue.value,
     }));
 
     const animatedBackdropStyle = useAnimatedStyle(() => ({
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.85)',
-        opacity: opacityValue.value
+        backgroundColor: 'rgba(0,0,0,0.87)',
+        opacity: opacityValue.value,
     }));
 
     useEffect(() => {
@@ -89,186 +99,105 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 scaleValue.value = 1;
                 opacityValue.value = 1;
             } else {
-                scaleValue.value = withSpring(1);
-                opacityValue.value = withTiming(1, { duration: 500 });
+                scaleValue.value = withSpring(1, { damping: 14, stiffness: 130 });
+                opacityValue.value = withTiming(1, { duration: 320 });
             }
-
-            // Gestion des sons selon le résultat
             if (isMatchOver) {
                 SoundManager.playEvent(isMeWinner ? 'WIN' : 'LOSE');
+                // Confettis avec léger délai pour laisser le panel apparaître
+                setTimeout(() => confettiRef.current?.start(), 400);
             } else {
                 SoundManager.playEvent('ROUND_END');
             }
         } else {
-            if (reducedMotion) {
-                scaleValue.value = 0.5;
-                opacityValue.value = 0;
-            } else {
-                scaleValue.value = 0.5;
-                opacityValue.value = 0;
-            }
+            scaleValue.value = 0.5;
+            opacityValue.value = 0;
         }
-    }, [visible, isBoude, isMatchOver, isMeWinner, reducedMotion]);
+    }, [visible, isMatchOver, isMeWinner, reducedMotion]);
 
     if (!visible) return null;
 
-    // --------------------------------------------------------------------------------
-    // Sub-Component: Player Card (Universal Flexbox based)
-    // --------------------------------------------------------------------------------
-    const PlayerResultCard = ({ player, isWinner }: { player: Player, isWinner: boolean }) => {
-        const totalPts = gameState.gameMode === 'VICTOIRE' ? player.totalRoundWins : gameState.gameMode === 'SCORE' ? player.totalPoints : gameState.gameMode === 'COCHON' ? player.totalCochons : player.totalPoints;
-        const currentPips = calculateHandPoints(player.hand);
+    // ── Podium: winner in center ───────────────────────────────────────────────
+    const orderedPlayers = (() => {
+        const sorted = [...gameState.players.slice(0, 3)];
+        const wIdx = sorted.findIndex(p => p.id === winnerId);
+        if (wIdx > -1) {
+            const [winner] = sorted.splice(wIdx, 1);
+            sorted.splice(1, 0, winner);
+        }
+        return sorted;
+    })();
 
-        // Animation de la carte
-        const animatedScale = useSharedValue(isWinner ? 1 : 0.85);
-        const animatedOpacity = useSharedValue(isWinner ? 1 : 0.6);
-
-        useEffect(() => {
-            if (reducedMotion) {
-                animatedScale.value = isWinner ? 1.05 : 0.85;
-                animatedOpacity.value = isWinner ? 1 : 0.6;
-                return;
-            }
-
-            if (isWinner) {
-                // Flash glow / pulse for winner
-                animatedScale.value = withRepeat(
-                    withSequence(
-                        withTiming(1.05, { duration: 1000 }),
-                        withTiming(1, { duration: 1000 })
-                    ),
-                    -1,
-                    true
-                );
-                animatedOpacity.value = 1;
-            } else {
-                animatedScale.value = withTiming(0.85, { duration: 500 });
-                animatedOpacity.value = withTiming(0.6, { duration: 500 });
-            }
-        }, [isWinner, reducedMotion]);
-
-        const animStyle = useAnimatedStyle(() => ({
-            transform: [{ scale: animatedScale.value }],
-            opacity: animatedOpacity.value,
-        }));
-
-        return (
-            <Animated.View style={[
-                styles.flexPlayerCard,
-                isWinner && styles.flexPlayerCardWinner,
-                isLandscape && { width: '24%' },
-                animStyle,
-                { zIndex: isWinner ? 10 : 1, marginHorizontal: isWinner ? 10 : -10 } // Podium effect
-            ]}>
-                {/* 1. Header Card: Avatar & Name */}
-                <View style={styles.flexCardHeader}>
-                    <View style={styles.avatarMiniWrapper}>
-                        <Image
-                            source={getAvatarImage(player.avatarId as AvatarId || 'avatar_default')}
-                            style={[styles.flexMicroAvatar, isWinner && styles.flexMicroAvatarWinner]}
-                            contentFit="cover"
-                        />
-                        {isWinner && <Text style={styles.flexCrownSmall}>👑</Text>}
-                    </View>
-                    <Text style={[styles.flexPlayerName, isWinner && styles.flexPlayerNameWinner]} numberOfLines={1}>
-                        {player.name}
-                    </Text>
-                </View>
-
-                {/* 2. Body Card: Status / Hands */}
-                <View style={styles.flexCardBody}>
-                    <Text style={styles.flexTotalLabel}>TOTAL {totalPts}</Text>
-                    {isWinner ? (
-                        <View style={styles.flexWinnerBadge}>
-                            <Text style={styles.flexWinnerBadgeText}>+ {player.currentMancheStars || 0}⭐</Text>
-                        </View>
-                    ) : (
-                        <View style={styles.flexMiniHand}>
-                            {/* Les perdants n'affichent plus leurs dominos */}
-                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontStyle: 'italic' }}>Terminé</Text>
-                        </View>
-                    )}
-                </View>
-
-                {/* 3. Footer Card: Score current (Gagnant uniquement) */}
-                <View style={styles.flexCardFooter}>
-                    <Text style={[styles.flexPipsScore, isWinner && styles.flexPipsScoreWinner]}>
-                        {isWinner ? (player.hand.length === 0 ? '💯' : `${currentPips} ⚫`) : '-'}
-                    </Text>
-                </View>
-            </Animated.View>
-        );
-    }
-
-    const renderMainTitle = () => {
-        if (isMatchOver) return { main: "VAINQUEUR DU MATCH", sub: matchOverallWinner?.name || "" };
-        if (isBoude) return { main: "Partie Bloquée !", sub: boudeWinnerId ? `${gameState.players.find(p => p.id === boudeWinnerId)?.name} gagne !` : "Personne ne gagne." };
-        if (mancheResult === 'CHIRE') return { main: "CHIRÉ !!", sub: "Pas de cochon cette fois !" };
-        if (mancheResult === 'COCHON') return { main: "COCHON !", sub: "Une manche de prestige !" };
-        return { main: "VICTOIRE !", sub: "Partie terminée." };
+    // ── Score label per game mode ──────────────────────────────────────────────
+    const getPlayerTotalScore = (p: Player): string => {
+        switch (gameState.gameMode) {
+            case 'VICTOIRE': return `${p.totalRoundWins} V`;
+            case 'SCORE':    return `${p.totalPoints} pts`;
+            case 'COCHON':   return `${p.totalCochons} 🐷`;
+            default:         return `${p.totalPoints} pts`;
+        }
     };
 
-    const titles = renderMainTitle();
-
-    // -------------------------------------------------------------
-    // RENDER: TABS SYSTEM
-    // -------------------------------------------------------------
-    const renderTabs = () => {
-        if (!isMatchOver) return null; // Seulement utile pour le match final
-        return (
-            <View style={styles.tabsContainer}>
-                <TouchableOpacity 
-                    style={[styles.tabButton, activeTab === 'RESULTS' && styles.tabButtonActive]}
-                    onPress={() => setActiveTab('RESULTS')}
-                >
-                    <Ionicons name="trophy-outline" size={16} color={activeTab === 'RESULTS' ? '#FFD700' : 'rgba(255,255,255,0.5)'} />
-                    <Text style={[styles.tabText, activeTab === 'RESULTS' && styles.tabTextActive]}>RÉSULTATS</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                    style={[styles.tabButton, activeTab === 'HISTORY' && styles.tabButtonActive]}
-                    onPress={() => setActiveTab('HISTORY')}
-                >
-                    <Ionicons name="list-outline" size={16} color={activeTab === 'HISTORY' ? '#FFD700' : 'rgba(255,255,255,0.5)'} />
-                    <Text style={[styles.tabText, activeTab === 'HISTORY' && styles.tabTextActive]}>HISTORIQUE</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                    style={[styles.tabButton, activeTab === 'REWARDS' && styles.tabButtonActive]}
-                    onPress={() => setActiveTab('REWARDS')}
-                >
-                    <Ionicons name="gift-outline" size={16} color={activeTab === 'REWARDS' ? '#FFD700' : 'rgba(255,255,255,0.5)'} />
-                    <Text style={[styles.tabText, activeTab === 'REWARDS' && styles.tabTextActive]}>MES GAINS</Text>
-                </TouchableOpacity>
-            </View>
-        );
+    // ── Title ──────────────────────────────────────────────────────────────────
+    const getTitle = () => {
+        if (isMatchOver) return {
+            main: '🏆 VAINQUEUR DU MATCH',
+            sub: matchOverallWinner?.name || '',
+        };
+        if (isBoude) return {
+            main: '🚫 PARTIE BLOQUÉE',
+            sub: boudeWinnerId
+                ? `${gameState.players.find(p => p.id === boudeWinnerId)?.name} gagne !`
+                : 'Personne ne gagne.',
+        };
+        if (mancheResult === 'CHIRE') return { main: '⚡ CHIRÉ !!', sub: 'Pas de cochon cette fois !' };
+        if (mancheResult === 'COCHON') return { main: '🐷 COCHON !', sub: 'Une manche de prestige !' };
+        return { main: '🎉 VICTOIRE !', sub: 'Partie terminée.' };
     };
 
-    const renderHistoryTab = () => {
-        // Mode VICTOIRE : pas de mancheHistory, afficher un récapitulatif des victoires par joueur
+    const { main: titleMain, sub: titleSub } = getTitle();
+
+    // ── Shared footer button ───────────────────────────────────────────────────
+    const renderFooter = () => (
+        <View style={styles.footer}>
+            {isHost || isMatchOver ? (
+                <TouchableOpacity style={styles.actionBtn} onPress={onContinue} activeOpacity={0.85}>
+                    <Ionicons name={isMatchOver ? 'home' : 'arrow-forward'} size={18} color="#000" />
+                    <Text style={styles.actionBtnText}>
+                        {isMatchOver ? 'QUITTER & ACCUEIL' : 'CONTINUER'}
+                    </Text>
+                </TouchableOpacity>
+            ) : (
+                <View style={[styles.actionBtn, styles.waitingBtn]}>
+                    <Text style={[styles.actionBtnText, { color: 'rgba(255,255,255,0.45)' }]}>
+                        En attente de l'hôte…
+                    </Text>
+                </View>
+            )}
+        </View>
+    );
+
+    // ── History content ────────────────────────────────────────────────────────
+    const renderHistoryContent = () => {
         if (gameState.gameMode === 'VICTOIRE') {
-            const sortedByWins = [...gameState.players].sort((a, b) => (b.totalRoundWins || 0) - (a.totalRoundWins || 0));
+            const sorted = [...gameState.players].sort((a, b) =>
+                (b.totalRoundWins || 0) - (a.totalRoundWins || 0)
+            );
             return (
                 <ScrollView style={styles.historyScroll} showsVerticalScrollIndicator={false}>
-                    <View style={{ padding: 10, alignItems: 'center', marginBottom: 8 }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' }}>
-                            Objectif : {gameState.winningCondition} victoire{gameState.winningCondition > 1 ? 's' : ''}
-                        </Text>
-                    </View>
-                    {sortedByWins.map((p, idx) => {
-                        const isMe = p.id === currentUserId;
+                    <Text style={styles.historyObjectif}>
+                        Objectif : {gameState.winningCondition} victoire{gameState.winningCondition > 1 ? 's' : ''}
+                    </Text>
+                    {sorted.map((p, idx) => {
                         const isWinnerRow = p.id === winnerId;
                         return (
-                            <View key={p.id} style={[styles.statsTableRow, isWinnerRow && { backgroundColor: 'rgba(255,215,0,0.08)' }]}>
-                                <Text style={[styles.statsTableCell, { width: 30, color: 'rgba(255,255,255,0.4)', fontSize: 12 }]}>#{idx + 1}</Text>
-                                <Text style={[styles.statsTableCell, { flex: 1, textAlign: 'left', color: isMe ? '#FFD700' : '#FFF', fontWeight: isWinnerRow ? 'bold' : 'normal' }]} numberOfLines={1}>
-                                    {isMe ? 'Moi' : p.name}{isWinnerRow ? ' 👑' : ''}
+                            <View key={p.id} style={[styles.historyRow, isWinnerRow && styles.historyRowWinner]}>
+                                <Text style={styles.historyRank}>#{idx + 1}</Text>
+                                <Text style={[styles.historyName, isWinnerRow && { color: '#FFD700' }]} numberOfLines={1}>
+                                    {p.id === currentUserId ? 'Moi' : p.name}{isWinnerRow ? ' 👑' : ''}
                                 </Text>
-                                <Text style={[styles.statsTableCell, { width: 80, fontWeight: 'bold', fontSize: 18, color: isWinnerRow ? '#FFD700' : '#FFF' }]}>
-                                    {p.totalRoundWins || 0}
-                                </Text>
-                                <Text style={[styles.statsTableCell, { width: 60, color: 'rgba(255,255,255,0.4)', fontSize: 12 }]}>
-                                    victoire{(p.totalRoundWins || 0) !== 1 ? 's' : ''}
+                                <Text style={[styles.historyScore, isWinnerRow && { color: '#FFD700' }]}>
+                                    {p.totalRoundWins || 0} V
                                 </Text>
                             </View>
                         );
@@ -279,41 +208,36 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
         return (
             <ScrollView style={styles.historyScroll} showsVerticalScrollIndicator={false}>
-                {/* Table Header */}
-                <View style={styles.statsTableHeader}>
-                    <Text style={[styles.statsTableCell, { width: 60, fontWeight: 'bold' }]}>Manche</Text>
+                <View style={styles.historyHeader}>
+                    <Text style={[styles.historyCell, { width: 52 }]}>Manche</Text>
                     {gameState.players.map(p => (
-                        <View key={p.id} style={{ flex: 1, alignItems: 'center' }}>
-                            <Text style={[styles.statsTableCell, { fontWeight: 'bold', color: p.id === currentUserId ? '#FFD700' : '#FFF' }]} numberOfLines={1}>
-                                {p.id === currentUserId ? 'Moi' : p.name}
-                            </Text>
-                        </View>
+                        <Text key={p.id}
+                            style={[styles.historyCell, { flex: 1, color: p.id === currentUserId ? '#FFD700' : '#FFF' }]}
+                            numberOfLines={1}>
+                            {p.id === currentUserId ? 'Moi' : p.name}
+                        </Text>
                     ))}
                 </View>
-
-                {/* History Rows */}
                 {gameState.mancheHistory?.map((h, idx) => (
-                    <View key={idx} style={styles.statsTableRow}>
-                        <Text style={[styles.statsTableCell, { width: 60 }]}>M{h.mancheNumber}</Text>
+                    <View key={idx} style={styles.historyRow}>
+                        <Text style={[styles.historyCell, { width: 52 }]}>M{h.mancheNumber}</Text>
                         {gameState.players.map(p => (
-                            <Text key={p.id} style={[styles.statsTableCell, { flex: 1, color: 'rgba(255,255,255,0.8)' }]}>
+                            <Text key={p.id} style={[styles.historyCell, { flex: 1, color: 'rgba(255,255,255,0.8)' }]}>
                                 {h.points[p.id] || 0}
                             </Text>
                         ))}
                     </View>
                 ))}
-
                 {(!gameState.mancheHistory || gameState.mancheHistory.length === 0) && (
-                    <View style={{ padding: 40, alignItems: 'center' }}>
-                        <Text style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.4)' }}>Aucun historique disponible.</Text>
-                    </View>
+                    <Text style={styles.emptyHistory}>Aucun historique disponible.</Text>
                 )}
-
-                {/* Final Total */}
-                <View style={[styles.statsTableRow, { borderTopWidth: 2, borderColor: '#FFD700', marginTop: 10, paddingTop: 10 }]}>
-                    <Text style={[styles.statsTableCell, { width: 60, fontWeight: 'bold', color: '#FFD700' }]}>TOTAL</Text>
+                <View style={[styles.historyRow, styles.historyTotalRow]}>
+                    <Text style={[styles.historyCell, { width: 52, color: '#FFD700', fontWeight: 'bold' }]}>TOTAL</Text>
                     {gameState.players.map(p => (
-                        <Text key={p.id} style={[styles.statsTableCell, { flex: 1, fontWeight: 'bold', fontSize: 16, color: p.id === winnerId ? '#FFD700' : '#FFF' }]}>
+                        <Text key={p.id} style={[styles.historyCell, {
+                            flex: 1, fontWeight: 'bold', fontSize: 16,
+                            color: p.id === winnerId ? '#FFD700' : '#FFF',
+                        }]}>
                             {p.totalPoints}
                         </Text>
                     ))}
@@ -322,118 +246,163 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         );
     };
 
-    const renderRewardsTab = () => (
-        <View style={styles.rewardsContainer}>
-            {matchReward ? (
-                <>
-                   <Text style={[styles.flexSubtitle, { color: '#FFD700', marginBottom: 15, fontSize: 18 }]}>Vos récompenses de match</Text>
-                   <View style={styles.rewardsGrid}>
-                        <View style={styles.rewardBox}>
-                             <Text style={{fontSize: 24}}>🪙</Text>
-                             <Text style={styles.rewardValue}>+{matchReward.coinsEarned}</Text>
-                             <Text style={styles.rewardLabel}>Coins</Text>
+    // ── Podium cards (shared between match end and round end) ──────────────────
+    const renderPodiumCards = (showTotalScore: boolean) => (
+        <View style={[styles.podiumRow, isLandscape && styles.podiumRowLandscape]}>
+            {orderedPlayers.map((p, idx) => {
+                const isWinner = p.id === winnerId;
+                const delay = reducedMotion ? 0 : idx * 110;
+                const entering = reducedMotion
+                    ? undefined
+                    : isWinner
+                        ? BounceIn.delay(delay + 80).duration(550)
+                        : FadeInDown.delay(delay).springify().damping(16);
+                return (
+                    <Animated.View key={p.id} entering={entering}
+                        style={[styles.podiumCard, isWinner && styles.podiumCardWinner]}>
+                        <View style={styles.podiumAvatarWrap}>
+                            <Image
+                                source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')}
+                                style={[styles.podiumAvatar, isWinner && styles.podiumAvatarWinner]}
+                                contentFit="cover"
+                            />
+                            {isWinner && <Text style={styles.crown}>👑</Text>}
                         </View>
-                        <View style={styles.rewardBox}>
-                             <Text style={{fontSize: 24}}>🟢</Text>
-                             <Text style={styles.rewardValue}>+{matchReward.xpEarned}</Text>
-                             <Text style={styles.rewardLabel}>XP</Text>
-                        </View>
-                        {matchReward.diamondsEarned > 0 && (
-                            <View style={styles.rewardBox}>
-                                <Text style={{fontSize: 24}}>💎</Text>
-                                <Text style={[styles.rewardValue, { color: '#60DCFF' }]}>+{matchReward.diamondsEarned}</Text>
-                                <Text style={styles.rewardLabel}>Diamants</Text>
+                        <Text style={[styles.podiumName, isWinner && styles.podiumNameWinner]} numberOfLines={1}>
+                            {p.id === currentUserId ? 'Moi' : p.name}
+                        </Text>
+                        <Text style={[styles.podiumScore, isWinner && styles.podiumScoreWinner]}>
+                            {showTotalScore ? getPlayerTotalScore(p) : `${p.currentMancheStars || 0} ⭐`}
+                        </Text>
+                        {isWinner && showTotalScore && (
+                            <View style={styles.podiumWinBadge}>
+                                <Text style={styles.podiumWinBadgeText}>CHAMPION</Text>
                             </View>
                         )}
-                        {matchReward.leaguePointsEarned > 0 && (
-                             <View style={styles.rewardBox}>
-                                 <Text style={{fontSize: 24}}>🐷</Text>
-                                 <Text style={[styles.rewardValue, { color: '#FF9800' }]}>+{matchReward.leaguePointsEarned}</Text>
-                                 <Text style={styles.rewardLabel}>League</Text>
-                             </View>
-                         )}
-                   </View>
-                </>
-            ) : (
-                <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Aucune récompense disponible.</Text>
-            )}
+                    </Animated.View>
+                );
+            })}
         </View>
     );
 
-    // -------------------------------------------------------------
-    // RENDER: MAIN OVERLAY
-    // -------------------------------------------------------------
+    // ── MATCH END — main view (results + rewards inline) ──────────────────────
+    const renderMatchEndMain = () => (
+        <>
+            <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(280)} style={styles.matchHeader}>
+                <View style={styles.matchTitleBlock}>
+                    <Text style={styles.matchTitleLabel}>{titleMain}</Text>
+                    <Text style={styles.matchWinnerName}>{titleSub}</Text>
+                </View>
+                <TouchableOpacity
+                    style={styles.historyIconBtn}
+                    onPress={() => setShowHistory(true)}
+                    activeOpacity={0.75}
+                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                >
+                    <Ionicons name="time-outline" size={20} color="rgba(255,255,255,0.7)" />
+                </TouchableOpacity>
+            </Animated.View>
+
+            {renderPodiumCards(true)}
+
+            {matchReward && (
+                <Animated.View
+                    entering={reducedMotion ? undefined : FadeInUp.delay(480).duration(380)}
+                    style={styles.rewardsStrip}
+                >
+                    <Text style={styles.rewardsStripLabel}>MES GAINS</Text>
+                    <View style={styles.rewardsStripRow}>
+                        <RewardChip icon="🪙" value={matchReward.coinsEarned} color="#FFD700" label="Coins" />
+                        <RewardChip icon="🟢" value={matchReward.xpEarned} color="#4CAF50" label="XP" />
+                        {matchReward.diamondsEarned > 0 && (
+                            <RewardChip icon="💎" value={matchReward.diamondsEarned} color="#60DCFF" label="Diamants" />
+                        )}
+                        {matchReward.leaguePointsEarned > 0 && (
+                            <RewardChip icon="🐷" value={matchReward.leaguePointsEarned} color="#FF9800" label="Ligue" />
+                        )}
+                    </View>
+                </Animated.View>
+            )}
+        </>
+    );
+
+    // ── ROUND / MANCHE / BOUDE view ────────────────────────────────────────────
+    const renderRoundView = () => (
+        <>
+            <Animated.View entering={reducedMotion ? undefined : ZoomIn.duration(280)} style={styles.titlePill}>
+                <Text style={styles.titlePillMain}>{titleMain}</Text>
+                <Text style={styles.titlePillSub}>{titleSub}</Text>
+            </Animated.View>
+            {renderPodiumCards(false)}
+        </>
+    );
+
+    // ── Main render ────────────────────────────────────────────────────────────
     return (
         <View style={styles.container} pointerEvents="box-none">
             <Animated.View style={animatedBackdropStyle} />
 
+            {/* Confettis — uniquement fin de match, tirés depuis le haut-centre */}
+            {isMatchOver && (
+                <ConfettiCannon
+                    ref={confettiRef}
+                    count={160}
+                    origin={{ x: width / 2, y: -20 }}
+                    autoStart={false}
+                    fadeOut
+                    fallSpeed={3000}
+                    explosionSpeed={350}
+                    colors={['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']}
+                />
+            )}
             <Animated.View style={[
-                styles.mainFlexBanner,
-                animatedContentStyle,
-                isLandscape ? styles.mainFlexBannerLandscape : styles.mainFlexBannerPortrait
+                styles.panel,
+                animatedPanelStyle,
+                isLandscape ? styles.panelLandscape : styles.panelPortrait,
             ]}>
 
-                {/* TABS AT TOP FOR MATCH END */}
-                {renderTabs()}
-
-                {/* ZONE 1: HEADER (Title & Stats) - Hidden if match is over as per request */}
-                {!isMatchOver && (
-                    <View style={styles.flexHeaderZone}>
-                        <View style={styles.flexTitleContainer}>
-                            <Text style={[styles.flexTitle, isLandscape && { fontSize: 18 }]}>{titles.main}</Text>
-                            <Text style={styles.flexSubtitle}>{titles.sub}</Text>
+                {/* ── HISTORY VIEW ── */}
+                {isMatchOver && showHistory ? (
+                    <>
+                        <View style={styles.historyViewHeader}>
+                            <TouchableOpacity
+                                onPress={() => setShowHistory(false)}
+                                style={styles.backBtn}
+                                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                            >
+                                <Ionicons name="arrow-back" size={18} color="rgba(255,255,255,0.8)" />
+                                <Text style={styles.backBtnText}>Retour</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.historyViewTitle}>HISTORIQUE</Text>
+                            <View style={{ width: 72 }} />
                         </View>
-                    </View>
+                        {renderHistoryContent()}
+                        {renderFooter()}
+                    </>
+                ) : (
+                    <>
+                        {isMatchOver ? renderMatchEndMain() : renderRoundView()}
+                        {renderFooter()}
+                    </>
                 )}
-
-                {/* ZONE 2: DYNAMIC BODY CONTENT */}
-                <View style={[styles.dynamicCardBody, isLandscape && styles.flexBodyZoneLandscape]}>
-                    {activeTab === 'RESULTS' && (
-                        <View style={[styles.flexPlayersGrid, isLandscape && styles.flexPlayersGridLandscape, { alignItems: 'flex-end', justifyContent: 'center' }]}>
-                            {(() => {
-                                // Podium Ordering : Winner in center
-                                const sortedPlayers = [...gameState.players.slice(0, 4)];
-                                const wIdx = sortedPlayers.findIndex(p => p.id === winnerId);
-                                if (wIdx > -1) {
-                                    const winner = sortedPlayers.splice(wIdx, 1)[0];
-                                    const centerPos = Math.floor(sortedPlayers.length / 2);
-                                    sortedPlayers.splice(centerPos, 0, winner);
-                                }
-                                return sortedPlayers.map(p => (
-                                    <PlayerResultCard key={p.id} player={p} isWinner={p.id === winnerId} />
-                                ));
-                            })()}
-                        </View>
-                    )}
-                    
-                    {activeTab === 'HISTORY' && renderHistoryTab()}
-                    
-                    {activeTab === 'REWARDS' && renderRewardsTab()}
-                </View>
-
-
-                {/* ZONE 3: FOOTER (Actions) */}
-                <View style={styles.flexFooterZone}>
-                    {isHost || isMatchOver ? (
-                        <TouchableOpacity style={styles.flexActionBtn} onPress={onContinue}>
-                            <Text style={styles.flexActionBtnText}>
-                                {isMatchOver ? "QUITTER ET REVENIR À L'ACCUEIL" : "CONTINUER"}
-                            </Text>
-                            <Ionicons name={isMatchOver ? "home" : "arrow-forward"} size={20} color="black" />
-                        </TouchableOpacity>
-                    ) : (
-                        <View style={[styles.flexActionBtn, { backgroundColor: '#444', opacity: 0.8 }]}>
-                            <Text style={styles.flexActionBtnText}>En attente de l&apos;hôte...</Text>
-                        </View>
-                    )}
-
-                </View>
 
             </Animated.View>
         </View>
     );
 };
 
+// ── RewardChip ─────────────────────────────────────────────────────────────────
+const RewardChip: React.FC<{ icon: string; value: number; color: string; label: string }> = ({
+    icon, value, color, label,
+}) => (
+    <View style={styles.rewardChip}>
+        <Text style={styles.rewardChipIcon}>{icon}</Text>
+        <Text style={[styles.rewardChipValue, { color }]}>+{value}</Text>
+        <Text style={styles.rewardChipLabel}>{label}</Text>
+    </View>
+);
+
+// ── Styles ─────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     container: {
         ...StyleSheet.absoluteFillObject,
@@ -441,313 +410,369 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 1000,
     },
-    // --- MAIN BANNER ---
-    mainFlexBanner: {
-        backgroundColor: 'rgba(6, 10, 6, 0.95)',
+
+    // Panel
+    panel: {
+        backgroundColor: 'rgba(5, 9, 5, 0.97)',
         borderRadius: 24,
         borderWidth: 1.5,
-        borderColor: 'rgba(255, 215, 0, 0.5)',
-        overflow: 'hidden',
-        elevation: 20,
+        borderColor: 'rgba(255, 215, 0, 0.4)',
+        elevation: 22,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.8,
-        shadowRadius: 15,
+        shadowOpacity: 0.85,
+        shadowRadius: 16,
+        overflow: 'hidden',
     },
-    mainFlexBannerPortrait: {
+    panelPortrait: {
         width: '90%',
-        maxHeight: '85%',
-        padding: 10,
+        maxHeight: '88%',
+        paddingHorizontal: 14,
+        paddingTop: 14,
+        paddingBottom: 0,
     },
-    mainFlexBannerLandscape: {
-        width: '85%',
-        height: '85%',
-        padding: 8,
-    },
-
-    // --- ZONE 1: HEADER ---
-    flexHeaderZone: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
-        marginBottom: 4,
-        position: 'relative',
-    },
-    flexTitleContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(255, 215, 0, 0.1)',
-        paddingHorizontal: 20,
-        paddingVertical: 6,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 215, 0, 0.3)',
-    },
-    flexTitle: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: '#FFD700',
-        textTransform: 'uppercase',
-        textAlign: 'center',
-        letterSpacing: 2,
-    },
-    flexSubtitle: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.7)',
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        marginTop: 4,
+    panelLandscape: {
+        width: '82%',
+        maxHeight: '92%',
+        paddingHorizontal: 18,
+        paddingTop: 10,
+        paddingBottom: 0,
     },
 
-    // --- TABS SYSTEM ---
-    tabsContainer: {
+    // ── MATCH END: header ──
+    matchHeader: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        marginTop: 15,
-        marginBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)',
-        gap: 10,
-    },
-    tabButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderBottomWidth: 2,
-        borderBottomColor: 'transparent',
-    },
-    tabButtonActive: {
-        borderBottomColor: '#FFD700',
-    },
-    tabText: {
-        color: 'rgba(255,255,255,0.5)',
-        fontWeight: 'bold',
-        fontSize: 12,
-        marginLeft: 6,
-        letterSpacing: 1,
-    },
-    tabTextActive: {
-        color: '#FFD700',
-    },
-    
-    // --- DYNAMIC BODY ---
-    dynamicCardBody: {
-        flex: 1,
-        width: '100%',
-        justifyContent: 'center', // Default align
-    },
-    
-    flexPlayersGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 10,
-    },
-    flexPlayersGridLandscape: {
-        flexWrap: 'nowrap',
-    },
-    flexBodyZoneLandscape: {
-        // Any specific adjustments if needed for desktop
-    },
-
-    // --- PLAYER CARDS (Dark Theme) ---
-    flexPlayerCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
-        padding: 10,
-        width: '45%', 
-        maxWidth: 200,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
         alignItems: 'center',
         justifyContent: 'space-between',
-        minHeight: 140,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 215, 0, 0.15)',
+        marginBottom: 10,
     },
-    flexPlayerCardWinner: {
-        backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    matchTitleBlock: {
+        flex: 1,
+        paddingRight: 8,
+    },
+    matchTitleLabel: {
+        fontSize: 11,
+        fontWeight: '900',
+        color: 'rgba(255,215,0,0.65)',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+    },
+    matchWinnerName: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: '#FFD700',
+        marginTop: 2,
+    },
+    historyIconBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.07)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.12)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    // ── PODIUM ──
+    podiumRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        gap: 8,
+        paddingVertical: 6,
+    },
+    podiumRowLandscape: {
+        gap: 12,
+    },
+    podiumCard: {
+        flex: 1,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        minHeight: 130,
+    },
+    podiumCardWinner: {
+        backgroundColor: 'rgba(255,215,0,0.11)',
         borderColor: '#FFD700',
         borderWidth: 2,
-        elevation: 4,
+        minHeight: 155,
+        elevation: 6,
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
     },
-    flexCardHeader: {
-        alignItems: 'center',
-        width: '100%',
-    },
-    avatarMiniWrapper: {
+    podiumAvatarWrap: {
         position: 'relative',
-        marginBottom: 4,
+        marginBottom: 8,
     },
-    flexMicroAvatar: {
+    podiumAvatar: {
         width: 44,
         height: 44,
         borderRadius: 22,
         borderWidth: 1.5,
-        borderColor: 'rgba(255,255,255,0.3)',
+        borderColor: 'rgba(255,255,255,0.18)',
     },
-    flexMicroAvatarWinner: {
+    podiumAvatarWinner: {
+        width: 58,
+        height: 58,
+        borderRadius: 29,
         borderColor: '#FFD700',
-        borderWidth: 2,
-        width: 55,
-        height: 55,
-        borderRadius: 27.5,
+        borderWidth: 2.5,
     },
-    flexCrownSmall: {
+    crown: {
         position: 'absolute',
-        top: -10,
+        top: -14,
         left: -10,
-        fontSize: 25,
+        fontSize: 22,
         transform: [{ rotate: '-15deg' }],
     },
-    flexPlayerName: {
-        fontSize: 14,
+    podiumName: {
+        fontSize: 12,
         fontWeight: 'bold',
-        color: 'rgba(255, 255, 255, 0.8)',
+        color: 'rgba(255,255,255,0.65)',
         textAlign: 'center',
     },
-    flexPlayerNameWinner: {
+    podiumNameWinner: {
         color: '#FFD700',
-        fontSize: 17.5,
+        fontSize: 14,
     },
-    flexCardBody: {
-        alignItems: 'center',
-        marginVertical: 4,
-        width: '100%',
-    },
-    flexTotalLabel: {
-        fontSize: 10,
-        color: '#4A90E2',
+    podiumScore: {
+        fontSize: 15,
         fontWeight: '900',
-        marginBottom: 2,
+        color: 'rgba(255,255,255,0.4)',
+        marginTop: 5,
     },
-    flexMiniHand: {
+    podiumScoreWinner: {
+        color: '#FFD700',
+        fontSize: 20,
+    },
+    podiumWinBadge: {
+        backgroundColor: '#FFD700',
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        marginTop: 6,
+    },
+    podiumWinBadgeText: {
+        color: '#000',
+        fontSize: 9,
+        fontWeight: '900',
+        letterSpacing: 1.2,
+    },
+
+    // ── REWARDS STRIP ──
+    rewardsStrip: {
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,215,0,0.15)',
+        paddingTop: 10,
+        paddingBottom: 6,
+        marginTop: 6,
+    },
+    rewardsStripLabel: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: 'rgba(255,215,0,0.55)',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    rewardsStripRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+    },
+    rewardChip: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.12)',
+        minWidth: 64,
+    },
+    rewardChipIcon: {
+        fontSize: 18,
+        marginBottom: 3,
+    },
+    rewardChipValue: {
+        fontSize: 15,
+        fontWeight: '900',
+    },
+    rewardChipLabel: {
+        fontSize: 9,
+        color: 'rgba(255,255,255,0.45)',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginTop: 2,
+    },
+
+    // ── TITLE PILL (round / manche) ──
+    titlePill: {
+        alignSelf: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,215,0,0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+        borderRadius: 20,
+        paddingHorizontal: 22,
+        paddingVertical: 9,
+        marginVertical: 10,
+    },
+    titlePillMain: {
+        fontSize: 17,
+        fontWeight: '900',
+        color: '#FFD700',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+    },
+    titlePillSub: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.6)',
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        marginTop: 3,
+    },
+
+    // ── FOOTER ──
+    footer: {
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.07)',
+        marginTop: 6,
+        alignItems: 'center',
+    },
+    actionBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 2,
-    },
-    flexMiniDomino: {
-        transform: [{ scale: 0.6 }],
-        marginHorizontal: -4,
-    },
-    flexEmptyHand: {
-        fontSize: 12,
-        fontWeight: '900',
-        color: '#4CAF50',
-    },
-    flexWinnerBadge: {
         backgroundColor: '#FFD700',
-        paddingHorizontal: 10,
-        paddingVertical: 2,
-        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 28,
+        borderRadius: 30,
+        gap: 8,
+        minWidth: 200,
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.38,
+        shadowRadius: 10,
+        elevation: 7,
     },
-    flexWinnerBadgeText: {
+    waitingBtn: {
+        backgroundColor: '#2a2a2a',
+        shadowOpacity: 0,
+        elevation: 0,
+    },
+    actionBtnText: {
         color: '#000',
-        fontSize: 12,
         fontWeight: '900',
-    },
-    flexCardFooter: {
-        marginTop: 4,
-    },
-    flexPipsScore: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: 'rgba(255,255,255,0.6)',
-    },
-    flexPipsScoreWinner: {
-        color: '#FFD700',
-        fontSize: 18,
+        fontSize: 13,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
 
-    // --- HISTORY TAB ---
+    // ── HISTORY VIEW ──
+    historyViewHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingBottom: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.1)',
+        marginBottom: 8,
+    },
+    backBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        width: 72,
+    },
+    backBtnText: {
+        color: 'rgba(255,255,255,0.65)',
+        fontSize: 13,
+    },
+    historyViewTitle: {
+        flex: 1,
+        textAlign: 'center',
+        color: '#FFD700',
+        fontWeight: '900',
+        fontSize: 12,
+        letterSpacing: 2.5,
+        textTransform: 'uppercase',
+    },
+    historyObjectif: {
+        color: 'rgba(255,255,255,0.4)',
+        fontSize: 11,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        textAlign: 'center',
+        marginBottom: 10,
+    },
     historyScroll: {
         flex: 1,
         width: '100%',
-        paddingHorizontal: 10,
     },
-    statsTableHeader: {
+    historyHeader: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        padding: 10,
+        backgroundColor: 'rgba(255,255,255,0.07)',
+        padding: 8,
         borderRadius: 8,
-        marginBottom: 5,
+        marginBottom: 4,
     },
-    statsTableRow: {
+    historyRow: {
         flexDirection: 'row',
-        padding: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 4,
         borderBottomWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
         alignItems: 'center',
     },
-    statsTableCell: {
+    historyRowWinner: {
+        backgroundColor: 'rgba(255,215,0,0.07)',
+    },
+    historyTotalRow: {
+        borderTopWidth: 2,
+        borderColor: '#FFD700',
+        marginTop: 6,
+        paddingTop: 10,
+    },
+    historyCell: {
         textAlign: 'center',
         color: '#FFF',
-        fontSize: 14,
+        fontSize: 13,
     },
-
-    // --- REWARDS TAB ---
-    rewardsContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    rewardsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        gap: 15,
-    },
-    rewardBox: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.2)',
-        borderRadius: 12,
-        padding: 20,
-        alignItems: 'center',
-        width: 120,
-    },
-    rewardValue: {
-        color: '#FFD700',
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginVertical: 5,
-    },
-    rewardLabel: {
-        color: 'rgba(255,255,255,0.6)',
+    historyRank: {
+        width: 28,
+        color: 'rgba(255,255,255,0.35)',
         fontSize: 12,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
     },
-
-    // --- ZONE 3: FOOTER ---
-    flexFooterZone: {
-        paddingTop: 15,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
-        marginTop: 10,
+    historyName: {
+        flex: 1,
+        color: '#FFF',
+        fontSize: 13,
+        fontWeight: 'bold',
     },
-    flexActionBtn: {
-        backgroundColor: '#FFD700',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 30,
-        borderRadius: 30,
-        gap: 10,
-        minWidth: 200,
-        shadowColor: '#FFD700',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
+    historyScore: {
+        width: 62,
+        textAlign: 'right',
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
-    flexActionBtnText: {
-        color: 'black',
-        fontWeight: '900',
-        fontSize: 14,
-        textTransform: 'uppercase',
+    emptyHistory: {
+        color: 'rgba(255,255,255,0.35)',
+        fontStyle: 'italic',
+        textAlign: 'center',
+        padding: 30,
     },
 });

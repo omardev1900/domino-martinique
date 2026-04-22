@@ -17,6 +17,7 @@ import { logAdminAction } from '@/lib/adminLog';
 
 // ─── Types (miroir de mobile/src/core/ad.types.ts) ────────────────────────────
 
+type AdMediaType = 'IMAGE' | 'VIDEO';
 type AdFrequency = 'EVERY_TIME' | 'ONCE_PER_SESSION' | 'ONCE_PER_DAY';
 type AdPlacement =
     | 'HOME'
@@ -30,6 +31,7 @@ type AdPlacement =
 type Ad = {
     id: string;
     title: string;
+    mediaType: AdMediaType;
     imageUrl: string;
     targetUrl: string | null;
     active: boolean;
@@ -90,6 +92,7 @@ export default function AdsPage() {
                 snap.docs.map(d => ({
                     id: d.id,
                     title: (d.data().title as string) ?? '',
+                    mediaType: ((d.data().mediaType as AdMediaType) ?? 'IMAGE'),
                     imageUrl: (d.data().imageUrl as string) ?? '',
                     targetUrl: (d.data().targetUrl as string | null) ?? null,
                     active: d.data().active === true,
@@ -186,7 +189,12 @@ export default function AdsPage() {
                                         {/* Titre + miniature */}
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
-                                                {ad.imageUrl ? (
+                                                {/* Miniature / icône selon le type */}
+                                                {ad.mediaType === 'VIDEO' ? (
+                                                    <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-lg flex-shrink-0">
+                                                        🎬
+                                                    </div>
+                                                ) : ad.imageUrl ? (
                                                     <img
                                                         src={ad.imageUrl}
                                                         alt=""
@@ -198,7 +206,16 @@ export default function AdsPage() {
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <div className="font-medium text-white">{ad.title}</div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium text-white">{ad.title}</span>
+                                                        <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded uppercase tracking-wider ${
+                                                            ad.mediaType === 'VIDEO'
+                                                                ? 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
+                                                                : 'bg-blue-500/15 text-blue-400 border border-blue-500/20'
+                                                        }`}>
+                                                            {ad.mediaType === 'VIDEO' ? 'Vidéo' : 'Image'}
+                                                        </span>
+                                                    </div>
                                                     {ad.targetUrl && (
                                                         <div className="text-xs text-blue-400 truncate max-w-[180px]">
                                                             {ad.targetUrl}

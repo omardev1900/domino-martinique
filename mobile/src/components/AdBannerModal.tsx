@@ -2,13 +2,14 @@
  * AdBannerModal.tsx
  *
  * Popup plein écran pour les publicités admin-managed.
- * - Affiche l'image de la pub centrée
+ * - IMAGE : expo-image (comportement initial)
+ * - VIDEO : expo-av, autoplay muet en boucle
  * - Bouton ✕ pour fermer
- * - Tap sur l'image → ouvre targetUrl (si défini)
+ * - Tap sur le média → ouvre targetUrl (si défini)
  * Spec : docs/specs/ADS_SYSTEM.md
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
 import {
     Modal,
     View,
@@ -17,6 +18,7 @@ import {
     Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { Ad } from '../core/ad.types';
 import { LogService } from '../core/services/LogService';
@@ -27,6 +29,8 @@ interface AdBannerModalProps {
 }
 
 export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => {
+    const videoRef = useRef<Video>(null);
+
     if (!ad) return null;
 
     const handleTap = () => {
@@ -36,6 +40,8 @@ export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => 
         );
         onClose();
     };
+
+    const isVideo = ad.mediaType === 'VIDEO';
 
     return (
         <Modal
@@ -47,16 +53,32 @@ export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => 
         >
             <View style={styles.overlay}>
                 <TouchableOpacity
-                    style={styles.imageWrapper}
+                    style={styles.mediaWrapper}
                     onPress={ad.targetUrl ? handleTap : undefined}
                     activeOpacity={ad.targetUrl ? 0.88 : 1}
                 >
-                    <Image
-                        source={{ uri: ad.imageUrl }}
-                        style={styles.image}
-                        contentFit="contain"
-                        cachePolicy="memory-disk"
-                    />
+                    {isVideo ? (
+                        <Video
+                            ref={videoRef}
+                            source={{ uri: ad.imageUrl }}
+                            style={styles.media}
+                            resizeMode={ResizeMode.CONTAIN}
+                            shouldPlay
+                            isMuted
+                            isLooping
+                            useNativeControls={false}
+                            onError={e =>
+                                LogService.error('AdBannerModal', 'video error:', e)
+                            }
+                        />
+                    ) : (
+                        <Image
+                            source={{ uri: ad.imageUrl }}
+                            style={styles.media}
+                            contentFit="contain"
+                            cachePolicy="memory-disk"
+                        />
+                    )}
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -78,7 +100,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    imageWrapper: {
+    mediaWrapper: {
         width: '90%',
         height: '76%',
         borderRadius: 16,
@@ -89,7 +111,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.6,
         shadowRadius: 14,
     },
-    image: {
+    media: {
         width: '100%',
         height: '100%',
     },

@@ -23,12 +23,16 @@ export type AdPlacement =
     | 'BEFORE_MULTI'        // Avant de rejoindre/créer une table multi
     | 'END_OF_MATCH_MULTI'; // Fin de match complet (multi)
 
+/** Format du média principal de la pub */
+export type AdMediaType = 'IMAGE' | 'VIDEO';
+
 /** Document d'une pub hydraté côté mobile (Timestamps convertis en ms). */
 export interface Ad {
     id:         string;
     title:      string;            // Label admin uniquement (non affiché in-app)
-    imageUrl:   string;            // URL Firebase Storage
-    targetUrl:  string | null;     // Lien ouvert au tap sur l'image (optionnel)
+    mediaType:  AdMediaType;       // 'IMAGE' (défaut rétrocompat) | 'VIDEO'
+    imageUrl:   string;            // URL du média (image ou vidéo .mp4)
+    targetUrl:  string | null;     // Lien ouvert au tap (optionnel)
     active:     boolean;           // Toggle ON/OFF global
     startsAt:   number;            // Timestamp de début de diffusion (ms)
     endsAt:     number;            // Timestamp de fin de diffusion (ms)
