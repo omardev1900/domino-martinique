@@ -16,7 +16,14 @@
       "Bash(powershell -Command \"Start-Service W32Time; w32tm /resync /force\")",
       "Bash(npm install recharts)",
       "Bash(npx jest *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ],
+    "additionalDirectories": [
+      "e:\\PROJETS\\_TEMPLATE\\docs",
+      "e:\\PROJETS\\_TEMPLATE"
     ]
   }
 }
