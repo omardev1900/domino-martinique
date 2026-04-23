@@ -1,0 +1,31 @@
+\LP> pnpm build
+
+> domino-martinique-lp@1.0.0 build E:\PROJETS\clients\domino_matrinique\LP
+> vite build
+
+
+(!) build.outDir must not be the same directory of root or a parent directory of root as this could cause Vite to overwriting source files with build outputs.
+
+vite v7.1.9 building for production...
+(!) %VITE_ANALYTICS_ENDPOINT% is not defined in env variables found in /index.html. Is the variable mistyped?
+(!) %VITE_ANALYTICS_WEBSITE_ID% is not defined in env variables found in /index.html. Is the variable mistyped?
+<script src="%VITE_ANALYTICS_ENDPOINT%/umami"> in "/index.html" can't be bundled without type="module" attribute
+✓ 10 modules transformed.
+✗ Build failed in 403ms
+error during build:
+[vite]: Rollup failed to resolve import "next-themes" from "E:/PROJETS/clients/domino_matrinique/LP/client/src/components/ui/sonner.tsx".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteLog (file:///E:/PROJETS/clients/domino_matrinique/LP/node_modules/.pnpm/vite@7.1.9_@types+node@24.7_61597552e415200265e44ff54b51c03e/node_modules/vite/dist/node/chunks/dep-Chhhsdoe.js:33989:57)
+    at file:///E:/PROJETS/clients/domino_matrinique/LP/node_modules/.pnpm/vite@7.1.9_@types+node@24.7_61597552e415200265e44ff54b51c03e/node_modules/vite/dist/node/chunks/dep-Chhhsdoe.js:34025:73
+    at onwarn (file:///E:/PROJETS/clients/domino_matrinique/LP/node_modules/.pnpm/@vitejs+plugin-react@5.0.4__94d75084908fd62ac71fe531774e4fe9/node_modules/@vitejs/plugin-react/dist/index.js:55:7)
+    at file:///E:/PROJETS/clients/domino_matrinique/LP/node_modules/.pnpm/vite@7.1.9_@types+node@24.7_61597552e415200265e44ff54b51c03e/node_modules/vite/dist/node/chunks/dep-Chhhsdoe.js:34025:28
+    at onRollupLog (file:///E:/PROJETS/clients/domino_matrinique/LP/node_modules/.pnpm/vite@7.1.9_@types+node@24.7_61597552e415200265e44ff54b51c03e/node_modules/vite/dist/node/chunks/dep-Chhhsdoe.js:34020:63)
+    at onLog (file:///E:/PROJETS/clients/domino_matrinique/LP/node_modules/.pnpm/vite@7.1.9_@types+node@24.7_61597552e415200265e44ff54b51c03e/node_modules/vite/dist/node/chunks/dep-Chhhsdoe.js:33821:4)
+    at file:///E:/PROJETS/clients/domino_matrinique/LP/node_modules/.pnpm/rollup@4.52.4/node_modules/rollup/dist/es/shared/node-entry.js:20937:32
+    at Object.logger [as onLog] (file:///E:/PROJETS/clients/domino_matrinique/LP/node_modules/.pnpm/rollup@4.52.4/node_modules/rollup/dist/es/shared/node-entry.js:22823:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///E:/PROJETS/clients/domino_matrinique/LP/node_modules/.pnpm/rollup@4.52.4/node_modules/rollup/dist/es/shared/node-entry.js:21567:26)
+    at file:///E:/PROJETS/clients/domino_matrinique/LP/node_modules/.pnpm/rollup@4.52.4/node_modules/rollup/dist/es/shared/node-entry.js:21525:26
+ ELIFECYCLE  Command failed with exit code 1.
+PS E:\PROJETS\clients\domino_matrinique\LP>
