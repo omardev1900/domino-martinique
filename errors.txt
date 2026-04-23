@@ -1,0 +1,59 @@
+ ERROR  SyntaxError: E:\PROJETS\clients\domino_matrinique\mobile\app\home.tsx: Adjacent JSX elements must be wrapped in an enclosing tag. Did you want a JSX fragment <>...</>? (272:16)
+
+  270 |                         />
+  271 |                     </TouchableOpacity>
+> 272 |                 </View>
+      |                 ^
+  273 |
+  274 |                 {/* Right Side: Economy & User Info */}
+  275 |                 <Animated.View entering={FadeInRight.duration(400)} style={styles.headerRight}>
+    at constructor (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:365:19)
+    at TypeScriptParserMixin.raise (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:6599:19)
+    at TypeScriptParserMixin.jsxParseElementAt (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:4742:18)       
+    at TypeScriptParserMixin.jsxParseElement (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:4749:17)
+    at TypeScriptParserMixin.parseExprAtom (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:4759:19)
+    at TypeScriptParserMixin.parseExprSubscripts (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11081:23)    
+    at TypeScriptParserMixin.parseUpdate (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11066:21)
+    at TypeScriptParserMixin.parseMaybeUnary (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11046:23)        
+    at TypeScriptParserMixin.parseMaybeUnary (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:9837:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10899:61)
+    at TypeScriptParserMixin.parseExprOpBaseRightExpr (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10986:34)
+    at TypeScriptParserMixin.parseExprOpRightExpr (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10981:21)   
+    at TypeScriptParserMixin.parseExprOp (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10947:27)
+    at TypeScriptParserMixin.parseExprOp (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:9306:18)
+    at TypeScriptParserMixin.parseExprOps (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10908:17)
+    at TypeScriptParserMixin.parseMaybeConditional (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10881:23)  
+    at TypeScriptParserMixin.parseMaybeAssign (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10831:21)       
+    at TypeScriptParserMixin.parseMaybeAssign (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:9786:20)        
+    at TypeScriptParserMixin.parseExpressionBase (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10784:23)    
+    at E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10780:39
+    at TypeScriptParserMixin.allowInAnd (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:12426:12)
+    at TypeScriptParserMixin.parseExpression (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10780:17)        
+    at TypeScriptParserMixin.jsxParseExpressionContainer (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:4632:31)
+    at TypeScriptParserMixin.jsxParseElementAt (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:4711:36)       
+    at TypeScriptParserMixin.jsxParseElementAt (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:4698:32)       
+    at TypeScriptParserMixin.jsxParseElementAt (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:4698:32)       
+    at TypeScriptParserMixin.jsxParseElement (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:4749:17)
+    at TypeScriptParserMixin.parseExprAtom (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:4759:19)
+    at TypeScriptParserMixin.parseExprSubscripts (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11081:23)    
+    at TypeScriptParserMixin.parseUpdate (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11066:21)
+    at TypeScriptParserMixin.parseMaybeUnary (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11046:23)        
+    at TypeScriptParserMixin.parseMaybeUnary (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:9837:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10899:61)
+    at TypeScriptParserMixin.parseExprOps (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10904:23)
+    at TypeScriptParserMixin.parseMaybeConditional (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10881:23)  
+    at TypeScriptParserMixin.parseMaybeAssign (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10831:21)       
+    at E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:9775:39
+    at TypeScriptParserMixin.tryParse (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:6907:20)
+    at TypeScriptParserMixin.parseMaybeAssign (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:9775:18)        
+    at E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10800:39
+    at TypeScriptParserMixin.allowInAnd (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:12426:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:10800:17)
+    at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:12493:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11675:28)
+    at TypeScriptParserMixin.parseExprAtom (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11331:23)
+    at TypeScriptParserMixin.parseExprAtom (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:4764:20)
+    at TypeScriptParserMixin.parseExprSubscripts (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11081:23)    
+    at TypeScriptParserMixin.parseUpdate (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11066:21)
+    at TypeScriptParserMixin.parseMaybeUnary (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:11046:23)        
+    at TypeScriptParserMixin.parseMaybeUnary (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@babel\parser\lib\index.js:9837:18)
