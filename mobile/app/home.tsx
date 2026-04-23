@@ -35,6 +35,7 @@ import { NewsService, NewsItem } from '../src/core/services/news.service';
 import { adService } from '../src/core/services/ad.service';
 import { Ad } from '../src/core/ad.types';
 import { AdBannerModal } from '../src/components/AdBannerModal';
+import { USE_NEW_SIDEBAR } from '../src/core/config/navigation.config';
 
 const MadrasPattern = () => (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -241,40 +242,42 @@ export default function HomeScreen() {
             <MadrasPattern />
 
             {/* Header Area */}
-            <View style={[styles.header, { paddingTop: insets.top || 20 }]}>
-                {/* Left Side: Controls */}
-                <View style={styles.headerLeft}>
-                    {Platform.OS === 'web' && (
+            <View style={[styles.header, { paddingTop: insets.top || 20 }, USE_NEW_SIDEBAR && styles.headerCentered]}>
+                {/* Left Side: Controls — masqué si sidebar active */}
+                {!USE_NEW_SIDEBAR && (
+                    <View style={styles.headerLeft}>
+                        {Platform.OS === 'web' && (
+                            <TouchableOpacity
+                                style={styles.fullscreenButton}
+                                onPress={toggleFullscreen}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons
+                                    name={isFullscreen ? "contract-outline" : "expand-outline"}
+                                    size={20}
+                                    color="#FFD700"
+                                />
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity
-                            style={styles.fullscreenButton}
-                            onPress={toggleFullscreen}
+                            style={styles.helpButton}
+                            onPress={() => setShowHelp(true)}
                             activeOpacity={0.7}
                         >
                             <Ionicons
-                                name={isFullscreen ? "contract-outline" : "expand-outline"}
-                                size={20}
+                                name="help-circle-outline"
+                                size={24}
                                 color="#FFD700"
                             />
                         </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                        style={styles.helpButton}
-                        onPress={() => setShowHelp(true)}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons
-                            name="help-circle-outline"
-                            size={24}
-                            color="#FFD700"
-                        />
-                    </TouchableOpacity>
-                </View>
+                    </View>
+                )}
 
-                {/* Right Side: Economy & User Info */}
-                <Animated.View entering={FadeInRight.duration(400)} style={styles.headerRight}>
+                {/* Right Side: Economy — centré quand sidebar active */}
+                <Animated.View entering={FadeInRight.duration(400)} style={[styles.headerRight, USE_NEW_SIDEBAR && styles.headerRightCentered]}>
                     <EconomyHeader refreshTrigger={economyRefresh} />
 
-                    <View style={styles.headerActions}>
+                    {!USE_NEW_SIDEBAR && <View style={styles.headerActions}>
                         <TouchableOpacity
                             style={styles.settingsButton}
                             onPress={() => router.push('/store')}
@@ -324,7 +327,7 @@ export default function HomeScreen() {
                                 />
                             </View>
                         </TouchableOpacity>
-                    </View>
+                    </View>}
                 </Animated.View>
             </View>
 
@@ -422,7 +425,7 @@ export default function HomeScreen() {
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                             >
-                                <Text style={styles.playIconCompact}>🎲</Text>
+                                <Ionicons name="game-controller" size={34} color="#1A0E2E" />
                                 <Text style={styles.playTextCompact}>JOUER</Text>
                             </LinearGradient>
                         </TouchableOpacity>
@@ -510,6 +513,9 @@ const styles = StyleSheet.create({
         height: 60,
         zIndex: 10,
     },
+    headerCentered: {
+        justifyContent: 'center',
+    },
     headerLeft: {
         flex: 1,
         flexDirection: 'row',
@@ -520,6 +526,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 15,
+    },
+    headerRightCentered: {
+        justifyContent: 'center',
     },
     headerActions: {
         flexDirection: 'row',

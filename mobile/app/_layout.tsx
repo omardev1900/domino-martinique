@@ -6,12 +6,18 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState, useCallback } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-import { Platform, AppState, AppStateStatus } from 'react-native';
+import { Platform, AppState, AppStateStatus, View } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import SoundManager from '@/core/audio/SoundManager';
 import SettingsManager from '@/core/SettingsManager';
 import { adService } from '@/core/services/ad.service';
+import { Sidebar } from '@/components/Sidebar';
+import {
+    USE_NEW_SIDEBAR,
+    SIDEBAR_HIDDEN_ROUTES,
+    SIDEBAR_HIDDEN_PREFIXES,
+} from '@/core/config/navigation.config';
 
 // Keep the native splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -123,6 +129,11 @@ export default function RootLayout() {
     return null;
   }
 
+  // Calcule si la sidebar doit être visible sur la route courante
+  const showSidebar = USE_NEW_SIDEBAR &&
+      !SIDEBAR_HIDDEN_ROUTES.includes(pathname) &&
+      !SIDEBAR_HIDDEN_PREFIXES.some(p => pathname.startsWith(p));
+
   return (
     <GestureHandlerRootView
       style={{ flex: 1, minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%', backgroundColor: '#1A0E2E' }}
@@ -134,37 +145,49 @@ export default function RootLayout() {
           colors={['#2D1B4E', '#1A0E2E']}
           style={{ flex: 1 }}
         >
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="home" />
-            <Stack.Screen name="solo" />
-            <Stack.Screen name="lobby" />
-            <Stack.Screen name="game/[id]" />
-            <Stack.Screen name="join/[id]" />
-            <Stack.Screen name="profile" />
-            <Stack.Screen
-              name="modal"
-              options={{
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-              }}
-            />
-            <Stack.Screen
-              name="game-modes"
-              options={{
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-              }}
-            />
-            <Stack.Screen
-              name="news/history"
-              options={{
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-              }}
-            />
-          </Stack>
+          {/* ── Sidebar + Contenu ─────────────────────────────────────── */}
+          <View style={{ flex: 1, flexDirection: 'row' }}>
+
+            {/* Sidebar gauche (feature flag + masquage dynamique par route) */}
+            {showSidebar && <Sidebar />}
+
+            {/* Stack principal — prend toute la largeur restante */}
+            <View style={{ flex: 1 }}>
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="login" />
+                <Stack.Screen name="home" />
+                <Stack.Screen name="solo" />
+                <Stack.Screen name="lobby" />
+                <Stack.Screen name="game/[id]" />
+                <Stack.Screen name="join/[id]" />
+                <Stack.Screen name="profile" />
+                <Stack.Screen
+                  name="modal"
+                  options={{
+                    presentation: 'modal',
+                    animation: 'slide_from_bottom',
+                  }}
+                />
+                <Stack.Screen
+                  name="game-modes"
+                  options={{
+                    presentation: 'modal',
+                    animation: 'slide_from_bottom',
+                  }}
+                />
+                <Stack.Screen
+                  name="news/history"
+                  options={{
+                    presentation: 'modal',
+                    animation: 'slide_from_bottom',
+                  }}
+                />
+              </Stack>
+            </View>
+
+          </View>
+          {/* ──────────────────────────────────────────────────────────── */}
 
           <StatusBar hidden={true} />
         </LinearGradient>
