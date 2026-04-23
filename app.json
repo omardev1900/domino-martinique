@@ -1,9 +1,0 @@
-{
-  "expo": {
-    "name": "Domino Martiniquais",
-    "slug": "domino-martinique",
-    "android": {
-      "package": "com.dominomartinique.mobile"
-    }
-  }
-}

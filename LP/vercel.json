@@ -1,0 +1,23 @@
+{
+  "buildCommand": "pnpm install && pnpm build",
+  "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/join/:code",
+      "destination": "/join/index.html"
+    },
+    {
+      "source": "/((?!\\.well-known|join|assets).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
