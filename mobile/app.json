@@ -18,6 +18,20 @@
       "versionCode": 1,
       "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "domino-martinique.online",
+              "pathPrefix": "/join"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#0d1f0d",
         "foregroundImage": "./src/assets/images/icon.png"

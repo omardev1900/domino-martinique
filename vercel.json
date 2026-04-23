@@ -1,5 +1,18 @@
 {
+    "headers": [
+        {
+            "source": "/.well-known/assetlinks.json",
+            "headers": [
+                { "key": "Content-Type", "value": "application/json" },
+                { "key": "Cache-Control", "value": "public, max-age=3600" }
+            ]
+        }
+    ],
     "rewrites": [
+        {
+            "source": "/join/:code",
+            "destination": "/join/index.html"
+        },
         {
             "source": "/mobile",
             "destination": "/mobile/dist/index.html"
@@ -13,7 +26,7 @@
             "destination": "/mobile/dist/:path*"
         },
         {
-            "source": "/((?!mobile|admin|api|.*\\.apk|.*\\.css|.*\\.tsx|.*\\.js).*)",
+            "source": "/((?!mobile|admin|api|join|\\.well-known|.*\\.apk|.*\\.css|.*\\.tsx|.*\\.js).*)",
             "destination": "/index.html"
         }
     ]

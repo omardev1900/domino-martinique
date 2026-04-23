@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rejoindre une table — Domino Martiniquais</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a1628;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #0d1b3e;
+      border: 1px solid rgba(255,215,0,0.2);
+      border-radius: 20px;
+      padding: 40px 32px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+    }
+    .logo { font-size: 52px; margin-bottom: 16px; }
+    h1 { font-size: 22px; font-weight: 900; color: #FFD700; margin-bottom: 8px; }
+    p { color: rgba(255,255,255,0.6); font-size: 15px; line-height: 1.5; margin-bottom: 24px; }
+    .code {
+      background: rgba(255,215,0,0.08);
+      border: 1px solid rgba(255,215,0,0.2);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: #FFD700;
+      margin-bottom: 28px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 800;
+      text-decoration: none;
+      margin-bottom: 12px;
+      transition: opacity 0.2s;
+    }
+    .btn:active { opacity: 0.8; }
+    .btn-primary { background: #FFD700; color: #000; }
+    .btn-store { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.15); }
+    .hint { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🎲</div>
+    <h1>Domino Martiniquais</h1>
+    <p>Tu as été invité à rejoindre une table !</p>
+    <div class="code" id="roomCode">…</div>
+    <a class="btn btn-primary" id="openApp" href="#">Ouvrir l'application</a>
+    <a class="btn btn-store" id="downloadBtn" href="https://play.google.com/store/apps/details?id=com.dominomartinique.mobile">
+      Télécharger sur Google Play
+    </a>
+    <p class="hint">Si l'app est installée, elle s'ouvrira automatiquement.</p>
+  </div>
+
+  <script>
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    const code = segments[segments.length - 1] || '';
+
+    if (code && code !== 'join') {
+      document.getElementById('roomCode').textContent = code.toUpperCase();
+      document.getElementById('openApp').href = 'domino-martinique://join/' + code;
+    } else {
+      document.getElementById('roomCode').style.display = 'none';
+      document.getElementById('openApp').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

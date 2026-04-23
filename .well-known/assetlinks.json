@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.dominomartinique.mobile",
+      "sha256_cert_fingerprints": [
+        "13:1C:02:A0:28:F2:50:A0:FD:3E:19:8E:68:10:85:67:C3:6C:F0:75:98:8E:CF:41:C0:3F:CB:26:57:EE:77:A7"
+      ]
+    }
+  }
+]
