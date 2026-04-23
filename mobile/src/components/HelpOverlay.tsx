@@ -153,6 +153,7 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
         </ScrollView>
     );
 
+
     const renderDon = () => (
         <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
             <Section title="Soutenir le Domino Martiniquais" icon="🤝">
@@ -398,4 +399,5 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textDecorationLine: 'underline',
     },
+
 });

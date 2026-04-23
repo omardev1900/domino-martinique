@@ -19,7 +19,7 @@ import { AvatarFrame } from '../src/components/AvatarFrame';
 export default function LeaderboardScreen() {
     const router = useRouter();
     const { width } = useWindowDimensions();
-    const [activeTab, setActiveTab] = useState<LeaderboardCategory>('XP');
+    const [activeTab, setActiveTab] = useState<LeaderboardCategory>('COCHONS');
     const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -236,7 +236,7 @@ export default function LeaderboardScreen() {
 
             {/* Onglets */}
             <View style={styles.tabsContainer}>
-                {(['XP', 'COINS', 'COCHONS'] as LeaderboardCategory[]).map((tab) => (
+                {(['COCHONS', 'COINS', 'XP'] as LeaderboardCategory[]).map((tab) => (
                     <TouchableOpacity
                         key={tab}
                         style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}

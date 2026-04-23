@@ -31,6 +31,8 @@ export interface LeaderboardEntry {
     level: number;
     leagueGrade: LeagueGrade;
     leaguePoints: number;
+    /** Cochons réellement infligés (source de vérité pour le grade) */
+    cochonsGiven: number;
     rank: number;
 }
 
@@ -84,6 +86,7 @@ class LeaderboardService {
                         level: economy.level || 1,
                         leagueGrade: economy.leagueGrade || null,
                         leaguePoints: economy.leaguePoints || 0,
+                        cochonsGiven: economy.cochonsGiven || 0,
                         rank: currentRank++,
                     });
                 }
