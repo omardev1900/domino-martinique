@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { User } from 'firebase/auth';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 type SidebarProps = {
   user: User | null;
@@ -22,6 +23,7 @@ const navItems = [
   { href: '/dashboard/bots', label: 'Bots IA', icon: '🤖' },
   { href: '/dashboard/store', label: 'Boutique', icon: '🏪' },
   { href: '/dashboard/tournaments', label: 'Tournois', icon: '🥊' },
+  { href: '/dashboard/feedbacks', label: 'Feedbacks', icon: '💬' },
   { href: '/dashboard/logs', label: 'Logs admin', icon: '📋' },
   { href: '/dashboard/notifications', label: 'Notifications', icon: '📣' },
   { href: '/dashboard/news', label: 'Actualités', icon: '📰' },
@@ -32,6 +34,13 @@ const navItems = [
 export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [unreadFeedbacks, setUnreadFeedbacks] = useState(0);
+
+  useEffect(() => {
+    const q = query(collection(db, 'feedbacks'), where('readAt', '==', null));
+    const unsub = onSnapshot(q, (snap) => setUnreadFeedbacks(snap.size), () => {});
+    return () => unsub();
+  }, []);
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -58,6 +67,9 @@ export default function Sidebar({ user }: SidebarProps) {
             item.href === '/dashboard'
               ? pathname === '/dashboard'
               : pathname.startsWith(item.href);
+          const badge = item.href === '/dashboard/feedbacks' && unreadFeedbacks > 0
+            ? unreadFeedbacks
+            : null;
           return (
             <Link
               key={item.href}
@@ -69,7 +81,12 @@ export default function Sidebar({ user }: SidebarProps) {
               }`}
             >
               <span className="text-base">{item.icon}</span>
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {badge !== null && (
+                <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
             </Link>
           );
         })}

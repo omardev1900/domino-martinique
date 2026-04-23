@@ -19,6 +19,7 @@ export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onC
     const [text, setText] = useState('');
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
+    const [error, setError] = useState(false);
 
     const handleSend = async () => {
         if (!text.trim() || sending) return;
@@ -31,6 +32,7 @@ export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onC
                 text: text.trim(),
                 createdAt: serverTimestamp(),
                 appVersion: APP_VERSION,
+                readAt: null,
             });
             setSent(true);
             setText('');
@@ -39,7 +41,7 @@ export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onC
                 onClose();
             }, 2000);
         } catch (_) {
-            // Silently ignore — feedback is non-critical
+            setError(true);
         } finally {
             setSending(false);
         }
@@ -48,6 +50,7 @@ export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onC
     const handleClose = () => {
         setText('');
         setSent(false);
+        setError(false);
         onClose();
     };
 
@@ -87,6 +90,16 @@ export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onC
                                 <View style={styles.sentBox}>
                                     <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
                                     <Text style={styles.sentText}>Merci ! Retour envoyé ✅</Text>
+                                </View>
+                            ) : error ? (
+                                <View style={styles.sentBox}>
+                                    <Ionicons name="alert-circle" size={20} color="#F44336" />
+                                    <Text style={[styles.sentText, { color: '#F44336' }]}>
+                                        Échec de l&apos;envoi. Vérifiez votre connexion et réessayez.
+                                    </Text>
+                                    <TouchableOpacity onPress={() => setError(false)} style={{ marginTop: 8 }}>
+                                        <Text style={{ color: '#FFD700', fontSize: 13, fontWeight: 'bold' }}>Réessayer</Text>
+                                    </TouchableOpacity>
                                 </View>
                             ) : (
                                 <>
