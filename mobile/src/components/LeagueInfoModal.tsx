@@ -53,7 +53,7 @@ const gradeColor = (g: LeagueGrade): string => {
 };
 
 export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClose }) => {
-    const [activeTab, setActiveTab] = useState<TabType>('INFOS');
+    const [activeTab, setActiveTab] = useState<TabType>('MA_LIGUE');
     const [leaguePoints, setLeaguePoints] = useState(0);
     const [leagueGrade, setLeagueGrade] = useState<LeagueGrade>('APPRENTI_1');
 
@@ -101,7 +101,11 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
     // ── Onglet INFOS (contenu original) ────────────────────────────────────────
     const renderInfos = () => {
         return (
-            <View style={styles.dashContainer}>
+            <ScrollView
+                style={styles.dashContainer}
+                contentContainerStyle={styles.dashContent}
+                showsVerticalScrollIndicator={false}
+            >
 
                 {/* Header compact */}
                 <View style={styles.dashHeader}>
@@ -193,7 +197,7 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
 
                     </View>
                 </View>
-            </View>
+            </ScrollView>
         );
     };
 
@@ -396,9 +400,9 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
                     {/* Onglets */}
                     <View style={styles.tabs}>
                         {([
-                            { id: 'INFOS',      label: '🏆 Infos' },
                             { id: 'MA_LIGUE',   label: '🐷 Ma Ligue' },
                             { id: 'CLASSEMENT', label: '🏅 Classement' },
+                            { id: 'INFOS',      label: '🏆 Infos' },
                         ] as { id: TabType; label: string }[]).map(t => (
                             <TouchableOpacity
                                 key={t.id}
@@ -480,6 +484,9 @@ const styles = StyleSheet.create({
     dashContainer: {
         flex: 1,
     },
+    dashContent: {
+        paddingBottom: 20,
+    },
     dashHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -502,9 +509,9 @@ const styles = StyleSheet.create({
         fontSize: 10,
     },
     dashMain: {
-        flex: 1,
         flexDirection: 'row',
         gap: 10,
+        alignItems: 'stretch',
     },
     dashLeft: {
         flex: 3,
@@ -518,7 +525,7 @@ const styles = StyleSheet.create({
     },
     // Cartes groupées (Apprenti / Maître)
     groupCard: {
-        flex: 1,
+        minHeight: 140,
         borderRadius: 16,
         padding: 12,
         borderWidth: 1.5,
@@ -559,15 +566,17 @@ const styles = StyleSheet.create({
     subgradesRow: {
         flexDirection: 'row',
         gap: 6,
-        flex: 1,
-        alignItems: 'center',
+        alignItems: 'stretch',
     },
     subBadge: {
         flex: 1,
+        minHeight: 52,
         borderWidth: 1,
         borderRadius: 10,
         paddingVertical: 8,
+        paddingHorizontal: 4,
         alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: 'rgba(255,255,255,0.03)',
     },
     subNum: {
@@ -594,7 +603,7 @@ const styles = StyleSheet.create({
     },
     // Cartes élites (ROI / LÉGENDE)
     eliteCard: {
-        flex: 1,
+        minHeight: 140,
         borderRadius: 16,
         padding: 14,
         borderWidth: 1.5,

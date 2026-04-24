@@ -104,45 +104,14 @@ export default function ProfileScreen() {
         }
     };
 
-    const handleSave = async () => {
-        if (!displayName.trim()) {
-            Alert.alert('Erreur', 'Le pseudo ne peut pas être vide.');
-            return;
-        }
-
-        setIsLoading(true);
-        try {
-            console.log('[Profile] Saving profile with:', displayName.trim(), selectedAvatar);
-
-            await authService.updateProfile({
-                displayName: displayName.trim(),
-                photoURL: selectedAvatar
-            });
-
-            // Force refresh from storage to confirm changes were persisted
-            await loadUserProfile();
-
-            console.log('[Profile] Profile saved and refreshed successfully');
-            setLastSaved(new Date());
-
-            Alert.alert('Succès', 'Profil mis à jour !');
-        } catch (error) {
-            console.error('[Profile] Error saving profile:', error);
-            Alert.alert('Erreur', 'Impossible de sauvegarder le profil.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     const handleAvatarSelect = async (avatarId: string) => {
         setSelectedAvatar(avatarId);
-        // Auto-save avatar selection immediately
+        // Auto-save avatar selection immediately.
+        // On n'envoie PAS le displayName ici : ça évite qu'un pseudo historique
+        // non conforme (ex: caractères spéciaux venus d'un SSO) bloque le changement d'avatar.
         try {
             console.log('[Profile] Auto-saving avatar:', avatarId);
-            await authService.updateProfile({
-                displayName: displayName.trim() || 'Invité',
-                photoURL: avatarId
-            });
+            await authService.updateProfile({ photoURL: avatarId });
             console.log('[Profile] Avatar auto-saved successfully');
             setLastSaved(new Date());
         } catch (error) {
@@ -264,29 +233,6 @@ export default function ProfileScreen() {
 
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-    const renderFormControls = () => (
-        <View style={styles.formSection}>
-            <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSave}
-                disabled={isLoading}
-            >
-                {isLoading ? (
-                    <ActivityIndicator color="#1A0E2E" />
-                ) : (
-                    <View style={styles.saveButtonContent}>
-                        <Ionicons name="save" size={20} color="#1A0E2E" style={{ marginRight: 8 }} />
-                        <Text style={styles.saveButtonText}>ENREGISTRER</Text>
-                    </View>
-                )}
-            </TouchableOpacity>
-            {lastSaved && (
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', marginTop: 8 }}>
-                    Dernière sauvegarde: {lastSaved.toLocaleTimeString()}
-                </Text>
-            )}
-        </View>
-    );
     return (
         <LinearGradient
             colors={['#2D1B4E', '#1A0E2E']}
@@ -296,25 +242,6 @@ export default function ProfileScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
             >
-                {/* Simple Home Button at top */}
-                <View style={[styles.homeHeader, { paddingTop: insets.top || 10 }]}>
-                    <TouchableOpacity
-                        style={styles.homeButton}
-                        onPress={() => router.replace('/home')}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="home" size={28} color="#FFD700" />
-                    </TouchableOpacity>
-                    {(__DEV__ || (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.hostname === 'localhost')) && (
-                        <TouchableOpacity
-                            style={styles.devButton}
-                            onPress={() => router.push('/debug-ligue' as any)}
-                        >
-                            <Text style={styles.devButtonText}>🛠 Debug Ligue</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
-
                 <ScrollView
                     contentContainerStyle={[
                         styles.scrollContent,
@@ -379,11 +306,14 @@ export default function ProfileScreen() {
                         </View>
                     </View>
 
-                    {/* BOTTOM SECTION: Form Controls + League Block */}
+                    {/* BOTTOM SECTION: League Block + (dev) Debug */}
                     <View style={{ marginTop: 20, marginBottom: 40, gap: 16 }}>
                         {renderLeagueBlock()}
-                        {renderFormControls()}
-                        {/* 🛠 DEV ONLY — Debug Ligue */}
+                        {lastSaved && (
+                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center' }}>
+                                Dernière sauvegarde : {lastSaved.toLocaleTimeString()}
+                            </Text>
+                        )}
                         {__DEV__ && (
                             <TouchableOpacity
                                 style={styles.devButton}

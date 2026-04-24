@@ -110,11 +110,19 @@ export default function HomeScreen() {
         };
     }, []);
 
+    // Délai avant l'affichage de la pub HOME — laisse l'utilisateur respirer sur l'accueil
+    // avant d'être interrompu. Annulé si le composant perd le focus pendant l'attente.
+    const HOME_AD_DELAY_MS = 3500;
+    const homeAdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     // Au focus : sync stats + pub HOME (avant cadeau) + vérification cadeau quotidien + news.
     // Aucune écriture economy ici — le listener onSnapshot s'en charge.
     useFocusEffect(
         useCallback(() => {
+            let cancelled = false;
+
             authService.getCurrentUser().then(async u => {
+                if (cancelled) return;
                 if (u && !u.uid.startsWith('guest_')) {
                     statsService.syncWithFirebase(u.uid);
 
@@ -123,22 +131,35 @@ export default function HomeScreen() {
                         adService.getAdForPlacement('HOME'),
                         economyService.isDailyRewardAvailable(),
                     ]);
+                    if (cancelled) return;
 
                     if (dailyAvailable) {
                         setDailyRewardAmount(DAILY_REWARD_COINS);
                         if (ad) {
-                            // Pub d'abord → cadeau après fermeture
+                            // Pub d'abord → cadeau après fermeture. On diffère l'ouverture du modal.
                             setPendingDailyReward(true);
-                            setAdToShow(ad);
+                            homeAdTimeoutRef.current = setTimeout(() => {
+                                setAdToShow(ad);
+                            }, HOME_AD_DELAY_MS);
                         } else {
                             setShowDailyReward(true);
                         }
                     } else if (ad) {
-                        setAdToShow(ad);
+                        homeAdTimeoutRef.current = setTimeout(() => {
+                            setAdToShow(ad);
+                        }, HOME_AD_DELAY_MS);
                     }
                 }
             });
             NewsService.getFeaturedNews(5).then(setNewsList);
+
+            return () => {
+                cancelled = true;
+                if (homeAdTimeoutRef.current) {
+                    clearTimeout(homeAdTimeoutRef.current);
+                    homeAdTimeoutRef.current = null;
+                }
+            };
         }, [])
     );
 

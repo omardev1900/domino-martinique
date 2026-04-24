@@ -42,35 +42,27 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                     </View>
                     <ScrollView style={{ maxHeight: '100%' }} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
                         <View style={styles.leftCol}>
-                            <Text style={[styles.victoryLabel, { color: accentColor }]}>AUCUN VAINQUEUR</Text>
-                            <Text style={[styles.winnerName, { fontSize: 14, opacity: 0.7 }]}>Scores identiques</Text>
+                            <Text style={[styles.winnerName, { color: accentColor }]}>Scores identiques</Text>
                         </View>
                         <View style={[styles.verticalDivider, { backgroundColor: accentColor + '35' }]} />
                         <View style={styles.rightCol}>
-                            <Text style={[styles.rightTitle, { color: accentColor }]}>MAINS DES JOUEURS</Text>
                             {gameState.players.map(p => (
                                 <View key={p.id} style={styles.loserRowCompact}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Text style={styles.loserName} numberOfLines={1}>{p.name}</Text>
-                                        <Text style={[styles.scoreChipText, { color: accentColor, fontSize: 10 }]}>
-                                            {handScore(p.hand)} pts
-                                        </Text>
-                                    </View>
+                                    <Text style={styles.loserName} numberOfLines={1}>
+                                        {p.name} <Text style={[styles.scoreInline, { color: accentColor }]}>({handScore(p.hand)})</Text>
+                                    </Text>
                                     <View style={styles.handRowCompact}>
-                                        {p.hand.slice(0, 4).map((d, i) => (
+                                        {p.hand.map((d, i) => (
                                             <DominoTile
                                                 key={i}
                                                 left={d.left as any}
                                                 right={d.right as any}
-                                                size={22}
+                                                size={40}
                                                 orientation="vertical"
                                                 disabled
                                                 noMargin
                                             />
                                         ))}
-                                        {p.hand.length > 4 && (
-                                            <Text style={styles.moreLabel}>+{p.hand.length - 4}</Text>
-                                        )}
                                     </View>
                                 </View>
                             ))}
@@ -98,8 +90,6 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
     // Scenario-based styling
     const accentColor = isNormalWin ? '#FFD700' : '#FF8C00';
     const headerLabel = isNormalWin ? '✦ Résultat ✦' : '🔒 Partie bloquée';
-    const victoryLabel = isNormalWin ? 'VICTOIRE DE' : 'VICTOIRE PAR DÉFAUT';
-    const rightTitle = isNormalWin ? 'MAINS RESTANTES' : 'SCORES DES MAINS';
 
     return (
         <Animated.View
@@ -125,17 +115,18 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                 <ScrollView style={{ maxHeight: '100%' }} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
                     {/* ── Left column: Winner ── */}
                     <View style={styles.leftCol}>
-                        <Text style={[styles.victoryLabel, { color: accentColor }]}>
-                            {victoryLabel}
-                        </Text>
                         <Text style={styles.winnerName} numberOfLines={1}>
-                            {winner.name}
+                            👑 {winner.name}
+                            {isBoudedWin && (
+                                <Text style={[styles.winnerScoreInline, { color: accentColor }]}>
+                                    {' '}({handScore2(winner.hand)})
+                                </Text>
+                            )}
                         </Text>
 
                         {isNormalWin && lastDomino && (
                             <View style={styles.lastDominoSection}>
                                 <Text style={styles.subLabel}>DERNIER COUP</Text>
-                                {/* Réutilisation exacte du composant plateau — vertical, grande taille */}
                                 <DominoTile
                                     left={lastDomino.left as any}
                                     right={lastDomino.right as any}
@@ -149,25 +140,18 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
 
                         {isBoudedWin && (
                             <View style={styles.boudedWinner}>
-                                <Text style={[styles.boudedScore, { color: accentColor }]}>
-                                    {handScore2(winner.hand)} pts
-                                </Text>
-                                <Text style={styles.subLabel}>dans la main</Text>
                                 <View style={styles.handRowCompact}>
-                                    {winner.hand.slice(0, 4).map((d, i) => (
+                                    {winner.hand.map((d, i) => (
                                         <DominoTile
                                             key={i}
                                             left={d.left as any}
                                             right={d.right as any}
-                                            size={22}
+                                            size={40}
                                             orientation="vertical"
                                             disabled
                                             noMargin
                                         />
                                     ))}
-                                    {winner.hand.length > 4 && (
-                                        <Text style={styles.moreLabel}>+{winner.hand.length - 4}</Text>
-                                    )}
                                 </View>
                             </View>
                         )}
@@ -178,38 +162,29 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
 
                     {/* ── Right column: Losers ── */}
                     <View style={styles.rightCol}>
-                        <Text style={[styles.rightTitle, { color: accentColor }]}>
-                            {rightTitle}
-                        </Text>
-
                         {losers.map(loser => (
                             <View key={loser.id} style={styles.loserRowCompact}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Text style={styles.loserName} numberOfLines={1}>
-                                        {loser.name}
-                                    </Text>
+                                <Text style={styles.loserName} numberOfLines={1}>
+                                    {loser.name}
                                     {isBoudedWin && (
-                                        <Text style={[styles.scoreChipText, { color: accentColor, fontSize: 10 }]}>
-                                            {handScore2(loser.hand)} pts
+                                        <Text style={[styles.scoreInline, { color: accentColor }]}>
+                                            {' '}({handScore2(loser.hand)})
                                         </Text>
                                     )}
-                                </View>
+                                </Text>
 
                                 <View style={styles.handRowCompact}>
-                                    {loser.hand.slice(0, 4).map((d, i) => (
+                                    {loser.hand.map((d, i) => (
                                         <DominoTile
                                             key={i}
                                             left={d.left as any}
                                             right={d.right as any}
-                                            size={22}
+                                            size={40}
                                             orientation="vertical"
                                             disabled
                                             noMargin
                                         />
                                     ))}
-                                    {loser.hand.length > 4 && (
-                                        <Text style={styles.moreLabel}>+{loser.hand.length - 4}</Text>
-                                    )}
                                 </View>
                             </View>
                         ))}
@@ -230,80 +205,73 @@ const styles = StyleSheet.create({
         zIndex: 1500,
     },
     card: {
-        width: '90%',
-        maxWidth: 500,
-        maxHeight: '95%',
-        backgroundColor: 'rgba(6, 10, 6, 0.92)',
+        width: '92%',
+        height: '82%',
+        maxWidth: 780,
+        backgroundColor: 'rgba(6, 10, 6, 0.95)',
         borderRadius: 22,
         borderWidth: 1.5,
         overflow: 'hidden',
     },
     headerTag: {
         alignSelf: 'center',
-        marginTop: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 3,
+        marginTop: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 5,
         borderRadius: 20,
         borderWidth: 1,
-        marginBottom: 4,
+        marginBottom: 10,
     },
     headerTagText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: '700',
         letterSpacing: 3,
     },
     body: {
         flexDirection: 'row',
-        paddingHorizontal: 12,
-        paddingBottom: 8,
+        paddingHorizontal: 18,
+        paddingBottom: 14,
         alignItems: 'flex-start',
     },
     // Left
     leftCol: {
         flex: 1,
         alignItems: 'center',
-        paddingRight: 10,
-        gap: 6,
-    },
-    victoryLabel: {
-        fontSize: 9,
-        fontWeight: '700',
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-        opacity: 0.9,
+        paddingRight: 12,
+        gap: 10,
     },
     winnerName: {
-        fontSize: 20,
+        fontSize: 26,
         fontWeight: 'bold',
         color: '#FFFFFF',
         textAlign: 'center',
     },
     lastDominoSection: {
         alignItems: 'center',
-        marginTop: 8,
-        gap: 6,
+        marginTop: 10,
+        gap: 8,
     },
     subLabel: {
-        fontSize: 9,
+        fontSize: 10,
         color: 'rgba(255,255,255,0.4)',
-        letterSpacing: 1,
+        letterSpacing: 1.5,
         textTransform: 'uppercase',
         textAlign: 'center',
     },
     boudedWinner: {
         alignItems: 'center',
         marginTop: 8,
-        gap: 4,
+        gap: 8,
     },
-    boudedScore: {
+    winnerScoreInline: {
         fontSize: 22,
         fontWeight: 'bold',
     },
     handRowCompact: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 2,
-        marginTop: 0,
+        gap: 4,
+        marginTop: 4,
         justifyContent: 'flex-start',
     },
     // Divider
@@ -314,41 +282,21 @@ const styles = StyleSheet.create({
     },
     // Right
     rightCol: {
-        flex: 1.25,
-        paddingLeft: 10,
-        gap: 6,
-    },
-    rightTitle: {
-        fontSize: 8.5,
-        fontWeight: '700',
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-        opacity: 0.9,
-        marginBottom: 2,
+        flex: 1.35,
+        paddingLeft: 14,
+        gap: 12,
     },
     loserRowCompact: {
-        gap: 1,
-        marginBottom: 4,
+        gap: 4,
+        marginBottom: 8,
     },
     loserName: {
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: '600',
-        color: 'rgba(255,255,255,0.8)',
+        color: 'rgba(255,255,255,0.85)',
     },
-    scoreChip: {
-        borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        alignSelf: 'flex-start',
-    },
-    scoreChipText: {
-        fontSize: 12,
+    scoreInline: {
+        fontSize: 14,
         fontWeight: 'bold',
-    },
-    moreLabel: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.4)',
-        alignSelf: 'center',
-        marginLeft: 2,
     },
 });

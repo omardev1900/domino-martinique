@@ -49,7 +49,7 @@ export default function ModalScreen() {
   const [bgmTheme, setBgmTheme] = React.useState<BgmTheme>(settings.gameBgmTheme);
   const [bgmVolume, setBgmVolume] = React.useState(settings.bgmVolume);
   const [sfxVolume, setSfxVolume] = React.useState(settings.sfxVolume);
-  const [activeTab, setActiveTab] = useState<'profil' | 'audio' | 'haptic' | 'theme' | 'account'>('profil');
+  const [activeTab, setActiveTab] = useState<'profil' | 'audio' | 'haptic' | 'account'>('profil');
   const pathname = usePathname();
 
   // Données profil
@@ -188,9 +188,6 @@ export default function ModalScreen() {
               <TouchableOpacity style={[styles.tabItem, activeTab === 'haptic' && styles.activeTabItem]} onPress={() => setActiveTab('haptic')}>
                 <Text style={[styles.tabText, activeTab === 'haptic' && styles.activeTabText]}>HAPTIQUE</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.tabItem, activeTab === 'theme' && styles.activeTabItem]} onPress={() => setActiveTab('theme')}>
-                <Text style={[styles.tabText, activeTab === 'theme' && styles.activeTabText]}>THÈME</Text>
-              </TouchableOpacity>
               <TouchableOpacity style={[styles.tabItem, activeTab === 'account' && styles.activeTabItem]} onPress={() => setActiveTab('account')}>
                 <Text style={[styles.tabText, activeTab === 'account' && styles.activeTabText]}>COMPTE</Text>
               </TouchableOpacity>
@@ -312,34 +309,6 @@ export default function ModalScreen() {
                     trackColor={{ false: "#333", true: "#4CAF50" }}
                     thumbColor={vibrationEnabled ? "#fff" : "#f4f3f4"}
                   />
-                </View>
-              </View>
-            )}
-
-            {activeTab === 'theme' && (
-              <View style={styles.section}>
-                <View style={styles.themeGrid}>
-                  {THEME_OPTIONS.map(({ theme, label, icon }) => {
-                    const themeColors = TABLE_THEMES[theme];
-                    const isSelected = selectedTheme === theme;
-                    return (
-                      <TouchableOpacity
-                        key={theme}
-                        style={[styles.themeOption, isSelected && styles.themeOptionSelected]}
-                        onPress={() => selectTheme(theme)}
-                      >
-                        <View style={[
-                          styles.themePreview,
-                          { backgroundColor: themeColors.felt, borderColor: themeColors.border }
-                        ]}>
-                          <Text style={styles.themeIcon}>{icon}</Text>
-                        </View>
-                        <Text style={[styles.themeLabel, isSelected && styles.themeLabelSelected]}>
-                          {label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
                 </View>
               </View>
             )}

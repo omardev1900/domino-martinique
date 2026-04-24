@@ -148,7 +148,14 @@
 
 - [ ] OTP Email — code à l'inscription
 - [ ] Reset mot de passe via OTP — remplacer le lien Firebase par un code 6 chiffres + saisie nouveau MDP (Cloud Function + SendGrid/nodemailer + Firestore expiry)
-- [ ] Soft delete de compte — option "Supprimer mon compte"
+- [ ] **[ACCOUNT-DELETE]** Suppression de compte (exigence Google Play depuis 2024)
+  - **Mobile** : bouton "Supprimer mon compte" dans Réglages → onglet Compte, avec modal de confirmation 2 étapes (saisir le pseudo pour valider)
+  - **Cloud Function** `deleteUserAccount` : supprime le doc `users/{uid}`, purge `stats/{uid}`, `economy/{uid}`, désabonne des tournois actifs, puis `auth.deleteUser()`
+  - **Firestore rules** : autoriser la demande de suppression uniquement pour `request.auth.uid == uid`
+  - **Délai de grâce** : marquage `deletedAt` avec purge définitive à +30 j (option réversible via support), ou suppression immédiate — à trancher
+  - **Admin** : page Players → filtre "pending deletion" pour audit
+  - **Doc Google Play** : renseigner l'URL de la page "Supprimer mon compte" dans la fiche Play Console (bloquant sinon rejet lors de la MAJ)
+  - **Estimation** : ~1,5 jour (mobile UI + CF + tests)
 
 ---
 

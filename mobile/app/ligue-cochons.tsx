@@ -262,20 +262,20 @@ export default function LigueCochonsScreen() {
 
     return (
         <LinearGradient colors={['#1A0535', '#0D0520', '#180830']} style={styles.container}>
-            {/* Header */}
+            {/* Header — titre + niveau centrés */}
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color="#FFD700" />
-                </TouchableOpacity>
+                <View style={styles.headerSideSlot} />
                 <View style={styles.headerTitleBlock}>
-                    <Text style={styles.headerTitle}>🐷 Ligue des Cochons</Text>
+                    <Text style={styles.headerTitle}>Ligue des Cochons</Text>
                     <Text style={styles.headerSubtitle}>Niveau Boucher</Text>
                 </View>
-                {activeFrame && (
-                    <TouchableOpacity style={styles.removeFrameBtn} onPress={handleRemoveFrame}>
-                        <Ionicons name="close-circle-outline" size={22} color="rgba(255,255,255,0.5)" />
-                    </TouchableOpacity>
-                )}
+                <View style={styles.headerSideSlot}>
+                    {activeFrame && (
+                        <TouchableOpacity style={styles.removeFrameBtn} onPress={handleRemoveFrame}>
+                            <Ionicons name="close-circle-outline" size={22} color="rgba(255,255,255,0.5)" />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             {isLoading ? (
@@ -372,28 +372,27 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,215,0,0.15)',
     },
-    backButton: {
+    headerSideSlot: {
         width: 42,
-        height: 42,
-        borderRadius: 21,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        justifyContent: 'center',
     },
     headerTitleBlock: {
         flex: 1,
+        alignItems: 'center',
     },
     headerTitle: {
         color: '#FFD700',
         fontSize: 20,
         fontWeight: '900',
         letterSpacing: 0.5,
+        textAlign: 'center',
     },
     headerSubtitle: {
         color: 'rgba(255,255,255,0.5)',
         fontSize: 12,
         marginTop: 2,
+        textAlign: 'center',
     },
     removeFrameBtn: {
         padding: 6,

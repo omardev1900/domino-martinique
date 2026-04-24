@@ -104,8 +104,6 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
             }
             if (isMatchOver) {
                 SoundManager.playEvent(isMeWinner ? 'WIN' : 'LOSE');
-                // Confettis avec léger délai pour laisser le panel apparaître
-                setTimeout(() => confettiRef.current?.start(), 400);
             } else {
                 SoundManager.playEvent('ROUND_END');
             }
@@ -114,6 +112,24 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
             opacityValue.value = 0;
         }
     }, [visible, isMatchOver, isMeWinner, reducedMotion]);
+
+    // Confettis en boucle : le premier tir est assuré par autoStart={true}.
+    // Ensuite on relance toutes les ~3,5 s tant qu'on est sur la vue principale
+    // de fin de match. S'arrête quand l'utilisateur ouvre les détails, quitte,
+    // ou si reducedMotion est actif.
+    useEffect(() => {
+        if (!visible || !isMatchOver || showHistory || reducedMotion) return;
+
+        const CYCLE_MS = 3500;
+        // Première relance après un délai suffisant pour que autoStart ait fini
+        const loop = setInterval(() => {
+            confettiRef.current?.start();
+        }, CYCLE_MS);
+
+        return () => {
+            clearInterval(loop);
+        };
+    }, [visible, isMatchOver, showHistory, reducedMotion]);
 
     if (!visible) return null;
 
@@ -157,25 +173,27 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
     const { main: titleMain, sub: titleSub } = getTitle();
 
-    // ── Shared footer button ───────────────────────────────────────────────────
-    const renderFooter = () => (
-        <View style={styles.footer}>
-            {isHost || isMatchOver ? (
-                <TouchableOpacity style={styles.actionBtn} onPress={onContinue} activeOpacity={0.85}>
-                    <Ionicons name={isMatchOver ? 'home' : 'arrow-forward'} size={18} color="#000" />
-                    <Text style={styles.actionBtnText}>
-                        {isMatchOver ? 'QUITTER & ACCUEIL' : 'CONTINUER'}
-                    </Text>
-                </TouchableOpacity>
-            ) : (
-                <View style={[styles.actionBtn, styles.waitingBtn]}>
-                    <Text style={[styles.actionBtnText, { color: 'rgba(255,255,255,0.45)' }]}>
-                        En attente de l'hôte…
-                    </Text>
-                </View>
-            )}
-        </View>
-    );
+    // ── Shared footer (rounds uniquement) ─────────────────────────────────────
+    const renderFooter = () => {
+
+        // Round / manche intermédiaire : bouton Continuer centré, ou attente
+        return (
+            <View style={styles.footer}>
+                {isHost ? (
+                    <TouchableOpacity style={styles.actionBtn} onPress={onContinue} activeOpacity={0.85}>
+                        <Ionicons name="arrow-forward" size={18} color="#000" />
+                        <Text style={styles.actionBtnText}>CONTINUER</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <View style={[styles.actionBtn, styles.waitingBtn]}>
+                        <Text style={[styles.actionBtnText, { color: 'rgba(255,255,255,0.45)' }]}>
+                            En attente de l'hôte…
+                        </Text>
+                    </View>
+                )}
+            </View>
+        );
+    };
 
     // ── History content ────────────────────────────────────────────────────────
     const renderHistoryContent = () => {
@@ -288,20 +306,26 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     // ── MATCH END — main view (results + rewards inline) ──────────────────────
     const renderMatchEndMain = () => (
         <>
-            <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(280)} style={styles.matchHeader}>
-                <View style={styles.matchTitleBlock}>
-                    <Text style={styles.matchTitleLabel}>{titleMain}</Text>
-                    <Text style={styles.matchWinnerName}>{titleSub}</Text>
-                </View>
+            {/* ── Navigation haut : Accueil (gauche) + Détails (droite) ── */}
+            <View style={styles.matchTopNav}>
                 <TouchableOpacity
-                    style={styles.historyIconBtn}
+                    style={styles.quitBtn}
+                    onPress={onContinue}
+                    activeOpacity={0.85}
+                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                    accessibilityLabel="Retour à l'accueil"
+                >
+                    <Ionicons name="home" size={22} color="#FFF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.historyLinkBtn}
                     onPress={() => setShowHistory(true)}
                     activeOpacity={0.75}
-                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 >
-                    <Ionicons name="time-outline" size={20} color="rgba(255,255,255,0.7)" />
+                    <Ionicons name="list-outline" size={18} color="rgba(255,255,255,0.85)" />
+                    <Text style={styles.historyLinkText}>Détails</Text>
                 </TouchableOpacity>
-            </Animated.View>
+            </View>
 
             {renderPodiumCards(true)}
 
@@ -348,9 +372,8 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     ref={confettiRef}
                     count={160}
                     origin={{ x: width / 2, y: -20 }}
-                    autoStart={false}
-                    fadeOut
-                    fallSpeed={3000}
+                    autoStart
+                    fallSpeed={4000}
                     explosionSpeed={350}
                     colors={['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']}
                 />
@@ -373,8 +396,6 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                                 <Ionicons name="arrow-back" size={18} color="rgba(255,255,255,0.8)" />
                                 <Text style={styles.backBtnText}>Retour</Text>
                             </TouchableOpacity>
-                            <Text style={styles.historyViewTitle}>HISTORIQUE</Text>
-                            <View style={{ width: 72 }} />
                         </View>
                         {renderHistoryContent()}
                         {renderFooter()}
@@ -437,6 +458,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
         paddingTop: 10,
         paddingBottom: 0,
+    },
+
+    // ── MATCH END: top nav ──
+    matchTopNav: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: 3,
+        marginBottom: 2,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.07)',
     },
 
     // ── MATCH END: header ──
@@ -653,6 +685,12 @@ const styles = StyleSheet.create({
         marginTop: 6,
         alignItems: 'center',
     },
+    footerSplit: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+    },
     actionBtn: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -680,6 +718,30 @@ const styles = StyleSheet.create({
         fontSize: 13,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
+    },
+    quitBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.22)',
+    },
+    historyLinkBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+    },
+    historyLinkText: {
+        color: 'rgba(255,255,255,0.85)',
+        fontSize: 13,
+        fontWeight: '600',
+        textDecorationLine: 'underline',
+        textDecorationColor: 'rgba(255,255,255,0.35)',
     },
 
     // ── HISTORY VIEW ──

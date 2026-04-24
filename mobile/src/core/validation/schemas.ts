@@ -4,14 +4,14 @@ import { z } from 'zod';
  * Schema for player names.
  * - Min 2 characters
  * - Max 20 characters
- * - Allows letters, numbers, and spaces
+ * - Allows letters (incl. accents), numbers, spaces, and common name punctuation ( ' ’ - _ . )
  */
 export const playerNameSchema = z
   .string()
   .min(2, "Le pseudo doit faire au moins 2 caractères")
   .max(20, "Le pseudo ne peut pas dépasser 20 caractères")
   .trim()
-  .regex(/^[a-zA-Z0-9À-ÿ\s]+$/, "Seuls les lettres, chiffres et espaces sont autorisés");
+  .regex(/^[a-zA-Z0-9À-ÿ\s'’\-_.]+$/, "Seuls les lettres, chiffres, espaces et - _ . ' sont autorisés");
 
 /**
  * Schema for room names.

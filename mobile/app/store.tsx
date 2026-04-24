@@ -253,11 +253,6 @@ export default function StoreScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/home')}>
-                    <Ionicons name="home" size={20} color="#FFF" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>BOUTIQUE</Text>
-
                 <View style={styles.headerTabsContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.headerTabsScroll}>
                         {dynamicTabs.map(tab => {

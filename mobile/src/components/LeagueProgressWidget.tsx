@@ -1,11 +1,16 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LEAGUE_FRAME_THRESHOLDS, LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_GRADE_ORDER } from '../core/economy.constants';
-import { LeagueGrade } from '../core/economy.types';
+import {
+    LEAGUE_FRAME_THRESHOLDS,
+    LEAGUE_LABELS,
+    LEAGUE_ICONS,
+    LEAGUE_GRADE_COLORS,
+    LEAGUE_GRADE_ORDER,
+} from '../core/economy.constants';
 import { getLeagueGrade } from '../core/RewardEngine';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInUp, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 
 interface LeagueProgressWidgetProps {
     points: number;
@@ -14,78 +19,82 @@ interface LeagueProgressWidgetProps {
 }
 
 export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ points, onInfoPress, style }) => {
-    // Current grade computation (uses getLeagueGrade from RewardEngine)
     const currentGrade = useMemo(() => getLeagueGrade(points), [points]);
 
-    const title = currentGrade ? `NIVEAU ${LEAGUE_LABELS[currentGrade].toUpperCase()}` : 'SANS GRADE';
+    // Prochain grade (null si déjà au max)
+    const nextGrade = useMemo(() => {
+        if (!currentGrade) return LEAGUE_GRADE_ORDER[0];
+        const idx = LEAGUE_GRADE_ORDER.indexOf(currentGrade);
+        return idx < LEAGUE_GRADE_ORDER.length - 1 ? LEAGUE_GRADE_ORDER[idx + 1] : null;
+    }, [currentGrade]);
 
-    // Progress computation
-    const maxThreshold = LEAGUE_FRAME_THRESHOLDS.LEGENDE;
-    const currentProgress = Math.min(points, maxThreshold);
-    const progressPercentage = (currentProgress / maxThreshold) * 100;
+    const currentThreshold = currentGrade ? LEAGUE_FRAME_THRESHOLDS[currentGrade] : 0;
+    const nextThreshold = nextGrade ? LEAGUE_FRAME_THRESHOLDS[nextGrade] : null;
 
-    // Show key milestones on the gauge (one per family)
-    const milestones = [
-        { value: LEAGUE_FRAME_THRESHOLDS.APPRENTI_3, icon: LEAGUE_ICONS.APPRENTI_3, label: '30' },
-        { value: LEAGUE_FRAME_THRESHOLDS.MAITRE_3,   icon: LEAGUE_ICONS.MAITRE_3,   label: '120' },
-        { value: LEAGUE_FRAME_THRESHOLDS.ROI,        icon: LEAGUE_ICONS.ROI,        label: '250' },
-        { value: LEAGUE_FRAME_THRESHOLDS.LEGENDE,    icon: LEAGUE_ICONS.LEGENDE,    label: '500' },
-    ];
+    const gradeColor = currentGrade ? LEAGUE_GRADE_COLORS[currentGrade] : '#888';
+    const gradeIcon = currentGrade ? LEAGUE_ICONS[currentGrade] : '🔰';
+    const gradeLabel = currentGrade ? LEAGUE_LABELS[currentGrade] : 'Sans grade';
+
+    const progressPct = nextThreshold
+        ? Math.min(1, (points - currentThreshold) / Math.max(1, nextThreshold - currentThreshold))
+        : 1;
 
     return (
         <Animated.View entering={FadeInUp.delay(100).duration(500)} style={[styles.container, style]}>
-            <LinearGradient
-                colors={['#0A1938', '#010619']}
-                style={styles.gradientCard}
-            >
+            <LinearGradient colors={['#0A1938', '#010619']} style={[styles.card, { borderColor: `${gradeColor}55` }]}>
+
+                {/* Ligne 1 : icône + nom du grade (à gauche) + bouton (i) (à droite) */}
                 <View style={styles.headerRow}>
-                    <Text style={styles.title}>{title}</Text>
-                    <TouchableOpacity 
-                        style={styles.infoButton} 
+                    <View style={styles.gradeIdentity}>
+                        <Text style={styles.gradeIcon}>{gradeIcon}</Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.gradeLabelLine}>Mon grade</Text>
+                            <Text style={[styles.gradeName, { color: gradeColor }]} numberOfLines={1}>
+                                {gradeLabel}
+                            </Text>
+                        </View>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.infoButton}
                         onPress={onInfoPress}
                         activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                        <Ionicons name="information-circle-outline" size={24} color="#FFD700" />
+                        <Ionicons name="information-circle-outline" size={22} color="#FFD700" />
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.milestonesContainer}>
-                    {milestones.map((m, index) => {
-                        const isReached = points >= m.value;
-                        const leftPercent = (m.value / maxThreshold) * 100;
-                        return (
-                            <View 
-                                key={index} 
-                                style={[styles.milestoneItem, { left: `${leftPercent}%` }]}
-                            >
-                                <View style={[styles.iconWrapper, isReached && styles.iconReached]}>
-                                    <Text style={[styles.iconText, !isReached && styles.iconLocked]}>{m.icon}</Text>
-                                    {isReached && <View style={styles.glow} />}
-                                </View>
-                                <Text style={[styles.milestoneText, isReached && styles.milestoneReached]}>
-                                    {m.label}
-                                </Text>
-                            </View>
-                        );
-                    })}
+                {/* Ligne 2 : compteur cochons */}
+                <Text style={styles.cochonsLine}>
+                    🐷 <Text style={styles.cochonsNumber}>{points.toLocaleString()}</Text> cochons infligés
+                </Text>
+
+                {/* Ligne 3 : barre de progression */}
+                <View style={styles.progressTrack}>
+                    <LinearGradient
+                        colors={[gradeColor, '#FFA500']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.progressFill, { width: `${Math.round(progressPct * 100)}%` }]}
+                    />
                 </View>
 
-                {/* Progress Bar Track */}
-                <View style={styles.progressBarWrapper}>
-                    <View style={styles.progressBarTrack}>
-                        <LinearGradient
-                            colors={['#FFD700', '#FFA500']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={[styles.progressBarFill, { width: `${progressPercentage}%` }]}
-                        >
-                            <View style={styles.progressBarGlare} />
-                        </LinearGradient>
+                {/* Ligne 4 : prochain grade */}
+                {nextGrade && nextThreshold !== null ? (
+                    <View style={styles.nextRow}>
+                        <Text style={styles.nextLabel}>Prochain</Text>
+                        <View style={styles.nextRight}>
+                            <Text style={styles.nextIcon}>{LEAGUE_ICONS[nextGrade]}</Text>
+                            <Text style={[styles.nextName, { color: LEAGUE_GRADE_COLORS[nextGrade] }]} numberOfLines={1}>
+                                {LEAGUE_LABELS[nextGrade]}
+                            </Text>
+                            <Text style={styles.nextRemaining}>{Math.max(0, nextThreshold - points)} 🐷</Text>
+                        </View>
                     </View>
-                    <Text style={styles.progressText}>
-                        {currentProgress} / {maxThreshold}
-                    </Text>
-                </View>
+                ) : (
+                    <Text style={styles.maxRow}>🔥 Grade maximum atteint</Text>
+                )}
+
             </LinearGradient>
         </Animated.View>
     );
@@ -94,8 +103,7 @@ export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ poin
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        maxWidth: 340,
-        marginBottom: 10,
+        maxWidth: 360,
         alignSelf: 'center',
         elevation: 10,
         shadowColor: '#000',
@@ -103,29 +111,41 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 6,
     },
-    gradientCard: {
-        borderRadius: 12,
-        padding: 12,
-        paddingHorizontal: 20,
+    card: {
+        borderRadius: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
         borderWidth: 1,
-        borderColor: 'rgba(255, 215, 0, 0.2)',
+        gap: 10,
     },
-    title: {
-        color: '#FFD700',
-        fontWeight: '900',
-        fontSize: 12,
-        textAlign: 'center',
-        letterSpacing: 2,
-        marginBottom: 8,
-        textShadowColor: 'rgba(255,215,0,0.5)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
-    },
+
+    // Header : identité grade + (i)
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
+        gap: 10,
+    },
+    gradeIdentity: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    gradeIcon: {
+        fontSize: 38,
+    },
+    gradeLabelLine: {
+        color: 'rgba(255,255,255,0.45)',
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+    },
+    gradeName: {
+        fontSize: 16,
+        fontWeight: '900',
+        letterSpacing: 0.3,
+        marginTop: 1,
     },
     infoButton: {
         padding: 4,
@@ -134,85 +154,72 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255, 215, 0, 0.3)',
     },
-    milestonesContainer: {
-        height: 44,
-        width: '100%',
-        position: 'relative',
-        marginBottom: 6,
+
+    // Compteur cochons
+    cochonsLine: {
+        color: 'rgba(255,255,255,0.75)',
+        fontSize: 13,
+        textAlign: 'center',
     },
-    milestoneItem: {
-        position: 'absolute',
-        transform: [{ translateX: -15 }], 
-        alignItems: 'center',
-        width: 30, 
-    },
-    iconWrapper: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 2,
-    },
-    iconReached: {
-        transform: [{ scale: 1.1 }],
-    },
-    glow: {
-        position: 'absolute',
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: 'rgba(255,215,0,0.2)',
-        zIndex: -1,
-    },
-    iconText: {
-        fontSize: 22, // Bigger size relative to original icons
-    },
-    iconLocked: {
-        opacity: 0.4,
-        // if supported, we can add grayscale, but opacity works well as a fallback
-    },
-    milestoneText: {
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: 11,
-        fontWeight: '600',
-    },
-    milestoneReached: {
+    cochonsNumber: {
         color: '#FFD700',
-        textShadowColor: 'rgba(255,215,0,0.5)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 4,
+        fontWeight: '900',
+        fontSize: 14,
     },
-    progressBarWrapper: {
-        width: '100%',
-        alignItems: 'center',
-    },
-    progressBarTrack: {
-        height: 14,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        borderRadius: 8,
+
+    // Barre de progression
+    progressTrack: {
+        height: 10,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        borderRadius: 6,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        width: '100%',
-        marginBottom: 4,
+        borderColor: 'rgba(255,255,255,0.08)',
     },
-    progressBarFill: {
+    progressFill: {
         height: '100%',
-        borderRadius: 8,
-        position: 'relative',
+        borderRadius: 6,
     },
-    progressBarGlare: {
-        position: 'absolute',
-        top: 2,
-        left: 0,
-        right: 0,
-        height: '40%',
-        backgroundColor: 'rgba(255,255,255,0.4)', // Simulate reflection on top half
+
+    // Prochain grade
+    nextRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 2,
     },
-    progressText: {
+    nextLabel: {
+        color: 'rgba(255,255,255,0.4)',
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+    nextRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flexShrink: 1,
+    },
+    nextIcon: {
+        fontSize: 16,
+    },
+    nextName: {
+        fontSize: 12,
+        fontWeight: '800',
+        flexShrink: 1,
+    },
+    nextRemaining: {
+        color: 'rgba(255,255,255,0.55)',
+        fontSize: 11,
+        fontWeight: '700',
+        marginLeft: 4,
+    },
+    maxRow: {
+        textAlign: 'center',
         color: '#FFD700',
         fontSize: 12,
-        fontWeight: 'bold',
-        textShadowColor: 'rgba(0,0,0,0.8)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
-    }
+        fontWeight: '900',
+        letterSpacing: 0.5,
+    },
 });

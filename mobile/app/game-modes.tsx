@@ -19,10 +19,11 @@ export default function GameModesScreen() {
     return (
         <LinearGradient colors={['#2D1B4E', '#1A0E2E']} style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>CHOISIR UN MODE</Text>
-                <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-                    <Ionicons name="close-circle" size={32} color="rgba(255,255,255,0.7)" />
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={28} color="rgba(255,255,255,0.8)" />
                 </TouchableOpacity>
+                <Text style={styles.title}>CHOISIR UN MODE</Text>
+                <View style={styles.backBtn} />
             </View>
 
             <View style={[styles.cardsContainer, isLandscape && styles.cardsContainerLandscape]}>
@@ -105,8 +106,8 @@ export default function GameModesScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, paddingHorizontal: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, marginTop: 40 },
-    title: { color: '#FFD700', fontSize: 24, fontWeight: '900', letterSpacing: 1 },
-    closeBtn: { padding: 5 },
+    title: { color: '#FFD700', fontSize: 24, fontWeight: '900', letterSpacing: 1, textAlign: 'center', flex: 1 },
+    backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
     cardsContainer: { flexDirection: 'column', alignItems: 'center', gap: 15 },
     cardsContainerLandscape: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 16 },
     cardWrapper: { width: '100%', maxWidth: 320 },

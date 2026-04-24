@@ -219,20 +219,7 @@ export default function LeaderboardScreen() {
 
     return (
         <LinearGradient colors={['#2D1B4E', '#1A0E2E']} style={styles.container}>
-            <Stack.Screen
-                options={{
-                    headerShown: true,
-                    title: 'Classement Général',
-                    headerStyle: { backgroundColor: '#2D1B4E' },
-                    headerTintColor: '#FFD700',
-                    headerTitleStyle: { fontWeight: 'bold' },
-                    headerLeft: () => (
-                        <TouchableOpacity onPress={() => router.push('/home')} style={{ marginLeft: 10 }}>
-                            <Ionicons name="arrow-back" size={24} color="#FFD700" />
-                        </TouchableOpacity>
-                    )
-                }}
-            />
+            <Stack.Screen options={{ headerShown: false }} />
 
             {/* Onglets */}
             <View style={styles.tabsContainer}>
@@ -282,7 +269,9 @@ const styles = StyleSheet.create({
     },
     tabsContainer: {
         flexDirection: 'row',
-        padding: 15,
+        paddingHorizontal: 15,
+        paddingTop: 40,
+        paddingBottom: 15,
         gap: 10,
         backgroundColor: 'rgba(0,0,0,0.2)'
     },

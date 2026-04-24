@@ -18,6 +18,12 @@
   - Sidebar : avatar cliquable → `/profile`, Réglages → `/modal` (onglet Compte + bouton déconnexion retrouvé)
   - AdBannerModal : fallback image si vidéo échoue
 - [x] **[R2-T1]** Universal Links WhatsApp (Android) — domaine `domino-martinique.online`, `intentFilters` + `assetlinks.json` Android opérationnels, page fallback `/join/<code>`, `shareToWhatsApp()` génère l'URL HTTPS, deep-link handler `join/[id].tsx`. iOS : `associatedDomains` + `apple-app-site-association` configurés avec Team ID de test (5LKJF84FN2) — build TestFlight + mise à jour Team ID prod reportés post-lancement (voir [R2-T1-IOS] dans backlog).
+- [x] **[UX-NAV]** Simplification navigation — supprimé headers/flèches/titres redondants sur 7 écrans (profil, game-modes, ligue, leaderboard, stats, boutique, vestiaire), retiré item Profil de la sidebar, supprimé onglet Thème des Paramètres. Fichiers : `profile.tsx`, `game-modes.tsx`, `ligue-cochons.tsx`, `leaderboard.tsx`, `stats.tsx`, `store.tsx`, `collection.tsx`, `Sidebar.tsx`, `modal.tsx`.
+- [x] **[UX-LEAGUE]** Refonte widget Ligue des Cochons — nouveau LeagueProgressWidget (icône grade 38px, compteur cochons, barre progression colorée, prochain grade, bouton info), réordonnancement onglets modal (Ma Ligue → Classement → Infos). Fichiers : `LeagueProgressWidget.tsx`, `LeagueInfoModal.tsx`.
+- [x] **[UX-ADS]** Pub HOME non-intrusive — délai 3,5s avant affichage, badge "Ads" permanent, countdown 10s avant bouton fermeture, blocage back Android pendant le décompte. Fichiers : `home.tsx`, `AdBannerModal.tsx`.
+- [x] **[UX-MATCH-END]** Refonte modal fin de match — fix confettis (autoStart, suppression fadeOut, boucle 3,5s), navigation (🏠 + Détails) déplacée en haut du modal. Fichier : `UnifiedResultOverlay.tsx`.
+- [x] **[UX-ROUND-END]** Refonte modal fin de round — modal agrandi (92% × 82%), dominos 40px, textes épurés (suppression VICTOIRE/DANS LA MAIN/PTS), format inline Nom(score), couronne 👑 vainqueur. Fichier : `RoundResultCard.tsx`.
+- [x] **[FIX-PROFILE]** Fix pseudo/avatar — regex élargie (accepte apostrophes, tirets, underscores, points), avatar auto-save ne revalide plus le displayName existant. Fichiers : `schemas.ts`, `profile.tsx`.
 
 ### 2026-04-24
 - [x] **[R2-A3]** Sidebar navigation — menu latéral gauche permanent façon "Dashboard jeu vidéo", feature flag `USE_NEW_SIDEBAR`, modal MDC crédits + feedback Firestore. Fichiers : `Sidebar.tsx`, `MdcFeedbackModal.tsx`, `navigation.config.ts`, `_layout.tsx`, `firestore.rules`, `home.tsx`.

@@ -115,16 +115,6 @@ export default function StatsScreen() {
     const renderHeader = () => (
         <View style={[styles.header, { paddingTop: insets.top || 10 }]}>
             <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => router.back()}
-                activeOpacity={0.7}
-            >
-                <Text style={styles.backButtonText}>← Retour</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.headerTitle}>Statistiques</Text>
-
-            <TouchableOpacity
                 style={styles.historyButton}
                 onPress={() => setHistoryModalVisible(true)}
                 activeOpacity={0.7}
@@ -293,7 +283,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         paddingHorizontal: 20,
         paddingBottom: 10,
         backgroundColor: 'rgba(26,5,5,0.9)',
