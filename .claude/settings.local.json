@@ -19,7 +19,12 @@
       "Bash(npm run *)",
       "Bash(npm install *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(xargs -I{} du -sh {})",
+      "Bash(xargs du *)",
+      "Bash(git mv *)",
+      "Bash(cp -r LP lp)",
+      "Bash(git rm *)"
     ],
     "additionalDirectories": [
       "e:\\PROJETS\\_TEMPLATE\\docs",
