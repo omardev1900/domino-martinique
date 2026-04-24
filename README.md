@@ -5,7 +5,7 @@
 **Dernière mise à jour :** 24 avril 2026
 **Version app :** 2.2
 **Lead Dev :** Omatrice
-
+**github :** omardev1900
 ---
 
 ## 1. Objectif produit
