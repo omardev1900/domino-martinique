@@ -305,7 +305,7 @@ export default function ProfileScreen() {
                     >
                         <Ionicons name="home" size={28} color="#FFD700" />
                     </TouchableOpacity>
-                    {( __DEV__ || (typeof window !== 'undefined' && window.location.hostname === 'localhost')) && (
+                    {(__DEV__ || (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.hostname === 'localhost')) && (
                         <TouchableOpacity
                             style={styles.devButton}
                             onPress={() => router.push('/debug-ligue' as any)}

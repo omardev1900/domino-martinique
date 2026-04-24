@@ -1,3 +1,4 @@
+import 'react-native-url-polyfill/auto';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -14,9 +15,9 @@ import SettingsManager from '@/core/SettingsManager';
 import { adService } from '@/core/services/ad.service';
 import { Sidebar } from '@/components/Sidebar';
 import {
-    USE_NEW_SIDEBAR,
-    SIDEBAR_HIDDEN_ROUTES,
-    SIDEBAR_HIDDEN_PREFIXES,
+  USE_NEW_SIDEBAR,
+  SIDEBAR_HIDDEN_ROUTES,
+  SIDEBAR_HIDDEN_PREFIXES,
 } from '@/core/config/navigation.config';
 
 // Keep the native splash screen visible while we fetch resources
@@ -131,8 +132,8 @@ export default function RootLayout() {
 
   // Calcule si la sidebar doit être visible sur la route courante
   const showSidebar = USE_NEW_SIDEBAR &&
-      !SIDEBAR_HIDDEN_ROUTES.includes(pathname) &&
-      !SIDEBAR_HIDDEN_PREFIXES.some(p => pathname.startsWith(p));
+    !SIDEBAR_HIDDEN_ROUTES.includes(pathname) &&
+    !SIDEBAR_HIDDEN_PREFIXES.some(p => pathname.startsWith(p));
 
   return (
     <GestureHandlerRootView

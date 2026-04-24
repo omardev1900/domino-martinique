@@ -13,6 +13,15 @@
 
 - [ ] **[R2-T1-IOS]** Finaliser Universal Links iOS avant soumission App Store
   - Mettre à jour `apple-app-site-association` avec le Team ID du compte de prod (remplacer `5LKJF84FN2`)
+- [ ] **[AUTH-GOOGLE-ENABLE]** Réactiver Google Sign-In au passage en test interne Google Play
+  - **Déclencheur** : premier EAS build Android soumis en test interne Google Play
+  - **Étape 1** — `mobile/app/login.tsx` ligne ~24 : passer `GOOGLE_SIGNIN_ENABLED = true`
+  - **Étape 2** — Vérifier que le SHA1 du keystore EAS de production est bien enregistré dans Google Cloud Console → Credentials → Android Client ID (`916243245615-m3biip70ga7nlgm1mf8kqaa4tggl7g3g`) — le SHA1 debug utilisé actuellement (`C2:5A:C8:55:...`) sera différent du SHA1 de prod EAS
+  - **Étape 3** — Si SHA1 EAS différent : ajouter le nouveau SHA1 dans le même Android Client ID (Google autorise plusieurs empreintes)
+  - **Étape 4** — Tester le flow complet : bouton Google → popup → retour sur `/home` + profil visible dans Firebase Auth
+  - **Récupérer le SHA1 EAS prod** : `eas credentials --platform android` après le premier build
+  - **Estimation** : ~30 min
+
 - [ ] **[AUTH-GOOGLE-NATIVE]** Google Sign-In natif pour build EAS production
   - Créer un **Android Client ID** dans Google Cloud Console (type "Application Android")
   - Renseigner le package `com.dominomartinique.mobile` + SHA1 fingerprint du keystore EAS

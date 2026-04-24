@@ -52,7 +52,8 @@ export const getAvatarImage = (avatarId: string | null | undefined) => {
     if (avatarId.startsWith('http://') || avatarId.startsWith('https://')) {
         try {
             const url = new URL(avatarId);
-            if (ALLOWED_AVATAR_DOMAINS.some(d => url.hostname.endsWith(d))) {
+            const hostname = url?.hostname;
+            if (hostname && ALLOWED_AVATAR_DOMAINS.some(d => hostname.endsWith(d))) {
                 return { uri: avatarId };
             }
         } catch {}

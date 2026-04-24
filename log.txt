@@ -1,0 +1,14 @@
+PS E:\PROJETS\clients\domino_matrinique\mobile\android> keytool -genkey -v -keystore "%USERPROFILE%\.android\debug.keystore" -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+Generating 2?048 bit RSA key pair and self-signed certificate (SHA384withRSA) with a validity of 10?000 days
+        for: CN=Android Debug, O=Android, C=US
+[Storing %USERPROFILE%\.android\debug.keystore]
+keytool error: java.io.FileNotFoundException: %USERPROFILE%\.android\debug.keystore (Le chemin d?accès spécifié est introuvable)
+java.io.FileNotFoundException: %USERPROFILE%\.android\debug.keystore (Le chemin d?accès spécifié est introuvable)
+        at java.base/java.io.FileOutputStream.open0(Native Method)
+        at java.base/java.io.FileOutputStream.open(FileOutputStream.java:289)
+        at java.base/java.io.FileOutputStream.<init>(FileOutputStream.java:230)
+        at java.base/java.io.FileOutputStream.<init>(FileOutputStream.java:118)
+        at java.base/sun.security.tools.keytool.Main.doCommands(Main.java:1372)
+        at java.base/sun.security.tools.keytool.Main.run(Main.java:419)
+        at java.base/sun.security.tools.keytool.Main.main(Main.java:412)
+PS E:\PROJETS\clients\domino_matrinique\mobile\android> 

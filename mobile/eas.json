@@ -21,7 +21,19 @@
                 "EXPO_PUBLIC_FIREBASE_APP_ID": "1:1:916243245615:web:974a0b8d9896885e5534da"
             }
         },
-        "production": {}
+        "production": {
+            "android": {
+                "buildType": "app-bundle"
+            },
+            "env": {
+                "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk",
+                "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "domino-martinique-v1.firebaseapp.com",
+                "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "domino-martinique-v1",
+                "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "domino-martinique-v1.firebasestorage.app",
+                "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "916243245615",
+                "EXPO_PUBLIC_FIREBASE_APP_ID": "1:916243245615:android:974a0b8d9896885e5534da"
+            }
+        }
     },
     "submit": {
         "production": {}
