@@ -4,6 +4,20 @@
 
 ---
 
+## [2.3] — 25 Avril 2026
+
+### Ajouté
+- **Reset mot de passe** — Flow "Mot de passe oublié ?" sur l'écran de connexion : saisie email → lien Firebase envoyé → message de confirmation
+- **Google Sign-In** — Intégration complète (masquée, sera activée au passage en test interne Google Play)
+- **Universal Links WhatsApp Android** — Lien d'invitation cliquable (bleu) dans WhatsApp sur Android, ouvre directement la table. iOS prévu post-lancement.
+- **Sidebar améliorée** — Avatar cliquable → Profil, icône Réglages → page paramètres complète (onglets Audio / Profil / Compte + bouton déconnexion)
+
+### Corrigé
+- **AdBannerModal** — Fallback image automatique si la vidéo publicitaire ne peut pas être lue
+- **Sidebar** — Icônes Profil et Réglages pointaient vers la même page
+
+---
+
 ## [2.2] — Avril 2026
 
 ### Ajouté

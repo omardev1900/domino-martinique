@@ -107,15 +107,19 @@ export const Sidebar: React.FC = () => {
                     contentContainerStyle={styles.middleContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Avatar avec couleur de grade */}
-                    <View style={[styles.avatarRing, { borderColor: gradeColor }]}>
+                    {/* Avatar avec couleur de grade — cliquable → Profil */}
+                    <TouchableOpacity
+                        style={[styles.avatarRing, { borderColor: gradeColor }]}
+                        onPress={() => router.push('/profile' as any)}
+                        activeOpacity={0.8}
+                    >
                         <Image
                             source={getAvatarImage(avatarId as any)}
                             style={styles.avatarImg}
                             contentFit="cover"
                             cachePolicy="memory-disk"
                         />
-                    </View>
+                    </TouchableOpacity>
 
                     {/* CTA Jouer */}
                     <TouchableOpacity
@@ -165,7 +169,7 @@ export const Sidebar: React.FC = () => {
                 <View style={styles.bottomZone}>
                     <TouchableOpacity
                         style={styles.navItem}
-                        onPress={() => router.push('/profile' as any)}
+                        onPress={() => router.push('/modal' as any)}
                         activeOpacity={0.75}
                     >
                         <Ionicons name="settings-outline" size={22} color="rgba(255,255,255,0.55)" />

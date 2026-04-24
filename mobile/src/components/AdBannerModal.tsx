@@ -9,7 +9,7 @@
  * Spec : docs/specs/ADS_SYSTEM.md
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     Modal,
     View,
@@ -30,6 +30,7 @@ interface AdBannerModalProps {
 
 export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => {
     const videoRef = useRef<Video>(null);
+    const [videoFailed, setVideoFailed] = useState(false);
 
     if (!ad) return null;
 
@@ -41,7 +42,7 @@ export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => 
         onClose();
     };
 
-    const isVideo = ad.mediaType === 'VIDEO';
+    const isVideo = ad.mediaType === 'VIDEO' && !videoFailed;
 
     return (
         <Modal
@@ -67,9 +68,10 @@ export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => 
                             isMuted
                             isLooping
                             useNativeControls={false}
-                            onError={e =>
-                                LogService.error('AdBannerModal', 'video error:', e)
-                            }
+                            onError={e => {
+                                LogService.error('AdBannerModal', 'video error:', e);
+                                setVideoFailed(true);
+                            }}
                         />
                     ) : (
                         <Image

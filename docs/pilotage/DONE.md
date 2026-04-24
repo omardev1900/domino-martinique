@@ -11,6 +11,14 @@
 
 ## 📅 Avril 2026
 
+### 2026-04-25
+- [x] **[LAUNCH-AUTH-1]** Auth — Reset mot de passe + Google Sign-In (partiel)
+  - Reset MDP : `sendPasswordReset()` dans `auth.service.ts` + UI "Mot de passe oublié ?" dans `login.tsx` (message vert succès, erreurs Firebase localisées)
+  - Google Sign-In : `signInWithGoogleCredential()` dans `auth.service.ts`, hook `Google.useAuthRequest` + bouton "Continuer avec Google" dans `login.tsx` — **masqué provisoirement** (`GOOGLE_SIGNIN_ENABLED = false`) jusqu'au passage en test interne Google Play (EAS build Android requis). Client IDs configurés : Web + Android (`916243245615-m3biip70ga7nlgm1mf8kqaa4tggl7g3g`), URI Expo proxy ajoutée. Réactiver en changeant `GOOGLE_SIGNIN_ENABLED = true` dans `login.tsx`.
+  - Sidebar : avatar cliquable → `/profile`, Réglages → `/modal` (onglet Compte + bouton déconnexion retrouvé)
+  - AdBannerModal : fallback image si vidéo échoue
+- [x] **[R2-T1]** Universal Links WhatsApp (Android) — domaine `domino-martinique.online`, `intentFilters` + `assetlinks.json` Android opérationnels, page fallback `/join/<code>`, `shareToWhatsApp()` génère l'URL HTTPS, deep-link handler `join/[id].tsx`. iOS : `associatedDomains` + `apple-app-site-association` configurés avec Team ID de test (5LKJF84FN2) — build TestFlight + mise à jour Team ID prod reportés post-lancement (voir [R2-T1-IOS] dans backlog).
+
 ### 2026-04-24
 - [x] **[R2-A3]** Sidebar navigation — menu latéral gauche permanent façon "Dashboard jeu vidéo", feature flag `USE_NEW_SIDEBAR`, modal MDC crédits + feedback Firestore. Fichiers : `Sidebar.tsx`, `MdcFeedbackModal.tsx`, `navigation.config.ts`, `_layout.tsx`, `firestore.rules`, `home.tsx`.
 

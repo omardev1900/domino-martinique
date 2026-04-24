@@ -11,7 +11,10 @@
     "ios": {
       "supportsTablet": true,
       "statusBarHidden": true,
-      "bundleIdentifier": "com.dominomartinique.mobile"
+      "bundleIdentifier": "com.dominomartinique.mobile",
+      "associatedDomains": [
+        "applinks:domino-martinique.online"
+      ]
     },
     "android": {
       "package": "com.dominomartinique.mobile",

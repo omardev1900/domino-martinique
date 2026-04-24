@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     StyleSheet,
@@ -13,11 +13,22 @@ import {
     useWindowDimensions,
     ImageBackground
 } from 'react-native';
+
+const GOOGLE_ANDROID_CLIENT_ID = '916243245615-m3biip70ga7nlgm1mf8kqaa4tggl7g3g.apps.googleusercontent.com';
+// Masqué jusqu'au passage en test interne Google Play (EAS build requis pour Android)
+const GOOGLE_SIGNIN_ENABLED = false;
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import Constants from 'expo-constants';
 import { authService } from '../src/core/services/auth.service';
+
+const isExpoGo = Constants.appOwnership === 'expo';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -30,7 +41,21 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
     const [isLoginMode, setIsLoginMode] = useState(true);
+    const [isForgotMode, setIsForgotMode] = useState(false);
+
+    const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
+        webClientId: '916243245615-ft1i2pm4e2s3qv5tshf8ca9h4krddkb0.apps.googleusercontent.com',
+        androidClientId: (!isExpoGo && Platform.OS === 'android') ? GOOGLE_ANDROID_CLIENT_ID : undefined,
+    });
+
+    useEffect(() => {
+        if (googleResponse?.type === 'success') {
+            const { authentication } = googleResponse;
+            handleGoogleSignIn(authentication?.idToken ?? null, authentication?.accessToken ?? null);
+        }
+    }, [googleResponse]);
 
     const getErrorMessage = (error: any) => {
         const code = error.code || '';
@@ -46,7 +71,45 @@ export default function LoginScreen() {
         if (code === 'auth/weak-password') {
             return "Le mot de passe est trop faible.";
         }
+        if (code === 'auth/too-many-requests') {
+            return "Trop de tentatives. Réessayez dans quelques minutes.";
+        }
         return "Une erreur est survenue. Veuillez réessayer.";
+    };
+
+    const handleGoogleSignIn = async (idToken: string | null, accessToken: string | null) => {
+        setErrorMessage('');
+        setIsLoading(true);
+        try {
+            await authService.signInWithGoogleCredential(idToken, accessToken);
+            if (autoJoinRoomId) {
+                router.replace({ pathname: '/lobby', params: { autoJoinRoomId } });
+            } else {
+                router.replace('/home');
+            }
+        } catch (error: any) {
+            setErrorMessage(getErrorMessage(error));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async () => {
+        setErrorMessage('');
+        setSuccessMessage('');
+        if (!email) {
+            setErrorMessage('Veuillez saisir votre adresse email.');
+            return;
+        }
+        setIsLoading(true);
+        try {
+            await authService.sendPasswordReset(email);
+            setSuccessMessage('Un lien de réinitialisation a été envoyé à ' + email);
+        } catch (error: any) {
+            setErrorMessage(getErrorMessage(error));
+        } finally {
+            setIsLoading(false);
+        }
     };
 
 
@@ -173,51 +236,91 @@ export default function LoginScreen() {
                                     keyboardType="email-address"
                                 />
 
-                                <View style={styles.passwordContainer}>
-                                    <TextInput
-                                        style={styles.passwordInput}
-                                        placeholder="Mot de passe"
-                                        placeholderTextColor="rgba(255,255,255,0.6)"
-                                        value={password}
-                                        onChangeText={setPassword}
-                                        secureTextEntry={!showPassword}
-                                    />
-                                    <TouchableOpacity
-                                        style={styles.eyeIcon}
-                                        onPress={() => setShowPassword(!showPassword)}
-                                    >
-                                        <Ionicons
-                                            name={showPassword ? "eye-off" : "eye"}
-                                            size={18}
-                                            color="rgba(255,255,255,0.7)"
+                                {!isForgotMode && (
+                                    <View style={styles.passwordContainer}>
+                                        <TextInput
+                                            style={styles.passwordInput}
+                                            placeholder="Mot de passe"
+                                            placeholderTextColor="rgba(255,255,255,0.6)"
+                                            value={password}
+                                            onChangeText={setPassword}
+                                            secureTextEntry={!showPassword}
                                         />
-                                    </TouchableOpacity>
-                                </View>
+                                        <TouchableOpacity
+                                            style={styles.eyeIcon}
+                                            onPress={() => setShowPassword(!showPassword)}
+                                        >
+                                            <Ionicons
+                                                name={showPassword ? "eye-off" : "eye"}
+                                                size={18}
+                                                color="rgba(255,255,255,0.7)"
+                                            />
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
 
                                 {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+                                {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
                                 <TouchableOpacity
                                     style={styles.mainAuthButton}
-                                    onPress={handleAuthAction}
+                                    onPress={isForgotMode ? handleForgotPassword : handleAuthAction}
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (
                                         <ActivityIndicator color="#1a0505" size="small" />
                                     ) : (
                                         <Text style={styles.mainAuthButtonText}>
-                                            {isLoginMode ? "SE CONNECTER" : "CRÉER UN COMPTE"}
+                                            {isForgotMode
+                                                ? "ENVOYER LE LIEN"
+                                                : isLoginMode ? "SE CONNECTER" : "CRÉER UN COMPTE"}
                                         </Text>
                                     )}
                                 </TouchableOpacity>
 
+                                {!isForgotMode && (
+                                    <View style={styles.separatorRow}>
+                                        <View style={styles.separatorLine} />
+                                        <Text style={styles.separatorText}>OU</Text>
+                                        <View style={styles.separatorLine} />
+                                    </View>
+                                )}
+
+                                {GOOGLE_SIGNIN_ENABLED && !isForgotMode && !(isExpoGo && Platform.OS === 'android') && (
+                                    <TouchableOpacity
+                                        style={styles.googleButton}
+                                        onPress={() => promptGoogleAsync()}
+                                        disabled={isLoading}
+                                    >
+                                        <Ionicons name="logo-google" size={16} color="#4285F4" />
+                                        <Text style={styles.googleButtonText}>Continuer avec Google</Text>
+                                    </TouchableOpacity>
+                                )}
+
+                                {!isForgotMode && isLoginMode && (
+                                    <TouchableOpacity
+                                        style={styles.toggleModeButton}
+                                        onPress={() => { setIsForgotMode(true); setErrorMessage(''); setSuccessMessage(''); }}
+                                    >
+                                        <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+                                    </TouchableOpacity>
+                                )}
+
                                 <TouchableOpacity
                                     style={styles.toggleModeButton}
-                                    onPress={() => setIsLoginMode(!isLoginMode)}
+                                    onPress={() => {
+                                        setIsForgotMode(false);
+                                        setErrorMessage('');
+                                        setSuccessMessage('');
+                                        if (!isForgotMode) setIsLoginMode(!isLoginMode);
+                                    }}
                                 >
                                     <Text style={styles.toggleModeText}>
-                                        {isLoginMode
-                                            ? "Pas de compte ? S'inscrire"
-                                            : "Déjà un compte ? Connexion"}
+                                        {isForgotMode
+                                            ? "← Retour à la connexion"
+                                            : isLoginMode
+                                                ? "Pas de compte ? S'inscrire"
+                                                : "Déjà un compte ? Connexion"}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -352,6 +455,50 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 82, 82, 0.2)',
         padding: 4,
         borderRadius: 4,
+    },
+    successText: {
+        color: '#4CAF50',
+        textAlign: 'center',
+        fontSize: 12,
+        fontWeight: 'bold',
+        backgroundColor: 'rgba(76, 175, 80, 0.2)',
+        padding: 4,
+        borderRadius: 4,
+    },
+    forgotText: {
+        color: 'rgba(255,215,0,0.7)',
+        fontSize: 11,
+        textAlign: 'center',
+        fontWeight: '500',
+    },
+    separatorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    separatorLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+    },
+    separatorText: {
+        color: 'rgba(255,255,255,0.4)',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    googleButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        height: 42,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderRadius: 21,
+    },
+    googleButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#444444',
     },
     guestButtonText: {
         fontSize: 14,

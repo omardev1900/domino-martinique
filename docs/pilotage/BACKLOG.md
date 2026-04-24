@@ -9,6 +9,38 @@
 
 ---
 
+## 🍎 Post-lancement iOS
+
+- [ ] **[R2-T1-IOS]** Finaliser Universal Links iOS avant soumission App Store
+  - Mettre à jour `apple-app-site-association` avec le Team ID du compte de prod (remplacer `5LKJF84FN2`)
+- [ ] **[AUTH-GOOGLE-NATIVE]** Google Sign-In natif pour build EAS production
+  - Créer un **Android Client ID** dans Google Cloud Console (type "Application Android")
+  - Renseigner le package `com.dominomartinique.mobile` + SHA1 fingerprint du keystore EAS
+  - Créer un **iOS Client ID** (type "Application iOS") avec le bundle identifier
+  - Passer `androidClientId` et `iosClientId` dans `Google.useAuthRequest()` dans `login.tsx`
+  - **Débloquant** : keystore EAS signé (disponible après premier `eas build`)
+- [ ] **[AUTH-APPLE]** Sign In with Apple (iOS uniquement)
+  - Requis par Apple si l'app propose d'autres connexions sociales (règle App Store)
+  - Activer dans Firebase Auth + configurer dans `app.json` + implémenter le flow `expo-apple-authentication`
+  - **Débloquant** : build TestFlight + compte Apple Developer de prod
+  - Rebuilder l'app Expo (`eas build --platform ios`) pour que `associatedDomains` soit pris en compte
+  - Tester sur TestFlight : lien WhatsApp cliquable → ouvre directement la table
+  - **Débloquant** : avoir le compte Apple Developer de production
+
+---
+
+## 💬 Admin — Tchat de jeu
+
+- [ ] **[ADMIN-CHAT-1]** Gestion des textes et icônes de tchat depuis l'admin
+  - Admin : ajouter un onglet "Tchat" dans le menu Boutique du dashboard (à côté des onglets existants)
+  - CRUD : créer / modifier / désactiver des messages prédéfinis (texte + icône emoji ou image)
+  - Firestore : collection `chat_messages/{id}` — champs `text`, `icon`, `category`, `cost`, `enabled`
+  - Mobile : le tchat en jeu lit la liste depuis Firestore (remplace les messages hardcodés)
+  - Boutique : les messages payants apparaissent dans la boutique côté joueur (cohérent avec Shop3)
+  - **Estimation** : ~1 jour (admin CRUD) + ~0.5 jour (mobile dynamic fetch)
+
+---
+
 ## 🔔 Notifications Push (FCM)
 
 - [ ] **[NOTIF-1]** Intégration notifications push pilotables depuis l'admin
@@ -106,7 +138,7 @@
 ## 🔴 Bloc 10 — Gestion des comptes
 
 - [ ] OTP Email — code à l'inscription
-- [ ] Reset mot de passe — flow "Mot de passe oublié"
+- [ ] Reset mot de passe via OTP — remplacer le lien Firebase par un code 6 chiffres + saisie nouveau MDP (Cloud Function + SendGrid/nodemailer + Firestore expiry)
 - [ ] Soft delete de compte — option "Supprimer mon compte"
 
 ---

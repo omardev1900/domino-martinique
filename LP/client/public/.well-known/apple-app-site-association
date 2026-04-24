@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "5LKJF84FN2.com.dominomartinique.mobile",
+        "paths": ["/join/*"]
+      }
+    ]
+  }
+}
