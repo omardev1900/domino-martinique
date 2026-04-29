@@ -89,13 +89,14 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
             <Section title="Parties & Modes" icon="🎮">
                 <Text style={styles.para}><Text style={styles.bold}>Mode Manche :</Text> Le match se termine quand un joueur atteint un nombre défini de manches gagnées.</Text>
                 <Text style={styles.para}><Text style={styles.bold}>Mode Score :</Text> On cumule les points de victoire à chaque manche jusqu'à atteindre le score cible.</Text>
-                <Text style={styles.para}><Text style={styles.bold}>Mode Cochon :</Text> Le match s'arrête dès que 3 Cochons ont été distribués.</Text>
+                <Text style={styles.para}><Text style={styles.bold}>Mode Cochon :</Text> Le match se termine quand le quota de cochons défini est atteint. Pour infliger un cochon, il faut gagner une manche en laissant au moins un adversaire à 0 victoire.</Text>
             </Section>
 
             <Section title="Le Cochon 🐷" icon="🐽">
-                <Text style={styles.para}>Un joueur est <Text style={styles.bold}>"Cochon"</Text> s'il termine une manche avec <Text style={styles.bold}>0 victoire</Text> (Cochon simple) ou 2 joueurs le sont (Double Cochon).</Text>
-                <Text style={styles.para}>Donner un cochon rapporte un <Text style={styles.bold}>bonus massif</Text> mais finir cochon donne une pénalité (-1 pt).</Text>
-                <Text style={styles.para}><Text style={styles.bold}>Le Chiré :</Text> Si tous gagnent 1 manche (1-1-1), le jeu est "Chiré". Aucun cochon n'est distribué.</Text>
+                <Text style={styles.para}>Un joueur est <Text style={styles.bold}>"Cochon"</Text> s'il termine une manche avec <Text style={styles.bold}>0 étoile</Text>. Si deux joueurs sont à 0, c'est un <Text style={styles.bold}>Double Cochon</Text>.</Text>
+                <Text style={styles.para}><Text style={styles.bold}>Bonus :</Text> Donner un cochon rapporte <Text style={styles.bold}>+1 point par cochon infligé</Text>. Donner un Double Cochon rapporte donc +2 points (soit 5 points au total pour la manche).</Text>
+                <Text style={styles.para}><Text style={styles.bold}>Malus :</Text> Recevoir un cochon coûte <Text style={styles.bold}>-1 point</Text>.</Text>
+                <Text style={styles.para}><Text style={styles.bold}>Le Chiré :</Text> Si tous les joueurs ont au moins 1 étoile (ex: 1-1-1), la manche est nulle. Aucun cochon n'est distribué.</Text>
             </Section>
         </ScrollView>
     );
