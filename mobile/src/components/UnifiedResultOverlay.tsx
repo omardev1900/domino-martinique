@@ -144,6 +144,18 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         return sorted;
     })();
 
+    // ── Mode + objectif affiché dans le header de fin de match ────────────────
+    const getMatchModeLabel = (): string => {
+        const { gameMode, winningCondition } = gameState;
+        switch (gameMode) {
+            case 'VICTOIRE': return `Mode Victoire · ${winningCondition} V`;
+            case 'SCORE':    return `Mode Score · ${winningCondition} pts`;
+            case 'COCHON':   return `Mode Cochon · ${winningCondition} 🐷`;
+            case 'MANCHE':   return `Mode Manche · ${winningCondition} manche${winningCondition > 1 ? 's' : ''}`;
+            default:         return '';
+        }
+    };
+
     // ── Score label per game mode ──────────────────────────────────────────────
     const getPlayerTotalScore = (p: Player): string => {
         switch (gameState.gameMode) {
@@ -306,7 +318,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     // ── MATCH END — main view (results + rewards inline) ──────────────────────
     const renderMatchEndMain = () => (
         <>
-            {/* ── Navigation haut : Accueil (gauche) + Détails (droite) ── */}
+            {/* ── Navigation haut : Accueil (gauche) + Mode/Objectif (centre) + Détails (droite) ── */}
             <View style={styles.matchTopNav}>
                 <TouchableOpacity
                     style={styles.quitBtn}
@@ -317,6 +329,11 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 >
                     <Ionicons name="home" size={22} color="#FFF" />
                 </TouchableOpacity>
+
+                <Text style={styles.matchModeLabel} numberOfLines={1}>
+                    {getMatchModeLabel()}
+                </Text>
+
                 <TouchableOpacity
                     style={styles.historyLinkBtn}
                     onPress={() => setShowHistory(true)}
@@ -469,6 +486,16 @@ const styles = StyleSheet.create({
         marginBottom: 2,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255, 255, 255, 0.07)',
+    },
+    matchModeLabel: {
+        flex: 1,
+        textAlign: 'center',
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 0.8,
+        textTransform: 'uppercase',
+        paddingHorizontal: 6,
     },
 
     // ── MATCH END: header ──

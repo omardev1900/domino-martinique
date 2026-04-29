@@ -186,7 +186,6 @@ export default function StatsScreen() {
                     <View style={styles.winRateInfos}>
                         <Text style={styles.winRateTitle}>TAUX DE VICTOIRE</Text>
                         <Text style={styles.winRateSub}>{playerStats.gamesWon} / {playerStats.gamesPlayed} Matchs Gagnés</Text>
-                        <Text style={styles.winRateSub}>{(playerStats.totalRoundsWon || 0).toLocaleString()} Manches Gagnées</Text>
                     </View>
                 </View>
                 

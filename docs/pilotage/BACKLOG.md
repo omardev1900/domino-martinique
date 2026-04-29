@@ -46,8 +46,7 @@
   - Vérifier `RoundResultCard.tsx` pour le cas d'égalité
   - **Estimation** : ~0,5 jour
 
-- [ ] **[R3-B7]** Mode paysage multijoueur : impossible de changer de sens (déjà backlog R2-B6 partiel)
-  - **Estimation** : ~0,5 jour
+- [x] **[R3-B7]** ~~Mode paysage multijoueur : impossible de changer de sens~~ — **N/A** : le jeu est verrouillé en paysage par conception, comportement voulu.
 
 - [ ] **[R3-B8]** Fond d'écran violet : lignes noires du quadrillage visibles
   - Remplacer ou masquer le fond via CSS/style dans l'écran d'accueil
