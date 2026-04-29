@@ -9,6 +9,105 @@
 
 ---
 
+## 🚨 Retour client #3 — 25 avril 2026 (Sprint correctif post-lancement)
+
+> Source : `docs/feedback/feedback-250426.md` + archivé dans `docs/feedback/CLIENT.md`
+> Classé par priorité. Les bugs P0 doivent être traités avant ou immédiatement après le lancement.
+
+### 🔴 P0 — Bugs bloquants (à corriger en urgence)
+
+- [ ] **[R3-B1]** Mode Score : la partie ne se termine pas quand l'objectif est atteint — une nouvelle manche se lance
+  - Vérifier la condition de fin de match dans `LogicEngine.ts` pour le mode Score
+  - Fichiers suspects : `mobile/src/core/LogicEngine.ts`, `mobile/src/hooks/game/useActionDispatcher.ts`
+  - **Estimation** : ~0,5 jour
+
+- [ ] **[R3-B4]** Décompte cochons désynchronisé + passage de grade silencieux + récompense non reçue
+  - Stats affichent 93 mais ligue bloquée à 89 → race condition ou source de vérité incorrecte (voir bug similaire [2.2.1])
+  - Pas de message de félicitation → `RewardEngine.ts` ne déclenche pas la notification de grade
+  - Pas de récompense → vérifier `processMatchReward` Cloud Function
+  - Fichiers : `mobile/src/core/RewardEngine.ts`, `functions/src/processMatchReward.ts`
+  - **Estimation** : ~0,5 jour
+
+- [ ] **[R3-B5]** Ligue : texte "89 / 90" superposé sur la jauge de progression
+  - Bug d'affichage dans `LeagueProgressWidget.tsx`
+  - **Estimation** : ~1 heure
+
+- [ ] **[R3-B6]** Boutique : affichage dominos incorrect + superposition coins/diamants dans les prix
+  - Vérifier le layout des cards dans la page boutique mobile
+  - **Estimation** : ~0,5 jour
+
+### 🟠 P1 — Bugs importants (1ère semaine post-lancement)
+
+- [ ] **[R3-B2]** Onglet DETAILS non fonctionnel après une partie
+  - Identifier le composant Détails dans `UnifiedResultOverlay.tsx` ou `GameOverScreen`
+  - **Estimation** : ~0,5 jour
+
+- [ ] **[R3-B3]** Égalité : les points des joueurs à égalité ne s'affichent pas
+  - Vérifier `RoundResultCard.tsx` pour le cas d'égalité
+  - **Estimation** : ~0,5 jour
+
+- [ ] **[R3-B7]** Mode paysage multijoueur : impossible de changer de sens (déjà backlog R2-B6 partiel)
+  - **Estimation** : ~0,5 jour
+
+- [ ] **[R3-B8]** Fond d'écran violet : lignes noires du quadrillage visibles
+  - Remplacer ou masquer le fond via CSS/style dans l'écran d'accueil
+  - **Estimation** : ~1 heure
+
+- [ ] **[R3-M4]** Aide Mode Cochon incorrecte : le texte dit "le mode s'arrête quand l'objectif est atteint" → faux
+  - Corriger le texte dans le `HelpOverlay` pour le mode Cochon : expliquer qu'il faut gagner 3 parties avec un joueur à 0 étoile
+  - **Estimation** : ~30 min
+
+### 🟡 P2 — Améliorations fonctionnelles (2–4 semaines post-lancement)
+
+- [ ] **[R3-M1]** Classement mensuel — 3 catégories avec niveaux colorés
+  - 3 classements : **Scoreurs** (totalMatchPoints), **Bouchers** (cochons donnés), **Défenseurs** (cochons reçus les moins nombreux)
+  - Couleurs par niveau dans le classement : Apprenti (vert), Maître (or), Élite (rouge/feu)
+  - Tracking mensuel Firestore : `monthlyStats/{YYYY-MM}/players/{uid}`
+  - Visible dès le lancement du jeu (priorité client : "des amis doivent pouvoir voir dès le lancement")
+  - Remplace/complète [R2-M4] déjà au backlog
+  - **Estimation** : ~2 jours
+
+- [ ] **[R3-M2]** Indicateur de niveau (grade Ligue des Cochons) des adversaires visible en jeu
+  - Afficher le cadre de grade ou une icône de niveau sous/sur l'avatar des adversaires dans `GameScreen`
+  - Fichiers : `GameScreen.tsx`, `PlayerAvatar.tsx`
+  - **Estimation** : ~0,5 jour
+
+- [ ] **[R3-M3]** Boutique — onglet "PUB" / contenu déblocable via pub
+  - Principe : contenu débloqué 24h en regardant une pub OU 5€/mois
+  - Contenu initial : 2 phrases créoles ("I Fèw Mal Doudou", "Tu n'as pas plus dur") + 100 coins (illimité)
+  - Mobile : nouvel onglet dans la boutique + logique "regarder une pub → déblocage 24h"
+  - Dépend de AdMob Phase 2 pour les vraies pubs — en attendant, placeholder ou pub admin-managed
+  - **Estimation** : ~1,5 jour
+
+- [ ] **[R3-A5]** Musique — accueil + playlist en jeu
+  - Ajouter une musique de fond sur l'écran d'accueil
+  - En jeu : rotation d'une playlist à chaque nouvelle manche (au lieu de la même musique en boucle)
+  - Fichiers : `home.tsx`, `SoundManager.ts`
+  - **Estimation** : ~1 jour (selon le nombre de musiques disponibles)
+
+### 🔵 P3 — UX & Design (post-lancement, à planifier)
+
+- [ ] **[R3-A1]** Remplacer le logo MDC bleu par le logo cochon dans la sidebar/header
+  - **Estimation** : ~1 heure
+
+- [ ] **[R3-A2]** Stats 5/4/2/1/-1 dans la section Ligue (onglet Infos du modal LeagueInfoModal)
+  - Ajouter un tableau récapitulatif des points par type de victoire dans `LeagueInfoModal.tsx`
+  - Déjà demandé en [D6] — consolider
+  - **Estimation** : ~1 heure
+
+- [ ] **[R3-A3]** Taux de victoire dans Statistiques : clarifier le calcul affiché
+  - Ajouter une info-bulle ou reformuler le label pour expliquer le calcul
+  - **Estimation** : ~30 min
+
+- [ ] **[R3-A6]** Diversité des avatars (déjà backlog [A11])
+  - Ajouter au moins 1 avatar blanc et 1 avatar asiatique
+  - **Estimation** : selon création des assets
+
+- [ ] **[R3-A4]** Vestiaire : refonte affichage (déjà backlog [D4])
+  - **Estimation** : ~1 jour
+
+---
+
 ## 🍎 Post-lancement iOS
 
 - [ ] **[R2-T1-IOS]** Finaliser Universal Links iOS avant soumission App Store
@@ -38,15 +137,77 @@
 
 ---
 
-## 💬 Admin — Tchat de jeu
+## 🛍️ Admin — Améliorations Dashboard /store (ajoutées le 25/04/2026)
 
-- [ ] **[ADMIN-CHAT-1]** Gestion des textes et icônes de tchat depuis l'admin
-  - Admin : ajouter un onglet "Tchat" dans le menu Boutique du dashboard (à côté des onglets existants)
-  - CRUD : créer / modifier / désactiver des messages prédéfinis (texte + icône emoji ou image)
-  - Firestore : collection `chat_messages/{id}` — champs `text`, `icon`, `category`, `cost`, `enabled`
-  - Mobile : le tchat en jeu lit la liste depuis Firestore (remplace les messages hardcodés)
-  - Boutique : les messages payants apparaissent dans la boutique côté joueur (cohérent avec Shop3)
-  - **Estimation** : ~1 jour (admin CRUD) + ~0.5 jour (mobile dynamic fetch)
+### [ADMIN-STORE-1] Preview live des skins dans le modal admin
+- **Contexte** : le modal de création/modification d'un skin (`type: SKIN`) dispose déjà de color pickers pour les 5 couleurs (`tableBackgroundColor`, `boardColor`, `dominoBackgroundColor`, `dominoDotColor`, `dominoLineColor`). Il n'y a actuellement qu'une bande de couleurs statiques — pas de rendu réel.
+- **Ce qu'il faut faire :**
+  - Ajouter un mini-composant de preview dans le modal (React/HTML pur, pas React Native)
+  - Renderer : 2 dominos SVG ou div stylisés reflétant en temps réel `skinConfig` dès que l'admin modifie une couleur
+  - Afficher aussi la couleur de fond de table autour des dominos
+  - La preview se met à jour à chaque changement de couleur sans validation
+- **Fichiers concernés :** `admin/app/dashboard/store/page.tsx`
+- **Estimation :** ~0,5 jour
+
+---
+
+### [ADMIN-CHAT-1] Gestion des phrases de tchat + emojis depuis l'admin
+- **Contexte** : phrases et emojis sont hardcodés dans `mobile/src/components/QuickChat.tsx` (`QUICK_MESSAGES` + `QUICK_EMOJIS`). Le mobile supporte déjà un onglet "Premium" (placeholder).
+- **Ce qu'il faut faire :**
+
+  **Admin — onglet "Tchat" dans `/dashboard/store` :**
+  - Nouvel onglet "Tchat 💬" à côté des onglets existants (AVATAR / SKIN / etc.)
+  - Deux sous-sections : **Messages** et **Emojis**
+  - **Messages** : CRUD complet
+    - Champs : `text` (texte créole), `category` (`phrase` | `emoji`), `costType` (`free` | `coins` | `diamonds`), `costAmount` (number, 0 si gratuit), `enabled` (toggle on/off)
+    - Aperçu de la bulle de tchat telle qu'elle apparaîtra en jeu
+  - **Emojis** : CRUD complet
+    - Champs : `emoji` (caractère unicode ou URL image), `costType`, `costAmount`, `enabled`
+    - Picker emoji intégré (ou saisie manuelle du caractère unicode)
+  - Ordre d'affichage : champ `order` (drag & drop ou numérique)
+
+  **Firestore :**
+  - Collection `chat_messages/{id}` — champs : `text`, `icon`, `category`, `costType`, `costAmount`, `order`, `enabled`
+  - Règles : lecture publique (authentifiée), écriture admin uniquement
+
+  **Mobile (`QuickChat.tsx`) :**
+  - Remplacer `QUICK_MESSAGES` et `QUICK_EMOJIS` hardcodés par un fetch Firestore au démarrage (avec fallback sur les valeurs actuelles si hors ligne)
+  - Les messages/emojis `costType: 'free'` sont affichés librement
+  - Les payants apparaissent avec un badge prix + vérification du solde avant envoi
+  - Les items `enabled: false` sont masqués
+
+- **Fichiers concernés :**
+  - `admin/app/dashboard/store/page.tsx` (nouvel onglet)
+  - `admin/app/api/store/route.ts` (ou nouvelle route `/api/chat-messages`)
+  - `mobile/src/components/QuickChat.tsx`
+  - `firestore.rules`
+- **Estimation :** ~1 jour (admin CRUD + onglet) + ~0,5 jour (mobile dynamic fetch)
+
+---
+
+### [ADMIN-STORE-2] Gestion des avatars — upload image + preview
+- **Contexte** : les avatars sont des assets locaux définis dans `mobile/src/core/avatars.ts`. Le mobile supporte déjà les URLs Firebase Storage (whitelist dans `getAvatarImage()`). Le pattern d'upload Firebase Storage (resize + WebP) existe dans `admin/app/dashboard/bots/page.tsx`.
+- **Ce qu'il faut faire :**
+
+  **Admin — dans le modal de création/modification d'un item `type: AVATAR` :**
+  - Remplacer le champ `assetId` (string) par un **input file** (jpg/png/webp, max 2 Mo)
+  - Conversion automatique en WebP + resize à 200×200 px (pattern déjà implémenté dans bots)
+  - Upload vers Firebase Storage : chemin `avatars/{itemId}.webp`
+  - Stockage de l'URL publique dans `store_catalog/{id}.imageUrl`
+  - Afficher une **preview de l'avatar** dans le modal dès la sélection du fichier (avant upload)
+  - Afficher l'avatar actuel si modification d'un item existant
+
+  **Affichage dans la liste :**
+  - Colonne miniature (32×32) dans le tableau pour les items de type AVATAR
+
+  **Mobile :**
+  - `getAvatarImage()` lit déjà `imageUrl` en priorité sur `assetId` — aucun changement nécessaire
+
+- **Fichiers concernés :**
+  - `admin/app/dashboard/store/page.tsx`
+  - `admin/app/api/store/route.ts`
+  - Firebase Storage (bucket existant)
+- **Estimation :** ~0,5 jour
 
 ---
 
@@ -71,6 +232,12 @@
 ---
 
 ## 🔍 Bugs à investiguer (signalements douteux)
+
+- [ ] **[B-TEST-COCHON]** Test `Bug B2` en échec dans `ScoringScenarios.test.ts` — faux positif
+  - Le test vérifie `playerB?.totalCochons` sur un **perdant**, mais ce champ (`totalCochons`) ne track que les cochons **donnés** (côté gagnant). Le bon champ pour un perdant est `totalCochonsSubis`.
+  - La logique moteur est correcte (MATCH_END se déclenche bien). Seule l'assertion du test est fausse.
+  - **Action** : corriger l'assertion → `expect(playerB?.totalCochonsSubis).toBe(1)` ou supprimer la ligne
+  - **Priorité** : basse (cosmétique test) — **Estimation** : 5 min
 
 - [ ] **[B-BOUDE-1]** Partie bloquée solo : gagnant potentiellement incorrect — signalement du 22/04/2026 où le joueur avait `[3|0]`=3 pts, un bot `[2|3]`=5 pts, et le bot aurait gagné. Investigation préliminaire : logique `determineWinnerOnBoudé` correcte (minimum), troisième joueur non mentionné (probable cause : le 3e bot avait < 3 pts). À confirmer en notant les 3 mains + scores affichés sur la carte résultat lors de la prochaine occurrence.
 
@@ -159,11 +326,10 @@
 
 ---
 
-## 🟡 Bloc 8 — Animations domino (reporté)
+## 🟡 Bloc 8 — Animations domino (reporté post-lancement)
 
+- [ ] **[R2-A1]** Animation "glissé" — domino qui glisse vers le plateau lorsqu'il est joué *(reporté depuis sprint lancement le 25/04/2026)*
 - [ ] Animation "distribution" — distribution en début de manche
-
-> Note : l'animation "glissé" (R2-A1) reste dans `TASKS.md` — sprint lancement.
 
 ---
 

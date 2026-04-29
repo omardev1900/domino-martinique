@@ -197,10 +197,21 @@ export const finalizeRound = (
     }
 
     // 3.3 Check Match End
-    // RULE: Match ends only at the end of a Manche (mancheWinner OR isChire), for all modes.
-    // EXCEPTION: A Chiré (tie manche) can NEVER end the match — no winner, so no match over.
     let isMatchOver = false;
-    if (mancheWinner || isChire) {
+
+    if (newState.gameMode === 'SCORE') {
+        // Mode SCORE : vérification après chaque round (pas seulement après une manche)
+        // Un joueur peut atteindre l'objectif via des victoires de rounds successives sans jamais
+        // terminer une manche complète (3 étoiles).
+        const maxPoints = Math.max(...newState.players.map(p => p.totalPoints));
+        if (maxPoints >= newState.winningCondition) {
+            const leaders = newState.players.filter(p => p.totalPoints === maxPoints);
+            isMatchOver = leaders.length === 1;
+            if (leaders.length > 1) {
+                LogService.info('ScoringEngine', `TIE AT SCORE THRESHOLD (${maxPoints})! Continuing for another round...`);
+            }
+        }
+    } else if (mancheWinner || isChire) {
         if (isChire) {
             // Chiré = manche nulle, aucun vainqueur → jamais de fin de match
             isMatchOver = false;
@@ -214,22 +225,9 @@ export const finalizeRound = (
                     LogService.info('ScoringEngine', `TIE AT MANCHE THRESHOLD (Points: ${maxPoints})! Continuing for another manche...`);
                 }
             }
-        } else if (newState.gameMode === 'SCORE') {
-            const maxPoints = Math.max(...newState.players.map(p => p.totalPoints));
-            if (maxPoints >= newState.winningCondition) {
-                // TIE BREAKER: Only end if there is a unique winner with the maximum points
-                const leaders = newState.players.filter(p => p.totalPoints === maxPoints);
-                isMatchOver = leaders.length === 1;
-                if (leaders.length > 1) {
-                    LogService.info('ScoringEngine', `TIE AT THRESHOLD (${maxPoints})! Continuing for another manche...`);
-                }
-            }
         } else if (newState.gameMode === 'COCHON') {
             const maxCochons = Math.max(...newState.players.map(p => p.totalCochons));
             if (maxCochons >= newState.winningCondition) {
-                // En mode COCHON, le match se termine dès qu'un joueur atteint le seuil de cochons.
-                // Contrairement aux modes SCORE/MANCHE, le tie-breaker est na pas applicable ici :
-                // plusieurs joueurs peuvent être éliminés simultanément → on termine le match.
                 isMatchOver = true;
             }
         }

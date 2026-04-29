@@ -122,10 +122,9 @@ describe('Scoring Verification', () => {
         expect(playerA?.totalPoints).toBe(1); // 1 point pour le round gagné !
     });
 
-    test('4. [CORRIGÉ] SCORE — Round simple ne déclenche pas MATCH_END sans fin de manche', () => {
-        // A=0 étoile, 29 pts. Objectif=30. A gagne le round → totalPoints = 30.
-        // Mais AUCUNE manche ne se termine (pas 3 étoiles) → jamais MATCH_END.
-        // La phase doit rester PARTIE_END (fin de round classique).
+    test('4. SCORE — Round déclenche MATCH_END quand le joueur atteint l\'objectif', () => {
+        // A=0 étoile, 29 pts. Objectif=30. A gagne le round → totalPoints = 30 → MATCH_END.
+        // Fix R3-B1 : la vérification Mode Score se fait après chaque round, pas seulement après une manche.
         const state = createMockState([
             { id: 'A', stars: 0, totalPoints: 29 },
             { id: 'B', stars: 0, totalPoints: 10 },
@@ -133,11 +132,24 @@ describe('Scoring Verification', () => {
         ], 'SCORE', 30);
 
         const newState = finalizeRound(state, 'A');
-        logResult('Test 4 [CORRIGÉ]: Round simple sans fin de manche', newState, {});
+        logResult('Test 4: Round atteint objectif Score → MATCH_END', newState, {});
 
         const playerA = newState.players.find(p => p.id === 'A');
-        expect(playerA?.totalPoints).toBe(30); // Les points s'accumulent
-        // Sans fin de manche (pas 3 étoiles), le match ne peut pas se terminer
+        expect(playerA?.totalPoints).toBe(30);
+        expect(newState.phase).toBe('MATCH_END');
+    });
+
+    test('4b. SCORE — Round sans atteinte de l\'objectif reste PARTIE_END', () => {
+        // A=0 étoile, 5 pts. Objectif=30. A gagne le round → totalPoints = 6 → PARTIE_END.
+        const state = createMockState([
+            { id: 'A', stars: 0, totalPoints: 5 },
+            { id: 'B', stars: 0, totalPoints: 10 },
+            { id: 'C', stars: 0, totalPoints: 10 }
+        ], 'SCORE', 30);
+
+        const newState = finalizeRound(state, 'A');
+        const playerA = newState.players.find(p => p.id === 'A');
+        expect(playerA?.totalPoints).toBe(6);
         expect(newState.phase).toBe('PARTIE_END');
     });
 
@@ -289,5 +301,95 @@ describe('Scoring Verification', () => {
         // It should be MANCHE_END because A reaches 3 stars.
         expect(newState.phase).toBe('MANCHE_END');
         expect(newState.mancheResult).toBe('COCHON');
+    });
+
+    // ─── Tests de couverture R3-B1 (fix Mode Score) ─────────────────────────────
+
+    test('R3-B1-A : SCORE — Égalité exacte au seuil via round → partie continue', () => {
+        // A=9pts, B=10pts déjà. Objectif=10. A gagne le round → A=10, B=10 → 2 leaders → pas de fin.
+        // Le match doit continuer jusqu'à ce qu'un joueur soit seul en tête.
+        const state = createMockState([
+            { id: 'A', stars: 0, totalPoints: 9 },
+            { id: 'B', stars: 0, totalPoints: 10 },
+            { id: 'C', stars: 0, totalPoints: 5 }
+        ], 'SCORE', 10);
+
+        const newState = finalizeRound(state, 'A');
+        const playerA = newState.players.find(p => p.id === 'A');
+        const playerB = newState.players.find(p => p.id === 'B');
+
+        expect(playerA?.totalPoints).toBe(10);
+        expect(playerB?.totalPoints).toBe(10);
+        // Deux joueurs à égalité au seuil → le match ne se termine PAS
+        expect(newState.phase).toBe('PARTIE_END');
+    });
+
+    test('R3-B1-B : SCORE — Seuil atteint via bonus de manche (cochon) → MATCH_END', () => {
+        // A=7pts, 2 étoiles. B=0 étoile. C=0 étoile. Objectif=10.
+        // A gagne le round → 3 étoiles (mancheWinner) → +1 round + 2 bonus cochon = 10pts → MATCH_END.
+        // Vérifie que le chemin "manche + bonus" fonctionne toujours après le refactor.
+        const state = createMockState([
+            { id: 'A', stars: 2, totalPoints: 7 },
+            { id: 'B', stars: 0, totalPoints: 3 },
+            { id: 'C', stars: 0, totalPoints: 3 }
+        ], 'SCORE', 10);
+
+        const newState = finalizeRound(state, 'A');
+        const playerA = newState.players.find(p => p.id === 'A');
+
+        // A : 7 + 1 (round) + 2 (double cochon) = 10 ≥ objectif → MATCH_END
+        expect(playerA?.totalPoints).toBe(10);
+        expect(newState.mancheResult).toBe('COCHON');
+        expect(newState.phase).toBe('MATCH_END');
+    });
+
+    test('R3-B1-C : MANCHE — Round ordinaire ne déclenche pas MATCH_END même si totalPoints élevé', () => {
+        // En mode MANCHE, la fin de match dépend du nombre de manches jouées, PAS des totalPoints.
+        // Régression : s'assurer que le fix Score n'affecte pas le mode MANCHE.
+        const state = createMockState([
+            { id: 'A', stars: 0, totalPoints: 99 },
+            { id: 'B', stars: 0, totalPoints: 50 },
+            { id: 'C', stars: 0, totalPoints: 50 }
+        ], 'MANCHE', 3); // Objectif = 3 manches
+
+        const newState = finalizeRound(state, 'A');
+        const playerA = newState.players.find(p => p.id === 'A');
+
+        expect(playerA?.totalPoints).toBe(100);
+        // Pas de mancheWinner (0 étoile → 1 étoile, pas 3) → PARTIE_END
+        expect(newState.phase).toBe('PARTIE_END');
+    });
+
+    test('R3-B1-D : COCHON — Round ordinaire ne déclenche pas MATCH_END', () => {
+        // En mode COCHON, seul un mancheWinner avec totalCochons >= seuil déclenche la fin.
+        // Régression : s'assurer que le fix Score n'affecte pas le mode COCHON.
+        const state: any = createMockState([
+            { id: 'A', stars: 0, totalPoints: 5 },
+            { id: 'B', stars: 0, totalPoints: 2 },
+            { id: 'C', stars: 0, totalPoints: 2 }
+        ], 'COCHON', 3);
+        state.players[0].totalCochons = 2; // A a déjà 2 cochons, seuil = 3
+
+        const newState = finalizeRound(state, 'A');
+
+        // Pas de mancheWinner (1 étoile seulement) → PARTIE_END, pas MATCH_END
+        expect(newState.phase).toBe('PARTIE_END');
+    });
+
+    test('R3-B1-E : SCORE — Dépassement du seuil (saut) via round déclenche MATCH_END', () => {
+        // A=28pts, objectif=30. A gagne un round avec bonus (2 cochons) → 28+1+2=31 > 30 → MATCH_END.
+        // Vérifie que le dépassement (>= et pas seulement ==) est bien géré.
+        const state = createMockState([
+            { id: 'A', stars: 2, totalPoints: 28 },
+            { id: 'B', stars: 0, totalPoints: 5 },
+            { id: 'C', stars: 0, totalPoints: 5 }
+        ], 'SCORE', 30);
+
+        const newState = finalizeRound(state, 'A');
+        const playerA = newState.players.find(p => p.id === 'A');
+
+        // 28 + 1 (round) + 2 (double cochon bonus) = 31 ≥ 30 → MATCH_END
+        expect(playerA?.totalPoints).toBe(31);
+        expect(newState.phase).toBe('MATCH_END');
     });
 });

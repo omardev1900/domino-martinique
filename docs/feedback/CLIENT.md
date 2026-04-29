@@ -117,3 +117,43 @@
 | R2-A4 | Regrouper stats Ligue Cochons dans le (i) de l'accueil | ✅ FIXED |
 | R2-A5 | Aérer le plateau de jeu : garder un seul bouton option qui affiche infos + réglages | ✅ FIXED |
 | R2-A6 | Modifier popup fin de match : grouper résultats + Mes gains + animation / Historique depuis icône en haut | ✅ FIXED |
+
+---
+
+## 📋 RETOUR #3 — 25 avril 2026 (Manuel Voitier)
+
+> Retour reçu le 25 avril 2026. Verbatim conservé. Statut de traitement dans `BACKLOG.md`.
+
+### 🔴 BUGS
+
+| # | Description brute | Statut |
+|---|---|---|
+| R3-B1 | Mode Score : objectif atteint mais la partie ne se termine pas, une nouvelle manche commence | 📋 BACKLOG |
+| R3-B2 | Onglet DETAILS ne fonctionne pas après une partie finie | 📋 BACKLOG |
+| R3-B3 | Égalité : on ne voit pas l'affichage des points faisant égalité | 📋 BACKLOG |
+| R3-B4 | Décompte cochons désynchronisé (bloqué à 89 alors que stats = 93), pas de message de félicitation pour passage au grade "Maître saucissier 2", pas de récompense reçue | 📋 BACKLOG |
+| R3-B5 | Ligue : le décompte "89 / 90" est superposé avec la jauge | 📋 BACKLOG |
+| R3-B6 | Boutique : affichage des dominos incorrect, superposition quand il y a coins et diamant | 📋 BACKLOG |
+| R3-B7 | Mode paysage multijoueur : impossible de changer de sens | 📋 BACKLOG |
+| R3-B8 | Fond d'écran violet : on voit le quadrillage (lignes noires visibles) | 📋 BACKLOG |
+
+### 🟠 MANQUES FONCTIONNELS
+
+| # | Description brute | Statut |
+|---|---|---|
+| R3-M1 | Classement mensuel : 3 classements (Scoreurs / Bouchers / Défenseurs) avec couleurs par niveau (Apprenti / Maître / Élite), visible dès le lancement | 📋 BACKLOG |
+| R3-M2 | Indicateur de niveau des adversaires visible en cours de partie | 📋 BACKLOG |
+| R3-M3 | Boutique — onglet PUB : phrase créole + 100 coins débloquables via pub ou 5€/mois | 📋 BACKLOG |
+| R3-M4 | Aide mode Cochon incorrecte : "le mode s'arrête dès que l'objectif est atteint" → faux, il faut gagner 3 parties avec un joueur à zéro | 📋 BACKLOG |
+
+### 🟡 AMÉLIORATIONS UX / DESIGN
+
+| # | Description brute | Statut |
+|---|---|---|
+| R3-A1 | Remplacer le logo MDC bleu par le logo cochon | 📋 BACKLOG |
+| R3-A2 | Statistiques 5 / 4 / 2 / 1 / -1 dans la section Ligue (onglet Infos) | 📋 BACKLOG |
+| R3-A3 | Taux de victoire dans Statistiques : calcul incompréhensible | 📋 BACKLOG |
+| R3-A4 | Vestiaire : pas clair, affichage à revoir | 📋 BACKLOG |
+| R3-A5 | Musique : une musique à l'accueil + playlist en jeu qui change à chaque manche | 📋 BACKLOG |
+| R3-A6 | Avatars : il n'y a que des noirs, problème de diversité | 📋 BACKLOG |
+| R3-A7 | Les dominos ne glissent pas (confirmation R2-A1) | 📋 BACKLOG |
