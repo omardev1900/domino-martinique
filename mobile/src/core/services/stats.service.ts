@@ -15,7 +15,8 @@ export interface MatchRecord {
     cochons: number;
     opponents: { name: string; avatarId: string }[];
     mode: string;
-    roundsWon?: number; // ✅ Ajout des manches gagnées dans le match
+    roundsWon?: number;       // Manches gagnées dans le match
+    leaguePointsEarned?: number; // Points Ligue du match : 5 / 4 / 2 / 1 / -1
 }
 
 export interface PlayerStats {
@@ -112,12 +113,13 @@ class StatsService {
         cochons: number;
         points: number;
         roundsWon?: number;
+        leaguePointsEarned?: number; // -1 / 1 / 2 / 4 / 5 pts ligue
         opponents: { name: string; avatarId: string }[];
         mode: string;
         userId?: string; // Optional: sync immediately if provided
     }): Promise<void> {
         const stats = await this.getStats();
-        const { result, cochons, points, roundsWon = 0, opponents, mode, userId } = params;
+        const { result, cochons, points, roundsWon = 0, leaguePointsEarned, opponents, mode, userId } = params;
 
         stats.gamesPlayed += 1;
         if (result === 'WIN') stats.gamesWon += 1;
@@ -133,6 +135,7 @@ class StatsService {
             score: points,
             cochons: cochons,
             roundsWon,
+            leaguePointsEarned,
             opponents,
             mode
         };

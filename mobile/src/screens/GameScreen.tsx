@@ -374,8 +374,13 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         });
 
                         // ✅ Exécution sécurisée côté serveur (Backend Banker)
+                        // [R3-A2] Mémoriser le total avant pour calculer le delta (points ligue ce match)
+                        const prevCochonsGiven = playerEconomyRef.current.cochonsGiven || 0;
                         const reward = await economyService.processServerReward(rewardInput, userId);
                         setMatchReward(reward);
+
+                        // [R3-A2] Points Ligue gagnés ce match : delta cochonsGiven = -1 / 1 / 2 / 4 / 5
+                        const leaguePointsEarned = (reward.newCochonsGiven ?? 0) - prevCochonsGiven;
 
                         // Mettre à jour le cache local pour que la prochaine partie
                         // dans la même session parte des bonnes valeurs (évite la dérive cochonsGiven)
@@ -390,7 +395,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                             ],
                         };
 
-                        LogService.info('GameScreen', `Economy rewards applied — coins:${reward.coinsEarned} xp:${reward.xpEarned} gradeUp:${reward.gradeUp}`);
+                        LogService.info('GameScreen', `Economy rewards applied — coins:${reward.coinsEarned} xp:${reward.xpEarned} gradeUp:${reward.gradeUp} leaguePointsEarned:${leaguePointsEarned}`);
 
                         // 2. Record basic match stats ONLY IF economy succeeds
                         // ✅ FIX [2026-04-15]: Use totalCochonsInfliges (cochons GIVEN to opponents, permanent counter)
@@ -400,6 +405,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                             cochons: localPlayer.totalCochonsInfliges || 0,
                             points: localPlayer.totalPoints || 0,
                             roundsWon: localPlayer.mancheWins || 0,
+                            leaguePointsEarned,
                             opponents: opponentsData,
                             mode: isSoloMode ? 'SOLO' : 'MULTIPLAYER',
                             userId: userId

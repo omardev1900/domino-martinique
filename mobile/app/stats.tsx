@@ -49,10 +49,7 @@ function WinRateCircle({ rate }: { rate: number }) {
 }
 
 import { statsService, PlayerStats } from '../src/core/services/stats.service';
-import { economyService } from '../src/core/services/economy.service';
 import { authService } from '../src/core/services/auth.service';
-import { PlayerEconomy } from '../src/core/economy.types';
-import { xpRequiredForLevel } from '../src/core/RewardEngine';
 import { LEAGUE_LABELS, LEAGUE_ICONS } from '../src/core/economy.constants';
 import { MatchHistory } from '../src/components/MatchHistory';
 
@@ -66,31 +63,11 @@ export default function StatsScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [historyModalVisible, setHistoryModalVisible] = useState(false);
 
-    const [economy, setEconomy] = useState<PlayerEconomy>({
-        coins: 0, xp: 0, level: 1, diamonds: 0, leaguePoints: 0, leagueGrade: 'APPRENTI',
-    });
-
     useFocusEffect(
         useCallback(() => {
             loadPlayerStats();
-            loadEconomy();
         }, [])
     );
-
-    const loadEconomy = async () => {
-        try {
-            // Sync depuis Firebase d'abord pour que l'XP affiché
-            // corresponde à la valeur du leaderboard (source de vérité)
-            const user = await authService.getCurrentUser();
-            if (user && !user.uid.startsWith('guest_')) {
-                await economyService.syncFromFirebase(user.uid);
-            }
-            const eco = await economyService.getEconomy();
-            setEconomy(eco);
-        } catch (error) {
-            console.error('Failed to load economy', error);
-        }
-    };
 
     const records = useMemo(() => {
         if (!playerStats?.matchHistory) return { maxScore: 0, maxCochons: 0 };
@@ -129,44 +106,65 @@ export default function StatsScreen() {
         </View>
     );
 
+    // ── Statistiques du mois courant, calculées depuis matchHistory ─────────
+    const monthlyStats = useMemo(() => {
+        if (!playerStats?.matchHistory) return { p5: 0, p4: 0, p2: 0, p1: 0, m1: 0 };
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        return playerStats.matchHistory
+            .filter(m => m.timestamp >= startOfMonth)
+            .reduce((acc, m) => {
+                const pts = m.leaguePointsEarned;
+                if (pts === 5)       acc.p5 += 1;
+                else if (pts === 4)  acc.p4 += 1;
+                else if (pts === 2)  acc.p2 += 1;
+                else if (pts === 1)  acc.p1 += 1;
+                else if (pts === -1) acc.m1 += 1;
+                return acc;
+            }, { p5: 0, p4: 0, p2: 0, p1: 0, m1: 0 });
+    }, [playerStats?.matchHistory]);
+
     const renderBlocA = () => {
-        const xpCurrent = economy.xp - xpRequiredForLevel(economy.level);
-        const xpNeeded = xpRequiredForLevel(economy.level + 1) - xpRequiredForLevel(economy.level);
-        const xpPct = xpNeeded > 0 ? Math.min(1, xpCurrent / xpNeeded) : 1;
-        const gradeLabel = LEAGUE_LABELS[economy.leagueGrade] || economy.leagueGrade;
-        const gradeIcon = LEAGUE_ICONS[economy.leagueGrade] || '🔰';
+        const monthLabel = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        const totalMonth = (playerStats?.matchHistory ?? []).filter(m => {
+            const start = new Date();
+            start.setDate(1); start.setHours(0, 0, 0, 0);
+            return m.timestamp >= start.getTime();
+        }).length;
+
+        const rows: { pts: string; label: string; color: string; icon: string; count: number }[] = [
+            { pts: '5 PTS', label: 'DOUBLE COCHON',   color: '#FFD700', icon: '⭐', count: monthlyStats.p5 },
+            { pts: '4 PTS', label: 'SIMPLE COCHON',   color: '#FF8C00', icon: '🟠', count: monthlyStats.p4 },
+            { pts: '2 PTS', label: 'DOMINO',          color: '#4FC3F7', icon: '🔵', count: monthlyStats.p2 },
+            { pts: '1 PT',  label: 'VICTOIRE SIMPLE', color: '#9E9E9E', icon: '⚪', count: monthlyStats.p1 },
+            { pts: '-1 PT', label: 'COCHON PRIS',     color: '#FF3366', icon: '🔴', count: monthlyStats.m1 },
+        ];
 
         return (
             <Animated.View entering={FadeInUp.delay(100).duration(500)} style={[styles.bloc, styles.blocA]}>
-                {/* Devises Row */}
-                <View style={styles.devisesRow}>
-                    <View style={styles.deviseItem}>
-                        <Text style={styles.deviseIcon}>🪙</Text>
-                        <Text style={styles.deviseValue}>{economy.coins.toLocaleString()}</Text>
-                    </View>
-                    <View style={styles.deviseDivider} />
-                    <View style={styles.deviseItem}>
-                        <Text style={styles.deviseIcon}>💎</Text>
-                        <Text style={[styles.deviseValue, { color: '#60DCFF' }]}>{economy.diamonds.toLocaleString()}</Text>
-                    </View>
+                {/* Titre */}
+                <View style={styles.monthHeader}>
+                    <Text style={styles.monthTitle}>STATISTIQUES DU MOIS</Text>
+                    <Text style={styles.monthSub}>{monthLabel} · {totalMonth} match{totalMonth !== 1 ? 's' : ''}</Text>
                 </View>
 
-                {/* Ligue Badge */}
-                <View style={styles.leagueContainer}>
-                    <Text style={styles.leagueIcon}>{gradeIcon}</Text>
-                    <Text style={styles.leagueName}>{gradeLabel}</Text>
+                {/* Lignes stats */}
+                <View style={styles.statsRows}>
+                    {rows.map(row => (
+                        <View key={row.pts} style={[styles.statRow, { borderColor: `${row.color}30` }]}>
+                            <Text style={styles.statRowIcon}>{row.icon}</Text>
+                            <View style={styles.statRowTexts}>
+                                <Text style={[styles.statRowPts, { color: row.color }]}>{row.pts}</Text>
+                                <Text style={styles.statRowLabel}>{row.label}</Text>
+                            </View>
+                            <Text style={[styles.statRowCount, { color: row.color }]}>{row.count}</Text>
+                        </View>
+                    ))}
                 </View>
 
-                {/* XP Bar */}
-                <View style={styles.xpBox}>
-                    <View style={styles.xpHeader}>
-                        <Text style={styles.xpLevel}>Niveau {economy.level}</Text>
-                        <Text style={styles.xpProgressTxt}>{xpCurrent.toLocaleString()} / {xpNeeded.toLocaleString()} XP</Text>
-                    </View>
-                    <View style={styles.xpBarBg}>
-                        <View style={[styles.xpBarFill, { width: `${Math.round(xpPct * 100)}%` }]} />
-                    </View>
-                </View>
+                {totalMonth === 0 && (
+                    <Text style={styles.monthEmpty}>Jouez une partie pour voir vos stats ici 🎮</Text>
+                )}
             </Animated.View>
         );
     };
@@ -196,7 +194,7 @@ export default function StatsScreen() {
                     <Text style={styles.statLineIcon}>🐷</Text>
                     <Text style={styles.statLineLabel}>COCHONS (LIGUE)</Text>
                     <View style={styles.statLineDotted} />
-                    <Text style={[styles.statLineValue, { color: '#FF3366' }]}>{(economy.cochonsGiven || 0).toLocaleString()}</Text>
+                    <Text style={[styles.statLineValue, { color: '#FF3366' }]}>{(playerStats.totalCochonsInflicted || 0).toLocaleString()}</Text>
                 </View>
 
                 <View style={styles.statLine}>
@@ -366,80 +364,72 @@ const styles = StyleSheet.create({
         justifyContent: 'space-evenly', // Distribution égale des 4 lignes
     },
 
-    // --- BLOC A DETAILS ---
-    devisesRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 12,
-        paddingVertical: 8,
+    // ── BLOC A : Stats du mois ──
+    monthHeader: {
         marginBottom: 10,
-    },
-    deviseItem: {
-        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+    },
+    monthTitle: {
+        color: '#FFD700',
+        fontSize: 12,
+        fontWeight: '900',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        textAlign: 'center',
+    },
+    monthSub: {
+        color: 'rgba(255,255,255,0.35)',
+        fontSize: 10,
+        marginTop: 2,
+        textAlign: 'center',
+    },
+    statsRows: {
         flex: 1,
         gap: 6,
-    },
-    deviseDivider: {
-        width: 1,
-        height: '70%',
-        backgroundColor: 'rgba(255,255,255,0.2)',
-    },
-    deviseIcon: {
-        fontSize: 18,
-    },
-    deviseValue: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#FFD700',
-    },
-    leagueContainer: {
-        alignItems: 'center',
         justifyContent: 'center',
-        flex: 1,
     },
-    leagueIcon: {
-        fontSize: 50,
-        marginBottom: 4,
-    },
-    leagueName: {
-        fontSize: 16,
-        color: '#FFF',
-        fontWeight: '800',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    xpBox: {
-        marginTop: 10,
-    },
-    xpHeader: {
+    statRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 6,
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 10,
+        borderWidth: 1,
+        paddingHorizontal: 10,
+        paddingVertical: 9,
+        gap: 10,
     },
-    xpLevel: {
-        color: '#FFD700',
-        fontWeight: 'bold',
+    statRowIcon: {
+        fontSize: 16,
+        width: 22,
+        textAlign: 'center',
+    },
+    statRowTexts: {
+        flex: 1,
+        gap: 1,
+    },
+    statRowPts: {
         fontSize: 12,
+        fontWeight: '900',
+        letterSpacing: 0.5,
     },
-    xpProgressTxt: {
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: 10,
-        fontWeight: 'bold',
+    statRowLabel: {
+        fontSize: 9,
+        color: 'rgba(255,255,255,0.45)',
+        fontWeight: '600',
+        letterSpacing: 0.3,
     },
-    xpBarBg: {
-        height: 6,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 3,
-        overflow: 'hidden',
+    statRowCount: {
+        fontSize: 22,
+        fontWeight: '900',
+        minWidth: 32,
+        textAlign: 'right',
     },
-    xpBarFill: {
-        height: '100%',
-        backgroundColor: '#4CAF50',
-        borderRadius: 3,
+    monthEmpty: {
+        color: 'rgba(255,255,255,0.3)',
+        fontSize: 11,
+        textAlign: 'center',
+        fontStyle: 'italic',
+        marginTop: 8,
     },
 
     // --- BLOC B DETAILS ---
