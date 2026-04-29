@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
         marginTop: 15,
         marginBottom: 20,
         alignItems: 'stretch',
-        height: 140, // Height determined to fit all 3 properly
+        height: 160,
     },
     topCardWrapper: {
         flex: 1,
