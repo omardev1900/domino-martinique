@@ -259,7 +259,16 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     </View>
                 ))}
                 {(!gameState.mancheHistory || gameState.mancheHistory.length === 0) && (
-                    <Text style={styles.emptyHistory}>Aucun historique disponible.</Text>
+                    // Pas de manches complètes (ex: Mode Score objectif atteint dès le 1er round)
+                    // → afficher un résumé basé sur les totaux des joueurs
+                    <View style={styles.historyRow}>
+                        <Text style={[styles.historyCell, { width: 52, color: 'rgba(255,255,255,0.4)' }]}>R1</Text>
+                        {gameState.players.map(p => (
+                            <Text key={p.id} style={[styles.historyCell, { flex: 1, color: 'rgba(255,255,255,0.8)' }]}>
+                                {p.totalPoints || 0}
+                            </Text>
+                        ))}
+                    </View>
                 )}
                 <View style={[styles.historyRow, styles.historyTotalRow]}>
                     <Text style={[styles.historyCell, { width: 52, color: '#FFD700', fontWeight: 'bold' }]}>TOTAL</Text>

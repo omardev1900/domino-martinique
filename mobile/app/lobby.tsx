@@ -31,28 +31,6 @@ import { TableTier } from '../src/core/economy.types';
 import { EconomyHeader } from '../src/components/EconomyHeader';
 import { GameModeCard } from '../src/components/GameModeCard';
 import { SelectedModeHeader } from '../src/components/SelectedModeHeader';
-import Svg, { Rect, Defs, Pattern } from 'react-native-svg';
-
-const MadrasPattern = () => (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Svg width="100%" height="100%" opacity={0.07}>
-            <Defs>
-                <Pattern
-                    id="madras"
-                    width="40"
-                    height="40"
-                    patternUnits="userSpaceOnUse"
-                >
-                    <Rect x="0" y="5" width="40" height="2" fill="#000" />
-                    <Rect x="0" y="25" width="40" height="1" fill="#000" />
-                    <Rect x="5" y="0" width="2" height="40" fill="#000" />
-                    <Rect x="25" y="0" width="1" height="40" fill="#000" />
-                </Pattern>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#madras)" />
-        </Svg>
-    </View>
-);
 
 type LobbyTab = 'CREATE' | 'JOIN' | 'PUBLIC';
 
@@ -617,8 +595,6 @@ export default function LobbyScreen() {
                 colors={['#2D1B4E', '#1A0E2E']}
                 style={styles.container}
             >
-                <MadrasPattern />
-
                 {/* Header Top Row (Integrated Back + Tabs + Economy) */}
                 <View style={[styles.headerRow, { paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 0 : 10) }]}>
                     <TouchableOpacity onPress={() => {

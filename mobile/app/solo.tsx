@@ -17,30 +17,6 @@ import { EconomyHeader } from '../src/components/EconomyHeader';
 import { AdBannerModal } from '../src/components/AdBannerModal';
 import { adService } from '../src/core/services/ad.service';
 import { Ad } from '../src/core/ad.types';
-import Svg, { Rect, Defs, Pattern } from 'react-native-svg';
-
-const MadrasPattern = () => (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Svg width="100%" height="100%" opacity={0.07}>
-            <Defs>
-                <Pattern
-                    id="madras"
-                    width="40"
-                    height="40"
-                    patternUnits="userSpaceOnUse"
-                >
-                    {/* Horizontal lines */}
-                    <Rect x="0" y="5" width="40" height="2" fill="#000" />
-                    <Rect x="0" y="25" width="40" height="1" fill="#000" />
-                    {/* Vertical lines */}
-                    <Rect x="5" y="0" width="2" height="40" fill="#000" />
-                    <Rect x="25" y="0" width="1" height="40" fill="#000" />
-                </Pattern>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#madras)" />
-        </Svg>
-    </View>
-);
 
 type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
 type GameMode = 'MANCHE' | 'SCORE' | 'COCHON' | 'VICTOIRE';
@@ -150,7 +126,6 @@ export default function SoloScreen() {
             colors={['#2D1B4E', '#1A0E2E']}
             style={[styles.container, { minHeight: height }]}
         >
-            <MadrasPattern />
             <View style={[styles.backContainer, { top: insets.top + (Platform.OS === 'ios' ? 0 : 10) }]}>
                 <View style={styles.headerLeft}>
                     <TouchableOpacity style={styles.backButton} onPress={() => {
