@@ -170,21 +170,28 @@ export default function StoreScreen() {
                                 <Text style={styles.currencyOverlayText}>{item.rewards?.coins?.toLocaleString('fr-FR') || ''}</Text>
                             </>
                         ) : item.type === 'SKIN' ? (
-                            <View style={[styles.skinPreviewContainer, { backgroundColor: item.skinConfig ? item.skinConfig.tableBackgroundColor : '#555555' }]}>
-                                {item.skinConfig && (
-                                    <View style={[styles.skinPreviewDomino, { backgroundColor: item.skinConfig.dominoBackgroundColor }]}>
-                                        <View style={styles.skinPreviewHalf}>
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
-                                        </View>
-                                        <View style={[styles.skinPreviewDivider, { backgroundColor: item.skinConfig.dominoLineColor }]} />
-                                        <View style={styles.skinPreviewHalf}>
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
-                                        </View>
+                            <View style={[styles.skinPreviewContainer, { backgroundColor: item.skinConfig ? item.skinConfig.tableBackgroundColor : '#2a1a4a' }]}>
+                                {item.skinConfig ? (
+                                    // 2 dominos en paysage côte à côte (comme en jeu)
+                                    <View style={styles.skinPreviewPair}>
+                                        {([{ l: 3, r: 1 }, { l: 2, r: 5 }] as { l: number; r: number }[]).map((vals, di) => (
+                                            <View key={di} style={[styles.skinPreviewDomino, { backgroundColor: item.skinConfig!.dominoBackgroundColor }]}>
+                                                <View style={styles.skinPreviewHalf}>
+                                                    {Array.from({ length: vals.l }).map((_, i) => (
+                                                        <View key={i} style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig!.dominoDotColor }]} />
+                                                    ))}
+                                                </View>
+                                                <View style={[styles.skinPreviewDivider, { backgroundColor: item.skinConfig!.dominoLineColor }]} />
+                                                <View style={styles.skinPreviewHalf}>
+                                                    {Array.from({ length: vals.r }).map((_, i) => (
+                                                        <View key={i} style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig!.dominoDotColor }]} />
+                                                    ))}
+                                                </View>
+                                            </View>
+                                        ))}
                                     </View>
+                                ) : (
+                                    <Ionicons name="grid" size={36} color="rgba(255,255,255,0.4)" />
                                 )}
                             </View>
                         ) : item.imageUrl ? (
@@ -209,9 +216,15 @@ export default function StoreScreen() {
                 <View style={styles.cardFooter}>
                     {!isOwned && (
                         <View style={styles.priceContainer}>
-                            {item.priceCoins !== undefined && item.priceCoins > 0 && <Text style={styles.priceText}>🪙 {item.priceCoins}</Text>}
-                            {item.priceDiamonds !== undefined && item.priceDiamonds > 0 && <Text style={[styles.priceText, { color: '#60DCFF' }]}>💎 {item.priceDiamonds}</Text>}
-                            {item.priceCoins === 0 && item.priceDiamonds === undefined && <Text style={[styles.priceText, { color: '#4CAF50' }]}>GRATUIT</Text>}
+                            {item.priceCoins !== undefined && item.priceCoins > 0 && (
+                                <Text style={styles.priceText}>🪙 {item.priceCoins}</Text>
+                            )}
+                            {item.priceDiamonds !== undefined && item.priceDiamonds > 0 && (
+                                <Text style={[styles.priceText, { color: '#60DCFF' }]}>💎 {item.priceDiamonds}</Text>
+                            )}
+                            {item.priceCoins === 0 && item.priceDiamonds === undefined && (
+                                <Text style={[styles.priceText, { color: '#4CAF50' }]}>GRATUIT</Text>
+                            )}
                         </View>
                     )}
 
@@ -454,21 +467,27 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 12,
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)',
     },
+    skinPreviewPair: {
+        flexDirection: 'row',
+        gap: 8,
+        alignItems: 'center',
+    },
+    // Domino en paysage (horizontal, comme en jeu)
     skinPreviewDomino: {
-        width: 30,
-        height: 60,
-        borderRadius: 4,
-        flexDirection: 'column',
+        width: 72,
+        height: 36,
+        borderRadius: 5,
+        flexDirection: 'row',
         justifyContent: 'space-between',
         paddingVertical: 4,
-        paddingHorizontal: 4,
+        paddingHorizontal: 5,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.8,
-        shadowRadius: 2,
+        shadowRadius: 3,
         elevation: 5,
     },
     skinPreviewHalf: {
@@ -478,17 +497,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignContent: 'center',
         gap: 2,
-        padding: 2,
     },
     skinPreviewDot: {
-        width: 6,
-        height: 6,
+        width: 5,
+        height: 5,
         borderRadius: 3,
     },
     skinPreviewDivider: {
-        height: 2,
-        width: '100%',
-        marginVertical: 2,
+        width: 1.5,
+        height: '100%',
+        marginHorizontal: 2,
     },
     cardDescription: {
         color: 'rgba(255,255,255,0.7)',
@@ -520,13 +538,13 @@ const styles = StyleSheet.create({
         minHeight: 48,
     },
     priceContainer: {
-        flexDirection: 'row',
-        gap: 12,
+        flexDirection: 'column',
+        gap: 2,
     },
     priceText: {
         color: '#FFD700',
         fontWeight: 'bold',
-        fontSize: 16,
+        fontSize: 13,
     },
     buyButton: {
         backgroundColor: '#4CAF50',

@@ -12,7 +12,6 @@ import {
     Platform
 } from 'react-native';
 import { Image } from 'expo-image';
-import Svg, { Rect, Path, Defs, Pattern } from 'react-native-svg';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,28 +36,6 @@ import { Ad } from '../src/core/ad.types';
 import { AdBannerModal } from '../src/components/AdBannerModal';
 import { USE_NEW_SIDEBAR } from '../src/core/config/navigation.config';
 
-const MadrasPattern = () => (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Svg width="100%" height="100%" opacity={0.07}>
-            <Defs>
-                <Pattern
-                    id="madras"
-                    width="40"
-                    height="40"
-                    patternUnits="userSpaceOnUse"
-                >
-                    {/* Horizontal lines */}
-                    <Rect x="0" y="5" width="40" height="2" fill="#000" />
-                    <Rect x="0" y="25" width="40" height="1" fill="#000" />
-                    {/* Vertical lines */}
-                    <Rect x="5" y="0" width="2" height="40" fill="#000" />
-                    <Rect x="25" y="0" width="1" height="40" fill="#000" />
-                </Pattern>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#madras)" />
-        </Svg>
-    </View>
-);
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -259,9 +236,6 @@ export default function HomeScreen() {
             colors={['#2D1B4E', '#1A0E2E']}
             style={[styles.container, { minHeight: height }]}
         >
-            {/* Madras Pattern Overlay */}
-            <MadrasPattern />
-
             {/* Header Area */}
             <View style={[styles.header, { paddingTop: insets.top || 20 }, USE_NEW_SIDEBAR && styles.headerCentered]}>
                 {/* Left Side: Controls — masqué si sidebar active */}
