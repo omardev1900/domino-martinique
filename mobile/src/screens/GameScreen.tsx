@@ -204,6 +204,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [showRoundResult, setShowRoundResult] = useState(false);
+    // Snapshot du gameState au moment où la carte résultat est déclenchée.
+    // Évite que le contenu change si la phase évolue pendant l'affichage (ex: égalité boudé).
+    const roundResultSnapshotRef = useRef<typeof gameState | null>(null);
     const [isSoundEnabled, setIsSoundEnabled] = useState(() => SettingsManager.getSettings().isSfxEnabled);
     const [isVibrationEnabled, setIsVibrationEnabled] = useState(() => SettingsManager.getSettings().isVibrationEnabled);
     const [bannerState, setBannerState] = useState<'NONE' | 'MANCHE' | 'ROUND'>('NONE');
@@ -494,6 +497,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
         if (gameState.phase === 'BOUDE' && !showRoundResult) {
             // Partie bloquée : card immédiate 3.5s, host résout BOUDE au bout
             boudeHandledRef.current = true;
+            roundResultSnapshotRef.current = gameState;
             setShowRoundResult(true);
             if (isLocalHost) {
                 // Host : on résout soi-même après 5s (annule le timer 6s séparé)
@@ -516,6 +520,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                 return;
             }
             // PARTIE_END classique (victoire normale)
+            roundResultSnapshotRef.current = gameState;
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
@@ -545,6 +550,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
 
         if (gameState.phase === 'MATCH_END') {
             // Fin de match : affichage temporaire du RoundResultCard (2.5s) PUIS UnifiedResultOverlay
+            roundResultSnapshotRef.current = gameState;
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
@@ -1175,9 +1181,9 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             )}
 
             {/* ✨ RoundResultCard — résumé visuel avant l'écran de score */}
-            {gameState && (
+            {(roundResultSnapshotRef.current ?? gameState) && (
                 <RoundResultCard
-                    gameState={gameState}
+                    gameState={roundResultSnapshotRef.current ?? gameState!}
                     visible={showRoundResult}
                 />
             )}
