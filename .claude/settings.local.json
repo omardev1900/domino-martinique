@@ -25,7 +25,10 @@
       "Bash(git mv *)",
       "Bash(cp -r LP lp)",
       "Bash(git rm *)",
-      "PowerShell($path = \"$env:USERPROFILE\\\\.android\"; if \\(!\\(Test-Path $path\\)\\) { New-Item -ItemType Directory -Path $path | Out-Null }; keytool -list -v -keystore \"$env:USERPROFILE\\\\.android\\\\debug.keystore\" -alias androiddebugkey -storepass android -keypass android 2>&1 | Select-String \"SHA\")"
+      "PowerShell($path = \"$env:USERPROFILE\\\\.android\"; if \\(!\\(Test-Path $path\\)\\) { New-Item -ItemType Directory -Path $path | Out-Null }; keytool -list -v -keystore \"$env:USERPROFILE\\\\.android\\\\debug.keystore\" -alias androiddebugkey -storepass android -keypass android 2>&1 | Select-String \"SHA\")",
+      "Bash(npx tsc *)",
+      "Bash(grep -v \"^--$\")",
+      "Bash(grep -v \"^$\")"
     ],
     "additionalDirectories": [
       "e:\\PROJETS\\_TEMPLATE\\docs",

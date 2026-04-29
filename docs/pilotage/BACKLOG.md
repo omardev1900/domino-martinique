@@ -231,13 +231,32 @@
 
 ---
 
+## 🧪 Dette technique — Tests (TECH-TESTS)
+
+> 8 suites en échec préexistantes, aucun impact sur le jeu en prod. Identifiées le 25/04/2026.
+
+- [ ] **[TECH-TEST-1]** Corriger les assertions `totalCochons` sur les perdants (3 tests)
+  - Suites : `ScoringScenarios`, `MultiplayerCochonSync`, `MultiplayerLogic`
+  - Cause : tests vérifient `totalCochons` (cochons donnés) sur un perdant → doit être `totalCochonsSubis`
+  - **Estimation** : ~30 min
+
+- [ ] **[TECH-TEST-2]** Corriger la config Jest pour les modules ESM Firebase (3 suites)
+  - Suites : `useGameTimers`, `useGameEngine`, `IntegrationArchitecture`
+  - Cause : `firebase.ts` utilise `import` ESM incompatible avec Jest CommonJS
+  - Fix : ajouter `firebase` dans `transformIgnorePatterns` dans `jest.config.js`
+  - **Estimation** : ~1h
+
+- [ ] **[TECH-TEST-3]** Restaurer les `testID` manquants dans les composants UI refactorisés (2 suites)
+  - Suites : `GameHeader`, `GameOverlays`
+  - Cause : refonte `GameHeader` + `GameOptionsMenu` (sprint lancement) a supprimé les testIDs
+  - Fix : rajouter `testID="btn-pause"`, `testID="btn-quit"`, etc. sur les éléments concernés
+  - **Estimation** : ~1h
+
+---
+
 ## 🔍 Bugs à investiguer (signalements douteux)
 
-- [ ] **[B-TEST-COCHON]** Test `Bug B2` en échec dans `ScoringScenarios.test.ts` — faux positif
-  - Le test vérifie `playerB?.totalCochons` sur un **perdant**, mais ce champ (`totalCochons`) ne track que les cochons **donnés** (côté gagnant). Le bon champ pour un perdant est `totalCochonsSubis`.
-  - La logique moteur est correcte (MATCH_END se déclenche bien). Seule l'assertion du test est fausse.
-  - **Action** : corriger l'assertion → `expect(playerB?.totalCochonsSubis).toBe(1)` ou supprimer la ligne
-  - **Priorité** : basse (cosmétique test) — **Estimation** : 5 min
+- [ ] **[B-TEST-COCHON]** *(inclus dans TECH-TEST-1 ci-dessus)*
 
 - [ ] **[B-BOUDE-1]** Partie bloquée solo : gagnant potentiellement incorrect — signalement du 22/04/2026 où le joueur avait `[3|0]`=3 pts, un bot `[2|3]`=5 pts, et le bot aurait gagné. Investigation préliminaire : logique `determineWinnerOnBoudé` correcte (minimum), troisième joueur non mentionné (probable cause : le 3e bot avait < 3 pts). À confirmer en notant les 3 mains + scores affichés sur la carte résultat lors de la prochaine occurrence.
 

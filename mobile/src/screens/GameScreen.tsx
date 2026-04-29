@@ -45,6 +45,7 @@ import { statsService } from '../core/services/stats.service';
 import { economyService } from '../core/services/economy.service';
 import { storeService } from '../core/services/store.service';
 import { botService } from '../core/services/bot.service';
+import { LogService } from '../core/services/LogService';
 import { RewardEngine } from '../core/RewardEngine';
 import { MatchReward, TableTier } from '../core/economy.types';
 import { TABLE_CONFIGS } from '../core/economy.constants';
@@ -372,12 +373,21 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         // ✅ Exécution sécurisée côté serveur (Backend Banker)
                         const reward = await economyService.processServerReward(rewardInput, userId);
                         setMatchReward(reward);
-                        console.log('💰 [GameScreen] Server Economy rewards applied:', {
-                            coins: reward.coinsEarned,
-                            xp: reward.xpEarned,
-                            leveledUp: reward.leveledUp,
-                            gradeUp: reward.gradeUp,
-                        });
+
+                        // Mettre à jour le cache local pour que la prochaine partie
+                        // dans la même session parte des bonnes valeurs (évite la dérive cochonsGiven)
+                        playerEconomyRef.current = {
+                            level: reward.newLevel,
+                            xp: reward.newXP,
+                            leaguePoints: reward.newLeaguePoints,
+                            cochonsGiven: reward.newCochonsGiven,
+                            unlockedFrames: [
+                                ...(playerEconomyRef.current.unlockedFrames || []),
+                                ...reward.newlyUnlockedFrames.map((f: any) => f.frameId),
+                            ],
+                        };
+
+                        LogService.info('GameScreen', `Economy rewards applied — coins:${reward.coinsEarned} xp:${reward.xpEarned} gradeUp:${reward.gradeUp}`);
 
                         // 2. Record basic match stats ONLY IF economy succeeds
                         // ✅ FIX [2026-04-15]: Use totalCochonsInfliges (cochons GIVEN to opponents, permanent counter)

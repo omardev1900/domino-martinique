@@ -44,6 +44,8 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
     
     // État pour afficher la modale "Nouveau Cadre" s'il y en a un
     const [showFrameModal, setShowFrameModal] = useState(false);
+    // Modale grade-up (uniquement si pas de nouveau cadre, pour éviter le double-popup)
+    const [showGradeUpModal, setShowGradeUpModal] = useState(false);
 
     // Animation flottante pour le cadre (Déplacée au niveau racine absolu, avant tout return conditionnel !)
     const floatingStyle = useAnimatedStyle(() => {
@@ -56,11 +58,20 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
 
     useEffect(() => {
         if (visible && reward && reward.newlyUnlockedFrames && reward.newlyUnlockedFrames.length > 0) {
-            // Afficher la modale après un court délai pour l'effet de surprise
             const timer = setTimeout(() => setShowFrameModal(true), 1500);
             return () => clearTimeout(timer);
         } else {
             setShowFrameModal(false);
+        }
+    }, [visible, reward]);
+
+    useEffect(() => {
+        // Modale grade-up uniquement si gradeUp sans nouveau cadre (sinon le cadre affiche déjà les félicitations)
+        if (visible && reward?.gradeUp && (!reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0)) {
+            const timer = setTimeout(() => setShowGradeUpModal(true), 1200);
+            return () => clearTimeout(timer);
+        } else {
+            setShowGradeUpModal(false);
         }
     }, [visible, reward]);
 
@@ -135,7 +146,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                             </Animated.View>
                         )}
 
-                        {isGradeUp && (
+                        {isGradeUp && reward.newGrade && (
                             <Animated.View entering={FadeInDown.delay(800)} style={styles.gradeUpBanner}>
                                 <Text style={styles.gradeUpText}>
                                     🐷 {LEAGUE_LABELS[reward.newGrade]} ! 🐷
@@ -375,6 +386,43 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                     </View>
                 </Modal>
             )}
+
+            {/* Modale PASSAGE DE GRADE (sans nouveau cadre) */}
+            {reward.gradeUp && reward.newGrade && (!reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0) && (
+                <Modal
+                    visible={showGradeUpModal}
+                    animationType="fade"
+                    transparent={true}
+                    onRequestClose={() => setShowGradeUpModal(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            onPress={() => setShowGradeUpModal(false)}
+                            style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                            <View style={styles.celebrationHeader}>
+                                <Text style={styles.celebrationTitle}>FÉLICITATIONS !</Text>
+                            </View>
+                            <Animated.View entering={ZoomIn.duration(700).springify()} style={styles.gradeUpModalContent}>
+                                <Text style={styles.gradeUpModalIcon}>
+                                    {LEAGUE_ICONS[reward.newGrade]}
+                                </Text>
+                                <Text style={styles.gradeUpModalTitle}>
+                                    TU ES PASSÉ AU GRADE
+                                </Text>
+                                <Text style={styles.gradeUpModalGrade}>
+                                    {LEAGUE_LABELS[reward.newGrade].toUpperCase()}
+                                </Text>
+                                <Text style={styles.gradeUpModalCochons}>
+                                    🐷 {reward.newLeaguePoints} COCHONS INFLIGÉS
+                                </Text>
+                                <Text style={styles.tapToCloseText}>(Appuyez pour continuer)</Text>
+                            </Animated.View>
+                        </TouchableOpacity>
+                    </View>
+                </Modal>
+            )}
         </Animated.View>
     );
 }
@@ -525,6 +573,47 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         fontSize: 14,
         letterSpacing: 1,
+    },
+    gradeUpModalContent: {
+        backgroundColor: 'rgba(26, 14, 46, 0.98)',
+        borderWidth: 2,
+        borderColor: '#FF9800',
+        borderRadius: 20,
+        paddingHorizontal: 36,
+        paddingVertical: 32,
+        alignItems: 'center',
+        width: '80%',
+        shadowColor: '#FF9800',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 20,
+        elevation: 20,
+    },
+    gradeUpModalIcon: {
+        fontSize: 64,
+        marginBottom: 12,
+    },
+    gradeUpModalTitle: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 13,
+        fontWeight: '600',
+        letterSpacing: 2,
+        marginBottom: 8,
+        textTransform: 'uppercase',
+    },
+    gradeUpModalGrade: {
+        color: '#FFD700',
+        fontSize: 26,
+        fontWeight: '900',
+        letterSpacing: 2,
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    gradeUpModalCochons: {
+        color: '#FF9800',
+        fontSize: 15,
+        fontWeight: '700',
+        marginBottom: 20,
     },
     totalsContainer: {
         flexDirection: 'row',

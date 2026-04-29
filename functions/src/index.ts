@@ -24,6 +24,7 @@ export const processMatchReward = functions.https.onCall(async (data: { input: P
     let currentXP = 0;
     let currentLevel = 1;
     let currentLeaguePoints = 0;
+    let currentCochonsGiven = 0;
     let currentCoins = 0;
     let currentDiamonds = 0;
 
@@ -35,6 +36,9 @@ export const processMatchReward = functions.https.onCall(async (data: { input: P
             currentXP = existingEconomy.xp || 0;
             currentLevel = existingEconomy.level || 1;
             currentLeaguePoints = existingEconomy.leaguePoints || 0;
+            // cochonsGiven doit être synchronisé depuis le serveur pour éviter la dérive
+            // avec leaguePoints. Fallback sur leaguePoints si cochonsGiven absent.
+            currentCochonsGiven = existingEconomy.cochonsGiven ?? existingEconomy.leaguePoints ?? 0;
             currentCoins = existingEconomy.coins || 0;
             currentDiamonds = existingEconomy.diamonds || 0;
         }
@@ -47,6 +51,7 @@ export const processMatchReward = functions.https.onCall(async (data: { input: P
         currentXP,
         currentLevel,
         currentLeaguePoints,
+        currentCochonsGiven,
     };
 
     // 4. Exécuter le moteur purement mathématique sur le serveur
