@@ -5,7 +5,7 @@
  * Contrôlé par le feature flag USE_NEW_SIDEBAR dans navigation.config.ts.
  *
  * Zones :
- *   Top    (fixe)       — Bouton MDC → ouvre MdcFeedbackModal
+ *   Top    (fixe)       — Bouton Cochon 🐷 → ouvre MdcFeedbackModal
  *   Middle (scrollable) — Avatar grade · CTA Jouer · items de nav
  *   Bottom (fixe)       — Paramètres
  */
@@ -93,10 +93,10 @@ export const Sidebar: React.FC = () => {
         <>
             <View style={[styles.sidebar, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
 
-                {/* ── TOP : Bouton MDC ── */}
+                {/* ── TOP : Bouton Cochon ── */}
                 <View style={styles.topZone}>
                     <TouchableOpacity style={styles.mdcBtn} onPress={() => setShowFeedback(true)} activeOpacity={0.8}>
-                        <Text style={styles.mdcText}>MDC</Text>
+                        <Text style={styles.mdcText}>🐷</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -205,17 +205,15 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 9,
-        backgroundColor: '#1565C0',
+        backgroundColor: 'rgba(255,215,0,0.1)',
         borderWidth: 2,
         borderColor: '#FFD700',
         alignItems: 'center',
         justifyContent: 'center',
     },
     mdcText: {
-        color: '#FFF',
-        fontSize: 13,
-        fontWeight: '900',
-        letterSpacing: 0.5,
+        fontSize: 24,
+        lineHeight: 28,
     },
 
     // ── Middle ──

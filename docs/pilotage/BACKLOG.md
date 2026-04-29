@@ -16,43 +16,43 @@
 
 ### 🔴 P0 — Bugs bloquants (à corriger en urgence)
 
-- [ ] **[R3-B1]** Mode Score : la partie ne se termine pas quand l'objectif est atteint — une nouvelle manche se lance
+- [x] **[R3-B1]** ~~Mode Score : la partie ne se termine pas quand l'objectif est atteint~~ — **Livré 29/04/2026** : la partie s'arrête dès que l'objectif est atteint ; en cas d'égalité parfaite, le jeu continue jusqu'à ce qu'un joueur prenne l'avantage.
   - Vérifier la condition de fin de match dans `LogicEngine.ts` pour le mode Score
   - Fichiers suspects : `mobile/src/core/LogicEngine.ts`, `mobile/src/hooks/game/useActionDispatcher.ts`
   - **Estimation** : ~0,5 jour
 
-- [ ] **[R3-B4]** Décompte cochons désynchronisé + passage de grade silencieux + récompense non reçue
+- [x] **[R3-B4]** ~~Décompte cochons désynchronisé + passage de grade silencieux + récompense non reçue~~ — **Livré 29/04/2026** : compteur mis à jour en temps réel après chaque match, fenêtre de félicitations affichée au passage de grade.
   - Stats affichent 93 mais ligue bloquée à 89 → race condition ou source de vérité incorrecte (voir bug similaire [2.2.1])
   - Pas de message de félicitation → `RewardEngine.ts` ne déclenche pas la notification de grade
   - Pas de récompense → vérifier `processMatchReward` Cloud Function
   - Fichiers : `mobile/src/core/RewardEngine.ts`, `functions/src/processMatchReward.ts`
   - **Estimation** : ~0,5 jour
 
-- [ ] **[R3-B5]** Ligue : texte "89 / 90" superposé sur la jauge de progression
+- [x] **[R3-B5]** ~~Ligue : texte "89 / 90" superposé sur la jauge de progression~~ — **Livré 29/04/2026** : espacement corrigé, grade/compteur/barre disposent chacun de leur espace dédié.
   - Bug d'affichage dans `LeagueProgressWidget.tsx`
   - **Estimation** : ~1 heure
 
-- [ ] **[R3-B6]** Boutique : affichage dominos incorrect + superposition coins/diamants dans les prix
+- [x] **[R3-B6]** ~~Boutique : affichage dominos incorrect + superposition coins/diamants dans les prix~~ — **Livré 29/04/2026** : dominos affichés en grand (mode paysage), prix coins/diamants listés séparément.
   - Vérifier le layout des cards dans la page boutique mobile
   - **Estimation** : ~0,5 jour
 
 ### 🟠 P1 — Bugs importants (1ère semaine post-lancement)
 
-- [ ] **[R3-B2]** Onglet DETAILS non fonctionnel après une partie
+- [x] **[R3-B2]** ~~Onglet DETAILS non fonctionnel après une partie~~ — **Livré 29/04/2026** : historique et scores s'affichent correctement quel que soit l'objectif ou la durée du match.
   - Identifier le composant Détails dans `UnifiedResultOverlay.tsx` ou `GameOverScreen`
   - **Estimation** : ~0,5 jour
 
-- [ ] **[R3-B3]** Égalité : les points des joueurs à égalité ne s'affichent pas
+- [x] **[R3-B3]** ~~Égalité : les points des joueurs à égalité ne s'affichent pas~~ — **Livré 29/04/2026** : en cas d'égalité parfaite en main (Boudé), les scores de chaque joueur s'affichent correctement dans la fenêtre de résultat.
   - Vérifier `RoundResultCard.tsx` pour le cas d'égalité
   - **Estimation** : ~0,5 jour
 
 - [x] **[R3-B7]** ~~Mode paysage multijoueur : impossible de changer de sens~~ — **N/A** : le jeu est verrouillé en paysage par conception, comportement voulu.
 
-- [ ] **[R3-B8]** Fond d'écran violet : lignes noires du quadrillage visibles
+- [x] **[R3-B8]** ~~Fond d'écran violet : lignes noires du quadrillage visibles~~ — **Livré 29/04/2026** : fond uni et propre sur tous les écrans clés (Accueil, Menu Solo, Lobby).
   - Remplacer ou masquer le fond via CSS/style dans l'écran d'accueil
   - **Estimation** : ~1 heure
 
-- [ ] **[R3-M4]** Aide Mode Cochon incorrecte : le texte dit "le mode s'arrête quand l'objectif est atteint" → faux
+- [x] **[R3-M4]** ~~Aide Mode Cochon incorrecte~~ — **Livré 29/04/2026** : texte corrigé (arrêt au quota défini), barème clarifié (Donner 1 cochon = +1 pt, Double Cochon = +2 pts, Recevoir = -1 pt).
   - Corriger le texte dans le `HelpOverlay` pour le mode Cochon : expliquer qu'il faut gagner 3 parties avec un joueur à 0 étoile
   - **Estimation** : ~30 min
 

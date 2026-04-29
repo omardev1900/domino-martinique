@@ -11,6 +11,19 @@
 
 ## 📅 Avril 2026
 
+### 2026-04-29 — Sprint Correctif Post-Lancement (Retour client #3)
+- [x] **[R3-B1]** Mode Score : blocage de fin de partie — la partie s'arrête dès l'objectif atteint ; en cas d'égalité parfaite, le jeu continue jusqu'à ce qu'un joueur prenne l'avantage.
+- [x] **[R3-B4]** Synchronisation cochons & grades — compteur mis à jour en temps réel après chaque match ; fenêtre de félicitations au passage de grade (nouveau rang + total cochons).
+- [x] **[R3-B2]** Onglet DÉTAILS vide en Mode Score — historique et scores s'affichent correctement quel que soit l'objectif ou la durée du match.
+- [x] **[R3-B8]** Fond d'écran quadrillage — fond uni et propre sur tous les écrans clés (Accueil, Menu Solo, Lobby).
+- [x] **[R3-B5]** Widget Ligue : superposition texte/jauge — espacement corrigé, grade/compteur/barre disposent chacun de leur espace dédié.
+- [x] **[R3-B6]** Boutique : affichage skins & prix — dominos affichés en grand (mode paysage) ; prix coins/diamants listés séparément l'un sous l'autre.
+- [x] **[R3-B3]** Égalité Boudé — en cas d'égalité parfaite en main, les scores de chaque joueur s'affichent correctement dans la fenêtre de résultat.
+- [x] **[R3-M4]** Aide Mode Cochon — texte corrigé (arrêt au quota défini) ; barème clarifié : Donner 1 cochon = +1 pt, Double Cochon = +2 pts, Recevoir = -1 pt.
+- [x] **[BONUS]** Modal fin de match — header affiche le contexte au centre (ex: MODE SCORE · 10 PTS).
+- [x] **[BONUS]** Statistiques — suppression de la ligne "Manches Gagnées" sous le taux de victoire pour éviter toute confusion.
+- [x] **[R3-B7]** Mode paysage fixe — confirmé N/A (comportement voulu, verrouillage par conception).
+
 ### 2026-04-25
 - [x] **[LAUNCH-AUTH-1]** Auth — Reset mot de passe + Google Sign-In (partiel)
   - Reset MDP : `sendPasswordReset()` dans `auth.service.ts` + UI "Mot de passe oublié ?" dans `login.tsx` (message vert succès, erreurs Firebase localisées)

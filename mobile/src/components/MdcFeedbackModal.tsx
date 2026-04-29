@@ -72,7 +72,7 @@ export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onC
                         {/* ── Haut — Identité app ── */}
                         <View style={styles.header}>
                             <View style={styles.mdcBadge}>
-                                <Text style={styles.mdcText}>MDC</Text>
+                                <Text style={styles.mdcText}>🐷</Text>
                             </View>
                             <Text style={styles.appName}>Domino Martiniquais</Text>
                             <Text style={styles.version}>Version {APP_VERSION}</Text>
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
         width: 52,
         height: 52,
         borderRadius: 10,
-        backgroundColor: '#1565C0',
+        backgroundColor: 'rgba(255,215,0,0.1)',
         borderWidth: 2,
         borderColor: '#FFD700',
         alignItems: 'center',
@@ -183,10 +183,8 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     mdcText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '900',
-        letterSpacing: 1,
+        fontSize: 28,
+        lineHeight: 34,
     },
     appName: {
         color: '#FFD700',
