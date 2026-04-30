@@ -23,6 +23,7 @@ import { Image } from 'expo-image';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { Ad } from '../core/ad.types';
+import { adService } from '../core/services/ad.service';
 import { LogService } from '../core/services/LogService';
 
 const AD_SKIP_DELAY_SEC = 10;
@@ -34,8 +35,24 @@ interface AdBannerModalProps {
 
 export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => {
     const videoRef = useRef<Video>(null);
+    const markedAdIdRef = useRef<string | null>(null);
     const [videoFailed, setVideoFailed] = useState(false);
     const [secondsLeft, setSecondsLeft] = useState(AD_SKIP_DELAY_SEC);
+
+    // Consomme le cooldown uniquement quand le modal est effectivement monté avec une pub.
+    useEffect(() => {
+        if (!ad) {
+            markedAdIdRef.current = null;
+            return;
+        }
+        if (markedAdIdRef.current === ad.id) return;
+
+        markedAdIdRef.current = ad.id;
+        adService.markAdAsShown(ad).catch(error => {
+            LogService.error('AdBannerModal', 'markAdAsShown failed:', error);
+            markedAdIdRef.current = null;
+        });
+    }, [ad]);
 
     // Countdown : reset à chaque nouvelle pub, puis tick chaque seconde jusqu'à 0.
     useEffect(() => {

@@ -121,7 +121,6 @@ export default function HomeScreen() {
                             // Pub d'abord → cadeau après fermeture. On diffère l'ouverture du modal.
                             setPendingDailyReward(true);
                             homeAdTimeoutRef.current = setTimeout(() => {
-                                adService.markAdAsShown(ad);
                                 setAdToShow(ad);
                             }, HOME_AD_DELAY_MS);
                         } else {
@@ -129,7 +128,6 @@ export default function HomeScreen() {
                         }
                     } else if (ad) {
                         homeAdTimeoutRef.current = setTimeout(() => {
-                            adService.markAdAsShown(ad);
                             setAdToShow(ad);
                         }, HOME_AD_DELAY_MS);
                     }
