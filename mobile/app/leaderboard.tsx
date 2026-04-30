@@ -172,7 +172,7 @@ export default function LeaderboardScreen() {
                     )}
                     {activeTab === 'COCHONS' && (
                         <>
-                            <Text style={styles.scoreText}>{item.leaguePoints.toLocaleString()} 🐷</Text>
+                            <Text style={styles.scoreText}>{item.cochonsGiven.toLocaleString()} 🐷</Text>
                             <Text style={styles.scoreLabel}>Cochons</Text>
                         </>
                     )}

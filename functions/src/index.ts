@@ -123,6 +123,49 @@ export const processMatchReward = functions.https.onCall(async (data: { input: P
     return reward;
 });
 
+/**
+ * Migration one-shot : copie stats.totalCochonsInflicted → economy.cochonsGiven
+ * pour tous les utilisateurs dont economy.cochonsGiven < stats.totalCochonsInflicted.
+ * À appeler UNE SEULE FOIS depuis l'admin, puis désactiver.
+ * Réservé aux admins (vérifié via collection admins/).
+ */
+export const migrateCochonsGiven = functions.https.onCall(async (_data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Accès refusé.');
+    }
+
+    // Vérifier que l'appelant est admin
+    const adminSnap = await db.collection('admins').doc(context.auth.uid).get();
+    if (!adminSnap.exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Réservé aux admins.');
+    }
+
+    const usersSnap = await db.collection('users').get();
+    let migrated = 0;
+    let skipped = 0;
+    const batch = db.batch();
+
+    usersSnap.forEach((userDoc) => {
+        const data = userDoc.data();
+        const statsTotal = data?.stats?.totalCochonsInflicted ?? 0;
+        const economyCochons = data?.economy?.cochonsGiven ?? 0;
+
+        if (statsTotal > economyCochons) {
+            batch.update(userDoc.ref, {
+                'economy.cochonsGiven': statsTotal,
+            });
+            migrated++;
+        } else {
+            skipped++;
+        }
+    });
+
+    await batch.commit();
+
+    console.log(`[migrateCochonsGiven] Migrated: ${migrated}, Skipped: ${skipped}`);
+    return { migrated, skipped };
+});
+
 export const closeTournament = functions.https.onCall(async (data: { tournamentId: string }, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Accès refusé.');
     

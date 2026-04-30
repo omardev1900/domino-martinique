@@ -72,13 +72,15 @@ class LeaderboardService {
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 const economy = data.economy || {};
+                const stats = data.stats || {};
 
                 // Ne garder que les joueurs ayant de l'XP ou des Coins (éviter les faux profils)
                 if (economy.xp !== undefined && economy.coins !== undefined) {
+                    // Priorité à stats.totalCochonsInflicted (jamais désynchronisé) avec fallback economy.cochonsGiven
+                    const cochonsGiven = stats.totalCochonsInflicted || economy.cochonsGiven || 0;
                     leaderboard.push({
                         uid: doc.id,
                         displayName: data.displayName || data.email?.split('@')[0] || 'Joueur',
-                        // Lire avatarId (nouveau champ) avec fallback vers avatarUrl (ancien champ)
                         avatarId: data.avatarId || data.avatarUrl || 'avatar_default',
                         activeFrame: economy.activeFrame || null,
                         xp: economy.xp || 0,
@@ -86,7 +88,7 @@ class LeaderboardService {
                         level: economy.level || 1,
                         leagueGrade: economy.leagueGrade || null,
                         leaguePoints: economy.leaguePoints || 0,
-                        cochonsGiven: economy.cochonsGiven || 0,
+                        cochonsGiven,
                         rank: currentRank++,
                     });
                 }

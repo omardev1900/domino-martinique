@@ -40,6 +40,25 @@ export default function PlayersPage() {
   const [sortKey, setSortKey] = useState<SortKey>('displayName');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerProfile | null>(null);
+  const [migrating, setMigrating] = useState(false);
+  const [migrateResult, setMigrateResult] = useState<{ migrated: number; skipped: number } | null>(null);
+
+  const handleMigrateCochons = async () => {
+    if (!confirm('Migrer economy.cochonsGiven depuis stats.totalCochonsInflicted pour tous les joueurs ?')) return;
+    setMigrating(true);
+    setMigrateResult(null);
+    try {
+      const res = await fetch('/api/migrate-cochons', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMigrateResult({ migrated: data.migrated, skipped: data.skipped });
+      setRefreshKey((k) => k + 1);
+    } catch (err: any) {
+      alert('Erreur migration : ' + err.message);
+    } finally {
+      setMigrating(false);
+    }
+  };
 
   const fetchPlayers = useCallback(async () => {
     setLoading(true);
@@ -114,14 +133,30 @@ export default function PlayersPage() {
             {loading ? 'Chargement…' : `${allPlayers.length.toLocaleString('fr-FR')} joueurs inscrits`}
           </p>
         </div>
-        <button
-          onClick={() => setRefreshKey((k) => k + 1)}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm font-medium text-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <span className={loading ? 'animate-spin inline-block' : ''}>↻</span>
-          Actualiser
-        </button>
+        <div className="flex items-center gap-3">
+          {migrateResult && (
+            <span className="text-xs text-green-400">
+              ✅ {migrateResult.migrated} migrés, {migrateResult.skipped} déjà OK
+            </span>
+          )}
+          <button
+            onClick={handleMigrateCochons}
+            disabled={migrating || loading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-orange-900 hover:bg-orange-800 border border-orange-700 rounded-xl text-sm font-medium text-orange-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Synchronise economy.cochonsGiven depuis stats.totalCochonsInflicted pour tous les joueurs"
+          >
+            <span className={migrating ? 'animate-spin inline-block' : ''}>🐷</span>
+            {migrating ? 'Migration…' : 'Migrer cochons'}
+          </button>
+          <button
+            onClick={() => setRefreshKey((k) => k + 1)}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm font-medium text-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className={loading ? 'animate-spin inline-block' : ''}>↻</span>
+            Actualiser
+          </button>
+        </div>
       </div>
 
       {/* Search */}
