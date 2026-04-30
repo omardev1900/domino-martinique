@@ -56,38 +56,41 @@
   - Corriger le texte dans le `HelpOverlay` pour le mode Cochon : expliquer qu'il faut gagner 3 parties avec un joueur à 0 étoile
   - **Estimation** : ~30 min
 
+- [ ] **[R3-B9]** 🐛 Cadeau quotidien — coins non crédités + animation manquante
+  - **Bug 1** : Le modal de cadeau quotidien s'affiche souvent au lancement mais les coins ne sont pas crédités au compte du joueur
+  - **Bug 2** : Ajouter une animation d'incrémentation du compteur de coins lors du clic sur "Réclamer" (le chiffre monte progressivement)
+  - Fichiers suspects : logique daily reward dans `economy.service.ts`, `DailyRewardModal.tsx` (ou équivalent)
+  - **Estimation** : ~1 heure (bug) + ~1 heure (animation)
+
 ### 🟡 P2 — Améliorations fonctionnelles (2–4 semaines post-lancement)
 
-- [ ] **[R3-M1]** Classement mensuel — 3 catégories avec niveaux colorés
-  - 3 classements : **Scoreurs** (totalMatchPoints), **Bouchers** (cochons donnés), **Défenseurs** (cochons reçus les moins nombreux)
-  - Couleurs par niveau dans le classement : Apprenti (vert), Maître (or), Élite (rouge/feu)
+- [x] **[R3-M2]** ~~Indicateur de niveau (grade Ligue des Cochons) des adversaires visible en jeu~~ — **Livré 30/04/2026** : badge grade + bordure colorée en lobby, plateau de jeu et modal résultat. Fallback "Débutant" pour les joueurs sans cochons.
+
+- [ ] **[R3-M1]** Classement mensuel restructuré (onglets TOTAL + MENSUEL par ligue)
+  - Écran Rank actuel → devient onglet **"TOTAL"** (classement global inchangé)
+  - Nouvel onglet **"MENSUEL"** → sous-onglets par catégorie de ligue : Débutant / Apprenti 1-2-3 / Maître 1-2-3 / Roi / Légende
+  - Chaque sous-onglet = classement des joueurs de ce niveau sur le mois en cours
   - Tracking mensuel Firestore : `monthlyStats/{YYYY-MM}/players/{uid}`
-  - Visible dès le lancement du jeu (priorité client : "des amis doivent pouvoir voir dès le lancement")
-  - Remplace/complète [R2-M4] déjà au backlog
   - **Estimation** : ~2 jours
 
-- [ ] **[R3-M2]** Indicateur de niveau (grade Ligue des Cochons) des adversaires visible en jeu
-  - Afficher le cadre de grade ou une icône de niveau sous/sur l'avatar des adversaires dans `GameScreen`
-  - Fichiers : `GameScreen.tsx`, `PlayerAvatar.tsx`
-  - **Estimation** : ~0,5 jour
+- [ ] **[R3-M3]** Boutique — onglet PUB + mots de tchat achetables
+  - **Feature 1** : L'admin peut sélectionner une de ses pubs existantes à afficher dans l'onglet Boutique (choix dans l'interface admin)
+  - **Feature 2** : Des **mots / phrases de tchat achetables** par les joueurs avec leurs coins
+    - Contenu initial : "I Fèw Mal Doudou", "Tu n'as pas plus dur" + 100 coins (illimité)
+    - Logique : achat définitif → mot déverrouillé dans le tchat en jeu
+  - **Estimation** : ~2 jours
 
-- [ ] **[R3-M3]** Boutique — onglet "PUB" / contenu déblocable via pub
-  - Principe : contenu débloqué 24h en regardant une pub OU 5€/mois
-  - Contenu initial : 2 phrases créoles ("I Fèw Mal Doudou", "Tu n'as pas plus dur") + 100 coins (illimité)
-  - Mobile : nouvel onglet dans la boutique + logique "regarder une pub → déblocage 24h"
-  - Dépend de AdMob Phase 2 pour les vraies pubs — en attendant, placeholder ou pub admin-managed
+- [ ] **[R3-A5]** Musique — contrôle avancé par écran (admin)
+  - L'admin garde son interface existante de gestion des musiques
+  - Ajouter **plus de slots** avec des labels clairs : Splash/Accueil, Menus hors-match, Lobby d'attente, En match, Fin de match
+  - L'admin assigne une musique à chaque slot depuis son interface
+  - Le code lit chaque slot et joue la bonne musique selon l'écran actif
   - **Estimation** : ~1,5 jour
-
-- [ ] **[R3-A5]** Musique — accueil + playlist en jeu
-  - Ajouter une musique de fond sur l'écran d'accueil
-  - En jeu : rotation d'une playlist à chaque nouvelle manche (au lieu de la même musique en boucle)
-  - Fichiers : `home.tsx`, `SoundManager.ts`
-  - **Estimation** : ~1 jour (selon le nombre de musiques disponibles)
 
 ### 🔵 P3 — UX & Design (post-lancement, à planifier)
 
-- [ ] **[R3-A1]** Remplacer le logo MDC bleu par le logo cochon dans la sidebar/header
-  - **Estimation** : ~1 heure
+- [x] **[R3-A1]** ~~Remplacer le logo MDC bleu par le logo cochon dans la sidebar/header~~ — **Livré 29/04/2026**. Étape 2 : remplacer par le **PNG officiel du logo** (sans texte) fourni par le client — à faire dès réception du fichier.
+  - **Estimation** : ~30 min
 
 - [ ] **[R3-A2]** Stats 5/4/2/1/-1 dans la section Ligue (onglet Infos du modal LeagueInfoModal)
   - Ajouter un tableau récapitulatif des points par type de victoire dans `LeagueInfoModal.tsx`

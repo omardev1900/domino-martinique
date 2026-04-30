@@ -173,7 +173,11 @@ export default function HomeScreen() {
     );
 
     const handleClaimDailyReward = async () => {
-        await economyService.checkAndClaimDailyReward(user?.uid);
+        // [R3-B9] FIX : on utilise claimDailyRewardNow() au lieu de checkAndClaimDailyReward()
+        // car entre l'affichage du modal et le clic, le listener Firestore peut avoir
+        // mis à jour le cache avec un timestamp récent → shouldReward=false → 0 coins crédités.
+        // La disponibilité a déjà été vérifiée avant d'afficher le modal.
+        await economyService.claimDailyRewardNow(user?.uid);
         setShowDailyReward(false);
         setEconomyRefresh(v => v + 1);
     };

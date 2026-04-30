@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -150,6 +150,47 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
         transform: [{ scale: titleScale.value }],
     }));
 
+    // [R3-B9] Animation d'incrémentation du compteur de coins
+    const [displayedAmount, setDisplayedAmount] = useState(0);
+    const [isClaiming, setIsClaiming] = useState(false);
+    const counterRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const handleClaimPress = () => {
+        if (isClaiming) return;
+        setIsClaiming(true);
+        setDisplayedAmount(0);
+
+        const duration = 1200; // ms total
+        const steps = 30;
+        const stepTime = duration / steps;
+        let current = 0;
+
+        counterRef.current = setInterval(() => {
+            current += 1;
+            const progress = current / steps;
+            // ease-out : rapide au début, ralentit à la fin
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setDisplayedAmount(Math.round(eased * amount));
+
+            if (current >= steps) {
+                clearInterval(counterRef.current!);
+                counterRef.current = null;
+                setDisplayedAmount(amount);
+                // Appeler onClaim après la fin de l'animation
+                setTimeout(() => onClaim(), 400);
+            }
+        }, stepTime);
+    };
+
+    // Nettoyage si le modal se ferme pendant l'animation
+    useEffect(() => {
+        if (!visible) {
+            if (counterRef.current) clearInterval(counterRef.current);
+            setIsClaiming(false);
+            setDisplayedAmount(0);
+        }
+    }, [visible]);
+
     if (!visible) return null;
 
     const particles = Array.from({ length: 20 }).map((_, i) => (
@@ -204,7 +245,7 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                                 </Animated.Text>
 
                                 <Text style={[styles.amountText, { fontSize: amountFontSize }]}>
-                                    +{amount} 🪙
+                                    {isClaiming ? `+${displayedAmount}` : `+${amount}`} 🪙
                                 </Text>
 
                                 <Text style={[styles.subtitle, {
@@ -215,12 +256,13 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                                 </Text>
 
                                 <TouchableOpacity
-                                    style={[styles.claimButton, isLandscape && { width: '100%' }]}
-                                    onPress={onClaim}
+                                    style={[styles.claimButton, isLandscape && { width: '100%' }, isClaiming && { opacity: 0.7 }]}
+                                    onPress={handleClaimPress}
                                     activeOpacity={0.85}
+                                    disabled={isClaiming}
                                 >
                                     <LinearGradient
-                                        colors={['#FFD700', '#FFA500']}
+                                        colors={isClaiming ? ['#FFA500', '#FF8C00'] : ['#FFD700', '#FFA500']}
                                         style={[styles.claimGradient, {
                                             paddingVertical: isLandscape ? 8 : 13,
                                         }]}
@@ -228,7 +270,7 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                                         <Text style={[styles.claimButtonText, {
                                             fontSize: isLandscape ? Math.min(height * 0.07, 14) : 16,
                                         }]}>
-                                            RÉCLAMER !
+                                            {isClaiming ? '🪙 ...' : 'RÉCLAMER !'}
                                         </Text>
                                     </LinearGradient>
                                 </TouchableOpacity>

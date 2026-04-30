@@ -39,13 +39,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-    { route: '/home',           icon: 'home-outline',        label: 'Accueil' },
-    { route: '/ligue-cochons',  icon: 'trophy-outline',      label: 'Ligue' },
-    { route: '/leaderboard',    icon: 'podium-outline',      label: 'Rank' },
-    { route: '/stats',          icon: 'bar-chart-outline',   label: 'Stats' },
-    { route: '/store',          icon: 'storefront-outline',  label: 'Boutique' },
-    { route: '/collection',     icon: 'shirt-outline',       label: 'Vestiaire' },
-    { route: '',                icon: 'help-circle-outline', label: 'Aide', isAction: true, actionKey: 'HELP' },
+    { route: '/home', icon: 'home-outline', label: 'Accueil' },
+    { route: '/ligue-cochons', icon: 'trophy-outline', label: 'Ligue' },
+    { route: '/leaderboard', icon: 'podium-outline', label: 'Rank' },
+    { route: '/stats', icon: 'bar-chart-outline', label: 'Stats' },
+    { route: '/store', icon: 'storefront-outline', label: 'Boutique' },
+    { route: '/collection', icon: 'shirt-outline', label: 'Vestiaire' },
+    { route: '', icon: 'help-circle-outline', label: 'Aide', isAction: true, actionKey: 'HELP' },
 ];
 
 export const Sidebar: React.FC = () => {
@@ -93,10 +93,14 @@ export const Sidebar: React.FC = () => {
         <>
             <View style={[styles.sidebar, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
 
-                {/* ── TOP : Bouton Cochon ── */}
+                {/* ── TOP : Logo MDC officiel ── */}
                 <View style={styles.topZone}>
                     <TouchableOpacity style={styles.mdcBtn} onPress={() => setShowFeedback(true)} activeOpacity={0.8}>
-                        <Text style={styles.mdcText}>🐷</Text>
+                        <Image
+                            source={require('../assets/images/logo_mdc.png')}
+                            style={styles.mdcLogo}
+                            contentFit="contain"
+                        />
                     </TouchableOpacity>
                 </View>
 
@@ -202,18 +206,25 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255,255,255,0.06)',
     },
     mdcBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 9,
-        backgroundColor: 'rgba(255,215,0,0.1)',
-        borderWidth: 2,
-        borderColor: '#FFD700',
+        width: 50,
+        height: 50,
+        borderRadius: 12,
+        backgroundColor: '#1A0E2E',   // Fond gris clair pour logo transparent
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,215,0,0.5)',
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
+        // Ombre subtile pour le relief
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 4,
     },
-    mdcText: {
-        fontSize: 24,
-        lineHeight: 28,
+    mdcLogo: {
+        width: 44,
+        height: 44,
     },
 
     // ── Middle ──

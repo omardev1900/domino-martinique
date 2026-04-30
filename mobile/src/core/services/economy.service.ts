@@ -324,6 +324,32 @@ class EconomyService {
     }
 
     /**
+     * [R3-B9] Crédite la récompense quotidienne directement, sans re-vérifier les 24h.
+     * À appeler UNIQUEMENT après confirmation que isDailyRewardAvailable() === true.
+     * Evite la race condition entre l'affichage du modal et le clic sur "Réclamer".
+     */
+    async claimDailyRewardNow(userId?: string, profile?: EconomyProfileInfo): Promise<number> {
+        const current = await this.getEconomy();
+        const rewardAmount = DAILY_REWARD_COINS;
+
+        const updated: PlayerEconomy = {
+            ...current,
+            coins: current.coins + rewardAmount,
+            lastDailyRewardTimestamp: Date.now(),
+        };
+
+        this.cached = updated;
+        await this.persistLocal();
+
+        if (userId && !userId.startsWith('guest_')) {
+            await this.pushToFirebase(userId, updated, profile);
+        }
+
+        LogService.info('EconomyService', `[R3-B9] Daily reward of ${rewardAmount} coins claimed (force).`);
+        return rewardAmount;
+    }
+
+    /**
      * Force une mise à jour directe de l'économie (utile pour les tests ou migrations).
      */
     async setEconomy(economy: Partial<PlayerEconomy>, userId?: string, profile?: EconomyProfileInfo): Promise<void> {
@@ -368,16 +394,18 @@ class EconomyService {
         const userRef = doc(db, 'users', uid);
         const unsubscribe = onSnapshot(
             userRef,
-            (snap) => {
+            async (snap) => {
                 if (!snap.exists()) return;
                 const remoteEconomy = snap.data().economy as Partial<PlayerEconomy> | undefined;
                 if (!remoteEconomy) return;
 
-                // Firestore → cache local → UI. Jamais l'inverse.
-                const hydrated = this.mergeWithDefaults(remoteEconomy);
-                this.cached = hydrated;
+                // [R3-B9] FIX : fusionner remote + local pour ne pas perdre lastDailyRewardTimestamp
+                // mergeWithDefaults(remote) seul écrasait le timestamp local si Firestore était en retard.
+                const local = await this.getEconomy();
+                const merged = this.mergeEconomies(local, remoteEconomy);
+                this.cached = merged;
                 this.persistLocal();
-                onUpdate({ ...hydrated });
+                onUpdate({ ...merged });
                 LogService.info('EconomyService', 'onSnapshot: economy updated in real-time.');
             },
             (error) => {
