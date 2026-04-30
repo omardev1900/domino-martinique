@@ -17,6 +17,7 @@ import { MatchReward } from '@/core/economy.types';
 import { getAvatarImage, AvatarId } from '@/core/avatars';
 import SoundManager from '@/core/audio/SoundManager';
 import { calculateHandPoints } from '@/core/ScoringEngine';
+import { GradeBadge } from './GradeBadge';
 
 interface UnifiedResultOverlayProps {
     gameState: GameState;
@@ -313,6 +314,8 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                         <Text style={[styles.podiumScore, isWinner && styles.podiumScoreWinner]}>
                             {showTotalScore ? getPlayerTotalScore(p) : `${p.currentMancheStars || 0} ⭐`}
                         </Text>
+                        {/* [R3-M2] Badge grade Ligue */}
+                        <GradeBadge grade={p.leagueGrade} size="xs" />
                         {isWinner && showTotalScore && (
                             <View style={styles.podiumWinBadge}>
                                 <Text style={styles.podiumWinBadgeText}>CHAMPION</Text>

@@ -258,9 +258,17 @@ export default function LobbyScreen() {
 
         try {
             setLoading(true);
+            // [R3-M2] Garantir leagueGrade + activeFrame dans le profil écrit en Firestore
+            // (ne pas dépendre du state React qui peut être en retard)
+            const eco = await economyService.getEconomy();
+            const enrichedProfile = {
+                ...currentUser,
+                leagueGrade: eco.leagueGrade ?? undefined,
+                activeFrame: eco.activeFrame ?? undefined,
+            };
             const options: RoomOptions = { gameMode, winningCondition, turnDuration, startingHandSize };
             const newRoomId = await createRoom(
-                currentUser,
+                enrichedProfile,
                 isPrivateRoom,
                 result.data || undefined,
                 undefined,
@@ -286,7 +294,14 @@ export default function LobbyScreen() {
         if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
-            await joinRoom(cleanRoomId, currentUser);
+            // [R3-M2] Enrichissement garanti avant joinRoom
+            const eco = await economyService.getEconomy();
+            const enrichedProfile = {
+                ...currentUser,
+                leagueGrade: eco.leagueGrade ?? undefined,
+                activeFrame: eco.activeFrame ?? undefined,
+            };
+            await joinRoom(cleanRoomId, enrichedProfile);
             router.push({ pathname: '/game/[id]', params: { id: cleanRoomId, userId: currentUser.uid, tableTier } });
         } catch (error: any) {
             Alert.alert('Erreur', error.message || 'Impossible de rejoindre.');
@@ -301,7 +316,14 @@ export default function LobbyScreen() {
         if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
-            await joinRoom(roomId, currentUser);
+            // [R3-M2] Enrichissement garanti avant joinRoom
+            const eco = await economyService.getEconomy();
+            const enrichedProfile = {
+                ...currentUser,
+                leagueGrade: eco.leagueGrade ?? undefined,
+                activeFrame: eco.activeFrame ?? undefined,
+            };
+            await joinRoom(roomId, enrichedProfile);
             router.push({ pathname: '/game/[id]', params: { id: roomId, userId: currentUser.uid, tableTier } });
         } catch (error: any) {
             Alert.alert('Erreur', error.message || 'Impossible de rejoindre.');

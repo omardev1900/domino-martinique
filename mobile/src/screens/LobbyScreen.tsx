@@ -10,8 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
 import { EconomyHeader } from '../components/EconomyHeader';
 import { AvatarFrame } from '../components/AvatarFrame';
-import { LEAGUE_GRADE_COLORS } from '../core/economy.constants';
-import { LeagueGrade } from '../core/economy.types';
+import { GradeBadge } from '../components/GradeBadge';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -171,6 +170,8 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                             <Text style={styles.playerStatus}>
                                 {slot.isCurrentUser ? '(Vous)' : slot.isHost ? 'HÔTE' : 'Joueur'}
                             </Text>
+                            {/* [R3-M2] Badge grade Ligue */}
+                            <GradeBadge grade={slot.player?.leagueGrade} size="xs" />
                         </>
                     )}
                 </View>
