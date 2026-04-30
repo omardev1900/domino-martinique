@@ -24,6 +24,7 @@ interface LeagueInfoModalProps {
 
 type TabType = 'INFOS' | 'MA_LIGUE' | 'CLASSEMENT';
 type ClassementFamily = 'APPRENTIS' | 'MAITRES' | 'ELITE';
+type ClassementPeriod = 'GLOBAL' | 'MONTH';
 
 const { width } = Dimensions.get('window');
 
@@ -59,6 +60,7 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
 
     // Classement
     const [classementFamily, setClassementFamily] = useState<ClassementFamily>('APPRENTIS');
+    const [classementPeriod, setClassementPeriod] = useState<ClassementPeriod>('GLOBAL');
     const [allEntries, setAllEntries] = useState<LeaderboardEntry[]>([]);
     const [classementLoading, setClassementLoading] = useState(false);
     const [currentUid, setCurrentUid] = useState<string | null>(null);
@@ -292,12 +294,21 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
     // ── Onglet CLASSEMENT ───────────────────────────────────────────────────────
     const renderClassement = () => {
         const fam = FAMILY_CONFIG[classementFamily];
+        const isMonth = classementPeriod === 'MONTH';
 
         // Filtrer par famille de grade (grade calculé depuis cochonsGiven — source de vérité)
-        const filtered = allEntries.filter(e => {
+        // En mode MONTH, on retri par cochonsGivenThisMonth (decroissant) et on exclut les 0
+        const filteredByFamily = allEntries.filter(e => {
             const g = getLeagueGrade(e.cochonsGiven);
             return g && fam.grades.includes(g);
-        }).slice(0, 30);
+        });
+
+        const filtered = (isMonth
+            ? [...filteredByFamily]
+                .filter(e => e.cochonsGivenThisMonth > 0)
+                .sort((a, b) => b.cochonsGivenThisMonth - a.cochonsGivenThisMonth)
+            : filteredByFamily
+        ).slice(0, 30);
 
         const rankColor = (r: number) => {
             if (r === 1) return '#FFD700';
@@ -308,6 +319,22 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
 
         return (
             <View style={{ flex: 1 }}>
+                {/* Sélecteur période GLOBAL / MONTH */}
+                <View style={styles.periodRow}>
+                    <TouchableOpacity
+                        style={[styles.periodBtn, !isMonth && styles.periodBtnActive]}
+                        onPress={() => setClassementPeriod('GLOBAL')}
+                    >
+                        <Text style={[styles.periodLabel, !isMonth && styles.periodLabelActive]}>🏆 Global</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.periodBtn, isMonth && styles.periodBtnActive]}
+                        onPress={() => setClassementPeriod('MONTH')}
+                    >
+                        <Text style={[styles.periodLabel, isMonth && styles.periodLabelActive]}>📅 Du mois</Text>
+                    </TouchableOpacity>
+                </View>
+
                 {/* Sélecteur famille */}
                 <View style={styles.famRow}>
                     {(Object.keys(FAMILY_CONFIG) as ClassementFamily[]).map(f => {
@@ -374,9 +401,9 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
                                     {/* Score */}
                                     <View style={styles.clsScore}>
                                         <Text style={[styles.clsScoreNum, { color: fam.color }]}>
-                                            {entry.cochonsGiven.toLocaleString()}
+                                            {(isMonth ? entry.cochonsGivenThisMonth : entry.cochonsGiven).toLocaleString()}
                                         </Text>
-                                        <Text style={styles.clsScoreLabel}>🐷 donnés</Text>
+                                        <Text style={styles.clsScoreLabel}>🐷 {isMonth ? 'ce mois' : 'donnés'}</Text>
                                     </View>
                                 </Animated.View>
                             );
@@ -777,6 +804,32 @@ const styles = StyleSheet.create({
     },
 
     // ── CLASSEMENT ──
+    periodRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 10,
+    },
+    periodBtn: {
+        flex: 1,
+        paddingVertical: 9,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        alignItems: 'center',
+    },
+    periodBtnActive: {
+        borderColor: '#FFD700',
+        backgroundColor: 'rgba(255,215,0,0.12)',
+    },
+    periodLabel: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: 'rgba(255,255,255,0.45)',
+    },
+    periodLabelActive: {
+        color: '#FFD700',
+    },
     famRow: {
         flexDirection: 'row',
         gap: 8,

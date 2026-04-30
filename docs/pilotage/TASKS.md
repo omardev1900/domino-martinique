@@ -33,7 +33,7 @@ Tickets fermés : **R3-B1, R3-B2, R3-B3, R3-B4, R3-B5, R3-B6, R3-B8, R3-M4**
 | **R3-B9** | 🐛 Cadeau quotidien — coins non crédités + animation | ✅ Terminé (30/04) |
 | **R3-B10** | 🐛 Cochons désynchronisés entre `/ligue-cochons` et `/stats` | ✅ Terminé (30/04) |
 | **R3-B11** | 🔴 Fuite d'auth — user ghost après reset mémoire | ✅ Terminé (30/04) |
-| **R3-M1** | Classement TOTAL + MENSUEL par catégorie de ligue | 🔍 À vérifier |
+| **R3-M1** | Classement Global + Du mois (par famille) dans LeagueInfoModal | ✅ Terminé (30/04) |
 | **TECH-DEBT-COCHONS** | Leaderboard lit `stats.totalCochonsInflicted` (source de vérité) | ✅ Terminé (30/04) |
 | **R3-B12** | 🐛 Cadeau quotidien réappraît à chaque connexion | ✅ Terminé (30/04) |
 | **R3-B13** | 🐛 Leaderboard cochons = 0 pour tous les joueurs | ✅ Terminé (30/04) |

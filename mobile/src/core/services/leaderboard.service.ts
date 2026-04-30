@@ -33,6 +33,8 @@ export interface LeaderboardEntry {
     leaguePoints: number;
     /** Cochons réellement infligés (source de vérité pour le grade) */
     cochonsGiven: number;
+    /** Cochons infligés depuis le 1er du mois en cours (calculé depuis matchHistory) */
+    cochonsGivenThisMonth: number;
     rank: number;
 }
 
@@ -69,6 +71,10 @@ class LeaderboardService {
             const leaderboard: LeaderboardEntry[] = [];
             let currentRank = 1;
 
+            // Début du mois en cours (timestamp)
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 const economy = data.economy || {};
@@ -78,6 +84,13 @@ class LeaderboardService {
                 if (economy.xp !== undefined && economy.coins !== undefined) {
                     // Priorité à stats.totalCochonsInflicted (jamais désynchronisé) avec fallback economy.cochonsGiven
                     const cochonsGiven = stats.totalCochonsInflicted || economy.cochonsGiven || 0;
+
+                    // Cochons donnés ce mois — somme des m.cochons depuis le 1er du mois
+                    const matchHistory: Array<{ timestamp?: number; cochons?: number }> = stats.matchHistory || [];
+                    const cochonsGivenThisMonth = matchHistory
+                        .filter(m => (m.timestamp ?? 0) >= startOfMonth)
+                        .reduce((sum, m) => sum + (m.cochons ?? 0), 0);
+
                     leaderboard.push({
                         uid: doc.id,
                         displayName: data.displayName || data.email?.split('@')[0] || 'Joueur',
@@ -89,6 +102,7 @@ class LeaderboardService {
                         leagueGrade: economy.leagueGrade || null,
                         leaguePoints: economy.leaguePoints || 0,
                         cochonsGiven,
+                        cochonsGivenThisMonth,
                         rank: currentRank++,
                     });
                 }
