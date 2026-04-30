@@ -101,7 +101,14 @@ export default function HomeScreen() {
             authService.getCurrentUser().then(async u => {
                 if (cancelled) return;
                 if (u && !u.uid.startsWith('guest_')) {
-                    statsService.syncWithFirebase(u.uid);
+                    // [R3-B12] syncFromFirebase AVANT isDailyRewardAvailable — sinon le timestamp
+                    // n'est pas encore chargé depuis Firestore et le cadeau réapparaît à chaque connexion
+                    await Promise.all([
+                        statsService.syncWithFirebase(u.uid),
+                        economyService.syncFromFirebase(u.uid),
+                    ]);
+
+                    if (cancelled) return;
 
                     // La pub HOME s'affiche AVANT le cadeau quotidien (spec R2-M7)
                     const [ad, dailyAvailable] = await Promise.all([

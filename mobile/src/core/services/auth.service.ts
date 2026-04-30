@@ -134,32 +134,41 @@ class AuthService {
 
     /**
      * Get current logged in user
-     * Priority: 1. Memory, 2. Firebase, 3. Local Guest
+     * Priority: 1. Memory, 2. Firebase (authenticated non-anonymous only)
      */
     async getCurrentUser(): Promise<PlayerProfile | null> {
-        // 1. Return cached user if available
         if (this.currentUser) return this.currentUser;
 
         try {
-            // Check session marker
-            const isSessionActive = await AsyncStorage.getItem(STORAGE_KEY_SESSION);
-
-            // 2. Try Firebase Auth (only if session active or previous firebase user)
-            if (isSessionActive === 'true') {
-                const firebaseUser = await new Promise<User | null>((resolve) => {
-                    const unsubscribe = auth.onAuthStateChanged((user) => {
-                        unsubscribe();
-                        resolve(user);
-                    });
+            const firebaseUser = await new Promise<User | null>((resolve) => {
+                const timer = setTimeout(() => {
+                    LogService.warn('AuthService', 'onAuthStateChanged timeout — treating as logged out');
+                    resolve(null);
+                }, 5000);
+                const unsubscribe = auth.onAuthStateChanged((user) => {
+                    clearTimeout(timer);
+                    unsubscribe();
+                    resolve(user);
                 });
+            });
 
-                if (firebaseUser) {
-                    this.currentUser = this.mapFirebaseUserToProfile(firebaseUser);
-                    return this.currentUser;
-                }
+            // Rejeter les users anonymes et sans email — ce sont des ghosts
+            if (firebaseUser && !firebaseUser.isAnonymous && firebaseUser.email) {
+                // Synchroniser le marqueur local avec la réalité Firebase
+                await AsyncStorage.setItem(STORAGE_KEY_SESSION, 'true');
+                this.currentUser = this.mapFirebaseUserToProfile(firebaseUser);
+                return this.currentUser;
             }
 
-
+            // User invalide ou anonyme → nettoyer toute trace locale
+            if (firebaseUser?.isAnonymous || (firebaseUser && !firebaseUser.email)) {
+                LogService.warn('AuthService', 'Ghost/anonymous session detected — forcing sign out');
+                await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
+                try { await signOut(auth); } catch (_) {}
+            } else {
+                // Pas de user Firebase du tout → juste nettoyer le marqueur
+                await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
+            }
         } catch (error) {
             LogService.error('AuthService', 'getCurrentUser error:', error);
         }
@@ -179,12 +188,17 @@ class AuthService {
      * Logout
      */
     async logout(): Promise<void> {
+        this.currentUser = null;
+        // Nettoyer le marqueur local en premier — même si signOut échoue, on ne laisse pas de ghost
+        try {
+            await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
+        } catch (error) {
+            LogService.error('AuthService', 'Failed to clear session storage', error);
+        }
         try {
             await signOut(auth);
-            await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
-            this.currentUser = null;
         } catch (error) {
-            LogService.error('AuthService', 'Failed to logout', error);
+            LogService.error('AuthService', 'Failed to sign out from Firebase', error);
         }
     }
 

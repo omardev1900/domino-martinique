@@ -97,19 +97,37 @@ class EconomyService {
 
                 if (remoteEconomy) {
                     const local = await this.getEconomy();
-                    
+
                     // 🛡️ MIGRATION / RESTAURATION COCHONS [2026-04-15]
                     // Si l'ancien bug avait remis economy.cochonsGiven à 0,
                     // On ressuscite la vraie valeur depuis les stats qui elles n'ont pas perdu la mémoire.
+                    let cochonsMigrated = false;
                     if (remoteStats && typeof remoteStats.totalCochonsInflicted === 'number') {
-                        remoteEconomy.cochonsGiven = Math.max(remoteEconomy.cochonsGiven || 0, remoteStats.totalCochonsInflicted);
+                        const correctedCochons = Math.max(remoteEconomy.cochonsGiven || 0, remoteStats.totalCochonsInflicted);
+                        if (correctedCochons > (remoteEconomy.cochonsGiven || 0)) {
+                            // [R3-B10] FIX : la valeur a été corrigée → il FAUT la repousser vers Firestore
+                            // sinon /ligue-cochons et /leaderboard lisent economy.cochonsGiven = 0 depuis Firestore
+                            // pendant que /stats lit stats.totalCochonsInflicted = N (correct)
+                            LogService.info('EconomyService',
+                                `[R3-B10] Migration cochons: ${remoteEconomy.cochonsGiven ?? 0} → ${correctedCochons} (depuis stats.totalCochonsInflicted)`
+                            );
+                            remoteEconomy.cochonsGiven = correctedCochons;
+                            cochonsMigrated = true;
+                        } else {
+                            remoteEconomy.cochonsGiven = correctedCochons;
+                        }
                     }
 
-                    // Firestore est source de vérité : on met à jour le cache local uniquement.
-                    // On ne repousse JAMAIS les données locales vers Firestore ici.
                     const merged = this.mergeEconomies(local, remoteEconomy);
                     this.cached = merged;
                     await this.persistLocal();
+
+                    // [R3-B10] Si la migration a corrigé cochonsGiven, pousser vers Firestore
+                    // pour que /ligue-cochons et /leaderboard soient synchronisés.
+                    if (cochonsMigrated) {
+                        await this.pushToFirebase(uid, merged);
+                        LogService.info('EconomyService', '[R3-B10] economy.cochonsGiven corrigé et repoussé vers Firestore.');
+                    }
 
                     LogService.info('EconomyService', 'Economy hydrated from Firebase.');
                     return;

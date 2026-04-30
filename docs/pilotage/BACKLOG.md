@@ -16,6 +16,30 @@
 
 ### 🔴 P0 — Bugs bloquants (à corriger en urgence)
 
+- [ ] **[R3-B11]** 🔴 **BLOQUANT LANCEMENT** — Fuite d'authentification : reset mémoire → reconnexion avec un user ghost inconnu
+  - **Symptôme** : Après un reset complet du browser (vider AsyncStorage/IndexedDB) et rechargement, l'utilisateur se retrouve connecté avec un user "inconnu" sans email/compte, déjà loggé au jeu
+  - **Cause identifiée** : 
+    - `getCurrentUser()` dans `auth.service.ts` L.149–153 appelle `auth.onAuthStateChanged()` et retourne le premier user trouvé dans Firebase Auth, même s'il s'agit d'une session "fantôme" ou anonyme
+    - Firebase Auth persiste les sessions indépendamment d'AsyncStorage — le marqueur `STORAGE_KEY_SESSION` peut être supprimé mais Firebase retourne quand même un user
+    - Aucune vérification que l'user retourné est **légitime** (a un email, n'est pas anonyme, etc.)
+  - **Flux du bug** :
+    1. Utilisateur se logout ou session AsyncStorage est vidée
+    2. Firebase Auth session persiste toujours en mémoire/secure storage natif
+    3. Au rechargement, `onAuthStateChanged` retourne cet user "fantôme"
+    4. `mapFirebaseUserToProfile()` crée un ProfilePlayer valide même pour un user sans email
+    5. `index.tsx` redirige vers `/home` au lieu de `/login`
+  - **Fix requis** :
+    1. Dans `logout()` : ajouter `await auth.signOut()` **ET** vider tous les storages (AsyncStorage, Firestore cache local si existe)
+    2. Dans `getCurrentUser()` L.156–159 : ajouter une vérification `if (firebaseUser?.email)` avant de retourner le user — rejeter les users anonymes
+    3. Bonus : sur la splash screen `index.tsx`, ajouter un timeout 5s pour éviter que `onAuthStateChanged` se bloque indéfiniment
+  - **Fichiers** : `mobile/src/core/services/auth.service.ts` (logout + getCurrentUser), `mobile/app/index.tsx` (timeout)
+  - **Estimation** : ~1h (fix simple, tests critiques)
+  - **Test** : 
+    - Lancer l'app → login avec email valide
+    - Vider AsyncStorage manuellement (DevTools) + rechargement
+    - **Résultat attendu** : Redirection vers `/login`, pas de user ghost
+    - Puis logout propre → rechargement → vérifier qu'on arrive bien à `/login`
+
 - [x] **[R3-B1]** ~~Mode Score : la partie ne se termine pas quand l'objectif est atteint~~ — **Livré 29/04/2026** : la partie s'arrête dès que l'objectif est atteint ; en cas d'égalité parfaite, le jeu continue jusqu'à ce qu'un joueur prenne l'avantage.
   - Vérifier la condition de fin de match dans `LogicEngine.ts` pour le mode Score
   - Fichiers suspects : `mobile/src/core/LogicEngine.ts`, `mobile/src/hooks/game/useActionDispatcher.ts`
@@ -60,7 +84,28 @@
   - **Bug 1** : Le modal de cadeau quotidien s'affiche souvent au lancement mais les coins ne sont pas crédités au compte du joueur
   - **Bug 2** : Ajouter une animation d'incrémentation du compteur de coins lors du clic sur "Réclamer" (le chiffre monte progressivement)
   - Fichiers suspects : logique daily reward dans `economy.service.ts`, `DailyRewardModal.tsx` (ou équivalent)
-  - **Estimation** : ~1 heure (bug) + ~1 heure (animation)
+  - **✅ Livré 30/04/2026** : race condition corrigée (`claimDailyRewardNow` + `mergeEconomies` dans listener), animation compteur ajoutée
+
+- [x] **[R3-B10]** ✅ Livré 30/04/2026 — 🐛 Ligue des Cochons — désynchronisation `cochonsGiven` entre les écrans
+  - **Symptôme** : Un joueur Apprenti 2 avec 20 cochons dans `/profile` et `/stats` affiche 0 cochons dans `/ligue-cochons` et `/leaderboard`
+  - **Cause identifiée** : Deux sources de vérité différentes
+    - `/profile` et `/stats` lisent `stats.totalCochonsInflicted` (Firestore `stats`) ✅ correct
+    - `/ligue-cochons` et `/leaderboard` lisent `economy.cochonsGiven` (Firestore `economy`) ❌ jamais mis à jour
+  - **Mécanisme du bug** : `syncFromFirebase()` dans `economy.service.ts` L.104-106 contient une migration qui copie `stats.totalCochonsInflicted` → cache local (AsyncStorage) mais **ne pousse JAMAIS cette correction vers Firestore `economy.cochonsGiven`**
+  - **Fix appliqué** : `syncFromFirebase()` détecte maintenant l'écart et repousse la correction vers Firestore via `pushToFirebase()` — la prochaine synchronisation du joueur corrigera automatiquement le désalignement.
+  - Fichiers : `economy.service.ts` (méthode `syncFromFirebase` L.86-126)
+
+- [ ] **[TECH-DEBT-COCHONS]** 🔴 **BLOQUANT LANCEMENT** — Architecture : clarifier la source de vérité de `cochonsGiven`
+  - **Problème** : Actuellement, le comptage des cochons est éclaté entre deux domaines :
+    - `stats.totalCochonsInflicted` (Firestore `stats`) → source de vérité "vraie"
+    - `economy.cochonsGiven` (Firestore `economy`) → cache local (AsyncStorage) resynchronisé au login
+  - **Risque** : Cette dualité a causé [R3-B10]. À chaque fois qu'on ajoute une nouvelle stat (leaderboard mensuel, catégories, etc.), on duplique le problème.
+  - **À décider avant la production** :
+    1. **Option A (rapide)** : Garder AsyncStorage mais garantir une synchro bidirectionnelle stricte (`economy.cochonsGiven` ↔ Firestore) — documenter le pattern dans `ARCHITECTURE.md`
+    2. **Option B (propre)** : Supprimer AsyncStorage pour `cochonsGiven`, lire directement via listener Firestore (une seule source de vérité) — refactor `economy.service.ts`
+  - **Estimation** : A = ~2h doc + tests / B = ~4h refactor + tests
+  - **Débloquant** : Décision du product owner avant lancement
+  - Fichiers : `mobile/src/core/services/economy.service.ts`, `mobile/src/core/services/stats.service.ts`, `mobile/app/home.tsx` (listener)
 
 ### 🟡 P2 — Améliorations fonctionnelles (2–4 semaines post-lancement)
 
