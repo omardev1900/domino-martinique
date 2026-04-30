@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     ScrollView,
     useWindowDimensions,
-    Alert,
     Modal,
     Platform
 } from 'react-native';
@@ -17,14 +16,14 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInUp, FadeInLeft, FadeInRight, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeInRight, ZoomIn } from 'react-native-reanimated';
 import { authService } from '../src/core/services/auth.service';
 import { statsService } from '../src/core/services/stats.service';
 import { economyService } from '../src/core/services/economy.service';
 import { PlayerProfile } from '../src/core/types';
 import { DAILY_REWARD_COINS, LEAGUE_GRADE_COLORS } from '../src/core/economy.constants';
 import { LeagueGrade } from '../src/core/economy.types';
-import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../src/core/avatars';
+import { getAvatarImage } from '../src/core/avatars';
 import { EconomyHeader } from '../src/components/EconomyHeader';
 import { DailyRewardModal } from '../src/components/DailyRewardModal';
 import { HelpOverlay } from '../src/components/HelpOverlay';
@@ -40,8 +39,7 @@ import { USE_NEW_SIDEBAR } from '../src/core/config/navigation.config';
 export default function HomeScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { width, height } = useWindowDimensions();
-    const isLandscape = width > height;
+    const { height } = useWindowDimensions();
     const [user, setUser] = useState<PlayerProfile | null>(null);
     const [reconnectRoomId, setReconnectRoomId] = useState<string | null>(null);
     const [economyRefresh, setEconomyRefresh] = useState(0);
@@ -123,6 +121,7 @@ export default function HomeScreen() {
                             // Pub d'abord → cadeau après fermeture. On diffère l'ouverture du modal.
                             setPendingDailyReward(true);
                             homeAdTimeoutRef.current = setTimeout(() => {
+                                adService.markAdAsShown(ad);
                                 setAdToShow(ad);
                             }, HOME_AD_DELAY_MS);
                         } else {
@@ -130,6 +129,7 @@ export default function HomeScreen() {
                         }
                     } else if (ad) {
                         homeAdTimeoutRef.current = setTimeout(() => {
+                            adService.markAdAsShown(ad);
                             setAdToShow(ad);
                         }, HOME_AD_DELAY_MS);
                     }

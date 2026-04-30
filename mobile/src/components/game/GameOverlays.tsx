@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut, ZoomIn, FadeInLeft, useReducedMotion } from 'react-native-reanimated';
 import { EdgeInsets } from 'react-native-safe-area-context';
@@ -58,7 +58,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                     styles.choiceBanner,
                     isLandscape ? { top: 15, bottom: undefined } : { bottom: 160 }
                 ]} pointerEvents="none" testID="choice-banner">
-                    <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(300)}>
+                    <Animated.View key="choice-banner-anim" entering={reducedMotion ? undefined : FadeIn.duration(300)}>
                         <Text style={styles.choiceText}>CHOISISSEZ UN CÔTÉ</Text>
                     </Animated.View>
                 </View>
@@ -134,6 +134,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
             {/* UNIFIED SCORE OVERLAY */}
             {showScoreOverlay && gameState && (
                 <Animated.View 
+                    key="unified-score-overlay"
                     style={{ ...StyleSheet.absoluteFillObject, zIndex: 2000 }}
                     entering={reducedMotion ? undefined : FadeIn}
                     exiting={reducedMotion ? undefined : FadeOut}
@@ -172,7 +173,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
             {/* PAUSE OVERLAY */}
             {isPaused && (
                 <View style={styles.pauseOverlay} pointerEvents="auto" testID="pause-overlay">
-                    <Animated.View entering={reducedMotion ? undefined : FadeInLeft.duration(300)} style={styles.pauseContent}>
+                    <Animated.View key="pause-content-anim" entering={reducedMotion ? undefined : FadeInLeft.duration(300)} style={styles.pauseContent}>
                         {!showQuitConfirm ? (
                             <>
                                 <Ionicons name="pause-circle" size={80} color="#FFD700" />

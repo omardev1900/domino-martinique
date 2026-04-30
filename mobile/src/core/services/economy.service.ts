@@ -38,6 +38,8 @@ const DEFAULT_ECONOMY: PlayerEconomy = {
     leaguePoints: 0,
     leagueGrade: null,
     // ─── Ligue des Cochons ───
+    // [TECH-DEBT-COCHONS] cochonsGiven n'est plus défini par défaut côté local —
+    // Firestore reste source de vérité, le listener met la valeur à jour à chaque snapshot
     cochonsGiven: 0,
     unlockedFrames: [],
     activeFrame: null,
@@ -99,22 +101,18 @@ class EconomyService {
                     const local = await this.getEconomy();
 
                     // 🛡️ MIGRATION / RESTAURATION COCHONS [2026-04-15]
-                    // Si l'ancien bug avait remis economy.cochonsGiven à 0,
-                    // On ressuscite la vraie valeur depuis les stats qui elles n'ont pas perdu la mémoire.
+                    // Si economy.cochonsGiven est désynchronisé par rapport à stats.totalCochonsInflicted,
+                    // on aligne sur la valeur stats (toujours correcte) et on repousse vers Firestore.
                     let cochonsMigrated = false;
                     if (remoteStats && typeof remoteStats.totalCochonsInflicted === 'number') {
-                        const correctedCochons = Math.max(remoteEconomy.cochonsGiven || 0, remoteStats.totalCochonsInflicted);
-                        if (correctedCochons > (remoteEconomy.cochonsGiven || 0)) {
-                            // [R3-B10] FIX : la valeur a été corrigée → il FAUT la repousser vers Firestore
-                            // sinon /ligue-cochons et /leaderboard lisent economy.cochonsGiven = 0 depuis Firestore
-                            // pendant que /stats lit stats.totalCochonsInflicted = N (correct)
+                        const statsCochons = remoteStats.totalCochonsInflicted;
+                        const economyCochons = remoteEconomy.cochonsGiven ?? 0;
+                        if (statsCochons > economyCochons) {
                             LogService.info('EconomyService',
-                                `[R3-B10] Migration cochons: ${remoteEconomy.cochonsGiven ?? 0} → ${correctedCochons} (depuis stats.totalCochonsInflicted)`
+                                `[R3-B10] Migration cochons: ${economyCochons} → ${statsCochons} (depuis stats.totalCochonsInflicted)`
                             );
-                            remoteEconomy.cochonsGiven = correctedCochons;
+                            remoteEconomy.cochonsGiven = statsCochons;
                             cochonsMigrated = true;
-                        } else {
-                            remoteEconomy.cochonsGiven = correctedCochons;
                         }
                     }
 
@@ -510,7 +508,10 @@ class EconomyService {
             leaguePoints: mergedLeaguePoints,
             leagueGrade: getLeagueGrade(mergedLeaguePoints),
             // ─── Ligue des Cochons (conservation des champs) ───
-            cochonsGiven: Math.max(local.cochonsGiven ?? 0, remote.cochonsGiven ?? 0),
+            // [TECH-DEBT-COCHONS] Firestore = source de vérité unique. On NE prend PLUS le max
+            // entre local et remote pour éviter qu'un cache obsolète fige une valeur ancienne
+            // après une migration ou un fix admin.
+            cochonsGiven: remote.cochonsGiven ?? local.cochonsGiven ?? 0,
             unlockedFrames: remote.unlockedFrames ?? local.unlockedFrames ?? [],
             activeFrame: remote.activeFrame !== undefined ? remote.activeFrame : local.activeFrame ?? null,
             lastDailyRewardTimestamp: Math.max(
