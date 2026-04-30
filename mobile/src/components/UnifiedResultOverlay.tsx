@@ -329,7 +329,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
     // ── MATCH END — main view (results + rewards inline) ──────────────────────
     const renderMatchEndMain = () => (
-        <>
+        <ScrollView style={{ width: '100%', flexShrink: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
             {/* ── Navigation haut : Accueil (gauche) + Mode/Objectif (centre) + Détails (droite) ── */}
             <View style={styles.matchTopNav}>
                 <TouchableOpacity
@@ -350,6 +350,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     style={styles.historyLinkBtn}
                     onPress={() => setShowHistory(true)}
                     activeOpacity={0.75}
+                    hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
                 >
                     <Ionicons name="list-outline" size={18} color="rgba(255,255,255,0.85)" />
                     <Text style={styles.historyLinkText}>Détails</Text>
@@ -360,6 +361,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
             {matchReward && (
                 <Animated.View
+                    key="rewards-strip"
                     entering={reducedMotion ? undefined : FadeInUp.delay(480).duration(380)}
                     style={styles.rewardsStrip}
                 >
@@ -376,13 +378,13 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     </View>
                 </Animated.View>
             )}
-        </>
+        </ScrollView>
     );
 
     // ── ROUND / MANCHE / BOUDE view ────────────────────────────────────────────
     const renderRoundView = () => (
         <>
-            <Animated.View entering={reducedMotion ? undefined : ZoomIn.duration(280)} style={styles.titlePill}>
+            <Animated.View key="title-pill" entering={reducedMotion ? undefined : ZoomIn.duration(280)} style={styles.titlePill}>
                 <Text style={styles.titlePillMain}>{titleMain}</Text>
                 <Text style={styles.titlePillSub}>{titleSub}</Text>
             </Animated.View>
@@ -820,7 +822,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     historyScroll: {
-        flex: 1,
+        flexShrink: 1,
         width: '100%',
     },
     historyHeader: {

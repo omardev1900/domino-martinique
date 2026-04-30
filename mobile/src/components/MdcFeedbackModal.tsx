@@ -13,7 +13,7 @@ interface MdcFeedbackModalProps {
     onClose: () => void;
 }
 
-const APP_VERSION = '2.2';
+const APP_VERSION = '3.0';
 
 export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onClose }) => {
     const [text, setText] = useState('');
