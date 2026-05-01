@@ -20,6 +20,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { LeagueGrade } from '../economy.types';
+import { getStartOfCurrentMonthUtc } from './leaderboard.time';
 
 export interface LeaderboardEntry {
     uid: string;
@@ -71,9 +72,8 @@ class LeaderboardService {
             const leaderboard: LeaderboardEntry[] = [];
             let currentRank = 1;
 
-            // Début du mois en cours (timestamp)
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+            // Début du mois en cours en UTC (timestamp canonique partagé entre clients)
+            const startOfMonth = getStartOfCurrentMonthUtc();
 
             snapshot.forEach((doc) => {
                 const data = doc.data();
