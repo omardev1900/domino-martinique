@@ -10,6 +10,7 @@ import {
     updateProfile as updateFirebaseProfile,
     User
 } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth } from './firebase';
 import { PlayerProfile } from '../types';
 import { statsService } from './stats.service';
@@ -200,6 +201,21 @@ class AuthService {
         } catch (error) {
             LogService.error('AuthService', 'Failed to sign out from Firebase', error);
         }
+    }
+
+    /**
+     * Suppression définitive du compte.
+     * Appelle la Cloud Function deleteUserAccount qui purge Firestore puis supprime Firebase Auth.
+     * Le logout local est effectué après confirmation serveur.
+     */
+    async deleteAccount(): Promise<void> {
+        const functions = getFunctions();
+        const deleteUserAccount = httpsCallable(functions, 'deleteUserAccount');
+        await deleteUserAccount({});
+        // Nettoyage local après suppression serveur réussie
+        this.currentUser = null;
+        try { await AsyncStorage.removeItem(STORAGE_KEY_SESSION); } catch (_) {}
+        try { await signOut(auth); } catch (_) {}
     }
 
     /**

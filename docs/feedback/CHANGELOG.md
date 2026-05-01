@@ -4,6 +4,13 @@
 
 ---
 
+## [2.5] — 1er Mai 2026
+
+### Ajouté
+- **Suppression de compte** — Bouton dans Paramètres → onglet Compte, processus 2 étapes (avertissement + confirmation par email). Suppression définitive : profil, stats, économie, compte Firebase Auth. Conforme exigence Google Play 2024.
+
+---
+
 ## [2.4] — 1er Mai 2026
 
 ### Ajouté

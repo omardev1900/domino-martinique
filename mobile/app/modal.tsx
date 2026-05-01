@@ -149,6 +149,43 @@ export default function ModalScreen() {
     router.replace('/login');
   };
 
+  // ── Suppression de compte ──────────────────────────────────────────────────
+  const [showDeleteStep1, setShowDeleteStep1] = useState(false);
+  const [showDeleteStep2, setShowDeleteStep2] = useState(false);
+  const [deleteEmailInput, setDeleteEmailInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const openDeleteStep1 = () => {
+    setDeleteEmailInput('');
+    setDeleteError(null);
+    setShowDeleteStep1(true);
+  };
+
+  const goToDeleteStep2 = () => {
+    setShowDeleteStep1(false);
+    setDeleteEmailInput('');
+    setDeleteError(null);
+    setShowDeleteStep2(true);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteEmailInput.trim().toLowerCase() !== profileEmail.toLowerCase()) {
+      setDeleteError("L'email saisi ne correspond pas à votre compte.");
+      return;
+    }
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await authService.deleteAccount();
+      router.dismissAll();
+      router.replace('/login');
+    } catch {
+      setDeleteError('Une erreur est survenue. Réessaie ou contacte le support.');
+      setIsDeleting(false);
+    }
+  };
+
 
   return (
     <View style={styles.container} aria-modal={true}>
@@ -318,6 +355,9 @@ export default function ModalScreen() {
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                   <Text style={styles.logoutText}>🚪 Se déconnecter</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.deleteAccountButton} onPress={openDeleteStep1}>
+                  <Text style={styles.deleteAccountText}>🗑️ Supprimer mon compte</Text>
+                </TouchableOpacity>
                 <Text style={styles.versionText}>Domino Martiniquais · v1.0.0</Text>
               </View>
             )}
@@ -409,6 +449,69 @@ export default function ModalScreen() {
           </View>
         </KeyboardAvoidingView>
       </RNModal>
+
+      {/* ── Modal suppression étape 1 : avertissement ── */}
+      <RNModal visible={showDeleteStep1} transparent animationType="fade" onRequestClose={() => setShowDeleteStep1(false)}>
+        <View style={deleteStyles.backdrop}>
+          <View style={deleteStyles.card}>
+            <Text style={deleteStyles.title}>⚠️ Supprimer mon compte</Text>
+            <Text style={deleteStyles.body}>
+              Cette action est <Text style={deleteStyles.bold}>définitive et irréversible</Text>.{'\n\n'}
+              Toutes tes données seront effacées : profil, stats, coins, progression ligue.{'\n\n'}
+              Es-tu sûr de vouloir continuer ?
+            </Text>
+            <View style={deleteStyles.btnRow}>
+              <TouchableOpacity style={deleteStyles.cancelBtn} onPress={() => setShowDeleteStep1(false)}>
+                <Text style={deleteStyles.cancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={deleteStyles.continueBtn} onPress={goToDeleteStep2}>
+                <Text style={deleteStyles.continueText}>Continuer →</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </RNModal>
+
+      {/* ── Modal suppression étape 2 : confirmation par email ── */}
+      <RNModal visible={showDeleteStep2} transparent animationType="fade" onRequestClose={() => setShowDeleteStep2(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <View style={deleteStyles.backdrop}>
+            <View style={deleteStyles.card}>
+              <Text style={deleteStyles.title}>🗑️ Confirmation finale</Text>
+              <Text style={deleteStyles.body}>
+                Tape ton adresse email pour confirmer la suppression de ton compte.
+              </Text>
+              <TextInput
+                style={[deleteStyles.input, deleteError ? { borderColor: '#FF3B30' } : null]}
+                value={deleteEmailInput}
+                onChangeText={text => { setDeleteEmailInput(text); setDeleteError(null); }}
+                placeholder={profileEmail || 'ton@email.com'}
+                placeholderTextColor="rgba(255,255,255,0.25)"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {deleteError ? <Text style={deleteStyles.errorText}>{deleteError}</Text> : null}
+              <View style={deleteStyles.btnRow}>
+                <TouchableOpacity style={deleteStyles.cancelBtn} onPress={() => setShowDeleteStep2(false)}>
+                  <Text style={deleteStyles.cancelText}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[deleteStyles.deleteBtn, (isDeleting || !deleteEmailInput) && { opacity: 0.5 }]}
+                  onPress={confirmDelete}
+                  disabled={isDeleting || !deleteEmailInput}
+                >
+                  {isDeleting
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={deleteStyles.deleteText}>Supprimer définitivement</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </RNModal>
+
     </View>
   );
 }
@@ -507,6 +610,20 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  deleteAccountButton: {
+    backgroundColor: 'rgba(120, 0, 0, 0.18)',
+    padding: 16,
+    borderRadius: 15,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(180, 0, 0, 0.3)',
+    marginTop: 12,
+  },
+  deleteAccountText: {
+    color: '#CC0000',
+    fontWeight: '600',
+    fontSize: 14,
   },
   divider: {
     height: 1,
@@ -913,6 +1030,102 @@ const editStyles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 8,
     marginLeft: 4,
+  },
+});
+
+const deleteStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  card: {
+    backgroundColor: '#1A0A0A',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(200,0,0,0.3)',
+    gap: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  body: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 21,
+    textAlign: 'center',
+  },
+  bold: {
+    fontWeight: '800',
+    color: '#FF4444',
+  },
+  input: {
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#fff',
+    fontSize: 15,
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  btnRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+  },
+  cancelText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  continueBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(200,80,0,0.5)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,120,0,0.4)',
+    alignItems: 'center',
+  },
+  continueText: {
+    color: '#FFB347',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  deleteBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#8B0000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  deleteText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13,
   },
 });
 

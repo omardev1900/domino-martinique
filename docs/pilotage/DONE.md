@@ -11,6 +11,13 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-01 — Suppression de compte (ACCOUNT-DELETE)
+- [x] **[ACCOUNT-DELETE]** Suppression de compte — exigence Google Play 2024
+  - Cloud Function `deleteUserAccount` : supprime `users/{uid}`, `stats/{uid}`, `economy/{uid}` puis `auth.deleteUser(uid)`
+  - `auth.service.ts` : méthode `deleteAccount()` via `httpsCallable`
+  - `modal.tsx` onglet COMPTE : bouton + 2 modals de confirmation (avertissement → saisie email → suppression)
+  - Déployé sur Firebase (`us-central1`)
+
 ### 2026-05-01 — Stats, UX résultats & Interface (session Codex)
 
 **Logique / Stats**

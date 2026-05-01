@@ -217,3 +217,40 @@ export const closeTournament = functions.https.onCall(async (data: { tournamentI
         return { success: true, winnersCount: winners.length };
     });
 });
+
+/**
+ * Suppression de compte — exigée par Google Play depuis 2024.
+ * Supprime toutes les données Firestore du joueur puis son compte Firebase Auth.
+ * Seul l'utilisateur authentifié peut supprimer son propre compte.
+ */
+export const deleteUserAccount = functions.https.onCall(async (_data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
+    }
+
+    const uid = context.auth.uid;
+
+    try {
+        const batch = db.batch();
+
+        // Supprimer les collections principales du joueur
+        const collectionsToDelete = ['users', 'stats', 'economy'];
+        for (const col of collectionsToDelete) {
+            const ref = db.collection(col).doc(uid);
+            const snap = await ref.get();
+            if (snap.exists) batch.delete(ref);
+        }
+
+        await batch.commit();
+
+        // Supprimer le compte Firebase Auth en dernier
+        await admin.auth().deleteUser(uid);
+
+        console.log(`[deleteUserAccount] Compte supprimé : ${uid}`);
+        return { success: true };
+
+    } catch (error: any) {
+        console.error(`[deleteUserAccount] Erreur pour ${uid}:`, error);
+        throw new functions.https.HttpsError('internal', 'Erreur lors de la suppression du compte.');
+    }
+});

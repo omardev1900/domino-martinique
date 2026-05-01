@@ -9,20 +9,12 @@
 > - Décision de traiter une tâche → la déplacer ici
 > - Tâche terminée → la déplacer dans `TASKS_DONE.md` avec la date
 
-**Dernière mise à jour :** 30 avril 2026 (maj en cours)
-**Sprint actuel :** 🚀 P2 — Améliorations post-lancement (en cours)
+**Dernière mise à jour :** 01 mai 2026
+**Sprint actuel :** 🚀 Sprint Consolidation — Store + Play Store readiness
 
 ---
 
-## ✅ Sprint Correctif — Toutes les tâches livrées (29/04/2026)
-
-8 bugs résolus + 2 améliorations bonus. Détail complet → `DONE.md` § 2026-04-29.
-
-Tickets fermés : **R3-B1, R3-B2, R3-B3, R3-B4, R3-B5, R3-B6, R3-B8, R3-M4**
-
----
-
-## 🎯 Sprint P2 — En cours (démarré 30/04/2026)
+## ✅ Sprint P2 — Terminé (30/04 – 01/05/2026)
 
 | Ticket | Description | Statut |
 |---|---|---|
@@ -33,12 +25,23 @@ Tickets fermés : **R3-B1, R3-B2, R3-B3, R3-B4, R3-B5, R3-B6, R3-B8, R3-M4**
 | **R3-B9** | 🐛 Cadeau quotidien — coins non crédités + animation | ✅ Terminé (30/04) |
 | **R3-B10** | 🐛 Cochons désynchronisés entre `/ligue-cochons` et `/stats` | ✅ Terminé (30/04) |
 | **R3-B11** | 🔴 Fuite d'auth — user ghost après reset mémoire | ✅ Terminé (30/04) |
-| **R3-M1** | Classement Global + Du mois (par famille) dans LeagueInfoModal | ✅ Terminé (30/04) |
-| **TECH-DEBT-COCHONS** | Leaderboard lit `stats.totalCochonsInflicted` (source de vérité) | ✅ Terminé (30/04) |
+| **R3-M1** | Classement ligue — 3 catégories +Cochons/-Cochons/+Points | ✅ Terminé (01/05) |
+| **TECH-DEBT-COCHONS** | `totalCochonsSubis` persistant + 31 tests | ✅ Terminé (01/05) |
 | **R3-B12** | 🐛 Cadeau quotidien réappraît à chaque connexion | ✅ Terminé (30/04) |
 | **R3-B13** | 🐛 Leaderboard cochons = 0 pour tous les joueurs | ✅ Terminé (30/04) |
-| **R3-A5** | Musique — contrôle avancé par écran (admin) | ⏳ À venir |
-| **R3-M3** | Boutique — pub admin + mots de tchat achetables | ⏳ À venir |
+| **R3-A5** | Musique — contrôle avancé par écran (admin) | ❌ Annulé (luxe, reporté indéfiniment) |
+
+---
+
+## 🎯 Sprint Consolidation — En cours (démarré 01/05/2026)
+
+| Ticket | Description | Priorité | Statut |
+|---|---|---|---|
+| **R3-M3** | Boutique — pub admin + mots de tchat achetables | 🟠 Monétisation | ⏳ À démarrer |
+| **ACCOUNT-DELETE** | Suppression de compte (exigence Google Play) | 🔴 Bloquant store | ✅ Terminé (01/05) |
+| **TECH-TEST-1** | Corriger assertions `totalCochons` sur perdants (3 tests) | 🟡 Dette technique | ⏳ À démarrer |
+| **TECH-TEST-2** | Config Jest pour modules ESM Firebase (3 suites) | 🟡 Dette technique | ⏳ À démarrer |
+| **TECH-TEST-3** | Restaurer `testID` manquants dans composants UI (2 suites) | 🟡 Dette technique | ⏳ À démarrer |
 
 ---
 
