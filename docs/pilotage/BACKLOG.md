@@ -9,6 +9,18 @@
 
 ---
 
+## 🔍 Audit Admin Dashboard (à faire en dernier, post-roadmap)
+
+- [ ] **[ADMIN-AUDIT]** Audit complet de l'espace admin — vérifier toutes les pages et fonctionnalités
+  - **Périmètre** : tester chaque page du dashboard (`/analytics`, `/overview`, `/players`, `/tables`, `/bans`, `/config`, `/leaderboard`, `/bots`, `/store`, `/chat`, `/tournaments`, `/feedbacks`, `/logs`, `/notifications`, `/news`, `/ads`, `/audio`)
+  - **Vérifier pour chaque page** : les données s'affichent correctement, les actions CRUD fonctionnent, les réglages impactent bien le jeu mobile
+  - **Focus particulier** : `/dashboard/config` (quels paramètres sont lus côté mobile ?), `/dashboard/notifications` (branché FCM ou placeholder ?), `/dashboard/tournaments` (fonctionnel ou stub ?)
+  - **Livrable** : liste des fonctionnalités cassées ou non branchées, avec plan de correction
+  - **Estimation** : ~1 jour d'audit + corrections variables
+  - **Priorité** : après la roadmap principale (Tournois, Comptes, Paiements)
+
+---
+
 ## 🚨 Retour client #3 — 25 avril 2026 (Sprint correctif post-lancement)
 
 > Source : `docs/feedback/feedback-250426.md` + archivé dans `docs/feedback/CLIENT.md`
