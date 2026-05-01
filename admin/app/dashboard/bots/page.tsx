@@ -7,12 +7,13 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
 
 type BotProfile = {
-  id: string;
+  firestoreId?: string; // ID réel du document Firestore
+  id: string;           // Champ id logique stocké dans le document
   name: string;
   avatarId: string;
-  imageUrl?: string; // URL distante (prioritaire)
+  imageUrl?: string;
   difficulty: Difficulty;
-  isLocal?: boolean; // local fallback (non modifiable)
+  isLocal?: boolean;
 };
 
 const LOCAL_BOTS: BotProfile[] = [
@@ -116,6 +117,15 @@ export default function BotsPage() {
 
   const handleSave = async () => {
     if (!editing?.name?.trim() || !editing.difficulty) return;
+
+    // Vérifier l'unicité de l'ID pour un nouveau bot
+    const isNew = !editing.imageUrl && !remoteBots.find(b => b.id === editing.id);
+    const idAlreadyExists = remoteBots.some(b => b.id === editing.id && b.imageUrl !== editing.imageUrl);
+    if (isNew && idAlreadyExists) {
+      showFeedback(`L'ID "${editing.id}" est déjà utilisé — choisis un ID différent.`);
+      return;
+    }
+
     setSaving(true);
     try {
       let imageUrl = editing.imageUrl || '';
@@ -148,11 +158,12 @@ export default function BotsPage() {
     finally { setSaving(false); }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (bot: BotProfile) => {
+    if (!bot.firestoreId) return;
     if (!confirm('Voulez-vous vraiment supprimer ce bot ?')) return;
-    setDeleting(id);
+    setDeleting(bot.firestoreId);
     try {
-      await fetch('/api/bots', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      await fetch('/api/bots', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firestoreId: bot.firestoreId }) });
       fetch_();
     } catch { } finally { setDeleting(null); }
   };
@@ -281,8 +292,6 @@ export default function BotsPage() {
               <thead>
                 <tr className="border-b border-gray-800">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Bot</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Avatar ID</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Difficulté</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Source</th>
                   {tab === 'remote' && <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>}
@@ -292,21 +301,24 @@ export default function BotsPage() {
                 {filtered.map((bot) => {
                   const meta = DIFF_META[bot.difficulty];
                   return (
-                    <tr key={bot.id} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
+                    <tr key={bot.firestoreId ?? `${tab}_${bot.id}`} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm border ${meta.color}`}>
+                          <div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm border shrink-0 ${meta.color}`}>
                             {bot.imageUrl ? (
-                              <img src={bot.imageUrl} alt="" className="w-full h-full object-cover" />
+                              <img src={bot.imageUrl} alt={bot.name} className="w-full h-full object-cover" />
                             ) : (
-                              bot.name[0].toUpperCase()
+                              <span className="text-lg">{meta.icon}</span>
                             )}
                           </div>
-                          <p className="text-white font-medium text-sm">{bot.name}</p>
+                          <div>
+                            <p className="text-white font-medium text-sm">{bot.name}</p>
+                            {bot.avatarId && (
+                              <p className="text-gray-600 text-xs font-mono mt-0.5">{bot.avatarId}</p>
+                            )}
+                          </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5"><code className="text-gray-500 text-xs font-mono">{bot.id}</code></td>
-                      <td className="px-4 py-3.5"><code className="text-gray-500 text-xs font-mono">{bot.avatarId || '—'}</code></td>
                       <td className="px-4 py-3.5 text-center">
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${meta.color}`}>
                           {meta.icon} {meta.label}
@@ -330,9 +342,9 @@ export default function BotsPage() {
                                 className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 rounded-lg transition-all">
                                 Modifier
                               </button>
-                            <button onClick={() => handleDelete(bot.id)} disabled={deleting === bot.id}
+                            <button onClick={() => handleDelete(bot)} disabled={deleting === bot.firestoreId}
                               className="text-xs px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg transition-all disabled:opacity-50">
-                              {deleting === bot.id ? '…' : 'Supprimer'}
+                              {deleting === bot.firestoreId ? '…' : 'Supprimer'}
                             </button>
                           </div>
                         </td>
@@ -350,7 +362,7 @@ export default function BotsPage() {
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setEditing(null)}>
           <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-white font-bold text-lg mb-5">{editing.id ? 'Modifier le bot' : 'Nouveau bot'}</h2>
+            <h2 className="text-white font-bold text-lg mb-5">{editing.firestoreId ? 'Modifier le bot' : 'Nouveau bot'}</h2>
             
             <div className="space-y-4">
               {/* Nom du bot */}
@@ -389,30 +401,18 @@ export default function BotsPage() {
                 </div>
               </div>
 
-              {/* Config Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Asset ID Local</label>
-                  <input 
-                    type="text" 
-                    value={editing.avatarId || ''} 
-                    onChange={(e) => setEditing((p) => ({ ...p!, avatarId: e.target.value }))}
-                    placeholder="Ex: Chip_1"
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors" 
-                  />
-                </div>
-                <div>
-                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Difficulté *</label>
-                  <select 
-                    value={editing.difficulty} 
-                    onChange={(e) => setEditing((p) => ({ ...p!, difficulty: e.target.value as Difficulty }))}
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors"
-                  >
-                    <option value="TI_MANMAY">Ti Manmay</option>
-                    <option value="MAPIPI">Mapipi</option>
-                    <option value="GRAN_MOUN">Gran Moun</option>
-                  </select>
-                </div>
+              {/* Difficulté */}
+              <div>
+                <label className="text-gray-400 text-xs font-medium block mb-1.5">Difficulté *</label>
+                <select
+                  value={editing.difficulty}
+                  onChange={(e) => setEditing((p) => ({ ...p!, difficulty: e.target.value as Difficulty }))}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors"
+                >
+                  <option value="TI_MANMAY">🌱 Ti Manmay (Débutant)</option>
+                  <option value="MAPIPI">⚔️ Mapipi (Intermédiaire)</option>
+                  <option value="GRAN_MOUN">👑 Gran Moun (Expert)</option>
+                </select>
               </div>
             </div>
 
@@ -427,7 +427,7 @@ export default function BotsPage() {
                 disabled={saving || !editing.name?.trim()}
                 className="flex-1 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm rounded-xl transition-all disabled:opacity-40"
               >
-                {saving ? 'Sauvegarde…' : editing.id ? 'Mettre à jour' : 'Créer le bot'}
+                {saving ? 'Sauvegarde…' : editing.firestoreId ? 'Mettre à jour' : 'Créer le bot'}
               </button>
             </div>
           </div>
