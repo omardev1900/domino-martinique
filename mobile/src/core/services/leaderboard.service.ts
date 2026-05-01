@@ -36,6 +36,12 @@ export interface LeaderboardEntry {
     cochonsGiven: number;
     /** Cochons infligés depuis le 1er du mois en cours (calculé depuis matchHistory) */
     cochonsGivenThisMonth: number;
+    /** Cochons subis (manches à -1) — reconstitué depuis mancheLeaguePointsEarned, fallback leaguePointsEarned */
+    totalCochonsSubis: number;
+    /** Points cumulés sur toute la carrière */
+    totalPointsAccumulated: number;
+    /** Nombre total de matchs joués (départage en cas d'égalité) */
+    gamesPlayed: number;
     rank: number;
 }
 
@@ -85,11 +91,15 @@ class LeaderboardService {
                     // Priorité à stats.totalCochonsInflicted (jamais désynchronisé) avec fallback economy.cochonsGiven
                     const cochonsGiven = stats.totalCochonsInflicted || economy.cochonsGiven || 0;
 
-                    // Cochons donnés ce mois — somme des m.cochons depuis le 1er du mois
                     const matchHistory: Array<{ timestamp?: number; cochons?: number }> = stats.matchHistory || [];
+
+                    // Cochons donnés ce mois — somme des m.cochons depuis le 1er du mois
                     const cochonsGivenThisMonth = matchHistory
                         .filter(m => (m.timestamp ?? 0) >= startOfMonth)
                         .reduce((sum, m) => sum + (m.cochons ?? 0), 0);
+
+                    // Cochons subis : compteur persistant lifetime (jamais tronqué)
+                    const totalCochonsSubis: number = stats.totalCochonsSubis ?? 0;
 
                     leaderboard.push({
                         uid: doc.id,
@@ -103,6 +113,9 @@ class LeaderboardService {
                         leaguePoints: economy.leaguePoints || 0,
                         cochonsGiven,
                         cochonsGivenThisMonth,
+                        totalCochonsSubis,
+                        totalPointsAccumulated: stats.totalPointsAccumulated || 0,
+                        gamesPlayed: stats.gamesPlayed || 0,
                         rank: currentRank++,
                     });
                 }

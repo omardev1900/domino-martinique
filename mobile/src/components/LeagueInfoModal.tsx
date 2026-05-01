@@ -23,15 +23,14 @@ interface LeagueInfoModalProps {
 }
 
 type TabType = 'INFOS' | 'MA_LIGUE' | 'CLASSEMENT';
-type ClassementFamily = 'APPRENTIS' | 'MAITRES' | 'ELITE';
-type ClassementPeriod = 'GLOBAL' | 'MONTH';
+type ClassementCategory = 'PLUS_COCHONS' | 'MOINS_COCHONS' | 'PLUS_POINTS';
 
 const { width } = Dimensions.get('window');
 
-const FAMILY_CONFIG: Record<ClassementFamily, { label: string; icon: string; color: string; grades: LeagueGrade[] }> = {
-    APPRENTIS: { label: 'Apprentis',    icon: '🥈', color: '#9E9E9E', grades: ['APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3'] },
-    MAITRES:   { label: 'Maîtres',      icon: '🥇', color: '#FFD700', grades: ['MAITRE_1', 'MAITRE_2', 'MAITRE_3'] },
-    ELITE:     { label: 'Élite',        icon: '👑', color: '#4FC3F7', grades: ['ROI', 'LEGENDE'] },
+const CATEGORY_CONFIG: Record<ClassementCategory, { label: string; icon: string; color: string; sublabel: string }> = {
+    PLUS_COCHONS:  { label: '+ Cochons',  icon: '🐷', color: '#FF8C00', sublabel: 'cochons infligés' },
+    MOINS_COCHONS: { label: '- Cochons',  icon: '🛡️', color: '#4FC3F7', sublabel: 'cochons subis' },
+    PLUS_POINTS:   { label: '+ Points',   icon: '⭐', color: '#FFD700', sublabel: 'points cumulés' },
 };
 
 // Sous-niveaux par famille avec leur couleur individuelle
@@ -59,8 +58,7 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
     const [leagueGrade, setLeagueGrade] = useState<LeagueGrade>('APPRENTI_1');
 
     // Classement
-    const [classementFamily, setClassementFamily] = useState<ClassementFamily>('APPRENTIS');
-    const [classementPeriod, setClassementPeriod] = useState<ClassementPeriod>('GLOBAL');
+    const [classementCategory, setClassementCategory] = useState<ClassementCategory>('PLUS_COCHONS');
     const [allEntries, setAllEntries] = useState<LeaderboardEntry[]>([]);
     const [classementLoading, setClassementLoading] = useState(false);
     const [currentUid, setCurrentUid] = useState<string | null>(null);
@@ -293,22 +291,22 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
 
     // ── Onglet CLASSEMENT ───────────────────────────────────────────────────────
     const renderClassement = () => {
-        const fam = FAMILY_CONFIG[classementFamily];
-        const isMonth = classementPeriod === 'MONTH';
+        const cfg = CATEGORY_CONFIG[classementCategory];
 
-        // Filtrer par famille de grade (grade calculé depuis cochonsGiven — source de vérité)
-        // En mode MONTH, on retri par cochonsGivenThisMonth (decroissant) et on exclut les 0
-        const filteredByFamily = allEntries.filter(e => {
-            const g = getLeagueGrade(e.cochonsGiven);
-            return g && fam.grades.includes(g);
-        });
-
-        const filtered = (isMonth
-            ? [...filteredByFamily]
-                .filter(e => e.cochonsGivenThisMonth > 0)
-                .sort((a, b) => b.cochonsGivenThisMonth - a.cochonsGivenThisMonth)
-            : filteredByFamily
-        ).slice(0, 30);
+        // Tri + départage selon la catégorie
+        const sorted = [...allEntries].sort((a, b) => {
+            if (classementCategory === 'PLUS_COCHONS') {
+                const diff = b.cochonsGiven - a.cochonsGiven;
+                return diff !== 0 ? diff : b.gamesPlayed - a.gamesPlayed;
+            }
+            if (classementCategory === 'MOINS_COCHONS') {
+                const diff = a.totalCochonsSubis - b.totalCochonsSubis;
+                return diff !== 0 ? diff : b.gamesPlayed - a.gamesPlayed;
+            }
+            // PLUS_POINTS
+            const diff = b.totalPointsAccumulated - a.totalPointsAccumulated;
+            return diff !== 0 ? diff : b.gamesPlayed - a.gamesPlayed;
+        }).slice(0, 30);
 
         const rankColor = (r: number) => {
             if (r === 1) return '#FFD700';
@@ -317,38 +315,28 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
             return 'rgba(255,255,255,0.25)';
         };
 
+        const getEntryScore = (entry: LeaderboardEntry): string => {
+            if (classementCategory === 'PLUS_COCHONS') return `${entry.cochonsGiven.toLocaleString()}`;
+            if (classementCategory === 'MOINS_COCHONS') return `${entry.totalCochonsSubis.toLocaleString()}`;
+            return `${entry.totalPointsAccumulated.toLocaleString()}`;
+        };
+
         return (
             <View style={{ flex: 1 }}>
-                {/* Sélecteur période GLOBAL / MONTH */}
-                <View style={styles.periodRow}>
-                    <TouchableOpacity
-                        style={[styles.periodBtn, !isMonth && styles.periodBtnActive]}
-                        onPress={() => setClassementPeriod('GLOBAL')}
-                    >
-                        <Text style={[styles.periodLabel, !isMonth && styles.periodLabelActive]}>🏆 Global</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.periodBtn, isMonth && styles.periodBtnActive]}
-                        onPress={() => setClassementPeriod('MONTH')}
-                    >
-                        <Text style={[styles.periodLabel, isMonth && styles.periodLabelActive]}>📅 Du mois</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Sélecteur famille */}
+                {/* Sélecteur catégorie */}
                 <View style={styles.famRow}>
-                    {(Object.keys(FAMILY_CONFIG) as ClassementFamily[]).map(f => {
-                        const cfg = FAMILY_CONFIG[f];
-                        const active = f === classementFamily;
+                    {(Object.keys(CATEGORY_CONFIG) as ClassementCategory[]).map(cat => {
+                        const c = CATEGORY_CONFIG[cat];
+                        const active = cat === classementCategory;
                         return (
                             <TouchableOpacity
-                                key={f}
-                                style={[styles.famBtn, active && { borderColor: cfg.color, backgroundColor: `${cfg.color}18` }]}
-                                onPress={() => setClassementFamily(f)}
+                                key={cat}
+                                style={[styles.famBtn, active && { borderColor: c.color, backgroundColor: `${c.color}18` }]}
+                                onPress={() => setClassementCategory(cat)}
                             >
-                                <Text style={styles.famBtnText}>{cfg.icon}</Text>
-                                <Text style={[styles.famBtnLabel, { color: active ? cfg.color : 'rgba(255,255,255,0.45)' }]}>
-                                    {cfg.label}
+                                <Text style={styles.famBtnText}>{c.icon}</Text>
+                                <Text style={[styles.famBtnLabel, { color: active ? c.color : 'rgba(255,255,255,0.45)' }]}>
+                                    {c.label}
                                 </Text>
                             </TouchableOpacity>
                         );
@@ -360,13 +348,13 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
                         <ActivityIndicator color="#FFD700" size="large" />
                         <Text style={styles.clsLoadText}>Chargement...</Text>
                     </View>
-                ) : filtered.length === 0 ? (
+                ) : sorted.length === 0 ? (
                     <View style={styles.clsCenter}>
-                        <Text style={styles.clsEmpty}>Aucun joueur dans cette catégorie pour l'instant.</Text>
+                        <Text style={styles.clsEmpty}>Aucun joueur pour l'instant.</Text>
                     </View>
                 ) : (
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-                        {filtered.map((entry, idx) => {
+                        {sorted.map((entry, idx) => {
                             const isMe = entry.uid === currentUid;
                             const localRank = idx + 1;
                             const rc = rankColor(localRank);
@@ -376,7 +364,7 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
                                 <Animated.View
                                     key={entry.uid}
                                     entering={FadeInUp.delay(idx * 35).duration(300)}
-                                    style={[styles.clsRow, isMe && { borderColor: fam.color, backgroundColor: `${fam.color}10` }]}
+                                    style={[styles.clsRow, isMe && { borderColor: cfg.color, backgroundColor: `${cfg.color}10` }]}
                                 >
                                     {/* Rang */}
                                     <View style={[styles.clsRankCircle, { borderColor: rc }]}>
@@ -390,7 +378,7 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
 
                                     {/* Nom + grade */}
                                     <View style={{ flex: 1 }}>
-                                        <Text style={[styles.clsName, isMe && { color: fam.color }]} numberOfLines={1}>
+                                        <Text style={[styles.clsName, isMe && { color: cfg.color }]} numberOfLines={1}>
                                             {isMe ? `${entry.displayName} (Vous)` : entry.displayName}
                                         </Text>
                                         <Text style={styles.clsGrade}>
@@ -400,10 +388,10 @@ export const LeagueInfoModal: React.FC<LeagueInfoModalProps> = ({ visible, onClo
 
                                     {/* Score */}
                                     <View style={styles.clsScore}>
-                                        <Text style={[styles.clsScoreNum, { color: fam.color }]}>
-                                            {(isMonth ? entry.cochonsGivenThisMonth : entry.cochonsGiven).toLocaleString()}
+                                        <Text style={[styles.clsScoreNum, { color: cfg.color }]}>
+                                            {getEntryScore(entry)}
                                         </Text>
-                                        <Text style={styles.clsScoreLabel}>🐷 {isMonth ? 'ce mois' : 'donnés'}</Text>
+                                        <Text style={styles.clsScoreLabel}>{cfg.sublabel}</Text>
                                     </View>
                                 </Animated.View>
                             );
@@ -804,32 +792,6 @@ const styles = StyleSheet.create({
     },
 
     // ── CLASSEMENT ──
-    periodRow: {
-        flexDirection: 'row',
-        gap: 8,
-        marginBottom: 10,
-    },
-    periodBtn: {
-        flex: 1,
-        paddingVertical: 9,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        alignItems: 'center',
-    },
-    periodBtnActive: {
-        borderColor: '#FFD700',
-        backgroundColor: 'rgba(255,215,0,0.12)',
-    },
-    periodLabel: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: 'rgba(255,255,255,0.45)',
-    },
-    periodLabelActive: {
-        color: '#FFD700',
-    },
     famRow: {
         flexDirection: 'row',
         gap: 8,

@@ -24,8 +24,9 @@ export interface PlayerStats {
     gamesPlayed: number;
     gamesWon: number;
     totalCochonsInflicted: number;
+    totalCochonsSubis: number; // Manches où le joueur a pris -1 (cochon reçu)
     totalPointsAccumulated: number;
-    totalRoundsWon: number; // ✅ Manches/Rounds gagnés (lifetime)
+    totalRoundsWon: number;
     matchHistory: MatchRecord[];
     // ─── Economy & Progression ───
     coins: number;
@@ -42,6 +43,7 @@ const DEFAULT_STATS: PlayerStats = {
     gamesWon: 0,
     totalRoundsWon: 0,
     totalCochonsInflicted: 0,
+    totalCochonsSubis: 0,
     totalPointsAccumulated: 0,
     matchHistory: [],
     // Economy defaults
@@ -72,6 +74,7 @@ class StatsService {
                     gamesWon: parsed.gamesWon ?? 0,
                     totalRoundsWon: parsed.totalRoundsWon ?? 0,
                     totalCochonsInflicted: parsed.totalCochonsInflicted ?? 0,
+                    totalCochonsSubis: parsed.totalCochonsSubis ?? 0,
                     totalPointsAccumulated: parsed.totalPointsAccumulated ?? 0,
                     matchHistory: parsed.matchHistory ?? [],
                     // Economy fields — fallback to 0/defaults for old persisted data
@@ -129,6 +132,12 @@ class StatsService {
         stats.totalCochonsInflicted += cochons;
         stats.totalPointsAccumulated += points;
 
+        // Cochons subis : compter les -1 dans mancheLeaguePointsEarned, fallback sur leaguePointsEarned
+        const cochonsSubisCeMatch = mancheLeaguePointsEarned?.length
+            ? mancheLeaguePointsEarned.filter(v => v === -1).length
+            : (leaguePointsEarned === -1 ? 1 : 0);
+        stats.totalCochonsSubis = (stats.totalCochonsSubis ?? 0) + cochonsSubisCeMatch;
+
         // Add to history (keep last 100)
         const newRecord: MatchRecord = {
             id: Date.now().toString(),
@@ -177,6 +186,7 @@ class StatsService {
                     gamesWon: stats.gamesWon,
                     totalRoundsWon: stats.totalRoundsWon,
                     totalCochonsInflicted: stats.totalCochonsInflicted,
+                    totalCochonsSubis: stats.totalCochonsSubis ?? 0,
                     totalPointsAccumulated: stats.totalPointsAccumulated,
                     matchHistory: stats.matchHistory,
                     // Economy fields
@@ -234,6 +244,7 @@ class StatsService {
                         // Note: We leave totalCochonsInflicted here but UI now reads economy.cochonsGiven 
                         // because economy is the verified source of truth via Cloud Functions.
                         totalCochonsInflicted: Math.max(localStats.totalCochonsInflicted, remoteData.totalCochonsInflicted || 0),
+                        totalCochonsSubis: Math.max(localStats.totalCochonsSubis ?? 0, remoteData.totalCochonsSubis || 0),
                         totalPointsAccumulated: realPoints,
                         matchHistory: mergedHistory,
                         // Firestore est source de vérité pour les champs économiques.
