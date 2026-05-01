@@ -440,7 +440,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 <Text style={styles.titlePillMain}>{titleMain}</Text>
                 <Text style={styles.titlePillSub}>{titleSub}</Text>
             </Animated.View>
-            {winnerId && mancheResult !== 'CHIRE' && (
+            {winnerId && mancheResult !== 'CHIRE' && mancheResult !== 'COCHON' && (
                 <Animated.View entering={reducedMotion ? undefined : FadeInUp.delay(120).duration(260)} style={styles.roundHero}>
                     <View style={styles.roundHeroAvatarWrap}>
                         <Image
