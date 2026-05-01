@@ -9,6 +9,7 @@ export default function GameRoute() {
     const params = useLocalSearchParams<{
         id: string;
         userId: string;
+        authUid?: string;
         mode?: string;
         difficulty?: string;
         gameMode?: string;
@@ -33,6 +34,7 @@ export default function GameRoute() {
             <GameScreen
                 gameId={params.id}
                 userId={params.userId}
+                authUid={params.authUid}
                 mode={params.mode as 'solo' | 'multiplayer' | undefined}
                 difficulty={params.difficulty as any}
                 gameMode={params.gameMode as any}

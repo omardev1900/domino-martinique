@@ -17,6 +17,7 @@ export interface MatchRecord {
     mode: string;
     roundsWon?: number;       // Manches gagnées dans le match
     leaguePointsEarned?: number; // Points Ligue du match : 5 / 4 / 2 / 1 / -1
+    mancheLeaguePointsEarned?: number[]; // Résultats de chaque manche : 5 / 4 / 2 / 1 / -1
 }
 
 export interface PlayerStats {
@@ -114,12 +115,13 @@ class StatsService {
         points: number;
         roundsWon?: number;
         leaguePointsEarned?: number; // -1 / 1 / 2 / 4 / 5 pts ligue
+        mancheLeaguePointsEarned?: number[];
         opponents: { name: string; avatarId: string }[];
         mode: string;
         userId?: string; // Optional: sync immediately if provided
     }): Promise<void> {
         const stats = await this.getStats();
-        const { result, cochons, points, roundsWon = 0, leaguePointsEarned, opponents, mode, userId } = params;
+        const { result, cochons, points, roundsWon = 0, leaguePointsEarned, mancheLeaguePointsEarned, opponents, mode, userId } = params;
 
         stats.gamesPlayed += 1;
         if (result === 'WIN') stats.gamesWon += 1;
@@ -127,7 +129,7 @@ class StatsService {
         stats.totalCochonsInflicted += cochons;
         stats.totalPointsAccumulated += points;
 
-        // Add to history (keep last 20)
+        // Add to history (keep last 100)
         const newRecord: MatchRecord = {
             id: Date.now().toString(),
             timestamp: Date.now(),
@@ -136,11 +138,12 @@ class StatsService {
             cochons: cochons,
             roundsWon,
             leaguePointsEarned,
+            mancheLeaguePointsEarned,
             opponents,
             mode
         };
 
-        stats.matchHistory = [newRecord, ...stats.matchHistory].slice(0, 20);
+        stats.matchHistory = [newRecord, ...stats.matchHistory].slice(0, 100);
 
         this.cachedStats = stats;
         await this.persistStats();
@@ -274,7 +277,7 @@ class StatsService {
                 return !duplicate;
             })
             .sort((a, b) => b.timestamp - a.timestamp)
-            .slice(0, 20);
+            .slice(0, 100);
     }
 
     /**

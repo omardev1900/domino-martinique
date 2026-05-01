@@ -57,6 +57,7 @@ import { AdBannerModal } from '../components/AdBannerModal';
 interface GameScreenProps {
     gameId?: string;
     userId?: string;
+    authUid?: string;
     mode?: 'solo' | 'multiplayer';
     difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
     gameMode?: GameMode;
@@ -66,7 +67,7 @@ interface GameScreenProps {
     tableTier?: string; // TableTier passé depuis solo.tsx / lobby.tsx
 }
 
-export default function GameScreen({ gameId, userId, mode, difficulty, gameMode, winningCondition, turnDuration, startingHandSize: propStartingHandSize, tableTier: propTableTier }: GameScreenProps) {
+export default function GameScreen({ gameId, userId, authUid, mode, difficulty, gameMode, winningCondition, turnDuration, startingHandSize: propStartingHandSize, tableTier: propTableTier }: GameScreenProps) {
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const isLandscape = width > height;
@@ -78,6 +79,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
     const [isSoloMode] = useState(mode === 'solo');
     const [startingHandSize] = useState(propStartingHandSize || HAND_SIZE);
     const [activeTableTier] = useState<TableTier>((propTableTier as TableTier) || 'DEBUTANT');
+    const persistenceUserId = authUid || userId;
 
     // -- 2. Connection Status --
     const { isRejoining, signalPlayerOnline, signalPlayerOffline } = useConnectionStatus({ gameId, localPlayerId, isSoloMode });
@@ -374,13 +376,18 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                         });
 
                         // ✅ Exécution sécurisée côté serveur (Backend Banker)
-                        // [R3-A2] Mémoriser le total avant pour calculer le delta (points ligue ce match)
-                        const prevCochonsGiven = playerEconomyRef.current.cochonsGiven || 0;
-                        const reward = await economyService.processServerReward(rewardInput, userId);
+                        const reward = await economyService.processServerReward(rewardInput, persistenceUserId);
                         setMatchReward(reward);
 
-                        // [R3-A2] Points Ligue gagnés ce match : delta cochonsGiven = -1 / 1 / 2 / 4 / 5
-                        const leaguePointsEarned = (reward.newCochonsGiven ?? 0) - prevCochonsGiven;
+                        // Les stats mensuelles doivent refléter le barème métier du RewardEngine
+                        // (5/4/2/1/-1) et non le delta cumulé des cochons donnés.
+                        const leaguePointsEarned = reward.leaguePointsEarned;
+                        const mancheLeaguePointsEarned = rewardInput.mancheHistory.flatMap((manche) => {
+                            const pts = manche.pointsEarned;
+                            return pts === 5 || pts === 4 || pts === 2 || pts === 1 || pts === -1
+                                ? [pts]
+                                : [];
+                        });
 
                         // Mettre à jour le cache local pour que la prochaine partie
                         // dans la même session parte des bonnes valeurs (évite la dérive cochonsGiven)
@@ -406,9 +413,10 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
                             points: localPlayer.totalPoints || 0,
                             roundsWon: localPlayer.mancheWins || 0,
                             leaguePointsEarned,
+                            mancheLeaguePointsEarned,
                             opponents: opponentsData,
                             mode: isSoloMode ? 'SOLO' : 'MULTIPLAYER',
-                            userId: userId
+                            userId: persistenceUserId
                         });
                     } catch (err) {
                         console.error('❌ [GameScreen] Match end processing failed:', err);
@@ -422,7 +430,7 @@ export default function GameScreen({ gameId, userId, mode, difficulty, gameMode,
             statsRecordedRef.current = false;
             setMatchReward(null); // Reset pour la prochaine partie
         }
-    }, [gameState?.phase, localPlayerId, isSoloMode, userId]);
+    }, [gameState?.phase, localPlayerId, isSoloMode, persistenceUserId]);
 
     useEffect(() => {
         if (Platform.OS === 'web' && !showScoreOverlay && !showRoomInfo && !isPaused) {

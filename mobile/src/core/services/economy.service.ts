@@ -234,6 +234,13 @@ class EconomyService {
             this.cached = updated;
             await this.persistLocal(); // On sauvegarde juste dans le AsyncStorage pour l'application fluide
 
+            // Sécurise la cohérence Firestore côté client après un calcul serveur réussi.
+            // Si la Cloud Function n'écrit pas (ou pas complètement) economy.xp / economy.coins,
+            // le leaderboard lirait des valeurs obsolètes.
+            if (userId && !userId.startsWith('guest_')) {
+                await this.pushToFirebase(userId, updated, profile);
+            }
+
             return reward;
 
         } catch (e) {

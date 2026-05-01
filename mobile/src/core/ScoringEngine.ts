@@ -201,10 +201,7 @@ export const finalizeRound = (
     let isMatchOver = false;
 
     if (mancheWinner || isChire) {
-        if (isChire) {
-            // Chiré = manche nulle, aucun vainqueur → jamais de fin de match
-            isMatchOver = false;
-        } else if (newState.gameMode === 'SCORE') {
+        if (newState.gameMode === 'SCORE') {
             // Mode SCORE : le seuil se vérifie uniquement à la fin d'une manche complète.
             // Si plusieurs joueurs partagent le meilleur score au franchissement du seuil,
             // on continue sur une manche supplémentaire jusqu'au départage.
