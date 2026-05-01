@@ -74,8 +74,10 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         ? matchOverallWinner?.id
         : isBoude
             ? boudeWinnerId
-            : (gameState.players.find(p => p.id === gameState.firstPlayerOfRound)?.id
-                || gameState.players.find(p => p.hand.length === 0)?.id);
+            : mancheResult === 'CHIRE'
+                ? null
+                : (gameState.players.find(p => p.id === gameState.firstPlayerOfRound)?.id
+                    || gameState.players.find(p => p.hand.length === 0)?.id);
 
     const isMeWinner = winnerId === currentUserId;
 

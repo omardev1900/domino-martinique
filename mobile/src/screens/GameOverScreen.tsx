@@ -8,7 +8,6 @@ import { determineWinnerOnBoudé } from '../core/LogicEngine';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
-import { statsService } from '../core/services/stats.service';
 
 interface GameOverScreenProps {
     gameState: GameState;
@@ -39,7 +38,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 }) => {
     const { height: screenHeight, width: screenWidth } = useWindowDimensions();
     const isLandscape = screenWidth > screenHeight;
-    const hasRecordedStats = useRef(false);
 
     // Determine context
     const isMatchOver = gameState.phase === 'MATCH_END';
@@ -69,53 +67,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         }
     }, [gameState.phase, currentUserId, isBoudé, isMancheOver]);
 
-    // Les manches sont passées manuellement par l'utilisateur (ou l'hôte)
-
-    // 📊 STATS: Record match result for every completed manche (but NOT at match end — GameScreen handles that)
-    useEffect(() => {
-        if (hasRecordedStats.current) return;
-        // Only record when a manche is resolved AND the match is NOT over yet
-        // ✅ FIX [2026-04-15]: Added !isMatchOver guard to prevent double-recording:
-        // when the last manche triggers MATCH_END, both GameOverScreen and GameScreen
-        // were calling recordMatchResult(), causing cochons to be counted twice.
-        if ((!isMancheOver && !isBoudé) || isMatchOver) return;
-        hasRecordedStats.current = true;
-
-        const currentPlayer = gameState.players.find(p => p.id === currentUserId);
-        if (!currentPlayer) return;
-
-        // Determine result for THIS manche
-        let result: 'WIN' | 'LOSS' | 'DRAW' = 'LOSS';
-        if (gameState.mancheResult === 'CHIRE') {
-            result = 'DRAW';
-        } else {
-            // The winner of the manche is the one whose win count just increased
-            const sortedByWins = [...gameState.players].sort((a, b) => b.mancheWins - a.mancheWins);
-            if (sortedByWins[0].id === currentUserId) {
-                result = 'WIN';
-            }
-        }
-
-        // Count cochons inflicted BY the current player (other players who are cochon)
-        const cochonsInflicted = gameState.players.filter(p => p.id !== currentUserId && p.isCochon).length;
-
-        // Prepare opponent list for history
-        const opponents = gameState.players
-            .filter(p => p.id !== currentUserId)
-            .map(p => ({
-                name: p.name,
-                avatarId: p.avatarId || 'avatar_default'
-            }));
-
-        statsService.recordMatchResult({
-            result,
-            cochons: cochonsInflicted,
-            points: Math.max(0, currentPlayer.totalPoints),
-            opponents,
-            mode: gameState.gameMode
-        });
-    }, [isMancheOver, isBoudé, gameState, currentUserId]);
-
     // Find winner
     // If match over, it's the one with 3 wins.
     // If round over, it's the one who played last or has lowest points (firstPlayerOfRound usually set to winner)
@@ -135,7 +86,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         }
     };
 
-    const roundWinner = getRoundWinner();
+    const roundWinner = gameState.mancheResult === 'CHIRE' ? null : getRoundWinner();
     // Tri conditionnel selon le mode de jeu
     const sortedPlayers = [...gameState.players].sort((a, b) => {
         if (gameState.gameMode === 'COCHON') return b.totalCochons - a.totalCochons;
@@ -202,8 +153,9 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                                         const points = p.totalPoints || 0;
                                         const sign = points > 0 ? '+' : '';
                                         const isCochon = points < 0;
+                                        const highlightLeader = gameState.mancheResult !== 'CHIRE' && index === 0;
                                         return (
-                                            <View key={p.id} style={[styles.playerRow, index === 0 && styles.winnerRow, { paddingVertical: 6 }]}>
+                                            <View key={p.id} style={[styles.playerRow, highlightLeader && styles.winnerRow, { paddingVertical: 6 }]}>
                                                 <Text style={styles.rank}>#{index + 1}</Text>
                                                 <View style={{ flex: 1 }}>
                                                     <Text style={styles.name} numberOfLines={1}>
@@ -341,7 +293,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                             <>
                                 <View style={styles.resultsContainer}>
                                     {sortedPlayers.map((p, index) => {
-                                        const isWinner = index === 0;
+                                        const isWinner = gameState.mancheResult !== 'CHIRE' && index === 0;
                                         return (
                                             <Animated.View
                                                 key={p.id}
