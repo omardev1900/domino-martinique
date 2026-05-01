@@ -73,6 +73,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Messages et emojis du tchat en jeu.
+    // Lecture authentifiée (mobile), écriture admin uniquement.
+    match /chat_messages/{id} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
     // Feedbacks utilisateurs (envoyés depuis le bouton MDC dans la sidebar)
     // Tout joueur authentifié peut créer un feedback. Lecture admin uniquement.
     match /feedbacks/{feedbackId} {

@@ -111,14 +111,14 @@ exports.DEFAULT_LEVEL_UP_COINS = 100;
  * Le grade est recalculé depuis cochonsGiven à chaque mise à jour.
  */
 exports.LEAGUE_THRESHOLDS = {
-    APPRENTI_1: 10, // Premier grade (joueurs < 10 cochons = sans grade)
-    APPRENTI_2: 10,
-    APPRENTI_3: 20,
-    MAITRE_1: 30,
-    MAITRE_2: 60,
-    MAITRE_3: 90,
-    ROI: 120,
-    LEGENDE: 250,
+    APPRENTI_1: 10,
+    APPRENTI_2: 20,
+    APPRENTI_3: 30,
+    MAITRE_1: 60,
+    MAITRE_2: 90,
+    MAITRE_3: 120,
+    ROI: 250,
+    LEGENDE: 500,
 };
 /**
  * Seuils de cochons pour le DÉBLOCAGE du cadre associé à chaque grade.

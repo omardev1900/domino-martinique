@@ -29,7 +29,11 @@
       "Bash(npx tsc *)",
       "Bash(grep -v \"^--$\")",
       "Bash(grep -v \"^$\")",
-      "Read(//e/e/PROJETS/clients/domino_matrinique/mobile/app/**)"
+      "Read(//e/e/PROJETS/clients/domino_matrinique/mobile/app/**)",
+      "Bash(firebase functions:list)",
+      "Bash(firebase deploy *)",
+      "Bash(firebase functions:log --only deleteUserAccount)",
+      "Bash(firebase functions:log)"
     ],
     "additionalDirectories": [
       "e:\\PROJETS\\_TEMPLATE\\docs",

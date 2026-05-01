@@ -33,14 +33,14 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.closeTournament = exports.processMatchReward = void 0;
+exports.deleteUserAccount = exports.closeTournament = exports.migrateCochonsGiven = exports.processMatchReward = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const RewardEngine_1 = require("./core/RewardEngine");
 admin.initializeApp();
 const db = admin.firestore();
 exports.processMatchReward = functions.https.onCall(async (data, context) => {
-    var _a;
+    var _a, _b, _c;
     // 1. Vérifier l'authentification
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Il faut être connecté pour traiter une récompense.');
@@ -53,6 +53,7 @@ exports.processMatchReward = functions.https.onCall(async (data, context) => {
     let currentXP = 0;
     let currentLevel = 1;
     let currentLeaguePoints = 0;
+    let currentCochonsGiven = 0;
     let currentCoins = 0;
     let currentDiamonds = 0;
     let existingEconomy = {};
@@ -63,6 +64,9 @@ exports.processMatchReward = functions.https.onCall(async (data, context) => {
             currentXP = existingEconomy.xp || 0;
             currentLevel = existingEconomy.level || 1;
             currentLeaguePoints = existingEconomy.leaguePoints || 0;
+            // cochonsGiven doit être synchronisé depuis le serveur pour éviter la dérive
+            // avec leaguePoints. Fallback sur leaguePoints si cochonsGiven absent.
+            currentCochonsGiven = (_b = (_a = existingEconomy.cochonsGiven) !== null && _a !== void 0 ? _a : existingEconomy.leaguePoints) !== null && _b !== void 0 ? _b : 0;
             currentCoins = existingEconomy.coins || 0;
             currentDiamonds = existingEconomy.diamonds || 0;
         }
@@ -71,7 +75,8 @@ exports.processMatchReward = functions.https.onCall(async (data, context) => {
     // Le client ne peut pas tricher sur son niveau de départ
     const secureInput = Object.assign(Object.assign({}, clientInput), { currentXP,
         currentLevel,
-        currentLeaguePoints });
+        currentLeaguePoints,
+        currentCochonsGiven });
     // 4. Exécuter le moteur purement mathématique sur le serveur
     const reward = RewardEngine_1.RewardEngine.calculate(secureInput);
     // 5. Appliquer les gains à l'économie
@@ -96,7 +101,7 @@ exports.processMatchReward = functions.https.onCall(async (data, context) => {
             // Exemple : les totalPoints + un bonus si vainqueur, ou bien uniquement l'XP accumulé.
             // Utilisons la somme des points de la partie (totalPoints) + bonus victoire
             // Ou plus simplement, on se base sur les events du clientInput s'il y a un totalPoints
-            const pointsToAdd = ((_a = clientInput.playerFinalStats) === null || _a === void 0 ? void 0 : _a.totalPoints) || reward.xpEarned;
+            const pointsToAdd = ((_c = clientInput.playerFinalStats) === null || _c === void 0 ? void 0 : _c.totalPoints) || reward.xpEarned;
             await db.runTransaction(async (t) => {
                 var _a;
                 const partSnap = await t.get(partRef);
@@ -122,6 +127,44 @@ exports.processMatchReward = functions.https.onCall(async (data, context) => {
     console.log(`[processMatchReward] Joueur ${uid} crédité: +${reward.coinsEarned} pièces.`);
     // On retourne le résultat au client pour déclencher ses propres animations
     return reward;
+});
+/**
+ * Migration one-shot : copie stats.totalCochonsInflicted → economy.cochonsGiven
+ * pour tous les utilisateurs dont economy.cochonsGiven < stats.totalCochonsInflicted.
+ * À appeler UNE SEULE FOIS depuis l'admin, puis désactiver.
+ * Réservé aux admins (vérifié via collection admins/).
+ */
+exports.migrateCochonsGiven = functions.https.onCall(async (_data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Accès refusé.');
+    }
+    // Vérifier que l'appelant est admin
+    const adminSnap = await db.collection('admins').doc(context.auth.uid).get();
+    if (!adminSnap.exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Réservé aux admins.');
+    }
+    const usersSnap = await db.collection('users').get();
+    let migrated = 0;
+    let skipped = 0;
+    const batch = db.batch();
+    usersSnap.forEach((userDoc) => {
+        var _a, _b, _c, _d;
+        const data = userDoc.data();
+        const statsTotal = (_b = (_a = data === null || data === void 0 ? void 0 : data.stats) === null || _a === void 0 ? void 0 : _a.totalCochonsInflicted) !== null && _b !== void 0 ? _b : 0;
+        const economyCochons = (_d = (_c = data === null || data === void 0 ? void 0 : data.economy) === null || _c === void 0 ? void 0 : _c.cochonsGiven) !== null && _d !== void 0 ? _d : 0;
+        if (statsTotal > economyCochons) {
+            batch.update(userDoc.ref, {
+                'economy.cochonsGiven': statsTotal,
+            });
+            migrated++;
+        }
+        else {
+            skipped++;
+        }
+    });
+    await batch.commit();
+    console.log(`[migrateCochonsGiven] Migrated: ${migrated}, Skipped: ${skipped}`);
+    return { migrated, skipped };
 });
 exports.closeTournament = functions.https.onCall(async (data, context) => {
     if (!context.auth)
@@ -170,5 +213,36 @@ exports.closeTournament = functions.https.onCall(async (data, context) => {
         t.update(tRef, { status: 'ENDED' });
         return { success: true, winnersCount: winners.length };
     });
+});
+/**
+ * Suppression de compte — exigée par Google Play depuis 2024.
+ * Supprime toutes les données Firestore du joueur puis son compte Firebase Auth.
+ * Seul l'utilisateur authentifié peut supprimer son propre compte.
+ */
+exports.deleteUserAccount = functions.https.onCall(async (_data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
+    }
+    const uid = context.auth.uid;
+    try {
+        const batch = db.batch();
+        // Supprimer les collections principales du joueur
+        const collectionsToDelete = ['users', 'stats', 'economy'];
+        for (const col of collectionsToDelete) {
+            const ref = db.collection(col).doc(uid);
+            const snap = await ref.get();
+            if (snap.exists)
+                batch.delete(ref);
+        }
+        await batch.commit();
+        // Supprimer le compte Firebase Auth en dernier
+        await admin.auth().deleteUser(uid);
+        console.log(`[deleteUserAccount] Compte supprimé : ${uid}`);
+        return { success: true };
+    }
+    catch (error) {
+        console.error(`[deleteUserAccount] Erreur pour ${uid}:`, error);
+        throw new functions.https.HttpsError('internal', 'Erreur lors de la suppression du compte.');
+    }
 });
 //# sourceMappingURL=index.js.map
