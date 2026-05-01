@@ -4,6 +4,26 @@
 
 ---
 
+## [2.4] — 1er Mai 2026
+
+### Ajouté
+- **Onglet Historique en jeu** — Consultable depuis le menu Options pendant le match, sans interrompre la partie.
+
+### Modifié
+- **Modal CHIRÉ** — Bouton supprimé, passage automatique au round suivant (plus fluide).
+- **Modal partie bloquée / égalité** — Refonte en cartes joueur côte à côte, dominos affichés verticalement pour une meilleure lisibilité.
+- **Teaser de fin de round gagnant** — Version plus dramatique, mieux mise en valeur.
+- **Teaser fin de round (mobile)** — Ajusté pour rester lisible sur petits écrans.
+- **`/ligue-cochons`** — Compteur de progression repositionné pour ne plus chevaucher les paliers.
+
+### Corrigé
+- **Synchro economy / leaderboard (solo)** — Les gains et compteurs des parties solo authentifiées remontent désormais correctement dans le leaderboard.
+- **STATISTIQUES DU MOIS** — Décompte correct des manches en 5 / 4 / 2 / 1 / -1 points.
+- **Comptage des manches** — Toutes les manches sont maintenant comptabilisées (certaines étaient ignorées).
+- **Mode Cochon — écran de fin** — Vue rendue scrollable, footer toujours accessible (correction du blocage apparent sur mobile).
+
+---
+
 ## [2.3] — 25 Avril 2026
 
 ### Ajouté

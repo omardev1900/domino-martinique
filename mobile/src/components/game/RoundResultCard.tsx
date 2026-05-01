@@ -271,6 +271,11 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
         );
     }
 
+    // isBoudedWin: layout 3 colonnes — perdant | gagnant (centre, grand) | perdant
+    const heroAvatarSizeB = isCompactMobile ? 52 : 64;
+    const loserDominoSizeB = isCompactMobile ? 26 : 30;
+    const winnerDominoSizeB = isCompactMobile ? 34 : 40;
+
     return (
         <Animated.View
             entering={reducedMotion ? undefined : FadeIn.duration(300)}
@@ -280,86 +285,100 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
         >
             <Animated.View
                 entering={reducedMotion ? undefined : ZoomIn.duration(450).springify()}
-                style={[styles.card, { borderColor: accentColor + '80' }]}
+                style={[styles.card, styles.heroCard, isCompactMobile && styles.heroCardCompact, { borderColor: accentColor + '80' }]}
             >
-                {/* ── Header tag ── */}
-                <View style={[styles.headerTag, {
-                    backgroundColor: accentColor + '18',
-                    borderColor: accentColor + '45',
-                }]}>
+                <View style={[styles.headerTag, { backgroundColor: accentColor + '18', borderColor: accentColor + '45' }]}>
                     <Text style={[styles.headerTagText, { color: accentColor }]}>
-                        {headerLabel.toUpperCase()}
+                        🔒 PARTIE BLOQUÉE
                     </Text>
                 </View>
 
-                <ScrollView style={{ maxHeight: '100%' }} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-                    {/* ── Left column: Winner ── */}
-                    <View style={styles.leftCol}>
-                        <Text style={styles.winnerName} numberOfLines={1}>
-                            👑 {winner.name}
-                            {isBoudedWin && (
-                                <Text style={[styles.winnerScoreInline, { color: accentColor }]}>
-                                    {' '}({handScore2(winner.hand)})
+                <View style={styles.heroCompactStage}>
+                    {/* ── Perdant gauche ── */}
+                    <View style={styles.heroCompactSide}>
+                        {losers[0] && (
+                            <View style={[styles.heroLoserChip, isCompactMobile && styles.heroLoserChipCompact]}>
+                                <Text style={[styles.heroLoserName, isCompactMobile && styles.heroLoserNameCompact]} numberOfLines={1}>
+                                    {losers[0].name}
                                 </Text>
-                            )}
+                                <Text style={[styles.boudedScore, { color: accentColor }]}>
+                                    {handScore2(losers[0].hand)} pts
+                                </Text>
+                                <View style={styles.heroLoserHand}>
+                                    {losers[0].hand.map((d, i) => (
+                                        <DominoTile
+                                            key={i}
+                                            left={d.left as any}
+                                            right={d.right as any}
+                                            size={loserDominoSizeB}
+                                            orientation="vertical"
+                                            disabled
+                                            noMargin
+                                        />
+                                    ))}
+                                </View>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* ── Gagnant centre ── */}
+                    <View style={[styles.heroBody, isCompactMobile && styles.heroBodyCompact, styles.heroCenterColumn]}>
+                        <View style={styles.heroAvatarWrap}>
+                            <Image
+                                source={getAvatarImage((winner.avatarId as AvatarId) || 'avatar_default')}
+                                style={[
+                                    styles.heroAvatar,
+                                    {
+                                        width: heroAvatarSizeB,
+                                        height: heroAvatarSizeB,
+                                        borderRadius: heroAvatarSizeB / 2,
+                                        borderColor: accentColor,
+                                    },
+                                ]}
+                                contentFit="cover"
+                            />
+                            <Text style={[styles.heroCrown, isCompactMobile && styles.heroCrownCompact]}>👑</Text>
+                        </View>
+
+                        <Text style={[styles.heroWinnerName, isCompactMobile && styles.heroWinnerNameCompact]}>
+                            {winner.name}
+                        </Text>
+                        <Text style={[styles.heroWinText, { color: accentColor }, isCompactMobile && styles.heroWinTextCompact]}>
+                            {handScore2(winner.hand)} PTS — LE MOINS
                         </Text>
 
-                        {isNormalWin && lastDomino && (
-                            <View style={styles.lastDominoSection}>
-                                <Text style={styles.subLabel}>DERNIER COUP</Text>
+                        <View style={[styles.heroLoserHand, { marginTop: 6 }]}>
+                            {winner.hand.map((d, i) => (
                                 <DominoTile
-                                    left={lastDomino.left as any}
-                                    right={lastDomino.right as any}
-                                    size={52}
+                                    key={i}
+                                    left={d.left as any}
+                                    right={d.right as any}
+                                    size={winnerDominoSizeB}
                                     orientation="vertical"
                                     disabled
                                     noMargin
                                 />
-                            </View>
-                        )}
-
-                        {isBoudedWin && (
-                            <View style={styles.boudedWinner}>
-                                <View style={styles.handRowCompact}>
-                                    {winner.hand.map((d, i) => (
-                                        <DominoTile
-                                            key={i}
-                                            left={d.left as any}
-                                            right={d.right as any}
-                                            size={40}
-                                            orientation="vertical"
-                                            disabled
-                                            noMargin
-                                        />
-                                    ))}
-                                </View>
-                            </View>
-                        )}
+                            ))}
+                        </View>
                     </View>
 
-                    {/* ── Divider ── */}
-                    <View style={[styles.verticalDivider, { backgroundColor: accentColor + '35' }]} />
-
-                    {/* ── Right column: Losers ── */}
-                    <View style={styles.rightCol}>
-                        {losers.map(loser => (
-                            <View key={loser.id} style={styles.loserRowCompact}>
-                                <Text style={styles.loserName} numberOfLines={1}>
-                                    {loser.name}
-                                    {isBoudedWin && (
-                                        <Text style={[styles.scoreInline, { color: accentColor }]}>
-                                            {' '}({handScore2(loser.hand)})
-                                        </Text>
-                                    )}
+                    {/* ── Perdant droite ── */}
+                    <View style={styles.heroCompactSide}>
+                        {losers[1] && (
+                            <View style={[styles.heroLoserChip, isCompactMobile && styles.heroLoserChipCompact]}>
+                                <Text style={[styles.heroLoserName, isCompactMobile && styles.heroLoserNameCompact]} numberOfLines={1}>
+                                    {losers[1].name}
                                 </Text>
-
-                                <View style={styles.handRowCompact}>
-                                    {loser.hand.map((d, i) => (
+                                <Text style={[styles.boudedScore, { color: accentColor }]}>
+                                    {handScore2(losers[1].hand)} pts
+                                </Text>
+                                <View style={styles.heroLoserHand}>
+                                    {losers[1].hand.map((d, i) => (
                                         <DominoTile
                                             key={i}
                                             left={d.left as any}
                                             right={d.right as any}
-                                            size={40}
+                                            size={loserDominoSizeB}
                                             orientation="vertical"
                                             disabled
                                             noMargin
@@ -367,9 +386,9 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
                                     ))}
                                 </View>
                             </View>
-                        ))}
+                        )}
                     </View>
-                </ScrollView>
+                </View>
             </Animated.View>
         </Animated.View>
     );
@@ -664,5 +683,10 @@ const styles = StyleSheet.create({
     scoreInline: {
         fontSize: 14,
         fontWeight: 'bold',
+    },
+    boudedScore: {
+        fontSize: 13,
+        fontWeight: '700',
+        marginTop: 2,
     },
 });

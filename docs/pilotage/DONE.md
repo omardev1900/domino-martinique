@@ -9,6 +9,28 @@
 
 ---
 
+## 📅 Mai 2026
+
+### 2026-05-01 — Stats, UX résultats & Interface (session Codex)
+
+**Logique / Stats**
+- [x] **[FIX-ECO-SYNC-SOLO]** Synchro economy/leaderboard corrigée pour le solo authentifié — les gains et compteurs remontent désormais correctement dans le leaderboard après une partie solo.
+- [x] **[FIX-MONTHLY-STATS]** `/stats` — section "STATISTIQUES DU MOIS" : décompte correct des manches gagnées en 5 / 4 / 2 / 1 / -1 points (barème officiel respecté).
+- [x] **[FIX-MANCHES-COUNT]** Bug de comptage : certaines manches n'étaient pas comptabilisées dans les stats — toutes les manches sont maintenant prises en compte.
+
+**UX — Fin de manche / résultats**
+- [x] **[UX-CHIRE-AUTO]** Modal CHIRÉ — bouton supprimé, passage automatique au round suivant (plus fluide, moins d'interruption).
+- [x] **[UX-BOUDE-CARDS]** Modal partie bloquée / égalité — refonte en cartes joueur côte à côte avec dominos affichés verticalement (lisibilité nettement améliorée).
+- [x] **[UX-ROUND-WIN-TEASER]** Teaser de fin de round gagnant — version plus dramatique (animation/présentation renforcée).
+- [x] **[UX-ROUND-WIN-MOBILE]** Version mobile du teaser ajustée pour rester lisible sur petits écrans.
+- [x] **[FIX-COCHON-SCROLL]** Écran fin de partie Mode Cochon — vue rendue scrollable + footer accessible (correction du blocage apparent sur téléphone).
+
+**Interface**
+- [x] **[UX-OPTIONS-HISTORY]** Onglet "Historique" ajouté dans le menu Options pendant le match (consultation de l'historique des manches sans quitter la partie).
+- [x] **[UX-LIGUE-PROGRESS]** `/ligue-cochons` — compteur de progression repositionné pour ne plus chevaucher l'affichage des paliers.
+
+---
+
 ## 📅 Avril 2026
 
 ### 2026-04-29 — Sprint Correctif Post-Lancement (Retour client #3)
