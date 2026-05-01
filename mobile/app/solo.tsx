@@ -79,6 +79,14 @@ export default function SoloScreen() {
     };
 
     const startGame = async () => {
+        if (!user?.uid || user.uid.startsWith('guest_')) {
+            Alert.alert(
+                'Connexion requise',
+                'Vous devez être connecté pour lancer une partie.'
+            );
+            return;
+        }
+
         const tableConfig = TABLE_CONFIGS[tableTier];
 
         // ── ANTI-QUIT : Déduire le buy-in AVANT de lancer la partie ──
@@ -106,6 +114,7 @@ export default function SoloScreen() {
             pathname: '/game/[id]',
             params: {
                 id: 'solo-' + Date.now(),
+                authUid: user.uid,
                 mode: 'solo',
                 difficulty: difficulty,
                 gameMode: gameMode,

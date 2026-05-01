@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, TouchableOpacity, StyleSheet, Modal,
-    Pressable, Switch, Clipboard, Platform,
+    Pressable, Switch, Clipboard, Platform, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,6 +13,7 @@ export interface GameOptionsMenuProps {
     onClose: () => void;
     isSoloMode: boolean;
     gameState: GameState | null;
+    localPlayerId?: string;
     gameId?: string;
     roomData?: any;
     isSoundEnabled: boolean;
@@ -22,7 +23,7 @@ export interface GameOptionsMenuProps {
     onQuitGame: () => void;
 }
 
-type Tab = 'JEU' | 'INFOS';
+type Tab = 'JEU' | 'INFOS' | 'HISTORIQUE';
 
 function gameModeLabel(mode?: string): string {
     switch (mode) {
@@ -50,6 +51,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
     onClose,
     isSoloMode,
     gameState,
+    localPlayerId,
     gameId,
     roomData,
     isSoundEnabled,
@@ -106,7 +108,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                         {/* ── Ligne unique : onglets + X ── */}
                         <View style={styles.topRow}>
                             <View style={styles.tabBar}>
-                                {(['JEU', 'INFOS'] as Tab[]).map(tab => (
+                                {(['JEU', 'INFOS', 'HISTORIQUE'] as Tab[]).map(tab => (
                                     <TouchableOpacity
                                         key={tab}
                                         style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
@@ -114,7 +116,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                         activeOpacity={0.8}
                                     >
                                         <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>
-                                            {tab === 'JEU' ? '🎮 Jeu' : 'ℹ️ Infos'}
+                                            {tab === 'JEU' ? '🎮 Jeu' : tab === 'INFOS' ? 'ℹ️ Infos' : '📜 Historique'}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
@@ -185,6 +187,63 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                             )}
                                         </>
                                     )}
+                                </View>
+                            )}
+
+                            {activeTab === 'HISTORIQUE' && gameState && (
+                                <View>
+                                    <View style={styles.historyCurrentBlock}>
+                                        <Text style={styles.historyCurrentTitle}>En cours</Text>
+                                        <Text style={styles.historyCurrentText}>
+                                            Manche {Math.max(1, gameState.mancheNumber ?? 1)} · Round {Math.max(1, gameState.roundNumber ?? 1)}
+                                        </Text>
+                                    </View>
+
+                                    <View style={styles.historyTableHeader}>
+                                        <Text style={[styles.historyCell, styles.historyCellLabel]}>Manche</Text>
+                                        {gameState.players.map((player) => (
+                                            <Text
+                                                key={player.id}
+                                                style={[
+                                                    styles.historyCell,
+                                                    player.id === localPlayerId && styles.historyCellMe,
+                                                ]}
+                                                numberOfLines={1}
+                                            >
+                                                {player.id === localPlayerId ? 'Moi' : player.name}
+                                            </Text>
+                                        ))}
+                                    </View>
+
+                                    <ScrollView style={styles.historyScroll} showsVerticalScrollIndicator={false}>
+                                        {gameState.mancheHistory?.length ? (
+                                            gameState.mancheHistory.map((manche, index) => (
+                                                <View key={`${manche.mancheNumber}-${index}`} style={styles.historyRowTable}>
+                                                    <View style={styles.historyLabelCol}>
+                                                        <Text style={[styles.historyCell, styles.historyCellLabel]}>
+                                                            M{manche.mancheNumber}
+                                                        </Text>
+                                                        <Text style={styles.historyResultBadge}>
+                                                            {manche.resultType === 'COCHON'
+                                                                ? manche.cochonCount && manche.cochonCount > 1 ? 'Double cochon' : 'Cochon'
+                                                                : manche.resultType === 'CHIRE'
+                                                                    ? 'Chiré'
+                                                                    : 'Victoire'}
+                                                        </Text>
+                                                    </View>
+                                                    {gameState.players.map((player) => (
+                                                        <Text key={player.id} style={styles.historyCell}>
+                                                            {manche.points[player.id] ?? 0}
+                                                        </Text>
+                                                    ))}
+                                                </View>
+                                            ))
+                                        ) : (
+                                            <Text style={styles.emptyHistoryText}>
+                                                Aucune manche terminée pour le moment.
+                                            </Text>
+                                        )}
+                                    </ScrollView>
                                 </View>
                             )}
                         </View>
@@ -362,6 +421,81 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
         fontWeight: '600',
+    },
+    historyCurrentBlock: {
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,215,0,0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.15)',
+        marginBottom: 10,
+    },
+    historyCurrentTitle: {
+        color: 'rgba(255,255,255,0.45)',
+        fontSize: 10,
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        marginBottom: 3,
+    },
+    historyCurrentText: {
+        color: '#FFD700',
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    historyTableHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 8,
+        marginBottom: 6,
+        gap: 6,
+    },
+    historyScroll: {
+        maxHeight: 220,
+    },
+    historyRowTable: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 8,
+        borderBottomWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
+        gap: 6,
+    },
+    historyLabelCol: {
+        width: 62,
+        alignItems: 'center',
+        gap: 2,
+    },
+    historyCell: {
+        flex: 1,
+        color: '#fff',
+        fontSize: 11,
+        textAlign: 'center',
+    },
+    historyCellLabel: {
+        flex: 0,
+        width: 52,
+        fontWeight: '700',
+        color: '#FFD700',
+    },
+    historyCellMe: {
+        color: '#FFD700',
+        fontWeight: '700',
+    },
+    historyResultBadge: {
+        color: 'rgba(255,255,255,0.45)',
+        fontSize: 9,
+        textAlign: 'center',
+    },
+    emptyHistoryText: {
+        color: 'rgba(255,255,255,0.45)',
+        textAlign: 'center',
+        paddingVertical: 16,
+        fontStyle: 'italic',
     },
     divider: {
         height: 1,

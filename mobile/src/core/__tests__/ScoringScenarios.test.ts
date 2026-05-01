@@ -122,9 +122,9 @@ describe('Scoring Verification', () => {
         expect(playerA?.totalPoints).toBe(1); // 1 point pour le round gagné !
     });
 
-    test('4. SCORE — Round déclenche MATCH_END quand le joueur atteint l\'objectif', () => {
-        // A=0 étoile, 29 pts. Objectif=30. A gagne le round → totalPoints = 30 → MATCH_END.
-        // Fix R3-B1 : la vérification Mode Score se fait après chaque round, pas seulement après une manche.
+    test('4. SCORE — Le seuil atteint en plein round reste PARTIE_END jusqu\'à la fin de manche', () => {
+        // A=0 étoile, 29 pts. Objectif=30. A gagne le round → totalPoints = 30,
+        // mais la manche n'est pas terminée: le match doit continuer.
         const state = createMockState([
             { id: 'A', stars: 0, totalPoints: 29 },
             { id: 'B', stars: 0, totalPoints: 10 },
@@ -132,11 +132,11 @@ describe('Scoring Verification', () => {
         ], 'SCORE', 30);
 
         const newState = finalizeRound(state, 'A');
-        logResult('Test 4: Round atteint objectif Score → MATCH_END', newState, {});
+        logResult('Test 4: Round atteint objectif Score → PARTIE_END', newState, {});
 
         const playerA = newState.players.find(p => p.id === 'A');
         expect(playerA?.totalPoints).toBe(30);
-        expect(newState.phase).toBe('MATCH_END');
+        expect(newState.phase).toBe('PARTIE_END');
     });
 
     test('4b. SCORE — Round sans atteinte de l\'objectif reste PARTIE_END', () => {
@@ -155,21 +155,22 @@ describe('Scoring Verification', () => {
 
     // ─── Tests de régression pour les bugs identifiés ───────────────────────────
 
-    test('Bug B1 — Chiré ne déclenche jamais MATCH_END en mode SCORE', () => {
+    test('Bug B1 — SCORE : Chiré déclenche MATCH_END si le seuil est atteint avec leader unique', () => {
         // A=2 étoiles, 29 pts. B=1 étoile, 5 pts. C=0 étoile, 5 pts.
-        // C gagne le round → tous ont ≥1 étoile → CHIRÉ (manche nulle)
-        // Même si A passe à 30 pts (seuil atteint) : un Chiré ne finit jamais le match.
+        // C gagne le round → tous ont ≥1 étoile → CHIRÉ.
+        // A reste seul leader à 29 pts >=? No, C gagne +1 et passe à 6; on veut A à 30 via son étoile déjà acquise ? Non.
+        // Ici le seuil doit être évalué sur les totaux de fin de manche chirée; A est déjà à 29, on fixe l'objectif à 29.
         const state = createMockState([
             { id: 'A', stars: 2, totalPoints: 29 },
             { id: 'B', stars: 1, totalPoints: 5 },
             { id: 'C', stars: 0, totalPoints: 5 }
-        ], 'SCORE', 30);
+        ], 'SCORE', 29);
 
         const result = finalizeRound(state, 'C'); // C gagne → tout le monde ≥1 étoile → CHIRÉ
-        logResult('Bug B1: Chiré ne doit pas provoquer MATCH_END', result, {});
+        logResult('Bug B1: Chiré doit provoquer MATCH_END si le leader est unique', result, {});
 
         expect(result.mancheResult).toBe('CHIRE');
-        expect(result.phase).toBe('MANCHE_END'); // Jamais MATCH_END sur un Chiré
+        expect(result.phase).toBe('MATCH_END');
     });
 
     test('Bug B2 — COCHON : MATCH_END déclenché quand totalCochons >= winningCondition', () => {
@@ -229,6 +230,22 @@ describe('Scoring Verification', () => {
         const playerA = newState.players.find(p => p.id === 'A');
         expect(playerA?.totalPoints).toBe(32); // 29 + 1 (round) + 2 (cochon bonus) = 32. (Les 2 stars d'avant étaient déjà à 29)
         expect(newState.phase).toBe('MATCH_END');
+    });
+
+    test('5b. SCORE — égalité au meilleur score en fin de manche prolonge le match', () => {
+        // A atteint 31 points en gagnant la manche, et B est déjà à 31.
+        // Le seuil est atteint, sans leader unique: on reste en fin de manche pour tie-break.
+        const state = createMockState([
+            { id: 'A', stars: 2, totalPoints: 29 },
+            { id: 'B', stars: 1, totalPoints: 31 },
+            { id: 'C', stars: 0, totalPoints: 10 }
+        ], 'SCORE', 30);
+
+        const newState = finalizeRound(state, 'A');
+        const playerA = newState.players.find(p => p.id === 'A');
+
+        expect(playerA?.totalPoints).toBe(31);
+        expect(newState.phase).toBe('MANCHE_END');
     });
 
     test('6. Test Manche History Recording', () => {
@@ -343,6 +360,19 @@ describe('Scoring Verification', () => {
         expect(newState.phase).toBe('MATCH_END');
     });
 
+    test('R3-B1-B2 : SCORE — Chiré avec leader unique au seuil → MATCH_END', () => {
+        const state = createMockState([
+            { id: 'A', stars: 2, totalPoints: 8 },
+            { id: 'B', stars: 1, totalPoints: 4 },
+            { id: 'C', stars: 0, totalPoints: 0 }
+        ], 'SCORE', 7);
+
+        const newState = finalizeRound(state, 'C');
+
+        expect(newState.mancheResult).toBe('CHIRE');
+        expect(newState.phase).toBe('MATCH_END');
+    });
+
     test('R3-B1-C : MANCHE — Round ordinaire ne déclenche pas MATCH_END même si totalPoints élevé', () => {
         // En mode MANCHE, la fin de match dépend du nombre de manches jouées, PAS des totalPoints.
         // Régression : s'assurer que le fix Score n'affecte pas le mode MANCHE.
@@ -374,6 +404,37 @@ describe('Scoring Verification', () => {
 
         // Pas de mancheWinner (1 étoile seulement) → PARTIE_END, pas MATCH_END
         expect(newState.phase).toBe('PARTIE_END');
+    });
+
+    test('R3-B1-D2 : COCHON — Chiré déclenche MATCH_END si le seuil cochons est déjà atteint', () => {
+        const state: any = createMockState([
+            { id: 'A', stars: 2, totalPoints: 3 },
+            { id: 'B', stars: 1, totalPoints: 2 },
+            { id: 'C', stars: 0, totalPoints: 1 }
+        ], 'COCHON', 2);
+        state.players[0].totalCochons = 2;
+        state.players[1].totalCochons = 1;
+        state.players[2].totalCochons = 0;
+
+        const newState = finalizeRound(state, 'C');
+
+        expect(newState.mancheResult).toBe('CHIRE');
+        expect(newState.phase).toBe('MATCH_END');
+    });
+
+    test('R3-B1-D3 : MANCHE — Chiré sur la manche décisive déclenche MATCH_END si le leader est unique', () => {
+        const state = createMockState([
+            { id: 'A', stars: 2, totalPoints: 8 },
+            { id: 'B', stars: 1, totalPoints: 4 },
+            { id: 'C', stars: 0, totalPoints: 0 }
+        ], 'MANCHE', 3);
+        state.mancheHistory = [{}, {}] as any;
+
+        const newState = finalizeRound(state, 'C');
+
+        expect(newState.mancheResult).toBe('CHIRE');
+        expect(newState.mancheHistory.length).toBe(3);
+        expect(newState.phase).toBe('MATCH_END');
     });
 
     test('R3-B1-E : SCORE — Dépassement du seuil (saut) via round déclenche MATCH_END', () => {

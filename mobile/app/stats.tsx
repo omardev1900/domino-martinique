@@ -114,12 +114,17 @@ export default function StatsScreen() {
         return playerStats.matchHistory
             .filter(m => m.timestamp >= startOfMonth)
             .reduce((acc, m) => {
-                const pts = m.leaguePointsEarned;
-                if (pts === 5)       acc.p5 += 1;
-                else if (pts === 4)  acc.p4 += 1;
-                else if (pts === 2)  acc.p2 += 1;
-                else if (pts === 1)  acc.p1 += 1;
-                else if (pts === -1) acc.m1 += 1;
+                const mancheResults = m.mancheLeaguePointsEarned && m.mancheLeaguePointsEarned.length > 0
+                    ? m.mancheLeaguePointsEarned
+                    : (typeof m.leaguePointsEarned === 'number' ? [m.leaguePointsEarned] : []);
+
+                for (const pts of mancheResults) {
+                    if (pts === 5)       acc.p5 += 1;
+                    else if (pts === 4)  acc.p4 += 1;
+                    else if (pts === 2)  acc.p2 += 1;
+                    else if (pts === 1)  acc.p1 += 1;
+                    else if (pts === -1) acc.m1 += 1;
+                }
                 return acc;
             }, { p5: 0, p4: 0, p2: 0, p1: 0, m1: 0 });
     }, [playerStats?.matchHistory]);
@@ -206,7 +211,7 @@ export default function StatsScreen() {
 
                 {/* Records Section */}
                 <View style={styles.recordsSection}>
-                    <Text style={styles.recordsTitle}>RECORDS (SUR LES 20 DERNIERS MATCHS)</Text>
+                    <Text style={styles.recordsTitle}>RECORDS (SUR LES 100 DERNIERS MATCHS)</Text>
                     <View style={styles.recordsCards}>
                         <View style={styles.recordCard}>
                             <Text style={styles.recordCardValue}>{records.maxScore}</Text>
@@ -258,7 +263,7 @@ export default function StatsScreen() {
                         <View style={styles.modalInfoBanner}>
                             <Ionicons name="information-circle" size={16} color="#60DCFF" style={{ marginRight: 6 }} />
                             <Text style={styles.modalInfoText}>
-                                Seuls les 20 derniers matchs sont affichés. Vos compteurs globaux (Cochons, Points) intègrent vos statistiques complètes, à vie.
+                                Seuls les 100 derniers matchs sont affichés. Vos compteurs globaux (Cochons, Points) intègrent vos statistiques complètes, à vie.
                             </Text>
                         </View>
                         <View style={{ flex: 1 }}>

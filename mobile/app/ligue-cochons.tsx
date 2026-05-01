@@ -70,13 +70,8 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ current, nextThreshold, prevT
         width: `${progress.value * 100}%`,
     }));
 
-    const label = nextThreshold
-        ? `${current} / ${nextThreshold} 🐷`
-        : `${current} 🐷 — GRADE MAXIMUM !`;
-
     return (
         <View style={styles.progressContainer}>
-            <Text style={styles.progressLabel}>{label}</Text>
             <View style={styles.progressTrack}>
                 <Animated.View style={[styles.progressFill, barStyle]}>
                     <LinearGradient
@@ -302,6 +297,13 @@ export default function LigueCochonsScreen() {
                                 ? `Plus que ${nextThreshold - cochonsGiven} cochon${nextThreshold - cochonsGiven > 1 ? 's' : ''} pour le prochain palier !`
                                 : '🔥 Vous avez atteint le grade MAXIMUM !'}
                         </Text>
+                        <View style={styles.progressBadge}>
+                            <Text style={styles.progressBadgeText}>
+                                {nextThreshold
+                                    ? `${cochonsGiven} / ${nextThreshold} 🐷 vers le prochain palier`
+                                    : `${cochonsGiven} 🐷 • grade maximum`}
+                            </Text>
+                        </View>
                     </Animated.View>
 
                     {/* Barre de progression */}
@@ -440,15 +442,24 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 20,
     },
+    progressBadge: {
+        marginTop: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.18)',
+    },
+    progressBadgeText: {
+        color: '#FFD700',
+        fontSize: 13,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
     // ─── Barre de progression ───
     progressContainer: {
         gap: 10,
-    },
-    progressLabel: {
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 13,
-        fontWeight: '600',
-        textAlign: 'center',
     },
     progressTrack: {
         height: 20,

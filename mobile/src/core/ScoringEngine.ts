@@ -165,6 +165,7 @@ export const finalizeRound = (
                     ...p,
                     isCochon: true,
                     totalPoints: (p.totalPoints || 0) - 1, // Receives -1 for being cochon
+                    totalCochons: (p.totalCochons || 0) + 1,
                     totalCochonsSubis: (p.totalCochonsSubis || 0) + 1 // ✅ B3 FIX: Le perdant reçoit le cochon
                 };
             } else {
@@ -199,22 +200,19 @@ export const finalizeRound = (
     // 3.3 Check Match End
     let isMatchOver = false;
 
-    if (newState.gameMode === 'SCORE') {
-        // Mode SCORE : vérification après chaque round (pas seulement après une manche)
-        // Un joueur peut atteindre l'objectif via des victoires de rounds successives sans jamais
-        // terminer une manche complète (3 étoiles).
-        const maxPoints = Math.max(...newState.players.map(p => p.totalPoints));
-        if (maxPoints >= newState.winningCondition) {
-            const leaders = newState.players.filter(p => p.totalPoints === maxPoints);
-            isMatchOver = leaders.length === 1;
-            if (leaders.length > 1) {
-                LogService.info('ScoringEngine', `TIE AT SCORE THRESHOLD (${maxPoints})! Continuing for another round...`);
+    if (mancheWinner || isChire) {
+        if (newState.gameMode === 'SCORE') {
+            // Mode SCORE : le seuil se vérifie uniquement à la fin d'une manche complète.
+            // Si plusieurs joueurs partagent le meilleur score au franchissement du seuil,
+            // on continue sur une manche supplémentaire jusqu'au départage.
+            const maxPoints = Math.max(...newState.players.map(p => p.totalPoints || 0));
+            if (maxPoints >= newState.winningCondition) {
+                const leaders = newState.players.filter(p => (p.totalPoints || 0) === maxPoints);
+                isMatchOver = leaders.length === 1;
+                if (leaders.length > 1) {
+                    LogService.info('ScoringEngine', `TIE AT SCORE THRESHOLD (${maxPoints})! Continuing for another manche...`);
+                }
             }
-        }
-    } else if (mancheWinner || isChire) {
-        if (isChire) {
-            // Chiré = manche nulle, aucun vainqueur → jamais de fin de match
-            isMatchOver = false;
         } else if (newState.gameMode === 'MANCHE') {
             // Match ends ONLY when fixed number of manches played AND tie-breaker is resolved
             if (newState.mancheHistory && newState.mancheHistory.length >= newState.winningCondition) {

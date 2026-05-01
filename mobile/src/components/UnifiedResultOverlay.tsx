@@ -42,8 +42,10 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
     const reducedMotion = useReducedMotion();
+    const AUTO_ADVANCE_MS = 2800;
 
     const [showHistory, setShowHistory] = useState(false);
+    const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState<number | null>(null);
     const confettiRef = useRef<ConfettiCannon>(null);
 
     const isMatchOver = gameState.phase === 'MATCH_END';
@@ -54,6 +56,33 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     useEffect(() => {
         if (visible) setShowHistory(false);
     }, [visible]);
+
+    useEffect(() => {
+        if (!visible || mancheResult !== 'CHIRE' || isMatchOver || showHistory) {
+            setAutoAdvanceSeconds(null);
+            return;
+        }
+
+        setAutoAdvanceSeconds(Math.ceil(AUTO_ADVANCE_MS / 1000));
+
+        const countdown = setInterval(() => {
+            setAutoAdvanceSeconds((prev) => {
+                if (prev === null || prev <= 1) return 1;
+                return prev - 1;
+            });
+        }, 1000);
+
+        const autoAdvance = isHost
+            ? setTimeout(() => {
+                onContinue();
+            }, AUTO_ADVANCE_MS)
+            : null;
+
+        return () => {
+            clearInterval(countdown);
+            if (autoAdvance) clearTimeout(autoAdvance);
+        };
+    }, [visible, mancheResult, isMatchOver, showHistory, isHost, onContinue]);
 
     // ── Winners ────────────────────────────────────────────────────────────────
     const boudeWinnerId = (() => {
@@ -74,8 +103,10 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         ? matchOverallWinner?.id
         : isBoude
             ? boudeWinnerId
-            : (gameState.players.find(p => p.id === gameState.firstPlayerOfRound)?.id
-                || gameState.players.find(p => p.hand.length === 0)?.id);
+            : mancheResult === 'CHIRE'
+                ? null
+                : (gameState.players.find(p => p.id === gameState.firstPlayerOfRound)?.id
+                    || gameState.players.find(p => p.hand.length === 0)?.id);
 
     const isMeWinner = winnerId === currentUserId;
 
@@ -179,15 +210,32 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 ? `${gameState.players.find(p => p.id === boudeWinnerId)?.name} gagne !`
                 : 'Personne ne gagne.',
         };
-        if (mancheResult === 'CHIRE') return { main: '⚡ CHIRÉ !!', sub: 'Pas de cochon cette fois !' };
+        if (mancheResult === 'CHIRE') return { main: '⚡ CHIRÉ !!', sub: 'Manche annulée, passage automatique.' };
         if (mancheResult === 'COCHON') return { main: '🐷 COCHON !', sub: 'Une manche de prestige !' };
-        return { main: '🎉 VICTOIRE !', sub: 'Partie terminée.' };
+        return {
+            main: 'A POSÉ TOUS SES DOMINOS',
+            sub: winnerId ? `${gameState.players.find(p => p.id === winnerId)?.name ?? 'Un joueur'} remporte la partie` : 'Victoire nette',
+        };
     };
 
     const { main: titleMain, sub: titleSub } = getTitle();
 
     // ── Shared footer (rounds uniquement) ─────────────────────────────────────
     const renderFooter = () => {
+        if (mancheResult === 'CHIRE' && !isMatchOver) {
+            return (
+                <View style={styles.footer}>
+                    <View style={[styles.actionBtn, styles.waitingBtn, styles.autoAdvanceBtn]}>
+                        <Ionicons name="flash-outline" size={18} color="#FFD700" />
+                        <Text style={[styles.actionBtnText, styles.autoAdvanceText]}>
+                            {isHost
+                                ? `Suite automatique${autoAdvanceSeconds ? ` dans ${autoAdvanceSeconds}s` : '...'}`
+                                : "L'hôte lance automatiquement la suite..."}
+                        </Text>
+                    </View>
+                </View>
+            );
+        }
 
         // Round / manche intermédiaire : bouton Continuer centré, ou attente
         return (
@@ -383,13 +431,34 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
     // ── ROUND / MANCHE / BOUDE view ────────────────────────────────────────────
     const renderRoundView = () => (
-        <>
+        <ScrollView
+            style={{ width: '100%', flexShrink: 1 }}
+            contentContainerStyle={styles.roundScrollContent}
+            showsVerticalScrollIndicator={false}
+        >
             <Animated.View key="title-pill" entering={reducedMotion ? undefined : ZoomIn.duration(280)} style={styles.titlePill}>
                 <Text style={styles.titlePillMain}>{titleMain}</Text>
                 <Text style={styles.titlePillSub}>{titleSub}</Text>
             </Animated.View>
+            {winnerId && mancheResult !== 'CHIRE' && (
+                <Animated.View entering={reducedMotion ? undefined : FadeInUp.delay(120).duration(260)} style={styles.roundHero}>
+                    <View style={styles.roundHeroAvatarWrap}>
+                        <Image
+                            source={getAvatarImage((gameState.players.find(p => p.id === winnerId)?.avatarId as AvatarId) || 'avatar_default')}
+                            style={styles.roundHeroAvatar}
+                            contentFit="cover"
+                        />
+                        <Text style={styles.roundHeroCrown}>👑</Text>
+                    </View>
+                    <Text style={styles.roundHeroName}>
+                        {gameState.players.find(p => p.id === winnerId)?.id === currentUserId
+                            ? 'Moi'
+                            : gameState.players.find(p => p.id === winnerId)?.name}
+                    </Text>
+                </Animated.View>
+            )}
             {renderPodiumCards(false)}
-        </>
+        </ScrollView>
     );
 
     // ── Main render ────────────────────────────────────────────────────────────
@@ -489,6 +558,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
         paddingTop: 10,
         paddingBottom: 0,
+    },
+    roundScrollContent: {
+        paddingBottom: 6,
     },
 
     // ── MATCH END: top nav ──
@@ -717,6 +789,36 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         marginTop: 3,
     },
+    roundHero: {
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    roundHeroAvatarWrap: {
+        position: 'relative',
+        marginBottom: 6,
+    },
+    roundHeroAvatar: {
+        width: 76,
+        height: 76,
+        borderRadius: 38,
+        borderWidth: 3,
+        borderColor: '#FFD700',
+    },
+    roundHeroCrown: {
+        position: 'absolute',
+        top: -18,
+        right: -10,
+        fontSize: 28,
+        textShadowColor: 'rgba(255,215,0,0.45)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+    },
+    roundHeroName: {
+        color: '#FFD700',
+        fontSize: 17,
+        fontWeight: '900',
+        textAlign: 'center',
+    },
 
     // ── FOOTER ──
     footer: {
@@ -753,12 +855,22 @@ const styles = StyleSheet.create({
         shadowOpacity: 0,
         elevation: 0,
     },
+    autoAdvanceBtn: {
+        minWidth: 260,
+        backgroundColor: 'rgba(255,215,0,0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+    },
     actionBtnText: {
         color: '#000',
         fontWeight: '900',
         fontSize: 13,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
+    },
+    autoAdvanceText: {
+        color: '#FFD700',
+        letterSpacing: 0.3,
     },
     quitBtn: {
         width: 44,
