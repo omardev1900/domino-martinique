@@ -122,9 +122,9 @@ describe('Scoring Verification', () => {
         expect(playerA?.totalPoints).toBe(1); // 1 point pour le round gagné !
     });
 
-    test('4. SCORE — Round déclenche MATCH_END quand le joueur atteint l\'objectif', () => {
-        // A=0 étoile, 29 pts. Objectif=30. A gagne le round → totalPoints = 30 → MATCH_END.
-        // Fix R3-B1 : la vérification Mode Score se fait après chaque round, pas seulement après une manche.
+    test('4. SCORE — Le seuil atteint en plein round reste PARTIE_END jusqu\'à la fin de manche', () => {
+        // A=0 étoile, 29 pts. Objectif=30. A gagne le round → totalPoints = 30,
+        // mais la manche n'est pas terminée: le match doit continuer.
         const state = createMockState([
             { id: 'A', stars: 0, totalPoints: 29 },
             { id: 'B', stars: 0, totalPoints: 10 },
@@ -132,11 +132,11 @@ describe('Scoring Verification', () => {
         ], 'SCORE', 30);
 
         const newState = finalizeRound(state, 'A');
-        logResult('Test 4: Round atteint objectif Score → MATCH_END', newState, {});
+        logResult('Test 4: Round atteint objectif Score → PARTIE_END', newState, {});
 
         const playerA = newState.players.find(p => p.id === 'A');
         expect(playerA?.totalPoints).toBe(30);
-        expect(newState.phase).toBe('MATCH_END');
+        expect(newState.phase).toBe('PARTIE_END');
     });
 
     test('4b. SCORE — Round sans atteinte de l\'objectif reste PARTIE_END', () => {
@@ -229,6 +229,22 @@ describe('Scoring Verification', () => {
         const playerA = newState.players.find(p => p.id === 'A');
         expect(playerA?.totalPoints).toBe(32); // 29 + 1 (round) + 2 (cochon bonus) = 32. (Les 2 stars d'avant étaient déjà à 29)
         expect(newState.phase).toBe('MATCH_END');
+    });
+
+    test('5b. SCORE — égalité au meilleur score en fin de manche prolonge le match', () => {
+        // A atteint 31 points en gagnant la manche, et B est déjà à 31.
+        // Le seuil est atteint, sans leader unique: on reste en fin de manche pour tie-break.
+        const state = createMockState([
+            { id: 'A', stars: 2, totalPoints: 29 },
+            { id: 'B', stars: 1, totalPoints: 31 },
+            { id: 'C', stars: 0, totalPoints: 10 }
+        ], 'SCORE', 30);
+
+        const newState = finalizeRound(state, 'A');
+        const playerA = newState.players.find(p => p.id === 'A');
+
+        expect(playerA?.totalPoints).toBe(31);
+        expect(newState.phase).toBe('MANCHE_END');
     });
 
     test('6. Test Manche History Recording', () => {
