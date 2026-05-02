@@ -10,7 +10,7 @@
 > - Tâche terminée → la déplacer dans `TASKS_DONE.md` avec la date
 
 **Dernière mise à jour :** 02 mai 2026
-**Sprint actuel :** 🚀 Sprint Consolidation — Store + Play Store readiness
+**Sprint actuel :** 🚀 Sprint Post-Lancement P1
 
 ---
 
@@ -27,7 +27,7 @@
 | **R3-B11** | 🔴 Fuite d'auth — user ghost après reset mémoire | ✅ Terminé (30/04) |
 | **R3-M1** | Classement ligue — 3 catégories +Cochons/-Cochons/+Points | ✅ Terminé (01/05) |
 | **TECH-DEBT-COCHONS** | `totalCochonsSubis` persistant + 31 tests | ✅ Terminé (01/05) |
-| **R3-B12** | 🐛 Cadeau quotidien réappraît à chaque connexion | ✅ Terminé (30/04) |
+| **R3-B12** | 🐛 Cadeau quotidien réapparaît à chaque connexion | ✅ Terminé (30/04) |
 | **R3-B13** | 🐛 Leaderboard cochons = 0 pour tous les joueurs | ✅ Terminé (30/04) |
 | **R3-A5** | Musique — contrôle avancé par écran (admin) | ❌ Annulé (luxe, reporté indéfiniment) |
 
@@ -47,11 +47,10 @@
 
 ---
 
-## 🚀 Sprint Post-Lancement P1 — En cours (démarré 02/05/2026)
+## 🚀 Sprint Post-Lancement P1 — En attente de démarrage
 
-| Ticket | Description | Priorité | Statut |
-|---|---|---|---|
-| **ADMIN-MANAGER** | Système d'accès admin manager (droits limités bots/boutique/tchat/ads/tournois/music) | 🔴 P1 | ✅ Terminé (02/05) |
+> Aucune tâche active dans `TASKS.md` pour le moment.
+> Les prochaines priorités à décider se trouvent dans `BACKLOG.md`.
 
 ---
 

@@ -26,43 +26,35 @@
 
 ## 🎯 Priorités Sprint Post-Lancement (02/05/2026)
 
-### Priorité 1 — Admin Manager (Accès limité)
-- [ ] **[ADMIN-MANAGER]** Créer un système d'accès admin manager avec droits limités
-  - **Scope** : Gestion complète de bots, boutique, tchat, ads, tournois, musique + accès lecture analytics
-  - **Rôles** : Admin complet (producteur) + Manager (équipe) — 2 niveaux d'accès
-  - **Firestore rules** : Ajouter champ `role` à `admins/{uid}` + conditions lectureMgr/écritureMgr
-  - **Dashboard** : Page `/dashboard/access` pour ajouter/modifier/supprimer managers
-  - **Estimation** : ~2 jours (rules Firestore + page accès + tests)
-
-### Priorité 2 — Ads-to-Reward System
+### Priorité 1 — Ads-to-Reward System
 - [ ] **[ADS-REWARD]** Doubler les gains après pub — post-match modal avec CTA "Doubler mes gains via pub"
   - **Flow** : Fin match → modal résultats + bouton "Voir pub (x2 coins/XP)" → Google Ad → credited + toast "Gains doublés"
   - **Backend** : Flag `hasClaimedAdReward` par match dans `matches/{id}`
   - **Mobile** : Hook `useAdReward()` + AdRewardModal + doublement gains dans `processServerReward()`
   - **Estimation** : ~1,5 jour (UI + hook + backend)
 
-### Priorité 3 — Animations Domino
+### Priorité 2 — Animations Domino
 - [ ] **[ANIM-DOMINO]** Glissé domino vers plateau + animation distribution
   - **Glissé** : Domino glisse du plateau joueur vers le centre, arrive avec "clack" SFX
   - **Distribution** : Dominos qui tombent en cascade en début de manche
   - **Lib** : React Native Reanimated (déjà utilisée)
   - **Estimation** : ~2 jours (glissé + distribution + tests)
 
-### Priorité 4 — Gestion Comptes (Google login + profil avatar)
+### Priorité 3 — Gestion Comptes (Google login + profil avatar)
 - [ ] **[ACCOUNT-GOOGLE]** Google Sign-In complet + affichage profil avatar
   - **Réactiver** : `GOOGLE_SIGNIN_ENABLED = true` dans `login.tsx` après build EAS Android
   - **Import Google** : Utiliser avatar Google Photo si `signInWithGoogle` (whitelist déjà OK dans `avatars.ts`)
   - **Tests** : Flow complet sign-in → profil visible → avatar affiché
   - **Estimation** : ~1 jour (tests + validation)
 
-### Priorité 5 — Système Tournois (Bloc 11)
+### Priorité 4 — Système Tournois (Bloc 11)
 - [ ] **[TOURNAMENTS]** Création admin + lobby mobile + brackets auto
   - **Admin** : Interface création (format Manches/Points, buy-in Coins, dates)
   - **Mobile** : Écran inscription + lobby attente + brackets élimination 3j/match
   - **Backend** : Collection `tournaments/{id}` + Firestore rules + Cloud Function automation
   - **Estimation** : ~4 jours (admin + mobile + backend)
 
-### Priorité 6 — Google Pay Integration
+### Priorité 5 — Google Pay Integration
 - [ ] **[GOOGLE-PAY]** Paiements Coins/Diamonds via Google Play Billing
   - **Android uniquement** (iOS = App Store In-App Purchase, post-v3.0)
   - **Lib** : `expo-in-app-purchases` ou `react-native-iap`
@@ -70,7 +62,7 @@
   - **Flow** : Boutique → "Acheter 500 coins (4,99€)" → Google Play popup → credited
   - **Estimation** : ~2 jours (intégration + validation + tests)
 
-### Priorité 7 — Monitoring (Sentry)
+### Priorité 6 — Monitoring (Sentry)
 - [ ] **[SENTRY]** Crashlytics + erreurs front + alertes
   - **Créer projet Sentry** mobile + admin
   - **Intégrer SDK** Expo (mobile) + Next.js (admin)
