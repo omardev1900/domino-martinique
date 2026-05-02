@@ -16,16 +16,7 @@ describe('GameHeader Component', () => {
     const defaultProps = {
         gameState: mockGameState,
         insets: mockInsets,
-        isSoloMode: true,
-        isPaused: false,
-        onTogglePause: jest.fn(),
-        showRoomInfo: false,
-        onToggleRoomInfo: jest.fn(),
-        isSoundEnabled: true,
-        onToggleSound: jest.fn(),
-        onOpenSettings: jest.fn(),
-        isFullscreen: false,
-        onToggleFullscreen: jest.fn(),
+        onOpenOptions: jest.fn(),
     };
 
     it('renders correctly when phase is PLAYING', () => {
@@ -51,36 +42,26 @@ describe('GameHeader Component', () => {
         expect(queryByTestId('game-header')).toBeNull();
     });
 
-    it('calls onTogglePause when pause button is pressed in solo mode', () => {
-        const { getByTestId } = render(<GameHeader {...defaultProps} />);
-
-        fireEvent.press(getByTestId('btn-pause'));
-        expect(defaultProps.onTogglePause).toHaveBeenCalledTimes(1);
-    });
-
-    it('calls onToggleRoomInfo when room info button is pressed in multiplayer mode', () => {
-        const props = { ...defaultProps, isSoloMode: false };
-        const { getByTestId } = render(<GameHeader {...props} />);
-
-        fireEvent.press(getByTestId('btn-room-info'));
-        expect(props.onToggleRoomInfo).toHaveBeenCalledTimes(1);
-    });
-
-    it('calls onToggleSound when sound button is pressed', async () => {
+    it('calls onOpenOptions when options button is pressed', async () => {
         const { getByTestId } = render(<GameHeader {...defaultProps} />);
 
         await act(async () => {
-            fireEvent.press(getByTestId('btn-sound'));
+            fireEvent.press(getByTestId('btn-options'));
         });
-        expect(defaultProps.onToggleSound).toHaveBeenCalledTimes(1);
+        expect(defaultProps.onOpenOptions).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onOpenSettings when settings button is pressed', async () => {
-        const { getByTestId } = render(<GameHeader {...defaultProps} />);
+    it('displays correct label for SCORE mode', () => {
+        const { getByText } = render(
+            <GameHeader {...defaultProps} gameState={{ ...mockGameState, gameMode: 'SCORE', winningCondition: 10 }} />
+        );
+        expect(getByText('10 Pts')).toBeTruthy();
+    });
 
-        await act(async () => {
-            fireEvent.press(getByTestId('btn-settings'));
-        });
-        expect(defaultProps.onOpenSettings).toHaveBeenCalledTimes(1);
+    it('displays correct label for COCHON mode', () => {
+        const { getByText } = render(
+            <GameHeader {...defaultProps} gameState={{ ...mockGameState, gameMode: 'COCHON', winningCondition: 5 }} />
+        );
+        expect(getByText('5 🐷')).toBeTruthy();
     });
 });

@@ -66,11 +66,14 @@ describe('GameOverlays Component', () => {
         expect(defaultProps.onResume).toHaveBeenCalled();
     });
 
-    it('calls onLeaveRoom when quit button is pressed inside pause overlay', () => {
+    it('calls onLeaveRoom when quit is confirmed inside pause overlay', () => {
         const { getByTestId } = render(
             <GameOverlays {...defaultProps} isPaused={true} />
         );
+        // First press opens confirmation screen
         fireEvent.press(getByTestId('btn-quit'));
+        // Second press on confirm actually calls onLeaveRoom
+        fireEvent.press(getByTestId('btn-quit-confirm'));
         expect(defaultProps.onLeaveRoom).toHaveBeenCalled();
     });
 

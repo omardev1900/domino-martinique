@@ -4,6 +4,29 @@
 
 ---
 
+## [2.7] — 2 Mai 2026
+
+### Dette technique
+- **Tests — Firebase ESM** : mock global de `firebase/firestore`, `firebase/auth`, `firebase/storage`, `firebase/app` dans `jest.setup.js` — les 3 suites `useGameTimers`, `useGameEngine`, `IntegrationArchitecture` passent désormais sans erreur ESM.
+- **Tests — GameHeader** : fichier de test réécrit pour correspondre à l'interface simplifiée du composant (3 props au lieu de 10 après la refonte R2-A5).
+- **Tests — GameOverlays** : assertion `btn-quit` corrigée pour refléter le flow de confirmation en 2 étapes (btn-quit → btn-quit-confirm → onLeaveRoom).
+- **Tests — useGameEngine** : mock `LogicEngine` complété avec `getForcedTieBreakDominoId` ajouté après le sprint précédent.
+- **Résultat** : 51 tests, 6 suites, 0 échec.
+
+---
+
+## [2.6] — 2 Mai 2026
+
+### Ajouté
+- **Tchat dynamique** — Messages et emojis chargés depuis Firestore (admin-managed). Onglet Premium : achats définitifs en coins, badge ✓ après déblocage.
+- **Classement Ligue** — 3 catégories : +Cochons (infligés), -Cochons (subis), +Points. Départage par nombre de matchs joués.
+
+### Corrigé
+- **Modal PARTIE BLOQUÉE** — Layout 3 colonnes : perdants à gauche/droite, gagnant au centre avec avatar et dominos.
+- **Modal COCHON** — Doublon d'avatar du gagnant supprimé entre le titre et les cartes joueurs.
+
+---
+
 ## [2.5] — 1er Mai 2026
 
 ### Ajouté

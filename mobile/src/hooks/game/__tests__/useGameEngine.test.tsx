@@ -18,7 +18,8 @@ jest.mock('../../../core/LogicEngine', () => ({
     resolveBoude: jest.fn(),
     handleTimeout: jest.fn(),
     computeNextRoundState: jest.fn(),
-    getForcedOpeningDominoId: jest.fn()
+    getForcedOpeningDominoId: jest.fn(),
+    getForcedTieBreakDominoId: jest.fn(),
 }));
 
 describe('useGameEngine Hook (Component Wrapper)', () => {

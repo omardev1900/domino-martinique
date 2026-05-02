@@ -9,7 +9,7 @@
 > - Décision de traiter une tâche → la déplacer ici
 > - Tâche terminée → la déplacer dans `TASKS_DONE.md` avec la date
 
-**Dernière mise à jour :** 01 mai 2026
+**Dernière mise à jour :** 02 mai 2026
 **Sprint actuel :** 🚀 Sprint Consolidation — Store + Play Store readiness
 
 ---
@@ -37,11 +37,13 @@
 
 | Ticket | Description | Priorité | Statut |
 |---|---|---|---|
-| **R3-M3** | Boutique — pub admin + mots de tchat achetables | 🟠 Monétisation | ⏳ À démarrer |
+| **R3-M3** | Boutique — tchat dynamique admin CRUD + messages payants | 🟠 Monétisation | ✅ Terminé (02/05) |
 | **ACCOUNT-DELETE** | Suppression de compte (exigence Google Play) | 🔴 Bloquant store | ✅ Terminé (01/05) |
-| **TECH-TEST-1** | Corriger assertions `totalCochons` sur perdants (3 tests) | 🟡 Dette technique | ⏳ À démarrer |
-| **TECH-TEST-2** | Config Jest pour modules ESM Firebase (3 suites) | 🟡 Dette technique | ⏳ À démarrer |
-| **TECH-TEST-3** | Restaurer `testID` manquants dans composants UI (2 suites) | 🟡 Dette technique | ⏳ À démarrer |
+| **ADMIN-STORE** | Boutique admin — upload avatar, preview skin live, suppression EMOTE | 🔧 Admin | ✅ Terminé (02/05) |
+| **ADMIN-BOTS** | Bots IA admin — formulaire simplifié, fix firestoreId, aperçu avatar | 🔧 Admin | ✅ Terminé (02/05) |
+| **TECH-TEST-1** | Corriger assertions `totalCochons` sur perdants (3 tests) | 🟡 Dette technique | ✅ Terminé (02/05) |
+| **TECH-TEST-2** | Config Jest pour modules ESM Firebase (3 suites) | 🟡 Dette technique | ✅ Terminé (02/05) |
+| **TECH-TEST-3** | Restaurer `testID` manquants dans composants UI (2 suites) | 🟡 Dette technique | ✅ Terminé (02/05) |
 
 ---
 

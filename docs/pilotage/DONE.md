@@ -11,6 +11,39 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-02 — Dette technique — Tests (TECH-TEST-1/2/3)
+
+- [x] **[TECH-TEST-1]** Assertions `totalCochons` sur perdants — ScoringScenarios était déjà vert (corrigé lors d'un sprint précédent)
+- [x] **[TECH-TEST-2]** Config Jest ESM Firebase — mock global de `firebase/firestore`, `firebase/auth`, `firebase/storage`, `firebase/app` ajouté dans `jest.setup.js`
+- [x] **[TECH-TEST-3]** Tests GameHeader réécrits pour la nouvelle interface (3 props), GameOverlays corrigé (flow confirmation quit en 2 étapes), mock `LogicEngine` complété avec `getForcedTieBreakDominoId`
+- **Résultat** : 51 tests / 6 suites / 0 échec
+
+---
+
+### 2026-05-02 — Admin dashboard — Boutique, Bots IA, Tchat
+
+**Boutique (`/dashboard/store`)**
+- [x] **[ADMIN-STORE]** Upload image avatar — input fichier, preview immédiate, conversion WebP 200×200, stockage Firebase Storage `avatars/`
+- [x] **[ADMIN-STORE]** Preview skin dynamique — composant live affichant 2 dominos avec les vraies couleurs sur le vrai fond de table
+- [x] **[ADMIN-STORE]** Suppression du type EMOTE (remplacé par `/dashboard/chat`)
+- [x] **[ADMIN-STORE]** Affichage image réelle dans la liste (au lieu de l'icône emoji générique)
+
+**Bots IA (`/dashboard/bots`)**
+- [x] **[ADMIN-BOTS]** Formulaire simplifié — nom, image, difficulté uniquement (IDs gérés en coulisses)
+- [x] **[ADMIN-BOTS]** Fix firestoreId — modification et suppression utilisent désormais l'ID réel du document Firestore
+- [x] **[ADMIN-BOTS]** Aperçu avatar dans la liste — image réelle si disponible, icône de difficulté sinon
+- [x] **[ADMIN-BOTS]** Suppression colonnes ID et Avatar ID de la table
+
+**Tchat en jeu (`/dashboard/chat`)**
+- [x] **[R3-M3]** Page admin CRUD complète — messages et emojis gratuits ou payants, toggle activé/désactivé, ordre d'affichage
+- [x] **[R3-M3]** Bouton "⚡ Initialiser les défauts" — insère les 8 messages + 12 emojis codés en dur en un clic
+- [x] **[R3-M3]** `QuickChat.tsx` — fetch Firestore au démarrage, fallback sur valeurs codées en dur si hors ligne
+- [x] **[R3-M3]** Onglet Premium — items payants visibles avec prix, achat définitif en coins, badge ✓ après achat
+- [x] **[R3-M3]** Règles Firestore `chat_messages` déployées (lecture authentifiée)
+
+**Infrastructure**
+- [x] **[STORAGE-RULES]** Règles Firebase Storage — dossiers `bots/`, `avatars/`, `audio/` ouverts en écriture admin authentifié
+
 ### 2026-05-01 — Suppression de compte (ACCOUNT-DELETE)
 - [x] **[ACCOUNT-DELETE]** Suppression de compte — exigence Google Play 2024
   - Cloud Function `deleteUserAccount` : supprime `users/{uid}`, `stats/{uid}`, `economy/{uid}` puis `auth.deleteUser(uid)`
