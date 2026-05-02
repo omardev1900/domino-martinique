@@ -33,7 +33,9 @@
       "Bash(firebase functions:list)",
       "Bash(firebase deploy *)",
       "Bash(firebase functions:log --only deleteUserAccount)",
-      "Bash(firebase functions:log)"
+      "Bash(firebase functions:log)",
+      "Bash(node -e ' *)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")"
     ],
     "additionalDirectories": [
       "e:\\PROJETS\\_TEMPLATE\\docs",
