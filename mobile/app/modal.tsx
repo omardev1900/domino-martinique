@@ -251,13 +251,7 @@ export default function ModalScreen() {
                 </View>
 
                 {/* Bouton modifier */}
-                <TouchableOpacity
-                  style={styles.editProfileBtn}
-                  onPress={openEditModal}
-                >
-                  <Ionicons name="pencil" size={16} color="#1A0E2E" style={{ marginRight: 8 }} />
-                  <Text style={styles.editProfileBtnText}>MODIFIER LE PROFIL</Text>
-                </TouchableOpacity>
+
               </View>
             )}
 
@@ -358,7 +352,6 @@ export default function ModalScreen() {
                 <TouchableOpacity style={styles.deleteAccountButton} onPress={openDeleteStep1}>
                   <Text style={styles.deleteAccountText}>🗑️ Supprimer mon compte</Text>
                 </TouchableOpacity>
-                <Text style={styles.versionText}>Domino Martiniquais · v1.0.0</Text>
               </View>
             )}
           </View>

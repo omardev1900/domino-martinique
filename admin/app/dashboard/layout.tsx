@@ -1,15 +1,40 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { useAdmin } from '@/lib/adminAuth';
+
+const SUPERADMIN_ONLY = [
+  '/dashboard/players',
+  '/dashboard/bans',
+  '/dashboard/config',
+  '/dashboard/logs',
+  '/dashboard/leaderboard',
+  '/dashboard/notifications',
+  '/dashboard/news',
+  '/dashboard/feedbacks',
+  '/dashboard/tables',
+  '/dashboard/access',
+];
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAdmin();
+  const { user, role, loading } = useAdmin();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && role === 'manager') {
+      const isRestricted = SUPERADMIN_ONLY.some((p) => pathname.startsWith(p));
+      if (isRestricted) {
+        router.replace('/dashboard/analytics');
+      }
+    }
+  }, [loading, role, pathname, router]);
 
   if (loading) {
     return (
@@ -28,7 +53,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-gray-950">
-      <Sidebar user={user} />
+      <Sidebar user={user} role={role} />
       <main className="flex-1 overflow-auto">
         {children}
       </main>

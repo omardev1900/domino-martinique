@@ -33,7 +33,7 @@
 
 ---
 
-## 🎯 Sprint Consolidation — En cours (démarré 01/05/2026)
+## ✅ Sprint Consolidation — Terminé (01/05 – 02/05/2026)
 
 | Ticket | Description | Priorité | Statut |
 |---|---|---|---|
@@ -44,6 +44,14 @@
 | **TECH-TEST-1** | Corriger assertions `totalCochons` sur perdants (3 tests) | 🟡 Dette technique | ✅ Terminé (02/05) |
 | **TECH-TEST-2** | Config Jest pour modules ESM Firebase (3 suites) | 🟡 Dette technique | ✅ Terminé (02/05) |
 | **TECH-TEST-3** | Restaurer `testID` manquants dans composants UI (2 suites) | 🟡 Dette technique | ✅ Terminé (02/05) |
+
+---
+
+## 🚀 Sprint Post-Lancement P1 — En cours (démarré 02/05/2026)
+
+| Ticket | Description | Priorité | Statut |
+|---|---|---|---|
+| **ADMIN-MANAGER** | Système d'accès admin manager (droits limités bots/boutique/tchat/ads/tournois/music) | 🔴 P1 | ⏳ À démarrer |
 
 ---
 

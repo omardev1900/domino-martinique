@@ -6,9 +6,12 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
+export type AdminRole = 'superadmin' | 'manager';
+
 export type AdminState = {
   user: User | null;
   isAdmin: boolean;
+  role: AdminRole | null;
   loading: boolean;
 };
 
@@ -16,6 +19,7 @@ export function useAdmin(): AdminState {
   const [state, setState] = useState<AdminState>({
     user: null,
     isAdmin: false,
+    role: null,
     loading: true,
   });
   const router = useRouter();
@@ -23,7 +27,7 @@ export function useAdmin(): AdminState {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        setState({ user: null, isAdmin: false, loading: false });
+        setState({ user: null, isAdmin: false, role: null, loading: false });
         router.replace('/login');
         return;
       }
@@ -31,14 +35,16 @@ export function useAdmin(): AdminState {
       try {
         const adminDoc = await getDoc(doc(db, 'admins', user.uid));
         if (adminDoc.exists()) {
-          setState({ user, isAdmin: true, loading: false });
+          const data = adminDoc.data();
+          const role: AdminRole = data?.role === 'manager' ? 'manager' : 'superadmin';
+          setState({ user, isAdmin: true, role, loading: false });
         } else {
-          setState({ user, isAdmin: false, loading: false });
+          setState({ user, isAdmin: false, role: null, loading: false });
           await auth.signOut();
           router.replace('/login');
         }
       } catch {
-        setState({ user: null, isAdmin: false, loading: false });
+        setState({ user: null, isAdmin: false, role: null, loading: false });
         router.replace('/login');
       }
     });

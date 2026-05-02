@@ -7,46 +7,62 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { User } from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import type { AdminRole } from '@/lib/adminAuth';
 
 type SidebarProps = {
   user: User | null;
+  role: AdminRole | null;
 };
 
-const navItems = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: string;
+  superadminOnly?: boolean;
+};
+
+const navItems: NavItem[] = [
   { href: '/dashboard/analytics', label: 'Dashboard', icon: '📈' },
   { href: '/dashboard/overview', label: 'Vue d\'ensemble', icon: '📊' },
-  { href: '/dashboard/players', label: 'Joueurs', icon: '👥' },
-  { href: '/dashboard/tables', label: 'Tables en cours', icon: '🎲' },
-  { href: '/dashboard/bans', label: 'Bans', icon: '🚫' },
-  { href: '/dashboard/config', label: 'Configuration', icon: '⚙️' },
-  { href: '/dashboard/leaderboard', label: 'Classement', icon: '🏆' },
+  { href: '/dashboard/players', label: 'Joueurs', icon: '👥', superadminOnly: true },
+  { href: '/dashboard/tables', label: 'Tables en cours', icon: '🎲', superadminOnly: true },
+  { href: '/dashboard/bans', label: 'Bans', icon: '🚫', superadminOnly: true },
+  { href: '/dashboard/config', label: 'Configuration', icon: '⚙️', superadminOnly: true },
+  { href: '/dashboard/leaderboard', label: 'Classement', icon: '🏆', superadminOnly: true },
   { href: '/dashboard/bots', label: 'Bots IA', icon: '🤖' },
   { href: '/dashboard/store', label: 'Boutique', icon: '🏪' },
   { href: '/dashboard/chat', label: 'Tchat en jeu', icon: '💬' },
   { href: '/dashboard/tournaments', label: 'Tournois', icon: '🥊' },
-  { href: '/dashboard/feedbacks', label: 'Feedbacks', icon: '📩' },
-  { href: '/dashboard/logs', label: 'Logs admin', icon: '📋' },
-  { href: '/dashboard/notifications', label: 'Notifications', icon: '📣' },
-  { href: '/dashboard/news', label: 'Actualités', icon: '📰' },
+  { href: '/dashboard/feedbacks', label: 'Feedbacks', icon: '📩', superadminOnly: true },
+  { href: '/dashboard/logs', label: 'Logs admin', icon: '📋', superadminOnly: true },
+  { href: '/dashboard/notifications', label: 'Notifications', icon: '📣', superadminOnly: true },
+  { href: '/dashboard/news', label: 'Actualités', icon: '📰', superadminOnly: true },
   { href: '/dashboard/ads', label: 'Publicités', icon: '📢' },
   { href: '/dashboard/audio', label: 'Musiques', icon: '🎵' },
+  { href: '/dashboard/access', label: 'Accès admins', icon: '🔑', superadminOnly: true },
 ];
 
-export default function Sidebar({ user }: SidebarProps) {
+export default function Sidebar({ user, role }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [unreadFeedbacks, setUnreadFeedbacks] = useState(0);
 
   useEffect(() => {
-    const q = query(collection(db, 'feedbacks'), where('readAt', '==', null));
-    const unsub = onSnapshot(q, (snap) => setUnreadFeedbacks(snap.size), () => {});
-    return () => unsub();
-  }, []);
+    if (role === 'superadmin') {
+      const q = query(collection(db, 'feedbacks'), where('readAt', '==', null));
+      const unsub = onSnapshot(q, (snap) => setUnreadFeedbacks(snap.size), () => {});
+      return () => unsub();
+    }
+  }, [role]);
 
   const handleSignOut = async () => {
     await signOut(auth);
     router.replace('/login');
   };
+
+  const visibleItems = navItems.filter(
+    (item) => !item.superadminOnly || role === 'superadmin'
+  );
 
   return (
     <aside className="w-64 min-h-screen bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0">
@@ -63,7 +79,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive =
             item.href === '/dashboard'
               ? pathname === '/dashboard'
@@ -100,6 +116,19 @@ export default function Sidebar({ user }: SidebarProps) {
           <p className="text-gray-300 text-sm font-medium truncate">
             {user?.email ?? '—'}
           </p>
+          {role && (
+            <p className="text-xs mt-0.5">
+              <span
+                className={
+                  role === 'superadmin'
+                    ? 'text-yellow-400'
+                    : 'text-blue-400'
+                }
+              >
+                {role === 'superadmin' ? 'Superadmin' : 'Manager'}
+              </span>
+            </p>
+          )}
         </div>
         <button
           onClick={handleSignOut}
