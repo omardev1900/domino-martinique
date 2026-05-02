@@ -9,6 +9,21 @@
 
 ---
 
+## 🎨 Avatars — Diversité des joueurs ✅ (02/05/2026)
+
+- [x] **[AVATAR-DIVERSITY]** Ajouter avatars gratuits — diversité ethnique
+  - **Livré** : 10 nouveaux avatars (`avatar_09` à `avatar_18`) + 8 existants = 18 avatars gratuits
+  - **Diversité apportée** : Peau blanche, asiatique, métissée, féminins + styles variés
+  - **Emplacement** : `mobile/src/assets/images/avatars/player/avatar_09.jpg` → `avatar_18.jpg`
+  - **Config mise à jour** : `mobile/src/core/avatars.ts` 
+    - ✅ Imports ajoutés pour `avatar_09` à `avatar_18`
+    - ✅ `AVAILABLE_AVATARS[]` complété avec 10 IDs
+  - **Format** : JPG 192×192px (comme les existants)
+  - **Résultat** : +125% d'avatars gratuits, diversité ethnique respectée
+  - **User visible** : Écran de sélection d'avatar dans `/profile`
+
+---
+
 ## 🔍 Audit Admin Dashboard (à faire en dernier, post-roadmap)
 
 - [ ] **[ADMIN-AUDIT]** Audit complet de l'espace admin — vérifier toutes les pages et fonctionnalités
