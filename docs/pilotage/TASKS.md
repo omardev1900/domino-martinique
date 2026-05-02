@@ -51,7 +51,7 @@
 
 | Ticket | Description | Priorité | Statut |
 |---|---|---|---|
-| **ADMIN-MANAGER** | Système d'accès admin manager (droits limités bots/boutique/tchat/ads/tournois/music) | 🔴 P1 | ⏳ À démarrer |
+| **ADMIN-MANAGER** | Système d'accès admin manager (droits limités bots/boutique/tchat/ads/tournois/music) | 🔴 P1 | ✅ Terminé (02/05) |
 
 ---
 

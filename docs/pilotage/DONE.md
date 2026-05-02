@@ -11,6 +11,16 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-02 — Admin Manager (P1 priorité)
+- [x] **[ADMIN-MANAGER]** Système de rôles manager avec accès limité
+  - **Firestore Rules** : Ajout `isSuperAdmin()` avec fallback rétrocompatible. Collections sensibles (users, config, feedbacks, logs) = superadmin-only. Collections manager (bots, store, chat, ads, tournaments) = isAdmin()
+  - **AdminAuth** : Lecture champ `role` depuis Firestore, fallback `superadmin` si absent, exposé dans `AdminState`
+  - **Layout** : Redirection si manager tente accès routes superadmin-only
+  - **Sidebar** : Filtrage items selon rôle, affichage badge rôle (jaune/bleu), listener feedbacks conditionné
+  - **API Routes** : `/api/admins` (GET + POST), `/api/admins/[uid]` (PATCH + DELETE), sécurisées avec `verifyIdToken()` + `isSuperAdmin` check
+  - **Page `/dashboard/access`** : UI CRUD (table admins, ajout modal, modification rôle, suppression avec self-delete bloqué)
+  - **Rétrocompatibilité** : Admins existants sans champ `role` = superadmin automatiquement
+
 ### 2026-05-02 — Dette technique — Tests (TECH-TEST-1/2/3)
 
 - [x] **[TECH-TEST-1]** Assertions `totalCochons` sur perdants — ScoringScenarios était déjà vert (corrigé lors d'un sprint précédent)

@@ -11,7 +11,8 @@ async function verifySuperAdmin(token: string) {
     }
 
     const data = callerDoc.data();
-    const isSuperAdmin = !data?.role || data.role === 'superadmin';
+    // Superadmin si : pas de champ 'role' (rétrocompat) OU role === 'superadmin'
+    const isSuperAdmin = !('role' in data) || data.role === 'superadmin';
 
     return isSuperAdmin ? decoded.uid : null;
   } catch {
