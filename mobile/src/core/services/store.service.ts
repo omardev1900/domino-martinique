@@ -82,7 +82,7 @@ export class StoreService {
                     priceCoins: data.priceCoins,
                     priceDiamonds: data.priceDiamonds,
                     rewards: data.rewards,
-                    assetId: data.assetId || 'default_asset',
+                    assetId: data.assetId || 'default',
                     imageUrl: data.imageUrl,
                     skinConfig: data.skinConfig,
                 });

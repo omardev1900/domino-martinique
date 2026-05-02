@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, Alert, Platform } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 
+import { StoreItemPreview } from '../src/components/store/StoreItemPreview';
 import { storeService } from '../src/core/services/store.service';
 import { StoreItem, StoreItemType, PlayerInventory } from '../src/core/store.types';
-import { useFocusEffect } from '@react-navigation/native';
 
 type TabType = 'ALL' | StoreItemType;
 
@@ -31,13 +31,9 @@ export default function CollectionScreen() {
                 storeService.getCatalog(),
             ]);
             setInventory(inv);
-
-            // Filter catalog to only show items the player owns
-            const filteredItems = cat.filter(item =>
-                item.type !== 'CURRENCY_PACK' && inv.ownedItems.includes(item.id)
+            setOwnedItems(
+                cat.filter(item => item.type !== 'CURRENCY_PACK' && inv.ownedItems.includes(item.id))
             );
-            setOwnedItems(filteredItems);
-
         } catch (error) {
             console.error('Failed to load collection data', error);
         } finally {
@@ -45,11 +41,10 @@ export default function CollectionScreen() {
         }
     };
 
-    // Génération dynamique des onglets basée sur les données possédées reçues
     const dynamicTabs = useMemo(() => {
         const types = Array.from(new Set(ownedItems.map(item => item.type)));
         const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-            { id: 'ALL', label: 'Tout', icon: 'grid' }
+            { id: 'ALL', label: 'Tout', icon: 'grid' },
         ];
 
         if (types.includes('AVATAR')) tabs.push({ id: 'AVATAR', label: 'Avatars', icon: 'person' });
@@ -68,31 +63,35 @@ export default function CollectionScreen() {
     const handleEquip = async (itemId: string) => {
         setProcessingEquip(itemId);
         const result = await storeService.equipItem(itemId);
+
         if (result.success) {
-            await loadData(); // Refresh inventory to show equipped status
+            await loadData();
+        } else if (Platform.OS === 'web') {
+            window.alert(result.message || "Impossible d'équiper cet objet.");
         } else {
-            if (Platform.OS === 'web') {
-                window.alert(result.message || "Impossible d'équiper cet objet.");
-            } else {
-                Alert.alert("Erreur", result.message || "Impossible d'équiper cet objet.");
-            }
+            Alert.alert('Erreur', result.message || "Impossible d'équiper cet objet.");
         }
+
         setProcessingEquip(null);
     };
+
+    const filteredItems = activeTab === 'ALL'
+        ? ownedItems
+        : ownedItems.filter(item => item.type === activeTab);
 
     const CollectionItem = ({
         item,
         isEquipped,
         onEquip,
-        isProcessing
+        isProcessing,
     }: {
         item: StoreItem;
         isEquipped: boolean;
         onEquip: (id: string) => void;
         isProcessing: boolean;
     }) => {
-        const { width, height } = useWindowDimensions();
-        const isLandscape = width > height;
+        const { width: currentWidth, height: currentHeight } = useWindowDimensions();
+        const cardLandscape = currentWidth > currentHeight;
         const [isExpanded, setIsExpanded] = useState(false);
 
         return (
@@ -101,9 +100,9 @@ export default function CollectionScreen() {
                 key={item.id}
                 style={[
                     styles.card,
-                    isLandscape ? styles.cardLandscape : null,
-                    isEquipped ? styles.cardEquipped : null,
-                    isLandscape ? { width: width * 0.24 } : null
+                    cardLandscape && styles.cardLandscape,
+                    isEquipped && styles.cardEquipped,
+                    cardLandscape && { width: currentWidth * 0.24 },
                 ]}
             >
                 <View style={{ flex: 1 }}>
@@ -113,48 +112,14 @@ export default function CollectionScreen() {
                     </View>
 
                     <View style={styles.cardImagePlaceholder}>
-                        {item.type === 'SKIN' ? (
-                            <View style={[styles.skinPreviewContainer, { backgroundColor: item.skinConfig ? item.skinConfig.tableBackgroundColor : '#555555' }]}>
-                                {item.skinConfig ? (
-                                    <View style={[styles.skinPreviewDomino, { backgroundColor: item.skinConfig.dominoBackgroundColor }]}>
-                                        <View style={styles.skinPreviewHalf}>
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
-                                        </View>
-                                        <View style={[styles.skinPreviewDivider, { backgroundColor: item.skinConfig.dominoLineColor }]} />
-                                        <View style={styles.skinPreviewHalf}>
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor }]} />
-                                            <View style={[styles.skinPreviewDot, { backgroundColor: item.skinConfig.dominoDotColor, opacity: 0 }]} />
-                                        </View>
-                                    </View>
-                                ) : null}
-                            </View>
-                        ) : item.imageUrl ? (
-                            <Image
-                                source={{ uri: item.imageUrl }}
-                                style={styles.remoteImage}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                            />
-                        ) : (
-                            <Ionicons
-                                name={item.type === 'AVATAR' ? 'person' : 'color-palette'}
-                                size={40}
-                                color="rgba(255,255,255,0.5)"
-                            />
-                        )}
+                        <StoreItemPreview item={item} height={100} />
                     </View>
 
                     <View style={styles.descriptionRow}>
-                        <Text
-                            style={styles.cardDescription}
-                            numberOfLines={isExpanded ? undefined : 2}
-                        >
+                        <Text style={styles.cardDescription} numberOfLines={isExpanded ? undefined : 2}>
                             {item.description}
                         </Text>
-                        {(item.description && item.description.length > 40) ? (
+                        {item.description && item.description.length > 40 ? (
                             <TouchableOpacity onPress={() => setIsExpanded(!isExpanded)} style={styles.collapseBtn}>
                                 <Text style={styles.collapseBtnText}>{isExpanded ? '<<' : '>>'}</Text>
                             </TouchableOpacity>
@@ -180,20 +145,11 @@ export default function CollectionScreen() {
         );
     };
 
-    const filteredItems = activeTab === 'ALL'
-        ? ownedItems
-        : ownedItems.filter(item => item.type === activeTab);
-
     return (
         <SafeAreaView style={styles.container}>
-            <LinearGradient
-                colors={['#0F2027', '#203A43', '#2C5364']} // A different elegant gradient for the collection
-                style={StyleSheet.absoluteFillObject}
-            />
+            <LinearGradient colors={['#0F2027', '#203A43', '#2C5364']} style={StyleSheet.absoluteFillObject} />
 
-            {/* Header */}
             <View style={styles.header}>
-                {/* Tabs moved to Header Right */}
                 <View style={styles.headerTabsContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.headerTabsScroll}>
                         {dynamicTabs.map(tab => {
@@ -201,12 +157,12 @@ export default function CollectionScreen() {
                             return (
                                 <TouchableOpacity
                                     key={tab.id}
-                                    style={[styles.headerTab, isActive ? styles.activeHeaderTab : null]}
+                                    style={[styles.headerTab, isActive && styles.activeHeaderTab]}
                                     onPress={() => setActiveTab(tab.id)}
                                 >
                                     <Ionicons name={tab.icon} size={14} color={isActive ? '#1A0E2E' : '#FFF'} />
                                     {isLandscape ? (
-                                        <Text style={[styles.headerTabText, isActive ? styles.activeHeaderTabText : null]}>
+                                        <Text style={[styles.headerTabText, isActive && styles.activeHeaderTabText]}>
                                             {tab.label}
                                         </Text>
                                     ) : null}
@@ -217,8 +173,6 @@ export default function CollectionScreen() {
                 </View>
             </View>
 
-
-            {/* Content */}
             {loading ? (
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color="#FFD700" />
@@ -238,14 +192,18 @@ export default function CollectionScreen() {
                     showsHorizontalScrollIndicator={false}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[styles.grid, isLandscape && styles.gridLandscape]}
-                    snapToInterval={width * 0.24 + 16} // Standardized card dimension + gap
+                    snapToInterval={width * 0.24 + 16}
                     decelerationRate="fast"
                 >
                     {filteredItems.map(item => {
-                        const isEquipped = inventory ? (
-                            item.type === 'AVATAR' ? inventory.equipped.avatar === item.id :
-                                item.type === 'SKIN' ? inventory.equipped.skin === item.id : false
-                        ) : false;
+                        const isEquipped = inventory
+                            ? item.type === 'AVATAR'
+                                ? inventory.equipped.avatar === item.id
+                                : item.type === 'SKIN'
+                                    ? inventory.equipped.skin === item.id
+                                    : false
+                            : false;
+
                         return (
                             <CollectionItem
                                 key={item.id}
@@ -274,21 +232,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 10,
         paddingBottom: 5,
-    },
-    backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    headerTitle: {
-        color: '#FFF',
-        fontSize: 16, // Slightly smaller
-        fontWeight: 'bold',
-        letterSpacing: 1,
-        marginHorizontal: 10,
     },
     headerTabsContainer: {
         flex: 1,
@@ -320,36 +263,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     activeHeaderTabText: {
-        color: '#1A0E2E',
-    },
-    tabsContainer: {
-        marginBottom: 20,
-    },
-    tabsScroll: {
-        paddingHorizontal: 20,
-        gap: 12,
-    },
-    tab: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
-        gap: 8,
-    },
-    activeTab: {
-        backgroundColor: '#FFD700',
-        borderColor: '#FFD700',
-    },
-    tabText: {
-        color: '#FFF',
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    activeTabText: {
         color: '#1A0E2E',
     },
     centerContainer: {
@@ -389,7 +302,7 @@ const styles = StyleSheet.create({
     },
     gridLandscape: {
         flexDirection: 'row',
-        flexWrap: 'nowrap', // Force horizontal row
+        flexWrap: 'nowrap',
         alignItems: 'center',
     },
     card: {
@@ -405,7 +318,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(76, 175, 80, 0.1)',
     },
     cardLandscape: {
-        height: 250, // Force same height
+        height: 250,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -415,34 +328,26 @@ const styles = StyleSheet.create({
     },
     cardTitle: {
         color: '#FFF',
-        fontSize: 14, // Reduced from 18
+        fontSize: 14,
         fontWeight: 'bold',
         flex: 1,
     },
     cardRarity: {
-        color: '#A020F0', // Or anything custom
-        fontSize: 9, // Reduced from 12
+        color: '#A020F0',
+        fontSize: 9,
         fontWeight: 'bold',
         textTransform: 'uppercase',
     },
     cardImagePlaceholder: {
-        height: 100, // Reduced from 140
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
+        height: 100,
         marginBottom: 8,
-        overflow: 'hidden',
-    },
-    remoteImage: {
-        width: '100%',
-        height: '100%',
     },
     cardDescription: {
         color: 'rgba(255,255,255,0.7)',
         fontSize: 14,
         marginBottom: 16,
         lineHeight: 20,
+        flex: 1,
     },
     cardFooter: {
         flexDirection: 'row',
@@ -479,43 +384,6 @@ const styles = StyleSheet.create({
         color: '#4CAF50',
         fontWeight: 'bold',
         fontSize: 14,
-    },
-    skinPreviewContainer: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    skinPreviewDomino: {
-        width: 40,
-        height: 80,
-        borderRadius: 6,
-        padding: 4,
-        justifyContent: 'space-between',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.5,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    skinPreviewHalf: {
-        flex: 1,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        alignContent: 'center',
-        gap: 2,
-    },
-    skinPreviewDivider: {
-        height: 2,
-        width: '100%',
-        marginVertical: 2,
-    },
-    skinPreviewDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        margin: 1,
     },
     descriptionRow: {
         flexDirection: 'row',

@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { storage } from '@/lib/firebase';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+import { StoreItemPreview } from '@/components/StoreItemPreview';
+import { storage } from '@/lib/firebase';
 
 type ItemType = 'SKIN' | 'AVATAR' | 'CURRENCY_PACK';
 type Rarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
@@ -31,102 +33,64 @@ type StoreItem = {
 };
 
 const TYPE_META: Record<ItemType, { label: string; icon: string; color: string }> = {
-  AVATAR:        { label: 'Avatar',       icon: '🧑', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-  SKIN:          { label: 'Skin dominos', icon: '🎴', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-  CURRENCY_PACK: { label: 'Pack devises', icon: '💎', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+  AVATAR: { label: 'Avatar', icon: 'A', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  SKIN: { label: 'Skin domino', icon: 'S', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+  CURRENCY_PACK: { label: 'Pack devises', icon: 'P', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
 };
 
 const RARITY_META: Record<Rarity, { label: string; color: string }> = {
-  COMMON:    { label: 'Commun',     color: 'text-gray-300 bg-gray-700/40 border-gray-600/30' },
-  RARE:      { label: 'Rare',       color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-  EPIC:      { label: 'Épique',     color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-  LEGENDARY: { label: 'Légendaire', color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' },
+  COMMON: { label: 'Commun', color: 'text-gray-300 bg-gray-700/40 border-gray-600/30' },
+  RARE: { label: 'Rare', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  EPIC: { label: 'Epique', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+  LEGENDARY: { label: 'Legendaire', color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' },
 };
 
-const EMPTY: Partial<StoreItem> = { id: '', name: '', description: '', type: 'AVATAR', rarity: 'COMMON', assetId: '', priceCoins: 0 };
-
-const DEFAULT_SKIN: SkinConfig = {
-  tableBackgroundColor: '#105B3A',
-  boardColor: '#1B5E20',
-  dominoBackgroundColor: '#FFFFFF',
-  dominoDotColor: '#000000',
-  dominoLineColor: '#000000',
+const EMPTY: Partial<StoreItem> = {
+  id: '',
+  name: '',
+  description: '',
+  type: 'AVATAR',
+  rarity: 'COMMON',
+  assetId: '',
+  priceCoins: 0,
 };
 
-// ─── Preview dynamique d'un skin ─────────────────────────────────────────────
-function SkinPreview({ skin }: { skin: Partial<SkinConfig> }) {
-  const s = { ...DEFAULT_SKIN, ...skin };
-  return (
-    <div
-      className="mt-3 rounded-xl p-4 flex items-center justify-center gap-3 border border-gray-700"
-      style={{ backgroundColor: s.tableBackgroundColor }}
-    >
-      {/* Plateau */}
-      <div
-        className="rounded-lg p-2 flex gap-2 items-center"
-        style={{ backgroundColor: s.boardColor ?? s.tableBackgroundColor }}
-      >
-        {/* Domino gauche */}
-        <div
-          className="rounded flex flex-col items-center justify-around"
-          style={{
-            width: 28, height: 52,
-            backgroundColor: s.dominoBackgroundColor,
-            border: `1px solid ${s.dominoLineColor}`,
-            padding: 4,
-          }}
-        >
-          <div style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: s.dominoDotColor }} />
-          <div style={{ width: '100%', height: 1, backgroundColor: s.dominoLineColor }} />
-          <div style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: s.dominoDotColor }} />
-          <div style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: s.dominoDotColor }} />
-        </div>
-        {/* Domino droit */}
-        <div
-          className="rounded flex flex-col items-center justify-around"
-          style={{
-            width: 28, height: 52,
-            backgroundColor: s.dominoBackgroundColor,
-            border: `1px solid ${s.dominoLineColor}`,
-            padding: 4,
-          }}
-        >
-          <div style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: s.dominoDotColor }} />
-          <div style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: s.dominoDotColor }} />
-          <div style={{ width: '100%', height: 1, backgroundColor: s.dominoLineColor }} />
-          <div style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: s.dominoDotColor }} />
-        </div>
-      </div>
-      <p className="text-xs text-white/50 italic">Aperçu live</p>
-    </div>
-  );
-}
-
-// ─── Conversion WebP (même pattern que bots) ──────────────────────────────────
 function convertToWebP(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX = 200;
-        let w = img.width, h = img.height;
-        if (w > MAX || h > MAX) {
-          if (w > h) { h = (MAX / w) * h; w = MAX; }
-          else { w = (MAX / h) * w; h = MAX; }
+        const maxSize = 200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = (maxSize / width) * height;
+            width = maxSize;
+          } else {
+            width = (maxSize / height) * width;
+            height = maxSize;
+          }
         }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
-        canvas.toBlob(b => b ? resolve(b) : reject(new Error('Conversion échouée')), 'image/webp', 0.85);
+
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error('Conversion failed'))),
+          'image/webp',
+          0.85,
+        );
       };
-      img.src = e.target?.result as string;
+      img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
   });
 }
 
-// ─── Page principale ──────────────────────────────────────────────────────────
 export default function StorePage() {
   const [items, setItems] = useState<StoreItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,23 +100,30 @@ export default function StorePage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<ItemType | 'all'>('all');
   const [feedback, setFeedback] = useState('');
-
-  // Upload avatar
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/store');
-      const data = await res.json();
+      const response = await fetch('/api/store');
+      const data = await response.json();
       setItems(data.items ?? []);
-    } catch { } finally { setLoading(false); }
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { fetchItems(); }, [fetchItems]);
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
-  const showFeedback = (msg: string) => { setFeedback(msg); setTimeout(() => setFeedback(''), 3000); };
+  const showFeedback = useCallback((message: string) => {
+    setFeedback(message);
+    window.setTimeout(() => setFeedback(''), 3000);
+  }, []);
 
   const openNew = () => {
     setImageFile(null);
@@ -166,9 +137,10 @@ export default function StorePage() {
     setEditing({ ...item });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
+
     setImageFile(file);
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result as string);
@@ -177,6 +149,7 @@ export default function StorePage() {
 
   const handleSave = async () => {
     if (!editing?.id?.trim() || !editing.name?.trim()) return;
+
     setSaving(true);
     try {
       let imageUrl = editing.imageUrl ?? '';
@@ -187,138 +160,184 @@ export default function StorePage() {
         const storageRef = ref(storage, `avatars/${editing.id}_${Date.now()}.webp`);
         const result = await uploadBytes(storageRef, webp);
         imageUrl = await getDownloadURL(result.ref);
-        setUploading(false);
       }
 
-      const res = await fetch('/api/store', {
+      const response = await fetch('/api/store', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...editing, imageUrl }),
       });
-      const data = await res.json();
+      const data = await response.json();
       if (data.error) throw new Error(data.error);
-      showFeedback(editing.firestoreId ? 'Article mis à jour.' : 'Article créé.');
+
+      showFeedback(editing.firestoreId ? 'Article mis a jour.' : 'Article cree.');
       setEditing(null);
-      fetchItems();
-    } catch (err: any) { showFeedback(`Erreur: ${err.message}`); }
-    finally { setSaving(false); setUploading(false); }
+      setImageFile(null);
+      setImagePreview(null);
+      await fetchItems();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      showFeedback(`Erreur: ${message}`);
+    } finally {
+      setSaving(false);
+      setUploading(false);
+    }
   };
 
   const handleDelete = async (item: StoreItem) => {
     if (!item.firestoreId) return;
+
     setDeleting(item.firestoreId);
     try {
-      await fetch('/api/store', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firestoreId: item.firestoreId }) });
-      fetchItems();
-    } catch { } finally { setDeleting(null); }
+      await fetch('/api/store', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firestoreId: item.firestoreId }),
+      });
+      await fetchItems();
+    } finally {
+      setDeleting(null);
+    }
   };
 
-  const filtered = filterType === 'all' ? items : items.filter((i) => i.type === filterType);
-  const countByType = (t: ItemType) => items.filter((i) => i.type === t).length;
+  const filteredItems = filterType === 'all' ? items : items.filter((item) => item.type === filterType);
+  const countByType = (type: ItemType) => items.filter((item) => item.type === type).length;
 
   return (
     <div className="p-8">
-      {/* Header */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Boutique</h1>
-          <p className="text-gray-400 mt-1 text-sm">Catalogue <code className="text-yellow-400/80 text-xs">store_catalog</code> — {items.length} articles</p>
+          <p className="mt-1 text-sm text-gray-400">
+            Catalogue <code className="text-xs text-yellow-400/80">store_catalog</code> - {items.length} articles
+          </p>
         </div>
-        <button onClick={openNew}
-          className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm rounded-xl transition-all shadow-lg shadow-yellow-400/20">
+        <button
+          onClick={openNew}
+          className="flex items-center gap-2 rounded-xl bg-yellow-400 px-5 py-2.5 text-sm font-bold text-gray-900 shadow-lg shadow-yellow-400/20 transition-all hover:bg-yellow-300"
+        >
           + Nouvel article
         </button>
       </div>
 
-      {feedback && (
-        <div className="mb-4 px-4 py-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm">✓ {feedback}</div>
-      )}
+      {feedback ? (
+        <div className="mb-4 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+          {feedback}
+        </div>
+      ) : null}
 
-      {/* Filtres */}
       <div className="mb-6 flex flex-wrap gap-2">
-        <button onClick={() => setFilterType('all')}
-          className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${filterType === 'all' ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-white'}`}>
+        <button
+          onClick={() => setFilterType('all')}
+          className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-all ${
+            filterType === 'all'
+              ? 'border-gray-600 bg-gray-700 text-white'
+              : 'border-gray-700 bg-gray-800 text-gray-400 hover:text-white'
+          }`}
+        >
           Tous ({items.length})
         </button>
-        {(Object.entries(TYPE_META) as [ItemType, typeof TYPE_META[ItemType]][]).map(([type, meta]) => (
-          <button key={type} onClick={() => setFilterType(type)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${filterType === type ? `${meta.color} ring-1 ring-current` : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-white'}`}>
+        {(Object.entries(TYPE_META) as [ItemType, (typeof TYPE_META)[ItemType]][]).map(([type, meta]) => (
+          <button
+            key={type}
+            onClick={() => setFilterType(type)}
+            className={`flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-semibold transition-all ${
+              filterType === type
+                ? `${meta.color} ring-1 ring-current`
+                : 'border-gray-700 bg-gray-800 text-gray-400 hover:text-white'
+            }`}
+          >
             {meta.icon} {meta.label} ({countByType(type)})
           </button>
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900">
         {loading ? (
-          <div className="p-12 flex flex-col items-center gap-4">
-            <div className="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-400 text-sm">Chargement…</p>
+          <div className="flex flex-col items-center gap-4 p-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-yellow-400 border-t-transparent" />
+            <p className="text-sm text-gray-400">Chargement...</p>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-4xl mb-3">🏪</p>
-            <p className="text-gray-400 font-medium">Catalogue vide</p>
+            <p className="mb-3 text-4xl">[]</p>
+            <p className="font-medium text-gray-400">Catalogue vide</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-800">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Article</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Rareté</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Prix</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Article</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">ID</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Type</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Rarete</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Prix</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((item) => {
+                {filteredItems.map((item) => {
                   const typeMeta = TYPE_META[item.type];
                   const rarityMeta = RARITY_META[item.rarity];
+
                   return (
-                    <tr key={item.firestoreId || item.id} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
+                    <tr
+                      key={item.firestoreId || item.id}
+                      className="border-b border-gray-800/60 transition-colors hover:bg-gray-800/30"
+                    >
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          {/* Image réelle si disponible, sinon icône type */}
-                          {item.imageUrl ? (
-                            <img
-                              src={item.imageUrl}
-                              alt={item.name}
-                              className="w-10 h-10 rounded-xl object-cover border border-gray-700"
-                            />
-                          ) : (
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl border ${rarityMeta.color}`}>
-                              {typeMeta.icon}
-                            </div>
-                          )}
+                          <StoreItemPreview item={item} heightClassName="h-10" />
                           <div>
-                            <p className="text-white font-medium text-sm">{item.name}</p>
-                            <p className="text-gray-600 text-xs mt-0.5 truncate max-w-[200px]">{item.description}</p>
+                            <p className="text-sm font-medium text-white">{item.name}</p>
+                            <p className="mt-0.5 max-w-[200px] truncate text-xs text-gray-600">{item.description}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5"><code className="text-gray-500 text-xs font-mono">{item.id}</code></td>
-                      <td className="px-4 py-3.5 text-center">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${typeMeta.color}`}>{typeMeta.icon} {typeMeta.label}</span>
+                      <td className="px-4 py-3.5">
+                        <code className="text-xs font-mono text-gray-500">{item.id}</code>
                       </td>
                       <td className="px-4 py-3.5 text-center">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${rarityMeta.color}`}>{rarityMeta.label}</span>
+                        <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${typeMeta.color}`}>
+                          {typeMeta.icon} {typeMeta.label}
+                        </span>
                       </td>
                       <td className="px-4 py-3.5 text-center">
-                        {item.priceCoins ? <span className="text-yellow-400 text-sm">🪙 {item.priceCoins.toLocaleString('fr-FR')}</span> :
-                         item.priceDiamonds ? <span className="text-cyan-400 text-sm">💎 {item.priceDiamonds}</span> :
-                         <span className="text-green-400 text-sm">Gratuit</span>}
-                        {item.rewards && <p className="text-gray-600 text-xs mt-0.5">→ {item.rewards.coins ? `🪙${item.rewards.coins}` : ''} {item.rewards.diamonds ? `💎${item.rewards.diamonds}` : ''}</p>}
+                        <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${rarityMeta.color}`}>
+                          {rarityMeta.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-center">
+                        {item.priceCoins ? (
+                          <span className="text-sm text-yellow-400">Coins {item.priceCoins.toLocaleString('fr-FR')}</span>
+                        ) : item.priceDiamonds ? (
+                          <span className="text-sm text-cyan-400">Diamants {item.priceDiamonds}</span>
+                        ) : (
+                          <span className="text-sm text-green-400">Gratuit</span>
+                        )}
+                        {item.rewards ? (
+                          <p className="mt-0.5 text-xs text-gray-600">
+                            {item.rewards.coins ? `Coins ${item.rewards.coins}` : ''}
+                            {item.rewards.coins && item.rewards.diamonds ? ' - ' : ''}
+                            {item.rewards.diamonds ? `Diamants ${item.rewards.diamonds}` : ''}
+                          </p>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3.5 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => openEdit(item)}
-                            className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 rounded-lg transition-all">Modifier</button>
-                          <button onClick={() => handleDelete(item)} disabled={deleting === item.firestoreId}
-                            className="text-xs px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg transition-all disabled:opacity-50">
-                            {deleting === item.firestoreId ? '…' : 'Supprimer'}
+                          <button
+                            onClick={() => openEdit(item)}
+                            className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-gray-300 transition-all hover:bg-gray-700"
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item)}
+                            disabled={deleting === item.firestoreId}
+                            className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
+                          >
+                            {deleting === item.firestoreId ? '...' : 'Supprimer'}
                           </button>
                         </div>
                       </td>
@@ -331,169 +350,272 @@ export default function StorePage() {
         )}
       </div>
 
-      {/* Modal */}
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setEditing(null)}>
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="px-6 py-5 border-b border-gray-800 flex items-center justify-between">
-              <h2 className="text-white font-bold text-lg">{editing.firestoreId ? 'Modifier l\'article' : 'Nouvel article'}</h2>
-              <button onClick={() => setEditing(null)} className="text-gray-500 hover:text-gray-300 text-xl">×</button>
+      {editing ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-800 px-6 py-5">
+              <h2 className="text-lg font-bold text-white">
+                {editing.firestoreId ? "Modifier l'article" : 'Nouvel article'}
+              </h2>
+              <button onClick={() => setEditing(null)} className="text-xl text-gray-500 hover:text-gray-300">
+                x
+              </button>
             </div>
-            <div className="px-6 py-5 space-y-4">
 
-              {/* Champs de base */}
+            <div className="space-y-4 px-6 py-5">
+              <div className="rounded-2xl border border-gray-800 bg-gray-950/60 p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Apercu</p>
+                <StoreItemPreview item={editing} previewUrl={imagePreview} />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-gray-400 text-xs font-medium block mb-1.5">ID unique *</label>
-                  <input type="text" value={editing.id || ''} onChange={(e) => setEditing((p) => ({ ...p!, id: e.target.value }))} placeholder="avatar_classique"
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
+                  <label className="mb-1.5 block text-xs font-medium text-gray-400">ID unique *</label>
+                  <input
+                    type="text"
+                    value={editing.id || ''}
+                    onChange={(event) => setEditing((prev) => ({ ...prev!, id: event.target.value }))}
+                    placeholder="avatar_classique"
+                    className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white transition-colors focus:border-yellow-400 focus:outline-none"
+                  />
                 </div>
                 <div>
-                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Nom *</label>
-                  <input type="text" value={editing.name || ''} onChange={(e) => setEditing((p) => ({ ...p!, name: e.target.value }))} placeholder="Classique"
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
+                  <label className="mb-1.5 block text-xs font-medium text-gray-400">Nom *</label>
+                  <input
+                    type="text"
+                    value={editing.name || ''}
+                    onChange={(event) => setEditing((prev) => ({ ...prev!, name: event.target.value }))}
+                    placeholder="Classique"
+                    className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white transition-colors focus:border-yellow-400 focus:outline-none"
+                  />
                 </div>
               </div>
+
               <div>
-                <label className="text-gray-400 text-xs font-medium block mb-1.5">Description</label>
-                <input type="text" value={editing.description || ''} onChange={(e) => setEditing((p) => ({ ...p!, description: e.target.value }))} placeholder="Description…"
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
+                <label className="mb-1.5 block text-xs font-medium text-gray-400">Description</label>
+                <input
+                  type="text"
+                  value={editing.description || ''}
+                  onChange={(event) => setEditing((prev) => ({ ...prev!, description: event.target.value }))}
+                  placeholder="Description..."
+                  className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white transition-colors focus:border-yellow-400 focus:outline-none"
+                />
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Type *</label>
-                  <select value={editing.type} onChange={(e) => setEditing((p) => ({ ...p!, type: e.target.value as ItemType }))}
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors">
-                    {(Object.entries(TYPE_META) as [ItemType, typeof TYPE_META[ItemType]][]).map(([t, m]) => (
-                      <option key={t} value={t}>{m.icon} {m.label}</option>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-400">Type *</label>
+                  <select
+                    value={editing.type}
+                    onChange={(event) =>
+                      setEditing((prev) => ({ ...prev!, type: event.target.value as ItemType }))
+                    }
+                    className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white transition-colors focus:border-yellow-400 focus:outline-none"
+                  >
+                    {(Object.entries(TYPE_META) as [ItemType, (typeof TYPE_META)[ItemType]][]).map(([type, meta]) => (
+                      <option key={type} value={type}>
+                        {meta.label}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Rareté *</label>
-                  <select value={editing.rarity} onChange={(e) => setEditing((p) => ({ ...p!, rarity: e.target.value as Rarity }))}
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors">
-                    {(Object.entries(RARITY_META) as [Rarity, typeof RARITY_META[Rarity]][]).map(([r, m]) => (
-                      <option key={r} value={r}>{m.label}</option>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-400">Rarete *</label>
+                  <select
+                    value={editing.rarity}
+                    onChange={(event) =>
+                      setEditing((prev) => ({ ...prev!, rarity: event.target.value as Rarity }))
+                    }
+                    className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white transition-colors focus:border-yellow-400 focus:outline-none"
+                  >
+                    {(Object.entries(RARITY_META) as [Rarity, (typeof RARITY_META)[Rarity]][]).map(([rarity, meta]) => (
+                      <option key={rarity} value={rarity}>
+                        {meta.label}
+                      </option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              {/* Upload image — AVATAR uniquement */}
-              {editing.type === 'AVATAR' && (
-                <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl space-y-3">
-                  <p className="text-blue-300 text-xs font-semibold uppercase tracking-wider">🧑 Image de l'avatar</p>
+              {editing.type === 'AVATAR' ? (
+                <div className="space-y-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-blue-300">Image avatar</p>
                   <div className="flex items-center gap-4">
-                    {/* Preview */}
-                    <div className="w-16 h-16 rounded-xl border border-gray-700 bg-gray-800 overflow-hidden flex items-center justify-center shrink-0">
-                      {imagePreview
-                        ? <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
-                        : <span className="text-2xl">🧑</span>
-                      }
-                    </div>
                     <div className="flex-1">
-                      <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors">
-                        📁 Choisir une image
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-600 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700">
+                        Choisir une image
                         <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                       </label>
-                      <p className="text-gray-600 text-xs mt-1.5">JPG, PNG, WebP — converti en WebP 200×200</p>
-                      {imageFile && <p className="text-green-400 text-xs mt-1">✓ {imageFile.name}</p>}
+                      <p className="mt-1.5 text-xs text-gray-600">JPG, PNG, WebP - conversion WebP 200x200</p>
+                      {imageFile ? <p className="mt-1 text-xs text-green-400">{imageFile.name}</p> : null}
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* Asset ID (non avatar) */}
-              {editing.type !== 'AVATAR' && (
+              ) : (
                 <div>
-                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Asset ID</label>
-                  <input type="text" value={editing.assetId || ''} onChange={(e) => setEditing((p) => ({ ...p!, assetId: e.target.value }))} placeholder="classic"
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
+                  <label className="mb-1.5 block text-xs font-medium text-gray-400">Asset ID</label>
+                  <input
+                    type="text"
+                    value={editing.assetId || ''}
+                    onChange={(event) => setEditing((prev) => ({ ...prev!, assetId: event.target.value }))}
+                    placeholder="classic"
+                    className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white transition-colors focus:border-yellow-400 focus:outline-none"
+                  />
                 </div>
               )}
 
-              {/* Prix */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Prix 🪙 Coins</label>
-                  <input type="number" min="0" value={editing.priceCoins ?? ''} onChange={(e) => setEditing((p) => ({ ...p!, priceCoins: e.target.value ? parseInt(e.target.value) : undefined }))}
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
+                  <label className="mb-1.5 block text-xs font-medium text-gray-400">Prix Coins</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editing.priceCoins ?? ''}
+                    onChange={(event) =>
+                      setEditing((prev) => ({
+                        ...prev!,
+                        priceCoins: event.target.value ? parseInt(event.target.value, 10) : undefined,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white transition-colors focus:border-yellow-400 focus:outline-none"
+                  />
                 </div>
                 <div>
-                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Prix 💎 Diamants</label>
-                  <input type="number" min="0" value={editing.priceDiamonds ?? ''} onChange={(e) => setEditing((p) => ({ ...p!, priceDiamonds: e.target.value ? parseInt(e.target.value) : undefined }))}
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
+                  <label className="mb-1.5 block text-xs font-medium text-gray-400">Prix Diamants</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editing.priceDiamonds ?? ''}
+                    onChange={(event) =>
+                      setEditing((prev) => ({
+                        ...prev!,
+                        priceDiamonds: event.target.value ? parseInt(event.target.value, 10) : undefined,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white transition-colors focus:border-yellow-400 focus:outline-none"
+                  />
                 </div>
               </div>
 
-              {/* Récompenses CURRENCY_PACK */}
-              {editing.type === 'CURRENCY_PACK' && (
-                <div className="grid grid-cols-2 gap-4 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl">
+              {editing.type === 'CURRENCY_PACK' ? (
+                <div className="grid grid-cols-2 gap-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3">
                   <div>
-                    <label className="text-gray-400 text-xs font-medium block mb-1.5">Récompense 🪙 Coins</label>
-                    <input type="number" min="0" value={editing.rewards?.coins ?? ''} onChange={(e) => setEditing((p) => ({ ...p!, rewards: { ...p!.rewards, coins: parseInt(e.target.value) || 0 } }))}
-                      className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
+                    <label className="mb-1.5 block text-xs font-medium text-gray-400">Recompense Coins</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editing.rewards?.coins ?? ''}
+                      onChange={(event) =>
+                        setEditing((prev) => ({
+                          ...prev!,
+                          rewards: {
+                            ...prev!.rewards,
+                            coins: parseInt(event.target.value, 10) || 0,
+                          },
+                        }))
+                      }
+                      className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white transition-colors focus:border-yellow-400 focus:outline-none"
+                    />
                   </div>
                   <div>
-                    <label className="text-gray-400 text-xs font-medium block mb-1.5">Récompense 💎 Diamants</label>
-                    <input type="number" min="0" value={editing.rewards?.diamonds ?? ''} onChange={(e) => setEditing((p) => ({ ...p!, rewards: { ...p!.rewards, diamonds: parseInt(e.target.value) || 0 } }))}
-                      className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors" />
+                    <label className="mb-1.5 block text-xs font-medium text-gray-400">Recompense Diamants</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editing.rewards?.diamonds ?? ''}
+                      onChange={(event) =>
+                        setEditing((prev) => ({
+                          ...prev!,
+                          rewards: {
+                            ...prev!.rewards,
+                            diamonds: parseInt(event.target.value, 10) || 0,
+                          },
+                        }))
+                      }
+                      className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white transition-colors focus:border-yellow-400 focus:outline-none"
+                    />
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {/* Skin config + preview */}
-              {editing.type === 'SKIN' && (
-                <div className="p-3 bg-purple-500/5 border border-purple-500/20 rounded-xl space-y-3">
-                  <p className="text-purple-300 text-xs font-semibold uppercase tracking-wider">🎨 Configuration skin</p>
+              {editing.type === 'SKIN' ? (
+                <div className="space-y-3 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-purple-300">Configuration skin</p>
                   {([
-                    { key: 'tableBackgroundColor', label: 'Table — fond extérieur',    placeholder: '#105B3A' },
-                    { key: 'boardColor',            label: 'Plateau — surface de jeu', placeholder: '#1B5E20' },
-                    { key: 'dominoBackgroundColor', label: 'Dominos — fond',           placeholder: '#FFFFFF' },
-                    { key: 'dominoDotColor',        label: 'Dominos — points',         placeholder: '#000000' },
-                    { key: 'dominoLineColor',       label: 'Dominos — ligne centrale', placeholder: '#000000' },
+                    { key: 'tableBackgroundColor', label: 'Table - fond', placeholder: '#105B3A' },
+                    { key: 'boardColor', label: 'Plateau - surface', placeholder: '#1B5E20' },
+                    { key: 'dominoBackgroundColor', label: 'Dominos - fond', placeholder: '#FFFFFF' },
+                    { key: 'dominoDotColor', label: 'Dominos - points', placeholder: '#000000' },
+                    { key: 'dominoLineColor', label: 'Dominos - ligne', placeholder: '#000000' },
                   ] as { key: keyof SkinConfig; label: string; placeholder: string }[]).map(({ key, label, placeholder }) => {
-                    const val = (editing.skinConfig as SkinConfig | undefined)?.[key] ?? '';
-                    const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(val);
+                    const value = (editing.skinConfig as SkinConfig | undefined)?.[key] ?? '';
+                    const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(value);
+
                     return (
                       <div key={key} className="flex items-center justify-between gap-3">
-                        <label className="text-gray-400 text-xs font-medium flex-1">{label}</label>
+                        <label className="flex-1 text-xs font-medium text-gray-400">{label}</label>
                         <div className="flex items-center gap-2">
                           <input
                             type="color"
-                            value={isValidHex ? val : '#000000'}
-                            onChange={(e) => setEditing((p) => ({ ...p!, skinConfig: { ...(p!.skinConfig as SkinConfig), [key]: e.target.value } }))}
-                            className="w-8 h-8 rounded cursor-pointer border border-gray-600 bg-transparent"
+                            value={isValidHex ? value : '#000000'}
+                            onChange={(event) =>
+                              setEditing((prev) => ({
+                                ...prev!,
+                                skinConfig: {
+                                  ...(prev!.skinConfig as SkinConfig),
+                                  [key]: event.target.value,
+                                },
+                              }))
+                            }
+                            className="h-8 w-8 cursor-pointer rounded border border-gray-600 bg-transparent"
                           />
                           <input
                             type="text"
-                            value={val}
-                            onChange={(e) => setEditing((p) => ({ ...p!, skinConfig: { ...(p!.skinConfig as SkinConfig), [key]: e.target.value } }))}
+                            value={value}
+                            onChange={(event) =>
+                              setEditing((prev) => ({
+                                ...prev!,
+                                skinConfig: {
+                                  ...(prev!.skinConfig as SkinConfig),
+                                  [key]: event.target.value,
+                                },
+                              }))
+                            }
                             placeholder={placeholder}
-                            className="w-28 bg-gray-800 border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-purple-400 transition-colors"
+                            className="w-28 rounded-lg border border-gray-700 bg-gray-800 px-2 py-1.5 text-xs font-mono text-white transition-colors focus:border-purple-400 focus:outline-none"
                           />
                         </div>
                       </div>
                     );
                   })}
-                  {/* Preview dynamique */}
-                  <SkinPreview skin={editing.skinConfig ?? {}} />
                 </div>
-              )}
-
+              ) : null}
             </div>
-            <div className="px-6 pb-5 flex gap-3">
-              <button onClick={() => setEditing(null)}
-                className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 font-medium text-sm rounded-xl transition-all">Annuler</button>
-              <button onClick={handleSave} disabled={saving || uploading || !editing.id?.trim() || !editing.name?.trim()}
-                className="flex-1 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm rounded-xl transition-all disabled:opacity-40">
-                {uploading ? 'Upload…' : saving ? 'Sauvegarde…' : editing.firestoreId ? 'Mettre à jour' : 'Créer l\'article'}
+
+            <div className="flex gap-3 px-6 pb-5">
+              <button
+                onClick={() => setEditing(null)}
+                className="flex-1 rounded-xl border border-gray-700 bg-gray-800 py-2.5 text-sm font-medium text-gray-300 transition-all hover:bg-gray-700"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || uploading || !editing.id?.trim() || !editing.name?.trim()}
+                className="flex-1 rounded-xl bg-yellow-400 py-2.5 text-sm font-bold text-gray-900 transition-all hover:bg-yellow-300 disabled:opacity-40"
+              >
+                {uploading ? 'Upload...' : saving ? 'Sauvegarde...' : editing.firestoreId ? 'Mettre a jour' : "Creer l'article"}
               </button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

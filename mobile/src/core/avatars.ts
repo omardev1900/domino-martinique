@@ -32,6 +32,11 @@ export const AVATAR_IMAGES = {
 
 export type AvatarId = keyof typeof AVATAR_IMAGES;
 
+const AVATAR_ALIASES: Record<string, AvatarId> = {
+    default: 'avatar_default',
+    default_asset: 'avatar_default',
+};
+
 // List of available avatar IDs for selection
 export const AVAILABLE_AVATARS: AvatarId[] = [
     'avatar_01',
@@ -80,9 +85,33 @@ export const getAvatarImage = (avatarId: string | null | undefined) => {
         return AVATAR_IMAGES.avatar_default; // URL invalide ou domaine non autorisé
     }
 
-    if (!(avatarId in AVATAR_IMAGES)) {
+    const normalizedAvatarId = AVATAR_ALIASES[avatarId] ?? avatarId;
+
+    if (!(normalizedAvatarId in AVATAR_IMAGES)) {
         return AVATAR_IMAGES.avatar_default; // Default avatar fallback
     }
 
-    return AVATAR_IMAGES[avatarId as AvatarId];
+    return AVATAR_IMAGES[normalizedAvatarId as AvatarId];
+};
+
+export const hasAvatarImage = (avatarId: string | null | undefined) => {
+    if (!avatarId) {
+        return false;
+    }
+
+    if (avatarId.startsWith('http://') || avatarId.startsWith('https://')) {
+        try {
+            const url = new URL(avatarId);
+            const hostname = url?.hostname;
+            return !!hostname && [
+                'firebasestorage.googleapis.com',
+                'lh3.googleusercontent.com',
+            ].some(d => hostname.endsWith(d));
+        } catch {
+            return false;
+        }
+    }
+
+    const normalizedAvatarId = AVATAR_ALIASES[avatarId] ?? avatarId;
+    return normalizedAvatarId in AVATAR_IMAGES;
 };
