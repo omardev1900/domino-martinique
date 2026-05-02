@@ -398,7 +398,7 @@ export default function ModalScreen() {
                 />
               </View>
               <View style={editStyles.avatarGrid}>
-                {AVAILABLE_AVATARS.slice(0, 8).map(av => (
+                {AVAILABLE_AVATARS.map(av => (
                   <TouchableOpacity
                     key={av}
                     style={[editStyles.avatarOption, editAvatar === av && editStyles.avatarOptionSelected]}

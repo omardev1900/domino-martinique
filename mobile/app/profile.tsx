@@ -136,7 +136,7 @@ export default function ProfileScreen() {
 
             {/* Image Avatars - Compact grid for left side */}
             <View style={styles.avatarGridCompact}>
-                {AVAILABLE_AVATARS.slice(0, 4).map((avatarId) => (
+                {AVAILABLE_AVATARS.map((avatarId) => (
                     <TouchableOpacity
                         key={avatarId}
                         style={[
