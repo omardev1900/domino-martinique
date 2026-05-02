@@ -37,6 +37,7 @@ export default function ProfileScreen() {
     const [displayName, setDisplayName] = useState('');
     const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
     const [selectedAvatar, setSelectedAvatar] = useState<string | undefined>(undefined);
+    const [isEditingAvatar, setIsEditingAvatar] = useState(false);
     // -- Cadres --
     const [unlockedFrames, setUnlockedFrames] = useState<LeagueFrameId[]>([]);
     const [activeFrame, setActiveFrame] = useState<LeagueFrameId | null>(null);
@@ -253,7 +254,11 @@ export default function ProfileScreen() {
                 >
                     {/* Main Container - Centered */}
                     <View style={styles.centerColumn}>
-                        <View style={styles.avatarCircle}>
+                        <TouchableOpacity
+                            style={styles.avatarCircle}
+                            onPress={() => setIsEditingAvatar(!isEditingAvatar)}
+                            activeOpacity={0.8}
+                        >
                             <View style={[
                                 styles.avatarCircleBorder,
                                 myLeagueGrade && { borderColor: LEAGUE_GRADE_COLORS[myLeagueGrade] },
@@ -266,7 +271,11 @@ export default function ProfileScreen() {
                                 />
                             </View>
                             {activeFrame && <AvatarFrame frameId={activeFrame} size={86} />}
-                        </View>
+                            {/* Bouton "Modifier" overlay */}
+                            <View style={styles.avatarEditButton}>
+                                <Ionicons name="pencil" size={16} color="#000" />
+                            </View>
+                        </TouchableOpacity>
                         <View style={styles.headerInfo}>
                             <TextInput
                                 ref={nameInputRef}
@@ -300,10 +309,12 @@ export default function ProfileScreen() {
                         </View>
                         {userEmail && <Text style={styles.emailTextCompact}>{userEmail}</Text>}
 
-                        <View style={styles.avatarSelectionSmall}>
-                            {renderAvatarGrid()}
-                            {renderFramesGrid()}
-                        </View>
+                        {isEditingAvatar && (
+                            <View style={styles.avatarSelectionSmall}>
+                                {renderAvatarGrid()}
+                                {renderFramesGrid()}
+                            </View>
+                        )}
                     </View>
 
                     {/* BOTTOM SECTION: League Block + (dev) Debug */}
@@ -395,6 +406,19 @@ const styles = StyleSheet.create({
         height: 86 * 1.6,
         position: 'absolute',
         top: -(86 * 1.6 - 86) * 0.25,
+    },
+    avatarEditButton: {
+        position: 'absolute',
+        bottom: -8,
+        right: -8,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#FFD700',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: '#2D1B4E',
     },
     headerInfo: {
         flexDirection: 'row',
