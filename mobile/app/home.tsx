@@ -33,6 +33,7 @@ import { NewsService, NewsItem } from '../src/core/services/news.service';
 import { adService } from '../src/core/services/ad.service';
 import { Ad } from '../src/core/ad.types';
 import { AdBannerModal } from '../src/components/AdBannerModal';
+import { WebFullscreenButton } from '../src/components/WebFullscreenButton';
 import { USE_NEW_SIDEBAR } from '../src/core/config/navigation.config';
 
 
@@ -45,7 +46,6 @@ export default function HomeScreen() {
     const [economyRefresh, setEconomyRefresh] = useState(0);
     const [cochonsGiven, setCochonsGiven] = useState(0);
     const [myLeagueGrade, setMyLeagueGrade] = useState<LeagueGrade | null>(null);
-    const [isFullscreen, setIsFullscreen] = useState(false);
     const [showDailyReward, setShowDailyReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
     const [newsList, setNewsList] = useState<NewsItem[]>([]);
@@ -217,29 +217,6 @@ export default function HomeScreen() {
         }
     };
 
-    // Fullscreen API (web only)
-    useFocusEffect(
-        useCallback(() => {
-            if (Platform.OS !== 'web') return;
-            const handleChange = () => {
-                setIsFullscreen(!!document.fullscreenElement);
-            };
-            document.addEventListener('fullscreenchange', handleChange);
-            return () => document.removeEventListener('fullscreenchange', handleChange);
-        }, [])
-    );
-
-    const toggleFullscreen = useCallback(() => {
-        if (Platform.OS !== 'web') return;
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                console.warn('Fullscreen request failed:', err);
-            });
-        } else {
-            document.exitFullscreen();
-        }
-    }, []);
-
     return (
         <LinearGradient
             colors={['#2D1B4E', '#1A0E2E']}
@@ -250,19 +227,7 @@ export default function HomeScreen() {
                 {/* Left Side: Controls — masqué si sidebar active */}
                 {!USE_NEW_SIDEBAR && (
                     <View style={styles.headerLeft}>
-                        {Platform.OS === 'web' && (
-                            <TouchableOpacity
-                                style={styles.fullscreenButton}
-                                onPress={toggleFullscreen}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons
-                                    name={isFullscreen ? "contract-outline" : "expand-outline"}
-                                    size={20}
-                                    color="#FFD700"
-                                />
-                            </TouchableOpacity>
-                        )}
+                        <WebFullscreenButton style={styles.fullscreenButton} />
                         <TouchableOpacity
                             style={styles.helpButton}
                             onPress={() => setShowHelp(true)}

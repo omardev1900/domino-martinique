@@ -27,6 +27,7 @@ import { getAvatarImage } from '../core/avatars';
 import { getLeagueGrade } from '../core/RewardEngine';
 import { MdcFeedbackModal } from './MdcFeedbackModal';
 import { HelpOverlay } from './HelpOverlay';
+import { WebFullscreenButton } from './WebFullscreenButton';
 import { SIDEBAR_WIDTH } from '../core/config/navigation.config';
 
 interface NavItem {
@@ -102,6 +103,7 @@ export const Sidebar: React.FC = () => {
                             contentFit="contain"
                         />
                     </TouchableOpacity>
+                    <WebFullscreenButton style={styles.fullscreenBtn} iconColor="#FFD700" size={18} />
                 </View>
 
                 {/* ── MIDDLE : Scrollable ── */}
@@ -202,6 +204,7 @@ const styles = StyleSheet.create({
     topZone: {
         alignItems: 'center',
         paddingVertical: 12,
+        gap: 10,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,255,255,0.06)',
     },
@@ -225,6 +228,11 @@ const styles = StyleSheet.create({
     mdcLogo: {
         width: 44,
         height: 44,
+    },
+    fullscreenBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
     },
 
     // ── Middle ──

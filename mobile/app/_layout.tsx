@@ -14,6 +14,7 @@ import SoundManager from '@/core/audio/SoundManager';
 import SettingsManager from '@/core/SettingsManager';
 import { adService } from '@/core/services/ad.service';
 import { Sidebar } from '@/components/Sidebar';
+import { WebFullscreenButton } from '@/components/WebFullscreenButton';
 import {
   USE_NEW_SIDEBAR,
   SIDEBAR_HIDDEN_ROUTES,
@@ -188,6 +189,33 @@ export default function RootLayout() {
             </View>
 
           </View>
+
+          {Platform.OS === 'web' && (
+            <View
+              pointerEvents="box-none"
+              style={{
+                position: 'absolute',
+                top: 14,
+                right: 64,
+                zIndex: 1000,
+              }}
+            >
+              <WebFullscreenButton
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 14,
+                  backgroundColor: 'rgba(8,15,32,0.82)',
+                  borderColor: 'rgba(255,215,0,0.55)',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.28,
+                  shadowRadius: 8,
+                }}
+                size={22}
+              />
+            </View>
+          )}
           {/* ──────────────────────────────────────────────────────────── */}
 
           <StatusBar hidden={true} />
