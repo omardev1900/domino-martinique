@@ -1,35 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 
-async function verifySuperAdmin(token: string) {
+async function verifySuperAdmin(token: string): Promise<{ uid: string } | { error: string }> {
   try {
     const decoded = await adminAuth.verifyIdToken(token);
     const callerDoc = await adminDb.collection('admins').doc(decoded.uid).get();
 
-    if (!callerDoc.exists()) {
-      return null;
+    if (!callerDoc.exists) {
+      return { error: `doc_not_found:uid=${decoded.uid}` };
     }
 
-    const data = callerDoc.data();
-    // Superadmin si : pas de champ 'role' (rétrocompat) OU role === 'superadmin'
-    const isSuperAdmin = !('role' in data) || data.role === 'superadmin';
+    const data = callerDoc.data() ?? {};
+    const role = data.role;
+    const isSuperAdmin = role === undefined || role === 'superadmin';
 
-    return isSuperAdmin ? decoded.uid : null;
-  } catch {
-    return null;
+    if (!isSuperAdmin) {
+      return { error: `role_denied:role=${role}:uid=${decoded.uid}` };
+    }
+
+    return { uid: decoded.uid };
+  } catch (err: any) {
+    return { error: `exception:${err?.code ?? err?.message ?? String(err)}` };
   }
 }
 
 export async function GET(req: NextRequest) {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '');
   if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'no_token' }, { status: 401 });
   }
 
-  const callerUid = await verifySuperAdmin(token);
-  if (!callerUid) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const result = await verifySuperAdmin(token);
+  if ('error' in result) {
+    return NextResponse.json({ error: result.error }, { status: 403 });
   }
+  const callerUid = result.uid;
 
   try {
     const adminsDocs = await adminDb.collection('admins').get();
@@ -71,14 +76,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const callerUid = await verifySuperAdmin(token);
-  if (!callerUid) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const postResult = await verifySuperAdmin(token);
+  if ('error' in postResult) {
+    return NextResponse.json({ error: postResult.error }, { status: 403 });
   }
 
   try {
     const body = await req.json();
-    const { email, role } = body;
+    const { email, role, password } = body;
 
     if (!email || !role) {
       return NextResponse.json(
@@ -94,7 +99,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userRecord = await adminAuth.getUserByEmail(email);
+    let userRecord;
+    let createdAuthUser = false;
+
+    try {
+      userRecord = await adminAuth.getUserByEmail(email);
+    } catch (error: any) {
+      if (error.code !== 'auth/user-not-found') {
+        throw error;
+      }
+
+      if (!password) {
+        return NextResponse.json(
+          { error: 'User not found. Provide a temporary password to create the account.' },
+          { status: 400 }
+        );
+      }
+
+      if (typeof password !== 'string' || password.length < 6) {
+        return NextResponse.json(
+          { error: 'Password must be at least 6 characters.' },
+          { status: 400 }
+        );
+      }
+
+      userRecord = await adminAuth.createUser({
+        email,
+        password,
+      });
+      createdAuthUser = true;
+    }
+
     const uid = userRecord.uid;
 
     await adminDb.collection('admins').doc(uid).set(
@@ -110,12 +145,20 @@ export async function POST(req: NextRequest) {
       email,
       role,
       createdAt: Date.now(),
+      createdAuthUser,
     });
   } catch (error: any) {
-    if (error.code === 'auth/user-not-found') {
+    if (error.code === 'auth/email-already-exists') {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        { error: 'An account with this email already exists.' },
+        { status: 409 }
+      );
+    }
+
+    if (error.code === 'auth/invalid-password') {
+      return NextResponse.json(
+        { error: 'Invalid password.' },
+        { status: 400 }
       );
     }
     return NextResponse.json(

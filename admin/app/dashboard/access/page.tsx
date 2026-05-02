@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { auth } from '@/lib/firebase';
-import type { AdminRole } from '@/lib/adminAuth';
+import { useAdmin, type AdminRole } from '@/lib/adminAuth';
 
 type Admin = {
   uid: string;
@@ -12,18 +11,25 @@ type Admin = {
 };
 
 export default function AccessPage() {
+  const { user, isAdmin, role, loading: authLoading } = useAdmin();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<AdminRole>('manager');
+  const [newPassword, setNewPassword] = useState('');
   const [addingAdmin, setAddingAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [editingUid, setEditingUid] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<AdminRole>('manager');
 
   const fetchToken = async () => {
-    return await auth.currentUser?.getIdToken();
+    if (!user) {
+      throw new Error('Not authenticated');
+    }
+
+    return user.getIdToken(true);
   };
 
   const fetchAdmins = async () => {
@@ -37,7 +43,10 @@ export default function AccessPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) throw new Error('Failed to fetch admins');
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || 'Failed to fetch admins');
+      }
       const data = await res.json();
       setAdmins(data.admins);
     } catch (err: any) {
@@ -48,13 +57,23 @@ export default function AccessPage() {
   };
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    if (!isAdmin || role !== 'superadmin') {
+      setLoading(false);
+      return;
+    }
+
     fetchAdmins();
-  }, []);
+  }, [authLoading, isAdmin, role, user]);
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddingAdmin(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const token = await fetchToken();
@@ -66,7 +85,11 @@ export default function AccessPage() {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: newEmail, role: newRole }),
+        body: JSON.stringify({
+          email: newEmail.trim(),
+          role: newRole,
+          password: newPassword.trim() || undefined,
+        }),
       });
 
       if (!res.ok) {
@@ -74,9 +97,16 @@ export default function AccessPage() {
         throw new Error(err.error || 'Failed to add admin');
       }
 
+      const data = await res.json();
       setNewEmail('');
       setNewRole('manager');
+      setNewPassword('');
       setShowAddForm(false);
+      setSuccess(
+        data.createdAuthUser
+          ? 'Compte Firebase et accès admin créés.'
+          : 'Accès admin ajouté à un compte existant.'
+      );
       fetchAdmins();
     } catch (err: any) {
       setError(err.message);
@@ -87,6 +117,7 @@ export default function AccessPage() {
 
   const handleChangeRole = async (uid: string, newRoleVal: AdminRole) => {
     setError(null);
+    setSuccess(null);
     try {
       const token = await fetchToken();
       if (!token) throw new Error('Not authenticated');
@@ -100,7 +131,10 @@ export default function AccessPage() {
         body: JSON.stringify({ role: newRoleVal }),
       });
 
-      if (!res.ok) throw new Error('Failed to update role');
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || 'Failed to update role');
+      }
       setEditingUid(null);
       fetchAdmins();
     } catch (err: any) {
@@ -112,6 +146,7 @@ export default function AccessPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet admin ?')) return;
 
     setError(null);
+    setSuccess(null);
     try {
       const token = await fetchToken();
       if (!token) throw new Error('Not authenticated');
@@ -126,13 +161,14 @@ export default function AccessPage() {
         throw new Error(err.error || 'Failed to delete admin');
       }
 
+      setSuccess('Accès admin supprimé.');
       fetchAdmins();
     } catch (err: any) {
       setError(err.message);
     }
   };
 
-  const currentUserUid = auth.currentUser?.uid;
+  const currentUserUid = user?.uid;
 
   return (
     <div className="p-8 min-h-screen bg-gray-950">
@@ -155,6 +191,12 @@ export default function AccessPage() {
         {error && (
           <div className="mb-6 p-4 bg-red-900/30 border border-red-600 rounded-lg text-red-200">
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 p-4 bg-green-900/30 border border-green-600 rounded-lg text-green-200">
+            {success}
           </div>
         )}
 
@@ -190,6 +232,22 @@ export default function AccessPage() {
                   <option value="superadmin">Superadmin (accès complet)</option>
                   <option value="manager">Manager (contenu uniquement)</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Mot de passe temporaire
+                </label>
+                <input
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400"
+                  placeholder="Requis seulement si le compte n'existe pas encore"
+                  disabled={addingAdmin}
+                />
+                <p className="mt-2 text-xs text-gray-500">
+                  Si l&apos;email n&apos;existe pas encore dans Firebase Auth, ce mot de passe servira à créer le compte.
+                </p>
               </div>
               <div className="flex gap-2">
                 <button

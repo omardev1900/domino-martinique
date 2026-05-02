@@ -35,7 +35,11 @@
       "Bash(firebase functions:log --only deleteUserAccount)",
       "Bash(firebase functions:log)",
       "Bash(node -e ' *)",
-      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(git commit *)",
+      "Bash(firebase firestore:rules)",
+      "Bash(firebase --version)",
+      "Bash(firebase projects:list)"
     ],
     "additionalDirectories": [
       "e:\\PROJETS\\_TEMPLATE\\docs",

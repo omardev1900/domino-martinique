@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 
-async function verifySuperAdmin(token: string) {
+async function verifySuperAdmin(token: string): Promise<{ uid: string } | { error: string }> {
   try {
     const decoded = await adminAuth.verifyIdToken(token);
     const callerDoc = await adminDb.collection('admins').doc(decoded.uid).get();
 
-    if (!callerDoc.exists()) {
-      return null;
+    if (!callerDoc.exists) {
+      return { error: `doc_not_found:uid=${decoded.uid}` };
     }
 
-    const data = callerDoc.data();
-    // Superadmin si : pas de champ 'role' (rétrocompat) OU role === 'superadmin'
-    const isSuperAdmin = !('role' in data) || data.role === 'superadmin';
+    const data = callerDoc.data() ?? {};
+    const role = data.role;
+    const isSuperAdmin = role === undefined || role === 'superadmin';
 
-    return isSuperAdmin ? decoded.uid : null;
-  } catch {
-    return null;
+    if (!isSuperAdmin) {
+      return { error: `role_denied:role=${role}:uid=${decoded.uid}` };
+    }
+
+    return { uid: decoded.uid };
+  } catch (err: any) {
+    return { error: `exception:${err?.code ?? err?.message ?? String(err)}` };
   }
 }
 
@@ -29,10 +33,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const callerUid = await verifySuperAdmin(token);
-  if (!callerUid) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const result = await verifySuperAdmin(token);
+  if ('error' in result) {
+    return NextResponse.json({ error: result.error }, { status: 403 });
   }
+  const callerUid = result.uid;
 
   try {
     const { uid } = params;
@@ -54,7 +59,7 @@ export async function PATCH(
     }
 
     const adminDoc = await adminDb.collection('admins').doc(uid).get();
-    if (!adminDoc.exists()) {
+    if (!adminDoc.exists) {
       return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
     }
 
@@ -84,10 +89,11 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const callerUid = await verifySuperAdmin(token);
-  if (!callerUid) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const result = await verifySuperAdmin(token);
+  if ('error' in result) {
+    return NextResponse.json({ error: result.error }, { status: 403 });
   }
+  const callerUid = result.uid;
 
   try {
     const { uid } = params;
@@ -100,7 +106,7 @@ export async function DELETE(
     }
 
     const adminDoc = await adminDb.collection('admins').doc(uid).get();
-    if (!adminDoc.exists()) {
+    if (!adminDoc.exists) {
       return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
     }
 
