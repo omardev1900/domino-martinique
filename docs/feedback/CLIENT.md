@@ -157,3 +157,29 @@
 | R3-A5 | Musique : une musique à l'accueil + playlist en jeu qui change à chaque manche | 📋 BACKLOG |
 | R3-A6 | Avatars : il n'y a que des noirs, problème de diversité | 📋 BACKLOG |
 | R3-A7 | Les dominos ne glissent pas (confirmation R2-A1) | 📋 BACKLOG |
+
+---
+
+## 📋 RETOUR #4 — 04 mai 2026 (Manuel Voitier)
+
+> Retour reçu le 04 mai 2026. Verbatim conservé. Statut de traitement dans `BACKLOG.md`.
+
+### 🔴 BUGS
+
+| # | Description brute | Statut |
+|---|---|---|
+| R4-B1 | Affichage des paliers de la Ligue des Cochons non synchronisé entre l'accueil, Ma Ligue via le (i) et l'écran Ligue. Les numéros 10 20 30 ... 250 ... ne reflètent pas la jauge en cours et doivent être supprimés ou adaptés au palier courant. | 📋 BACKLOG |
+| R4-B2 | Le popup de réussite des passages aux paliers supérieurs de la ligue ne s'affiche pas. | 📋 BACKLOG |
+| R4-B3 | En partie multi, les joueurs sont expulsés, la partie continue, et ils doivent saisir le code pour revenir. | 📋 BACKLOG |
+| R4-B4 | Le bouton plein écran web cache l'avatar ; il faut le déplacer et n'en garder qu'un seul. | 📋 BACKLOG |
+| R4-B5 | En version web, quand on gagne, il arrive que le domino gagnant affiché soit celui de la partie précédente. | 📋 BACKLOG |
+
+### 🟠 MANQUES FONCTIONNELS
+
+| # | Description brute | Statut |
+|---|---|---|
+| R4-M1 | Le niveau de la Ligue des Cochons doit redémarrer à zéro chaque début du mois. | 📋 BACKLOG |
+| R4-M2 | Ajouter de la pub dans la boutique, le vestiaire, etc. | 📋 BACKLOG |
+| R4-M3 | Rendre les phrases et emojis vendables à l'unité et non à vie. | 📋 BACKLOG |
+| R4-M4 | Enlever les 300 coins cadeaux journaliers sauf si le joueur clique sur un bouton pour voir une pub. | 📋 BACKLOG |
+| R4-M5 | Ajouter une notification quotidienne pour inviter les joueurs à venir jouer. | 📋 BACKLOG |

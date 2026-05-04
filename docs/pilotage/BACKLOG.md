@@ -26,6 +26,74 @@
 
 ## 🎯 Priorités Sprint Post-Lancement (02/05/2026)
 
+### Priorité 0 — Correctifs critiques web / ligue / multi (retour client 04/05)
+- [ ] **[R4-B1]** Ligue des Cochons — source de vérité unique pour paliers, jauge et labels
+  - **Symptôme** : affichage non synchronisé entre l'accueil, `Ma Ligue` via le `(i)` et l'écran `/ligue-cochons`
+  - **Constat code** : calculs de paliers et progression dispersés ; l'écran `mobile/app/ligue-cochons.tsx` contient encore de la logique spécifique et des repères visuels qui ne reflètent pas toujours le segment courant
+  - **À faire** :
+    - extraire un helper partagé pour `currentTier`, `previousThreshold`, `nextThreshold`, `progressPercent`, `milestoneLabels`
+    - brancher ce helper dans `LeagueProgressWidget`, `LeagueInfoModal` et `/ligue-cochons`
+    - supprimer ou recalculer les marqueurs `10 / 20 / 30 / ... / 250 / ...` selon le palier courant
+  - **Impact** : cohérence produit + base saine pour les évolutions mensuelles
+  - **Estimation** : ~0,75 jour
+
+- [ ] **[R4-B2]** Ligue des Cochons — popup de passage de palier non affiché
+  - **Symptôme** : l'overlay de réussite/promotion n'apparaît pas malgré un franchissement de palier
+  - **Pistes** : vérifier le déclenchement de `RewardOverlay` et la propagation de `gradeUp` / `newlyUnlockedFrames` depuis le flux de fin de match
+  - **Estimation** : ~0,5 jour
+
+- [ ] **[R4-B3]** Multijoueur — reprise de partie sans ressaisie du code après déconnexion / expulsion
+  - **Symptôme** : en partie multi, certains joueurs sortent de la room, la partie continue, puis ils doivent ressaisir le code pour revenir
+  - **Objectif** : reprise automatique si une session de room valide existe encore côté client ; saisie du code uniquement en fallback
+  - **À auditer** : présence joueur dans room, persistance `active_roomId`, conditions de `leaveRoom`, listeners de reconnexion
+  - **Impact** : critique pour la fiabilité du multi
+  - **Estimation** : ~1 à 1,5 jour
+
+- [ ] **[R4-B4]** Web — unifier et repositionner le bouton plein écran
+  - **Symptôme** : doublons du bouton plein écran, overlap avec l'avatar sur la version web
+  - **À faire** : garder un seul point d'entrée, le déplacer hors des zones denses (`avatar`, actions hautes), vérifier desktop + Android browser
+  - **Estimation** : ~0,25 jour
+
+- [ ] **[R4-B5]** Web — domino gagnant parfois réutilisé depuis la partie précédente
+  - **Symptôme** : en solo et en multi web, le domino gagnant affiché en fin de partie peut correspondre au match précédent
+  - **Hypothèse** : état de résultat / overlay non réinitialisé entre deux parties
+  - **À auditer** : `GameScreen`, `UnifiedResultOverlay`, `RoundResultCard`
+  - **Estimation** : ~0,5 à 0,75 jour
+
+### Priorité 1 — Décisions produit / économie (retour client 04/05)
+- [ ] **[R4-M1]** Ligue des Cochons — reset mensuel du niveau
+  - **Demande client** : le niveau de ligue doit repartir à zéro au début de chaque mois
+  - **Point d'attention** : c'est un changement de règle produit, pas un simple fix UI ; aujourd'hui la progression est pensée comme cumulative/permanente
+  - **Décision à prendre** :
+    - option A : classement mensuel seulement, progression ligue permanente
+    - option B : vraie ligue saisonnière avec remise à zéro mensuelle du niveau
+  - **Dépendance** : clarifier aussi les récompenses, cadres et messages de promotion
+  - **Estimation** : A ~1 jour / B ~2 à 3 jours
+
+- [ ] **[R4-M2]** Monétisation — ajouter des placements pub dans boutique, vestiaire, etc.
+  - **Objectif** : étendre les emplacements d'affichage pub hors de l'accueil
+  - **À cadrer** : emplacements exacts, fréquence, distinction popup vs bannière vs récompense
+  - **Lien backlog** : complète `ADS-REWARD` sans le remplacer
+  - **Estimation** : ~0,75 jour
+
+- [ ] **[R4-M3]** Boutique tchat — rendre phrases et emojis consommables à l'unité
+  - **Demande client** : ne plus vendre ces items à vie, mais à l'usage/unité
+  - **Impact technique** : passer d'un modèle d'`unlock` permanent à un inventaire consommable avec décrément à chaque envoi
+  - **À prévoir** : compteur restant, prix unitaire, UX d'achat, rétrocompatibilité des items déjà achetés
+  - **Estimation** : ~1,5 à 2 jours
+
+- [ ] **[R4-M4]** Cadeau quotidien — remplacer les 300 coins gratuits par une récompense conditionnée à une pub
+  - **Demande client** : plus de cadeau auto ; les 300 coins journaliers ne sont accordés qu'après clic sur `Voir une pub`
+  - **À faire** : refondre le CTA du daily reward et l'adosser au flow pub récompensée
+  - **Lien backlog** : peut être mutualisé avec `ADS-REWARD`
+  - **Estimation** : ~0,5 jour
+
+- [ ] **[R4-M5]** Notifications — relance quotidienne des joueurs
+  - **Objectif** : envoyer une notification push quotidienne pour faire revenir les joueurs
+  - **Lien backlog** : extension naturelle de `[NOTIF-1]`
+  - **À cadrer** : heure d'envoi, opt-in, segmentation, texte, fréquence réelle
+  - **Estimation** : ~0,75 à 1 jour après base FCM
+
 ### Priorité 1 — Ads-to-Reward System
 - [ ] **[ADS-REWARD]** Doubler les gains après pub — post-match modal avec CTA "Doubler mes gains via pub"
   - **Flow** : Fin match → modal résultats + bouton "Voir pub (x2 coins/XP)" → Google Ad → credited + toast "Gains doublés"

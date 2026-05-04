@@ -94,3 +94,24 @@ GameScreen → useGameEngine → useActionDispatcher → LogicEngine.ts
 3. Si visible côté user → ajouter au `CHANGELOG.md`
 
 **Jamais modifier** un feedback client archivé dans `docs/feedback/CLIENT.md`.
+
+
+### Lesson Learned (2026-04-30) - Antigravity Agent Failed On Git worktreeConfig Extension
+
+**What went wrong**: Antigravity Agent did not start even after standard Git checks looked healthy. The Antigravity language-server log showed `core.repositoryformatversion does not support extension: worktreeconfig`, followed by `workspace infos is nil`.
+
+**Why it happened**: Shared IDE-agent usage left the repo in a Git shape Antigravity could not parse: `extensions.worktreeConfig=true` remained in `.git/config`, multiple Codex/Claude/Kilo worktrees were registered, some generated worktree paths had been tracked as `160000` gitlinks without matching `.gitmodules` entries, and the local Git metadata also contained a stale commit-graph plus a stale remote-tracking reflog reference. Plain `git status` and later `git fsck` could pass before Antigravity was actually compatible.
+
+**Correct approach**: Diagnose Antigravity startup from its own logs first, then repair Git metadata in layers: quarantine generated commit-graph caches instead of deleting source files, expire stale reflog references only after identifying the offending ref, remove malformed generated-worktree gitlinks from the index or add real `.gitmodules` mappings, verify `git submodule status --recursive`, and finally unset `extensions.worktreeConfig` only after inspecting `.git/worktrees/*/config.worktree` for settings that need preservation.
+
+**How to avoid**: Do not put generated agent worktrees under tracked repo paths, and keep `.claude/worktrees/`, `.kilo/worktrees/`, and similar agent worktree roots locally excluded. When Antigravity fails to start, check the newest Antigravity `ls-main.log` for `worktreeconfig`, `workspace infos is nil`, or Git parser errors; do not stop at `git status`. Before enabling Git worktree extensions in this repo, confirm Antigravity supports them or keep Antigravity on a repo clone that does not use per-worktree Git config.
+
+### Lesson Learned (2026-05-04) - Prefer VS Code ignoredRepositories For Source Control Worktree Clutter
+
+**What went wrong**: After repairing the Antigravity `worktreeConfig` failure, VS Code Source Control still listed many clean assistant worktrees from Codex, Claude, and Kilo roots. The visible symptom looked like repo dirt, but most entries were registered Git worktrees with zero uncommitted changes, not tracked files in the main worktree.
+
+**Why it happened**: Git still had multiple registered detached worktrees under external assistant roots, so VS Code discovered and displayed each one as a repository. A broad `git worktree remove --force` would have made the UI quiet, but it would also delete those worktree directories and risk discarding detached assistant state.
+
+**Correct approach**: First separate three cases: malformed `160000` gitlinks in the main index, registered clean worktrees in `.git/worktrees`, and actual dirty user work. Remove malformed generated-worktree gitlinks from the index when needed, but for Source Control clutter prefer a non-destructive `.vscode/settings.json` `git.ignoredRepositories` list for known generated worktree paths. Reload VS Code or Antigravity after changing the setting.
+
+**How to avoid**: Do not use destructive worktree cleanup just to fix SCM visibility. Before deleting any worktree directory, run `git worktree list --porcelain` and per-worktree `git status --short`; if the issue is only Source Control noise, hide the generated worktree repositories in editor settings instead.
