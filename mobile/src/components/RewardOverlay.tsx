@@ -5,8 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import { MatchReward, RewardBreakdown, LeagueFrameId } from '../core/economy.types';
-import { LEAGUE_LABELS, LEAGUE_ICONS, MAX_LEVEL, LEAGUE_GRADE_ORDER, LEAGUE_FRAME_THRESHOLDS, LEAGUE_FRAMES_ENABLED } from '../core/economy.constants';
+import { LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_GRADE_COLORS, MAX_LEVEL, LEAGUE_GRADE_ORDER, LEAGUE_FRAME_THRESHOLDS, LEAGUE_FRAMES_ENABLED } from '../core/economy.constants';
 import { xpRequiredForLevel } from '../core/RewardEngine';
+import SoundManager from '../core/audio/SoundManager';
 import { AvatarFrame } from './AvatarFrame';
 
 interface RewardOverlayProps {
@@ -14,6 +15,40 @@ interface RewardOverlayProps {
     reward: MatchReward | null;
     isWinner: boolean;
     onContinue: () => void;
+}
+
+function getGradeTheme(grade: NonNullable<MatchReward['newGrade']>) {
+    const accent = LEAGUE_GRADE_COLORS[grade];
+    if (grade.startsWith('APPRENTI')) {
+        return {
+            accent,
+            glow: 'rgba(200,200,200,0.35)',
+            panel: ['rgba(200,200,200,0.18)', 'rgba(26,14,46,0.98)'] as const,
+            chip: 'rgba(200,200,200,0.16)',
+        };
+    }
+    if (grade.startsWith('MAITRE')) {
+        return {
+            accent,
+            glow: 'rgba(255,215,0,0.4)',
+            panel: ['rgba(255,215,0,0.20)', 'rgba(26,14,46,0.98)'] as const,
+            chip: 'rgba(255,215,0,0.18)',
+        };
+    }
+    if (grade === 'ROI') {
+        return {
+            accent,
+            glow: 'rgba(58,134,255,0.42)',
+            panel: ['rgba(58,134,255,0.20)', 'rgba(26,14,46,0.98)'] as const,
+            chip: 'rgba(58,134,255,0.18)',
+        };
+    }
+    return {
+        accent,
+        glow: 'rgba(220,20,60,0.45)',
+        panel: ['rgba(220,20,60,0.20)', 'rgba(26,14,46,0.98)'] as const,
+        chip: 'rgba(220,20,60,0.18)',
+    };
 }
 
 const XPIcon = ({ size = 18 }: { size?: number }) => (
@@ -75,10 +110,17 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
         }
     }, [visible, reward]);
 
+    useEffect(() => {
+        if (!showGradeUpModal) return;
+        SoundManager.playSound('leagueJingle');
+    }, [showGradeUpModal]);
+
     if (!visible || !reward) return null;
 
     const isLevelUp = reward.leveledUp;
     const isGradeUp = reward.gradeUp;
+    const gradeTheme = reward.newGrade ? getGradeTheme(reward.newGrade) : null;
+    const popupScrollMaxHeight = height * (isLandscape ? 0.9 : 0.82);
 
     return (
         <Animated.View
@@ -302,6 +344,12 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                                     onPress={() => setShowFrameModal(false)}
                                     style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}
                                 >
+                                    <ScrollView
+                                        style={[styles.modalScroll, { maxHeight: popupScrollMaxHeight }]}
+                                        contentContainerStyle={styles.modalScrollContent}
+                                        showsVerticalScrollIndicator={false}
+                                        bounces={false}
+                                    >
                                     <View style={styles.celebrationHeader}>
                                         <Text style={styles.celebrationTitle}>FÉLICITATIONS !</Text>
                                     </View>
@@ -309,7 +357,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                                         entering={ZoomIn.duration(800).springify()} 
                                         style={[
                                             styles.frameUnlockModalContent,
-                                            isLandscape && styles.frameUnlockModalContentLandscape
+                                                isLandscape && styles.frameUnlockModalContentLandscape
                                         ]}
                                     >
                                         <View style={[
@@ -380,6 +428,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
 
                                         </View>
                                     </Animated.View>
+                                    </ScrollView>
                                 </TouchableOpacity>
                             );
                         })()}
@@ -401,24 +450,52 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                             onPress={() => setShowGradeUpModal(false)}
                             style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}
                         >
+                            <ScrollView
+                                style={[styles.modalScroll, { maxHeight: popupScrollMaxHeight }]}
+                                contentContainerStyle={styles.modalScrollContent}
+                                showsVerticalScrollIndicator={false}
+                                bounces={false}
+                            >
                             <View style={styles.celebrationHeader}>
                                 <Text style={styles.celebrationTitle}>FÉLICITATIONS !</Text>
                             </View>
-                            <Animated.View entering={ZoomIn.duration(700).springify()} style={styles.gradeUpModalContent}>
+                            <Animated.View entering={ZoomIn.duration(700).springify()} style={[styles.gradeUpModalContent, gradeTheme && { borderColor: gradeTheme.accent, shadowColor: gradeTheme.accent, backgroundColor: gradeTheme.chip }]}>
                                 <Text style={styles.gradeUpModalIcon}>
                                     {LEAGUE_ICONS[reward.newGrade]}
                                 </Text>
+                                <View style={[styles.gradeUpAccentPill, gradeTheme && { borderColor: `${gradeTheme.accent}66`, backgroundColor: gradeTheme.chip }]}>
+                                    <Text style={[styles.gradeUpAccentPillText, gradeTheme && { color: gradeTheme.accent }]}>
+                                        PALIER MENSUEL
+                                    </Text>
+                                </View>
                                 <Text style={styles.gradeUpModalTitle}>
                                     TU ES PASSÉ AU GRADE
                                 </Text>
-                                <Text style={styles.gradeUpModalGrade}>
+                                <Text style={[styles.gradeUpModalGrade, gradeTheme && { color: gradeTheme.accent }]}>
                                     {LEAGUE_LABELS[reward.newGrade].toUpperCase()}
                                 </Text>
-                                <Text style={styles.gradeUpModalCochons}>
+                                <Text style={[styles.gradeUpModalCochons, gradeTheme && { color: gradeTheme.accent }]}>
                                     🐷 {reward.newLeaguePoints} COCHONS INFLIGÉS
                                 </Text>
+                                <View style={styles.gradeUpStatsRow}>
+                                    <View style={[styles.gradeUpStatChip, gradeTheme && { borderColor: `${gradeTheme.accent}55`, backgroundColor: gradeTheme.chip }]}>
+                                        <Text style={[styles.gradeUpStatValue, gradeTheme && { color: gradeTheme.accent }]}>
+                                            {reward.previousGrade ? LEAGUE_LABELS[reward.previousGrade] : 'DÃ‰PART'}
+                                        </Text>
+                                        <Text style={styles.gradeUpStatLabel}>grade prÃ©cÃ©dent</Text>
+                                    </View>
+                                    <View style={[styles.gradeUpStatChip, gradeTheme && { borderColor: `${gradeTheme.accent}55`, backgroundColor: gradeTheme.chip }]}>
+                                        <Text style={[styles.gradeUpStatValue, gradeTheme && { color: gradeTheme.accent }]}>
+                                            {reward.nextGradeThreshold ? reward.nextGradeThreshold - reward.newLeaguePoints : 'MAX'}
+                                        </Text>
+                                        <Text style={styles.gradeUpStatLabel}>
+                                            {reward.nextGradeThreshold ? 'avant le suivant' : 'grade max'}
+                                        </Text>
+                                    </View>
+                                </View>
                                 <Text style={styles.tapToCloseText}>(Appuyez pour continuer)</Text>
                             </Animated.View>
+                            </ScrollView>
                         </TouchableOpacity>
                     </View>
                 </Modal>
@@ -579,15 +656,36 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#FF9800',
         borderRadius: 20,
-        paddingHorizontal: 36,
-        paddingVertical: 32,
+        paddingHorizontal: 24,
+        paddingVertical: 24,
         alignItems: 'center',
-        width: '80%',
+        width: '84%',
+        maxWidth: 420,
         shadowColor: '#FF9800',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.8,
         shadowRadius: 20,
         elevation: 20,
+    },
+    gradeUpModalShell: {
+        borderRadius: 20,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.75,
+        shadowRadius: 24,
+        elevation: 20,
+    },
+    gradeUpAccentPill: {
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 999,
+        borderWidth: 1,
+        marginBottom: 10,
+    },
+    gradeUpAccentPillText: {
+        color: '#FFD700',
+        fontSize: 11,
+        fontWeight: '900',
+        letterSpacing: 1.2,
     },
     gradeUpModalIcon: {
         fontSize: 64,
@@ -613,7 +711,45 @@ const styles = StyleSheet.create({
         color: '#FF9800',
         fontSize: 15,
         fontWeight: '700',
-        marginBottom: 20,
+        marginBottom: 14,
+        textAlign: 'center',
+    },
+    gradeUpStatsRow: {
+        width: '100%',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 10,
+        marginBottom: 16,
+    },
+    gradeUpStatChip: {
+        flex: 1,
+        minWidth: 120,
+        borderWidth: 1,
+        borderRadius: 14,
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        alignItems: 'center',
+    },
+    gradeUpStatValue: {
+        color: '#FFD700',
+        fontSize: 16,
+        fontWeight: '900',
+        textAlign: 'center',
+    },
+    gradeUpStatValueMuted: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '900',
+        textAlign: 'center',
+    },
+    gradeUpStatLabel: {
+        color: 'rgba(255,255,255,0.55)',
+        fontSize: 10,
+        fontWeight: '700',
+        marginTop: 4,
+        textAlign: 'center',
+        textTransform: 'uppercase',
     },
     totalsContainer: {
         flexDirection: 'row',
@@ -673,6 +809,16 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.8)',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    modalScroll: {
+        width: '100%',
+    },
+    modalScrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 18,
     },
     breakdownModalContent: {
         width: '90%',

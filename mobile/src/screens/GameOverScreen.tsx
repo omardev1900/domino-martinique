@@ -54,7 +54,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
         lastPlayedPhase.current = gameState.phase;
 
-        SoundManager.playSound('end');
+        SoundManager.playSound(isMatchOver ? 'matchEnd' : 'mancheEnd');
         
         if (isBoudé) {
             HapticManager.triggerImpact();

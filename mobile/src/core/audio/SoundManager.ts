@@ -5,7 +5,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import SettingsManager from '../SettingsManager';
 import { LogService } from '../services/LogService';
 
-type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'end' | 'toktok' | 'startGame' | 'timer' | 'end_time';
+type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'end' | 'toktok' | 'startGame' | 'timer' | 'end_time' | 'leagueJingle' | 'roundEnd' | 'mancheEnd' | 'matchEnd';
 
 class SoundManager {
     private static instance: SoundManager;
@@ -14,7 +14,7 @@ class SoundManager {
         notify: null, win: null, lose: null,
         shuffle: null, bgm1: null, bgm2: null,
         bgm3: null, end: null, toktok: null,
-        startGame: null, timer: null, end_time: null,
+        startGame: null, timer: null, end_time: null, leagueJingle: null, roundEnd: null, mancheEnd: null, matchEnd: null,
     };
 
     private currentMusic: AudioPlayer | null = null;
@@ -112,6 +112,10 @@ class SoundManager {
                 startGame: require('@/assets/sounds/start-game.mp3'),
                 timer: require('@/assets/sounds/timer.mp3'),
                 end_time: require('@/assets/sounds/end_time.mp3'),
+                leagueJingle: require('@/assets/sounds/jingle-ligue.mp3'),
+                roundEnd: require('@/assets/sounds/partie-end.mp3'),
+                mancheEnd: require('@/assets/sounds/manche-end.mp3'),
+                matchEnd: require('@/assets/sounds/match-end.mp3'),
             };
 
             for (const [key, source] of Object.entries(soundMap)) {
@@ -269,7 +273,7 @@ class SoundManager {
             const player = this.sounds[name];
             if (player) {
                 // DUCKING : Baisser la musique si c'est un son important
-                if (['win', 'lose', 'notify', 'shuffle', 'startGame', 'end'].includes(name)) {
+                if (['win', 'lose', 'notify', 'shuffle', 'startGame', 'end', 'leagueJingle', 'roundEnd', 'mancheEnd', 'matchEnd'].includes(name)) {
                     this.duckMusic();
                 }
 
@@ -290,18 +294,20 @@ class SoundManager {
     /**
      * Gère un événement de fin de phase proprement
      */
-    async playEvent(event: 'WIN' | 'LOSE' | 'ROUND_END' | 'START') {
+    async playEvent(event: 'WIN' | 'LOSE' | 'ROUND_END' | 'MANCHE_END' | 'MATCH_END' | 'START') {
         const map: Record<string, SoundName> = {
             WIN: 'win',
             LOSE: 'lose',
-            ROUND_END: 'end',
+            ROUND_END: 'roundEnd',
+            MANCHE_END: 'mancheEnd',
+            MATCH_END: 'matchEnd',
             START: 'startGame'
         };
 
         const sound = map[event];
         if (sound) {
             // Pour les événements majeurs, on peut couper la musique 2 secondes
-            if (event === 'WIN' || event === 'LOSE') {
+            if (event === 'WIN' || event === 'LOSE' || event === 'MATCH_END') {
                 this.stopMusic(500);
             }
             this.playSound(sound);

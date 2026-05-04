@@ -134,16 +134,11 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 scaleValue.value = withSpring(1, { damping: 14, stiffness: 130 });
                 opacityValue.value = withTiming(1, { duration: 320 });
             }
-            if (isMatchOver) {
-                SoundManager.playEvent(isMeWinner ? 'WIN' : 'LOSE');
-            } else {
-                SoundManager.playEvent('ROUND_END');
-            }
         } else {
             scaleValue.value = 0.5;
             opacityValue.value = 0;
         }
-    }, [visible, isMatchOver, isMeWinner, reducedMotion]);
+    }, [visible, reducedMotion]);
 
     // Confettis en boucle : le premier tir est assuré par autoStart={true}.
     // Ensuite on relance toutes les ~3,5 s tant qu'on est sur la vue principale

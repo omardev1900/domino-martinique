@@ -77,8 +77,6 @@ export default function RootLayout() {
           await applyImmersiveMode();
         }
 
-        // Start menu music immediately
-        SoundManager.playMusic('bgm3', 0.5);
       } catch (e) {
         // Non-critical init error — app continues
       } finally {
@@ -197,7 +195,7 @@ export default function RootLayout() {
               style={{
                 position: 'absolute',
                 top: 14,
-                left: showSidebar ? SIDEBAR_WIDTH + 12 : 18,
+                left: showSidebar ? SIDEBAR_WIDTH + 56 : 72,
                 zIndex: 1000,
               }}
             >

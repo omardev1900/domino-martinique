@@ -31,7 +31,6 @@ import { NewsService, NewsItem } from '../src/core/services/news.service';
 import { adService } from '../src/core/services/ad.service';
 import { Ad } from '../src/core/ad.types';
 import { AdBannerModal } from '../src/components/AdBannerModal';
-import { WebFullscreenButton } from '../src/components/WebFullscreenButton';
 import { USE_NEW_SIDEBAR } from '../src/core/config/navigation.config';
 import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../src/core/leagueProgress';
 
@@ -233,7 +232,6 @@ export default function HomeScreen() {
                 {/* Left Side: Controls — masqué si sidebar active */}
                 {!USE_NEW_SIDEBAR && (
                     <View style={styles.headerLeft}>
-                        <WebFullscreenButton style={styles.fullscreenButton} />
                         <TouchableOpacity
                             style={styles.helpButton}
                             onPress={() => setShowHelp(true)}
@@ -503,16 +501,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-    },
-    fullscreenButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        borderWidth: 1.5,
-        borderColor: 'rgba(255,215,0,0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     helpButton: {
         width: 40,

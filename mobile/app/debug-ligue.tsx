@@ -318,21 +318,31 @@ export default function DebugLigueScreen() {
                     previousXP: 0,
                     newXP: 0,
                     xpToNextLevel: 100,
-                    previousGrade: 'APPRENTI',
-                    newGrade: 'APPRENTI',
-                    gradeUp: false,
-                    previousLeaguePoints: 0,
-                    newLeaguePoints: 0,
-                    nextGradeThreshold: null,
-                    newCochonsGiven: 0,
+                    previousGrade: lastUnlockedGrade
+                        ? (LEAGUE_GRADE_ORDER[Math.max(0, LEAGUE_GRADE_ORDER.indexOf(lastUnlockedGrade as any) - 1)] as any)
+                        : null,
+                    newGrade: (lastUnlockedGrade as any) || null,
+                    gradeUp: !!lastUnlockedGrade,
+                    previousLeaguePoints: lastUnlockedGrade
+                        ? (LEAGUE_GRADE_ORDER.indexOf(lastUnlockedGrade as any) > 0
+                            ? LEAGUE_FRAME_THRESHOLDS[LEAGUE_GRADE_ORDER[LEAGUE_GRADE_ORDER.indexOf(lastUnlockedGrade as any) - 1]]
+                            : 0)
+                        : 0,
+                    newLeaguePoints: lastUnlockedGrade
+                        ? LEAGUE_FRAME_THRESHOLDS[lastUnlockedGrade as keyof typeof LEAGUE_FRAME_THRESHOLDS]
+                        : cochons,
+                    nextGradeThreshold: lastUnlockedGrade
+                        ? (() => {
+                            const nextGrade = LEAGUE_GRADE_ORDER[LEAGUE_GRADE_ORDER.indexOf(lastUnlockedGrade as any) + 1];
+                            return nextGrade ? LEAGUE_FRAME_THRESHOLDS[nextGrade] : null;
+                        })()
+                        : nextThreshold,
+                    newCochonsGiven: lastUnlockedGrade
+                        ? LEAGUE_FRAME_THRESHOLDS[lastUnlockedGrade as keyof typeof LEAGUE_FRAME_THRESHOLDS]
+                        : cochons,
                     breakdown: [],
                     frameCoinsBonus: 0,
-                    newlyUnlockedFrames: lastUnlockedGrade ? [{
-                        grade: lastUnlockedGrade as any,
-                        frameId: LEAGUE_FRAME_REWARDS[lastUnlockedGrade as keyof typeof LEAGUE_FRAME_REWARDS]?.frameId as LeagueFrameId,
-                        coinsBonus: LEAGUE_FRAME_REWARDS[lastUnlockedGrade as keyof typeof LEAGUE_FRAME_REWARDS]?.coinsBonus || 0,
-                        cochonsAtUnlock: LEAGUE_FRAME_THRESHOLDS[lastUnlockedGrade as keyof typeof LEAGUE_FRAME_THRESHOLDS] || 0,
-                    }] : [],
+                    newlyUnlockedFrames: [],
                 }}
             />
         </LinearGradient>

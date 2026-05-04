@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut, ZoomIn, useReducedMotion } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { GameState, Domino } from '../../core/types';
 import { getAvatarImage, AvatarId } from '../../core/avatars';
 import { DominoTile } from '../DominoTile';
+import SoundManager from '../../core/audio/SoundManager';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,22 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
     const reducedMotion = useReducedMotion();
     const { width, height } = useWindowDimensions();
     const isCompactMobile = width < 430 || height < 760;
+    const lastPlayedPhase = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (!visible) return;
+        if (lastPlayedPhase.current === gameState.phase) return;
+
+        lastPlayedPhase.current = gameState.phase;
+
+        if (gameState.phase === 'PARTIE_END') {
+            SoundManager.playSound('roundEnd');
+        } else if (gameState.phase === 'MANCHE_END' || gameState.phase === 'BOUDE') {
+            SoundManager.playSound('mancheEnd');
+        } else if (gameState.phase === 'MATCH_END') {
+            SoundManager.playSound('matchEnd');
+        }
+    }, [visible, gameState.phase]);
 
     if (!visible) return null;
 
