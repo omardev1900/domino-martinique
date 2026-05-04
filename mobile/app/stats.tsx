@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, withTiming, useSharedValue, useAnimatedProps, Easing } from 'react-native-reanimated';
@@ -8,7 +7,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 
+import { statsService, MatchRecord, PlayerStats } from '../src/core/services/stats.service';
+import { MatchHistory } from '../src/components/MatchHistory';
+
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+type StatsMode = 'MONTHLY' | 'TOTAL';
 
 function WinRateCircle({ rate }: { rate: number }) {
     const size = 65;
@@ -19,14 +23,14 @@ function WinRateCircle({ rate }: { rate: number }) {
     const progress = useSharedValue(0);
     React.useEffect(() => {
         progress.value = withTiming(rate / 100, { duration: 1500, easing: Easing.out(Easing.cubic) });
-    }, [rate]);
+    }, [rate, progress]);
 
     const animatedProps = useAnimatedProps(() => ({
-        strokeDashoffset: circumference * (1 - progress.value)
+        strokeDashoffset: circumference * (1 - progress.value),
     }));
 
     return (
-        <View style={{ alignItems: 'center', justifyContent: 'center', position: 'relative', width: size, height: size }}>
+        <View style={styles.winRateCircleWrap}>
             <Svg width={size} height={size}>
                 <Defs>
                     <SvgGradient id="grad" x1="0" y1="0" x2="1" y2="1">
@@ -36,25 +40,111 @@ function WinRateCircle({ rate }: { rate: number }) {
                 </Defs>
                 <Circle stroke="rgba(255,255,255,0.1)" fill="none" cx={size / 2} cy={size / 2} r={radius} strokeWidth={strokeWidth} />
                 <AnimatedCircle
-                    stroke="url(#grad)" fill="none" cx={size / 2} cy={size / 2} r={radius}
-                    strokeWidth={strokeWidth} strokeDasharray={`${circumference} ${circumference}`}
-                    animatedProps={animatedProps} strokeLinecap="round" rotation="-90" origin={`${size / 2}, ${size / 2}`}
+                    stroke="url(#grad)"
+                    fill="none"
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={`${circumference} ${circumference}`}
+                    animatedProps={animatedProps}
+                    strokeLinecap="round"
+                    rotation="-90"
+                    origin={`${size / 2}, ${size / 2}`}
                 />
             </Svg>
-            <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '900' }}>{rate}%</Text>
+            <View style={styles.winRateCircleValue}>
+                <Text style={styles.winRateCircleText}>{rate}%</Text>
             </View>
         </View>
     );
 }
 
-import { statsService, PlayerStats } from '../src/core/services/stats.service';
-import { authService } from '../src/core/services/auth.service';
-import { LEAGUE_LABELS, LEAGUE_ICONS } from '../src/core/economy.constants';
-import { MatchHistory } from '../src/components/MatchHistory';
+type ScoreBreakdown = {
+    p5: number;
+    p4: number;
+    p2: number;
+    p1: number;
+    m1: number;
+};
+
+type StatsSnapshot = {
+    gamesPlayed: number;
+    gamesWon: number;
+    roundsWon: number;
+    cochons: number;
+    points: number;
+    winRate: number;
+    maxScore: number;
+    maxCochons: number;
+    breakdown: ScoreBreakdown;
+    history: MatchRecord[];
+};
+
+const EMPTY_BREAKDOWN: ScoreBreakdown = { p5: 0, p4: 0, p2: 0, p1: 0, m1: 0 };
+
+function getBreakdownFromHistory(history: MatchRecord[]): ScoreBreakdown {
+    return history.reduce<ScoreBreakdown>((acc, match) => {
+        const mancheResults = match.mancheLeaguePointsEarned && match.mancheLeaguePointsEarned.length > 0
+            ? match.mancheLeaguePointsEarned
+            : (typeof match.leaguePointsEarned === 'number' ? [match.leaguePointsEarned] : []);
+
+        for (const pts of mancheResults) {
+            if (pts === 5) acc.p5 += 1;
+            else if (pts === 4) acc.p4 += 1;
+            else if (pts === 2) acc.p2 += 1;
+            else if (pts === 1) acc.p1 += 1;
+            else if (pts === -1) acc.m1 += 1;
+        }
+        return acc;
+    }, { ...EMPTY_BREAKDOWN });
+}
+
+function getStatsSnapshot(history: MatchRecord[], playerStats: PlayerStats, mode: StatsMode): StatsSnapshot {
+    if (mode === 'MONTHLY') {
+        const gamesPlayed = history.length;
+        const gamesWon = history.filter((match) => match.result === 'WIN').length;
+        const roundsWon = history.reduce((sum, match) => sum + (match.roundsWon ?? 0), 0);
+        const cochons = history.reduce((sum, match) => sum + (match.cochons ?? 0), 0);
+        const points = history.reduce((sum, match) => sum + (match.score ?? 0), 0);
+        const maxScore = history.reduce((max, match) => Math.max(max, match.score || 0), 0);
+        const maxCochons = history.reduce((max, match) => Math.max(max, match.cochons || 0), 0);
+
+        return {
+            gamesPlayed,
+            gamesWon,
+            roundsWon,
+            cochons,
+            points,
+            winRate: gamesPlayed > 0 ? Math.round((gamesWon / gamesPlayed) * 100) : 0,
+            maxScore,
+            maxCochons,
+            breakdown: getBreakdownFromHistory(history),
+            history,
+        };
+    }
+
+    return {
+        gamesPlayed: playerStats.gamesPlayed,
+        gamesWon: playerStats.gamesWon,
+        roundsWon: playerStats.totalRoundsWon,
+        cochons: playerStats.totalCochonsInflicted || 0,
+        points: playerStats.totalPointsAccumulated,
+        winRate: playerStats.gamesPlayed > 0 ? Math.round((playerStats.gamesWon / playerStats.gamesPlayed) * 100) : 0,
+        maxScore: history.reduce((max, match) => Math.max(max, match.score || 0), 0),
+        maxCochons: history.reduce((max, match) => Math.max(max, match.cochons || 0), 0),
+        breakdown: {
+            p5: playerStats.totalLeague5Pts ?? 0,
+            p4: playerStats.totalLeague4Pts ?? 0,
+            p2: playerStats.totalLeague2Pts ?? 0,
+            p1: playerStats.totalLeague1Pt ?? 0,
+            m1: playerStats.totalLeagueMinus1Pt ?? 0,
+        },
+        history,
+    };
+}
 
 export default function StatsScreen() {
-    const router = useRouter();
     const insets = useSafeAreaInsets();
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
@@ -62,6 +152,7 @@ export default function StatsScreen() {
     const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [historyModalVisible, setHistoryModalVisible] = useState(false);
+    const [activeMode, setActiveMode] = useState<StatsMode>('MONTHLY');
 
     useFocusEffect(
         useCallback(() => {
@@ -69,13 +160,21 @@ export default function StatsScreen() {
         }, [])
     );
 
-    const records = useMemo(() => {
-        if (!playerStats?.matchHistory) return { maxScore: 0, maxCochons: 0 };
-        return playerStats.matchHistory.reduce((acc, match) => ({
-            maxScore: Math.max(acc.maxScore, match.score || 0),
-            maxCochons: Math.max(acc.maxCochons, match.cochons || 0)
-        }), { maxScore: 0, maxCochons: 0 });
+    const monthlyHistory = useMemo(() => {
+        if (!playerStats?.matchHistory) return [];
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        return playerStats.matchHistory.filter((match) => match.timestamp >= startOfMonth);
     }, [playerStats?.matchHistory]);
+
+    const activeSnapshot = useMemo(() => {
+        if (!playerStats) return null;
+        return getStatsSnapshot(
+            activeMode === 'MONTHLY' ? monthlyHistory : playerStats.matchHistory || [],
+            playerStats,
+            activeMode
+        );
+    }, [activeMode, monthlyHistory, playerStats]);
 
     const loadPlayerStats = async () => {
         setIsLoading(true);
@@ -89,8 +188,22 @@ export default function StatsScreen() {
         }
     };
 
+    const periodLabel = useMemo(() => {
+        if (activeMode === 'MONTHLY') {
+            return new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        }
+        return 'Depuis le début';
+    }, [activeMode]);
+
     const renderHeader = () => (
         <View style={[styles.header, { paddingTop: insets.top || 10 }]}>
+            <View style={styles.headerTitleBlock}>
+                <Text style={styles.headerTitle}>MES STATS</Text>
+                <Text style={styles.headerSub}>
+                    {activeMode === 'MONTHLY' ? 'Vos performances du mois en cours' : 'Votre progression cumulée'}
+                </Text>
+            </View>
+
             <TouchableOpacity
                 style={styles.historyButton}
                 onPress={() => setHistoryModalVisible(true)}
@@ -106,57 +219,55 @@ export default function StatsScreen() {
         </View>
     );
 
-    // ── Statistiques du mois courant, calculées depuis matchHistory ─────────
-    const monthlyStats = useMemo(() => {
-        if (!playerStats?.matchHistory) return { p5: 0, p4: 0, p2: 0, p1: 0, m1: 0 };
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-        return playerStats.matchHistory
-            .filter(m => m.timestamp >= startOfMonth)
-            .reduce((acc, m) => {
-                const mancheResults = m.mancheLeaguePointsEarned && m.mancheLeaguePointsEarned.length > 0
-                    ? m.mancheLeaguePointsEarned
-                    : (typeof m.leaguePointsEarned === 'number' ? [m.leaguePointsEarned] : []);
+    const renderModeSwitch = () => (
+        <View style={styles.modeSwitchWrap}>
+            {([
+                { key: 'MONTHLY', label: 'Ce mois-ci' },
+                { key: 'TOTAL', label: 'Cumulé' },
+            ] as { key: StatsMode; label: string }[]).map((mode) => {
+                const active = mode.key === activeMode;
+                return (
+                    <TouchableOpacity
+                        key={mode.key}
+                        style={[styles.modeButton, active && styles.modeButtonActive]}
+                        onPress={() => setActiveMode(mode.key)}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={[styles.modeButtonText, active && styles.modeButtonTextActive]}>
+                            {mode.label}
+                        </Text>
+                    </TouchableOpacity>
+                );
+            })}
+        </View>
+    );
 
-                for (const pts of mancheResults) {
-                    if (pts === 5)       acc.p5 += 1;
-                    else if (pts === 4)  acc.p4 += 1;
-                    else if (pts === 2)  acc.p2 += 1;
-                    else if (pts === 1)  acc.p1 += 1;
-                    else if (pts === -1) acc.m1 += 1;
-                }
-                return acc;
-            }, { p5: 0, p4: 0, p2: 0, p1: 0, m1: 0 });
-    }, [playerStats?.matchHistory]);
+    const renderSummaryBlock = () => {
+        if (!activeSnapshot) return null;
 
-    const renderBlocA = () => {
-        const monthLabel = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-        const totalMonth = (playerStats?.matchHistory ?? []).filter(m => {
-            const start = new Date();
-            start.setDate(1); start.setHours(0, 0, 0, 0);
-            return m.timestamp >= start.getTime();
-        }).length;
-
-        const rows: { pts: string; label: string; color: string; icon: string; count: number }[] = [
-            { pts: '5 PTS', label: 'DOUBLE COCHON',   color: '#FFD700', icon: '⭐', count: monthlyStats.p5 },
-            { pts: '4 PTS', label: 'SIMPLE COCHON',   color: '#FF8C00', icon: '🟠', count: monthlyStats.p4 },
-            { pts: '2 PTS', label: 'DOMINO',          color: '#4FC3F7', icon: '🔵', count: monthlyStats.p2 },
-            { pts: '1 PT',  label: 'VICTOIRE SIMPLE', color: '#9E9E9E', icon: '⚪', count: monthlyStats.p1 },
-            { pts: '-1 PT', label: 'COCHON PRIS',     color: '#FF3366', icon: '🔴', count: monthlyStats.m1 },
+        const isMonthly = activeMode === 'MONTHLY';
+        const rows = [
+            { pts: '5 PTS', label: 'DOUBLE COCHON', color: '#FFD700', icon: '⭐', count: activeSnapshot.breakdown.p5 },
+            { pts: '4 PTS', label: 'SIMPLE COCHON', color: '#FF8C00', icon: '🟠', count: activeSnapshot.breakdown.p4 },
+            { pts: '2 PTS', label: 'DOMINO', color: '#4FC3F7', icon: '🔵', count: activeSnapshot.breakdown.p2 },
+            { pts: '1 PT', label: 'VICTOIRE SIMPLE', color: '#9E9E9E', icon: '⚪', count: activeSnapshot.breakdown.p1 },
+            { pts: '-1 PT', label: 'COCHON PRIS', color: '#FF3366', icon: '🔴', count: activeSnapshot.breakdown.m1 },
         ];
 
         return (
             <Animated.View entering={FadeInUp.delay(100).duration(500)} style={[styles.bloc, styles.blocA]}>
-                {/* Titre */}
                 <View style={styles.monthHeader}>
-                    <Text style={styles.monthTitle}>STATISTIQUES DU MOIS</Text>
-                    <Text style={styles.monthSub}>{monthLabel} · {totalMonth} match{totalMonth !== 1 ? 's' : ''}</Text>
+                    <Text style={styles.monthTitle}>
+                        {isMonthly ? 'STATISTIQUES DU MOIS' : 'APERÇU CUMULÉ'}
+                    </Text>
+                    <Text style={styles.monthSub}>
+                        {periodLabel} · {activeSnapshot.gamesPlayed} match{activeSnapshot.gamesPlayed !== 1 ? 's' : ''}
+                    </Text>
                 </View>
 
-                {/* Lignes stats */}
                 <View style={styles.statsRows}>
-                    {rows.map(row => (
-                        <View key={row.pts} style={[styles.statRow, { borderColor: `${row.color}30` }]}>
+                    {rows.map((row) => (
+                        <View key={`${activeMode}-${row.label}`} style={[styles.statRow, { borderColor: `${row.color}30` }]}>
                             <Text style={styles.statRowIcon}>{row.icon}</Text>
                             <View style={styles.statRowTexts}>
                                 <Text style={[styles.statRowPts, { color: row.color }]}>{row.pts}</Text>
@@ -167,63 +278,67 @@ export default function StatsScreen() {
                     ))}
                 </View>
 
-                {totalMonth === 0 && (
-                    <Text style={styles.monthEmpty}>Jouez une partie pour voir vos stats ici 🎮</Text>
+                {activeSnapshot.gamesPlayed === 0 && (
+                    <Text style={styles.monthEmpty}>
+                        {isMonthly ? 'Jouez une partie ce mois-ci pour voir vos stats ici 🎮' : 'Aucune statistique disponible pour le moment'}
+                    </Text>
                 )}
             </Animated.View>
         );
     };
 
-    const renderBlocB = () => {
-        if (!playerStats) return null;
-        const winRate = playerStats.gamesPlayed > 0
-            ? Math.round((playerStats.gamesWon / playerStats.gamesPlayed) * 100)
-            : 0;
+    const renderPerformanceBlock = () => {
+        if (!activeSnapshot) return null;
 
         return (
             <Animated.View entering={FadeInUp.delay(200).duration(500)} style={[styles.bloc, styles.blocB]}>
-                
-                {/* Ligne Win Rate (Visuelle) */}
                 <View style={styles.winRateRow}>
-                    <WinRateCircle rate={winRate} />
+                    <WinRateCircle rate={activeSnapshot.winRate} />
                     <View style={styles.winRateInfos}>
-                        <Text style={styles.winRateTitle}>TAUX DE VICTOIRE</Text>
-                        <Text style={styles.winRateSub}>{playerStats.gamesWon} / {playerStats.gamesPlayed} Matchs Gagnés</Text>
+                        <Text style={styles.winRateTitle}>
+                            {activeMode === 'MONTHLY' ? 'TAUX DE VICTOIRE DU MOIS' : 'TAUX DE VICTOIRE GLOBAL'}
+                        </Text>
+                        <Text style={styles.winRateSub}>
+                            {activeSnapshot.gamesWon} / {activeSnapshot.gamesPlayed} matchs gagnés
+                        </Text>
                     </View>
                 </View>
-                
+
                 <View style={styles.separator} />
 
-                {/* Score Cumulés */}
                 <View style={styles.statLine}>
                     <Text style={styles.statLineIcon}>🐷</Text>
-                    <Text style={styles.statLineLabel}>COCHONS (LIGUE)</Text>
+                    <Text style={styles.statLineLabel}>
+                        {activeMode === 'MONTHLY' ? 'COCHONS DU MOIS' : 'COCHONS (LIGUE)'}
+                    </Text>
                     <View style={styles.statLineDotted} />
-                    <Text style={[styles.statLineValue, { color: '#FF3366' }]}>{(playerStats.totalCochonsInflicted || 0).toLocaleString()}</Text>
+                    <Text style={[styles.statLineValue, { color: '#FF3366' }]}>{activeSnapshot.cochons.toLocaleString()}</Text>
                 </View>
 
                 <View style={styles.statLine}>
                     <Text style={styles.statLineIcon}>✨</Text>
-                    <Text style={styles.statLineLabel}>TOTAL POINTS</Text>
+                    <Text style={styles.statLineLabel}>
+                        {activeMode === 'MONTHLY' ? 'POINTS DU MOIS' : 'TOTAL POINTS'}
+                    </Text>
                     <View style={styles.statLineDotted} />
-                    <Text style={[styles.statLineValue, { color: '#FFD700' }]}>{playerStats.totalPointsAccumulated.toLocaleString()}</Text>
+                    <Text style={[styles.statLineValue, { color: '#FFD700' }]}>{activeSnapshot.points.toLocaleString()}</Text>
                 </View>
 
-                {/* Records Section */}
                 <View style={styles.recordsSection}>
-                    <Text style={styles.recordsTitle}>RECORDS (SUR LES 100 DERNIERS MATCHS)</Text>
+                    <Text style={styles.recordsTitle}>
+                        {activeMode === 'MONTHLY' ? 'RECORDS DU MOIS' : 'RECORDS (SUR LES 100 DERNIERS MATCHS)'}
+                    </Text>
                     <View style={styles.recordsCards}>
                         <View style={styles.recordCard}>
-                            <Text style={styles.recordCardValue}>{records.maxScore}</Text>
+                            <Text style={styles.recordCardValue}>{activeSnapshot.maxScore}</Text>
                             <Text style={styles.recordCardLabel}>Max Pts</Text>
                         </View>
                         <View style={styles.recordCard}>
-                            <Text style={[styles.recordCardValue, { color: '#FF3366' }]}>{records.maxCochons}</Text>
+                            <Text style={[styles.recordCardValue, { color: '#FF3366' }]}>{activeSnapshot.maxCochons}</Text>
                             <Text style={styles.recordCardLabel}>Max Cochons</Text>
                         </View>
                     </View>
                 </View>
-                
             </Animated.View>
         );
     };
@@ -233,6 +348,7 @@ export default function StatsScreen() {
             <LinearGradient colors={['#1a0505', '#2a0a0a']} style={StyleSheet.absoluteFillObject} />
 
             {renderHeader()}
+            {renderModeSwitch()}
 
             {isLoading ? (
                 <View style={styles.loadingContainer}>
@@ -240,12 +356,11 @@ export default function StatsScreen() {
                 </View>
             ) : (
                 <View style={[styles.contentLayout, !isLandscape && { flexDirection: 'column' }]}>
-                    {renderBlocA()}
-                    {renderBlocB()}
+                    {renderSummaryBlock()}
+                    {renderPerformanceBlock()}
                 </View>
             )}
 
-            {/* History Modal */}
             <Modal
                 visible={historyModalVisible}
                 animationType="slide"
@@ -263,7 +378,7 @@ export default function StatsScreen() {
                         <View style={styles.modalInfoBanner}>
                             <Ionicons name="information-circle" size={16} color="#60DCFF" style={{ marginRight: 6 }} />
                             <Text style={styles.modalInfoText}>
-                                Seuls les 100 derniers matchs sont affichés. Vos compteurs globaux (Cochons, Points) intègrent vos statistiques complètes, à vie.
+                                Seuls les 100 derniers matchs sont affichés. Les compteurs cumulés reflètent votre progression globale.
                             </Text>
                         </View>
                         <View style={{ flex: 1 }}>
@@ -272,7 +387,6 @@ export default function StatsScreen() {
                     </View>
                 </View>
             </Modal>
-
         </View>
     );
 }
@@ -285,7 +399,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'flex-end',
+        justifyContent: 'space-between',
         paddingHorizontal: 20,
         paddingBottom: 10,
         backgroundColor: 'rgba(26,5,5,0.9)',
@@ -293,14 +407,10 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255,215,0,0.1)',
         zIndex: 10,
     },
-    backButton: {
-        padding: 5,
-        width: 80,
-    },
-    backButtonText: {
-        color: '#FFD700',
-        fontSize: 16,
-        fontWeight: 'bold',
+    headerTitleBlock: {
+        flex: 1,
+        alignItems: 'center',
+        paddingLeft: 44,
     },
     headerTitle: {
         fontSize: 20,
@@ -308,14 +418,17 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         letterSpacing: 2,
         textTransform: 'uppercase',
-        flex: 1,
+    },
+    headerSub: {
+        color: 'rgba(255,255,255,0.45)',
+        fontSize: 11,
+        marginTop: 3,
         textAlign: 'center',
     },
     historyButton: {
-        width: 80,
+        width: 44,
         alignItems: 'flex-end',
         justifyContent: 'center',
-        paddingRight: 5,
         position: 'relative',
     },
     historyIcon: {
@@ -324,7 +437,7 @@ const styles = StyleSheet.create({
     historyBadge: {
         position: 'absolute',
         top: -5,
-        right: 0,
+        right: -2,
         backgroundColor: '#FF3366',
         borderRadius: 10,
         minWidth: 18,
@@ -338,6 +451,32 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: 'bold',
     },
+    modeSwitchWrap: {
+        flexDirection: 'row',
+        alignSelf: 'center',
+        marginTop: 12,
+        marginBottom: 8,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.14)',
+        overflow: 'hidden',
+    },
+    modeButton: {
+        paddingHorizontal: 18,
+        paddingVertical: 10,
+    },
+    modeButtonActive: {
+        backgroundColor: 'rgba(255,215,0,0.16)',
+    },
+    modeButtonText: {
+        color: 'rgba(255,255,255,0.45)',
+        fontSize: 12,
+        fontWeight: '800',
+    },
+    modeButtonTextActive: {
+        color: '#FFD700',
+    },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -350,8 +489,8 @@ const styles = StyleSheet.create({
     contentLayout: {
         flex: 1,
         flexDirection: 'row',
-        padding: 8, // Réduit de 10 à 8
-        gap: 8, // Réduit de 10 à 8
+        padding: 8,
+        gap: 8,
     },
     bloc: {
         flex: 1,
@@ -359,17 +498,13 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.15)',
-        padding: 10, // Réduit de 12 à 10
+        padding: 10,
         justifyContent: 'space-between',
     },
-    blocA: {
-        // Optionnel : styles spécifiques au bloc A
-    },
+    blocA: {},
     blocB: {
-        justifyContent: 'space-evenly', // Distribution égale des 4 lignes
+        justifyContent: 'space-evenly',
     },
-
-    // ── BLOC A : Stats du mois ──
     monthHeader: {
         marginBottom: 10,
         alignItems: 'center',
@@ -436,25 +571,40 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         marginTop: 8,
     },
-
-    // --- BLOC B DETAILS ---
+    winRateCircleWrap: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        width: 65,
+        height: 65,
+    },
+    winRateCircleValue: {
+        position: 'absolute',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    winRateCircleText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '900',
+    },
     statLine: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(255,255,255,0.03)',
         paddingHorizontal: 15,
-        paddingVertical: 8, // Réduit de 12 à 8
+        paddingVertical: 8,
         borderRadius: 10,
-        marginBottom: 6, // Ajoute un petit margin-bottom
+        marginBottom: 6,
     },
     statLineIcon: {
-        fontSize: 20, // Réduit de 22 à 20
-        marginRight: 8, // Réduit de 10 à 8
-        width: 25, // Réduit de 30 à 25
+        fontSize: 20,
+        marginRight: 8,
+        width: 25,
         textAlign: 'center',
     },
     statLineLabel: {
-        fontSize: 13, // Réduit de 14 à 13
+        fontSize: 13,
         color: 'rgba(255,255,255,0.7)',
         fontWeight: 'bold',
         letterSpacing: 1,
@@ -472,11 +622,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '900',
         color: '#FFF',
-    },
-    statLineSubValue: {
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.5)',
-        fontWeight: 'normal',
     },
     separator: {
         height: 1,
@@ -541,8 +686,6 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: 'rgba(255,255,255,0.7)',
     },
-
-    // --- MODAL ---
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.85)',

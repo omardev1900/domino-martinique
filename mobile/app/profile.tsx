@@ -19,14 +19,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { authService } from '../src/core/services/auth.service';
-import { economyService } from '../src/core/services/economy.service';
 import { PlayerProfile } from '../src/core/types';
-import { LeagueFrameId } from '../src/core/economy.types';
 import { AVAILABLE_AVATARS, getAvatarImage, AvatarId } from '../src/core/avatars';
-import { AvatarFrame } from '../src/components/AvatarFrame';
-import { LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_FRAME_THRESHOLDS, LEAGUE_GRADE_COLORS, LEAGUE_GRADE_ORDER } from '../src/core/economy.constants';
+import { LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_GRADE_COLORS } from '../src/core/economy.constants';
 import { LeagueGrade } from '../src/core/economy.types';
-import { leagueService } from '../src/core/services/league.service';
+import { statsService } from '../src/core/services/stats.service';
+import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../src/core/leagueProgress';
 export default function ProfileScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
@@ -38,9 +36,6 @@ export default function ProfileScreen() {
     const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
     const [selectedAvatar, setSelectedAvatar] = useState<string | undefined>(undefined);
     const [isEditingAvatar, setIsEditingAvatar] = useState(false);
-    // -- Cadres --
-    const [unlockedFrames, setUnlockedFrames] = useState<LeagueFrameId[]>([]);
-    const [activeFrame, setActiveFrame] = useState<LeagueFrameId | null>(null);
     const [cochonsGiven, setCochonsGiven] = useState(0);
     const [myLeagueGrade, setMyLeagueGrade] = useState<LeagueGrade | null>(null);
 
@@ -88,15 +83,10 @@ export default function ProfileScreen() {
                 setSelectedAvatar('avatar_default');
             }
 
-            // Load Economy for Frames
-            const eco = await economyService.getEconomy();
-            if (eco) {
-                setUnlockedFrames(eco.unlockedFrames || []);
-                setActiveFrame(eco.activeFrame || null);
-                const given = eco.cochonsGiven ?? 0;
-                setCochonsGiven(given);
-                setMyLeagueGrade(leagueService.getGradeFromCochons(given));
-            }
+            const stats = await statsService.getStats();
+            const monthlyCochons = getMonthlyCochonsFromHistory(stats.matchHistory);
+            setCochonsGiven(monthlyCochons);
+            setMyLeagueGrade(getLeagueProgress(monthlyCochons).grade);
         } else {
             console.log('[Profile] No user found, using defaults');
             // Default for new users
@@ -117,17 +107,6 @@ export default function ProfileScreen() {
             setLastSaved(new Date());
         } catch (error) {
             console.error('[Profile] Error auto-saving avatar:', error);
-        }
-    };
-
-    const handleFrameSelect = async (frameId: LeagueFrameId | null) => {
-        if (!user) return;
-        setActiveFrame(frameId);
-        try {
-            await economyService.equipLeagueFrame(user.uid, frameId);
-            setLastSaved(new Date());
-        } catch (e) {
-            console.error('[Profile] Error equiping frame:', e);
         }
     };
 
@@ -158,52 +137,9 @@ export default function ProfileScreen() {
         </View>
     );
 
-    const renderFramesGrid = () => {
-        if (unlockedFrames.length === 0) return null;
-        
-        return (
-            <View style={[styles.section, { marginTop: 15 }]}>
-                <Text style={styles.sectionTitle}>Cadres Ligue des Cochons</Text>
-                
-                <View style={styles.framesGrid}>
-                    <TouchableOpacity
-                        style={[styles.frameOption, activeFrame === null && styles.selectedFrameOption]}
-                        onPress={() => handleFrameSelect(null)}
-                    >
-                        <Text style={{ color: '#FFF', fontSize: 12, fontWeight: 'bold' }}>Aucun</Text>
-                    </TouchableOpacity>
-
-                    {unlockedFrames.map((frameId) => (
-                        <TouchableOpacity
-                            key={frameId}
-                            style={[
-                                styles.frameOption,
-                                activeFrame === frameId && styles.selectedFrameOption
-                            ]}
-                            onPress={() => handleFrameSelect(frameId)}
-                        >
-                            <View style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }}>
-                                <AvatarFrame frameId={frameId} size={40} />
-                            </View>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
-        );
-    };
-
     const renderLeagueBlock = () => {
-        const grade = leagueService.getGradeFromCochons(cochonsGiven);
-        const nextThreshold = leagueService.getNextFrameThreshold(cochonsGiven);
-        const prevThreshold = (() => {
-            if (!nextThreshold) return LEAGUE_FRAME_THRESHOLDS[LEAGUE_GRADE_ORDER[LEAGUE_GRADE_ORDER.length - 2]];
-            const thresholds = [0, ...LEAGUE_GRADE_ORDER.map(g => LEAGUE_FRAME_THRESHOLDS[g])];
-            const nIdx = thresholds.indexOf(nextThreshold);
-            return nIdx > 0 ? thresholds[nIdx - 1] : 0;
-        })();
-        const progress = nextThreshold
-            ? Math.min((cochonsGiven - prevThreshold) / (nextThreshold - prevThreshold), 1)
-            : 1;
+        const progress = getLeagueProgress(cochonsGiven);
+        const grade = progress.grade;
 
         return (
             <TouchableOpacity
@@ -218,14 +154,14 @@ export default function ProfileScreen() {
                 <Text style={styles.leagueGradeText}>
                     {grade ? `${LEAGUE_ICONS[grade]} ${LEAGUE_LABELS[grade]}` : '— Sans grade —'}
                 </Text>
-                <Text style={styles.leagueCochonsText}>{cochonsGiven} cochon{cochonsGiven !== 1 ? 's' : ''} donnés</Text>
+                <Text style={styles.leagueCochonsText}>{cochonsGiven} cochon{cochonsGiven !== 1 ? 's' : ''} du mois</Text>
                 {/* Mini barre de progression */}
                 <View style={styles.leagueMiniTrack}>
-                    <View style={[styles.leagueMiniBar, { width: `${progress * 100}%` as any }]} />
+                    <View style={[styles.leagueMiniBar, { width: `${progress.progressPercent * 100}%` as any }]} />
                 </View>
-                {nextThreshold && (
+                {progress.nextThreshold && (
                     <Text style={styles.leagueNextText}>
-                        {nextThreshold - cochonsGiven} cochon{(nextThreshold - cochonsGiven) !== 1 ? 's' : ''} avant le prochain palier
+                        {progress.remainingToNext} cochon{progress.remainingToNext !== 1 ? 's' : ''} avant le prochain palier
                     </Text>
                 )}
             </TouchableOpacity>
@@ -270,7 +206,6 @@ export default function ProfileScreen() {
                                     cachePolicy="memory-disk"
                                 />
                             </View>
-                            {activeFrame && <AvatarFrame frameId={activeFrame} size={86} />}
                             {/* Bouton "Modifier" overlay */}
                             <View style={styles.avatarEditButton}>
                                 <Ionicons name="pencil" size={16} color="#000" />
@@ -312,7 +247,6 @@ export default function ProfileScreen() {
                         {isEditingAvatar && (
                             <View style={styles.avatarSelectionSmall}>
                                 {renderAvatarGrid()}
-                                {renderFramesGrid()}
                             </View>
                         )}
                     </View>

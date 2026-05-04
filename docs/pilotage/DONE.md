@@ -171,3 +171,20 @@
 - [x] Bloc 7 — Moteur de jeu final (modes Cochon/Manche, IA 3 niveaux, timer).
 - [x] Bloc 8 — Immersion & Métagame UI (audio, chat, boutique, overlay). *Animations domino reportées.*
 - [x] Bloc 9 — Ligue des Cochons (initialement 4 paliers, refondue en 8 le 22/04/2026).
+### 2026-05-04
+- [x] **[R4-B1]** Ligue des Cochons — source de vérité mensuelle unifiée entre l'accueil, `Ma Ligue` et `/ligue-cochons`
+  - Progression ligue recalculée depuis les cochons du mois au lieu du total historique
+  - Helper partagé pour grade, seuil précédent/suivant et pourcentage de progression
+  - Marqueurs de jauge trompeurs supprimés de l'écran `/ligue-cochons`
+  - Écran Ligue simplifié : suppression de la logique d'équipement de cadres persistants, paliers centrés sur la progression mensuelle et les bonus coins
+  - Calcul de fin de match aligné sur la progression mensuelle pour les passages de grade
+- [x] **[R4-UX1]** Navigation Ligue — `/ligue-cochons` devient l'écran maître de la Ligue des Cochons
+  - L'écran Ligue intègre maintenant les 3 tabs `Ma Ligue`, `Classement` et `Infos`
+  - Le bouton `(i)` du widget accueil redirige désormais vers `/ligue-cochons`
+  - `LeagueInfoModal` a été supprimé pour éliminer la redondance entre modal et page dédiée
+  - La navigation Ligue est maintenant centralisée sur un seul point d'entrée cohérent
+- [x] **[R4-UX2]** Mes Stats — séparation nette entre vue mensuelle et cumulée
+  - Le menu `Stats` est renommé en `Mes Stats`
+  - L'écran `/stats` ouvre désormais par défaut sur `Ce mois-ci`
+  - Une seconde vue `Cumulé` permet de relire la progression globale sans confusion avec `Rank` ou `Ligue`
+  - L'historique des matchs est conservé dans le même écran via le bouton dédié

@@ -7,8 +7,7 @@ import {
     TouchableOpacity,
     ScrollView,
     useWindowDimensions,
-    Modal,
-    Platform
+    Modal
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -28,13 +27,13 @@ import { EconomyHeader } from '../src/components/EconomyHeader';
 import { DailyRewardModal } from '../src/components/DailyRewardModal';
 import { HelpOverlay } from '../src/components/HelpOverlay';
 import { LeagueProgressWidget } from '../src/components/LeagueProgressWidget';
-import { LeagueInfoModal } from '../src/components/LeagueInfoModal';
 import { NewsService, NewsItem } from '../src/core/services/news.service';
 import { adService } from '../src/core/services/ad.service';
 import { Ad } from '../src/core/ad.types';
 import { AdBannerModal } from '../src/components/AdBannerModal';
 import { WebFullscreenButton } from '../src/components/WebFullscreenButton';
 import { USE_NEW_SIDEBAR } from '../src/core/config/navigation.config';
+import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../src/core/leagueProgress';
 
 
 export default function HomeScreen() {
@@ -51,12 +50,18 @@ export default function HomeScreen() {
     const [newsList, setNewsList] = useState<NewsItem[]>([]);
     const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
     const [showHelp, setShowHelp] = useState(false);
-    const [showLeagueModal, setShowLeagueModal] = useState(false);
     const [adToShow, setAdToShow] = useState<Ad | null>(null);
     const [pendingDailyReward, setPendingDailyReward] = useState(false);
 
     // Ref pour l'unsubscribe du listener Firestore — nettoyé au démontage du composant
     const economyListenerRef = useRef<(() => void) | null>(null);
+
+    const refreshMonthlyLeague = useCallback(async () => {
+        const stats = await statsService.getStats();
+        const monthlyCochons = getMonthlyCochonsFromHistory(stats.matchHistory);
+        setCochonsGiven(monthlyCochons);
+        setMyLeagueGrade(getLeagueProgress(monthlyCochons).grade);
+    }, []);
 
     // Lance le listener temps réel une seule fois au montage.
     // Firestore est la source de vérité : le callback met à jour le state local sans jamais écrire dans Firestore.
@@ -72,10 +77,9 @@ export default function HomeScreen() {
                 );
                 // Listener temps réel : Firestore → cache local → UI
                 economyListenerRef.current = economyService.listenToEconomy(u.uid, (eco) => {
-                    setCochonsGiven(eco.cochonsGiven || 0);
-                    setMyLeagueGrade(eco.leagueGrade ?? null);
                     setEconomyRefresh(v => v + 1);
                 });
+                refreshMonthlyLeague().catch(console.error);
             }
         });
 
@@ -83,7 +87,7 @@ export default function HomeScreen() {
             economyListenerRef.current?.();
             economyListenerRef.current = null;
         };
-    }, []);
+    }, [refreshMonthlyLeague]);
 
     // Délai avant l'affichage de la pub HOME — laisse l'utilisateur respirer sur l'accueil
     // avant d'être interrompu. Annulé si le composant perd le focus pendant l'attente.
@@ -106,6 +110,8 @@ export default function HomeScreen() {
                         economyService.syncFromFirebase(u.uid),
                     ]);
 
+                    if (cancelled) return;
+                    await refreshMonthlyLeague();
                     if (cancelled) return;
 
                     // La pub HOME s'affiche AVANT le cadeau quotidien (spec R2-M7)
@@ -142,7 +148,7 @@ export default function HomeScreen() {
                     homeAdTimeoutRef.current = null;
                 }
             };
-        }, [])
+        }, [refreshMonthlyLeague])
     );
 
     // Carousel Timer: Alterner les news toutes les 5 secondes
@@ -314,7 +320,7 @@ export default function HomeScreen() {
                         <View style={[styles.topCardWrapper, { flex: 1.5 }]}>
                             <LeagueProgressWidget 
                                 points={cochonsGiven} 
-                                onInfoPress={() => setShowLeagueModal(true)}
+                                onInfoPress={() => router.push('/ligue-cochons')}
                                 style={styles.leagueWidgetCompact}
                             />
                         </View>
@@ -460,12 +466,6 @@ export default function HomeScreen() {
                     </Animated.View>
                 </View>
             </Modal>
-
-            {/* League Info Modal */}
-            <LeagueInfoModal 
-                visible={showLeagueModal} 
-                onClose={() => setShowLeagueModal(false)} 
-            />
         </LinearGradient>
     );
 }

@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import { MatchReward, RewardBreakdown, LeagueFrameId } from '../core/economy.types';
-import { LEAGUE_LABELS, LEAGUE_ICONS, MAX_LEVEL, LEAGUE_GRADE_ORDER, LEAGUE_FRAME_THRESHOLDS } from '../core/economy.constants';
+import { LEAGUE_LABELS, LEAGUE_ICONS, MAX_LEVEL, LEAGUE_GRADE_ORDER, LEAGUE_FRAME_THRESHOLDS, LEAGUE_FRAMES_ENABLED } from '../core/economy.constants';
 import { xpRequiredForLevel } from '../core/RewardEngine';
 import { AvatarFrame } from './AvatarFrame';
 
@@ -57,7 +57,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
     });
 
     useEffect(() => {
-        if (visible && reward && reward.newlyUnlockedFrames && reward.newlyUnlockedFrames.length > 0) {
+        if (LEAGUE_FRAMES_ENABLED && visible && reward && reward.newlyUnlockedFrames && reward.newlyUnlockedFrames.length > 0) {
             const timer = setTimeout(() => setShowFrameModal(true), 1500);
             return () => clearTimeout(timer);
         } else {
@@ -67,7 +67,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
 
     useEffect(() => {
         // Modale grade-up uniquement si gradeUp sans nouveau cadre (sinon le cadre affiche déjà les félicitations)
-        if (visible && reward?.gradeUp && (!reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0)) {
+        if (visible && reward?.gradeUp && (!LEAGUE_FRAMES_ENABLED || !reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0)) {
             const timer = setTimeout(() => setShowGradeUpModal(true), 1200);
             return () => clearTimeout(timer);
         } else {
@@ -260,7 +260,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
             </Modal>
 
             {/* Modale NOUVEAU CADRE DÉBLOQUÉ */}
-            {reward.newlyUnlockedFrames && reward.newlyUnlockedFrames.length > 0 && (
+            {LEAGUE_FRAMES_ENABLED && reward.newlyUnlockedFrames && reward.newlyUnlockedFrames.length > 0 && (
                 <Modal
                     visible={showFrameModal}
                     animationType="fade"
@@ -388,7 +388,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
             )}
 
             {/* Modale PASSAGE DE GRADE (sans nouveau cadre) */}
-            {reward.gradeUp && reward.newGrade && (!reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0) && (
+            {reward.gradeUp && reward.newGrade && (!LEAGUE_FRAMES_ENABLED || !reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0) && (
                 <Modal
                     visible={showGradeUpModal}
                     animationType="fade"

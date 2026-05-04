@@ -27,16 +27,6 @@
 ## 🎯 Priorités Sprint Post-Lancement (02/05/2026)
 
 ### Priorité 0 — Correctifs critiques web / ligue / multi (retour client 04/05)
-- [ ] **[R4-B1]** Ligue des Cochons — source de vérité unique pour paliers, jauge et labels
-  - **Symptôme** : affichage non synchronisé entre l'accueil, `Ma Ligue` via le `(i)` et l'écran `/ligue-cochons`
-  - **Constat code** : calculs de paliers et progression dispersés ; l'écran `mobile/app/ligue-cochons.tsx` contient encore de la logique spécifique et des repères visuels qui ne reflètent pas toujours le segment courant
-  - **À faire** :
-    - extraire un helper partagé pour `currentTier`, `previousThreshold`, `nextThreshold`, `progressPercent`, `milestoneLabels`
-    - brancher ce helper dans `LeagueProgressWidget`, `LeagueInfoModal` et `/ligue-cochons`
-    - supprimer ou recalculer les marqueurs `10 / 20 / 30 / ... / 250 / ...` selon le palier courant
-  - **Impact** : cohérence produit + base saine pour les évolutions mensuelles
-  - **Estimation** : ~0,75 jour
-
 - [ ] **[R4-B2]** Ligue des Cochons — popup de passage de palier non affiché
   - **Symptôme** : l'overlay de réussite/promotion n'apparaît pas malgré un franchissement de palier
   - **Pistes** : vérifier le déclenchement de `RewardOverlay` et la propagation de `gradeUp` / `newlyUnlockedFrames` depuis le flux de fin de match
@@ -93,6 +83,17 @@
   - **Lien backlog** : extension naturelle de `[NOTIF-1]`
   - **À cadrer** : heure d'envoi, opt-in, segmentation, texte, fréquence réelle
   - **Estimation** : ~0,75 à 1 jour après base FCM
+
+### Priorité 2 — Réorganisation UI ligue / stats (retour client 04/05)
+- [ ] **[R4-UX3]** Partage social — partager le jeu, les gains, le niveau de ligue et les récompenses gagnées
+  - **Objectif** : permettre aux joueurs de partager facilement leur progression et leurs résultats
+  - **Cas d'usage** :
+    - partage du jeu
+    - partage des gains de fin de partie
+    - partage du niveau de ligue / palier atteint
+    - partage des récompenses gagnées
+  - **Point d'accroche recommandé** : à coupler avec les écrans de progression de palier et/ou de fin de match
+  - **Estimation** : ~0,75 à 1 jour
 
 ### Priorité 1 — Ads-to-Reward System
 - [ ] **[ADS-REWARD]** Doubler les gains après pub — post-match modal avec CTA "Doubler mes gains via pub"

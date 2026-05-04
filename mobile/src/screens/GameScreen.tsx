@@ -42,6 +42,7 @@ import { useGameSync } from '../hooks/game/useGameSync';
 import { useGameTimers } from '../hooks/game/useGameTimers';
 import { useGameEngine } from '../hooks/game/useGameEngine';
 import { statsService } from '../core/services/stats.service';
+import { getMonthlyCochonsFromHistory } from '../core/leagueProgress';
 import { economyService } from '../core/services/economy.service';
 import { storeService } from '../core/services/store.service';
 import { botService } from '../core/services/bot.service';
@@ -362,13 +363,16 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
                 const processMatchEnd = async () => {
                     try {
+                        const currentStats = await statsService.getStats();
+                        const currentMonthlyLeaguePoints = getMonthlyCochonsFromHistory(currentStats.matchHistory);
+
                         // 1. Calculate & apply economy rewards (new system) FIRST
                         const rewardInput = RewardEngine.buildInputFromGameState({
                             gameState,
                             localPlayerId,
                             currentLevel: playerEconomyRef.current.level,
                             currentXP: playerEconomyRef.current.xp,
-                            currentLeaguePoints: playerEconomyRef.current.leaguePoints,
+                            currentLeaguePoints: currentMonthlyLeaguePoints,
                             currentCochonsGiven: playerEconomyRef.current.cochonsGiven || 0,
                             unlockedFrames: playerEconomyRef.current.unlockedFrames || [],
                             tableTier: activeTableTier,

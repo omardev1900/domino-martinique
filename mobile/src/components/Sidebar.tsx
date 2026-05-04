@@ -21,14 +21,13 @@ import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LEAGUE_GRADE_COLORS } from '../core/economy.constants';
 import { LeagueGrade } from '../core/economy.types';
-import { economyService } from '../core/services/economy.service';
 import { authService } from '../core/services/auth.service';
 import { getAvatarImage } from '../core/avatars';
-import { getLeagueGrade } from '../core/RewardEngine';
 import { MdcFeedbackModal } from './MdcFeedbackModal';
 import { HelpOverlay } from './HelpOverlay';
-import { WebFullscreenButton } from './WebFullscreenButton';
 import { SIDEBAR_WIDTH } from '../core/config/navigation.config';
+import { statsService } from '../core/services/stats.service';
+import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../core/leagueProgress';
 
 interface NavItem {
     route: string;
@@ -43,7 +42,7 @@ const NAV_ITEMS: NavItem[] = [
     { route: '/home', icon: 'home-outline', label: 'Accueil' },
     { route: '/ligue-cochons', icon: 'trophy-outline', label: 'Ligue' },
     { route: '/leaderboard', icon: 'podium-outline', label: 'Rank' },
-    { route: '/stats', icon: 'bar-chart-outline', label: 'Stats' },
+    { route: '/stats', icon: 'bar-chart-outline', label: 'Mes Stats' },
     { route: '/store', icon: 'storefront-outline', label: 'Boutique' },
     { route: '/collection', icon: 'shirt-outline', label: 'Vestiaire' },
     { route: '', icon: 'help-circle-outline', label: 'Aide', isAction: true, actionKey: 'HELP' },
@@ -65,9 +64,9 @@ export const Sidebar: React.FC = () => {
             if (!u) return;
             setAvatarId(u.avatarId || u.avatarUrl || 'avatar_default');
         });
-        economyService.getEconomy().then(eco => {
-            const cochons = Math.max(eco.cochonsGiven ?? 0, eco.leaguePoints ?? 0);
-            setLeagueGrade(getLeagueGrade(cochons));
+        statsService.getStats().then((stats) => {
+            const monthlyCochons = getMonthlyCochonsFromHistory(stats.matchHistory);
+            setLeagueGrade(getLeagueProgress(monthlyCochons).grade);
         });
     }, []);
 
@@ -103,7 +102,6 @@ export const Sidebar: React.FC = () => {
                             contentFit="contain"
                         />
                     </TouchableOpacity>
-                    <WebFullscreenButton style={styles.fullscreenBtn} iconColor="#FFD700" size={18} />
                 </View>
 
                 {/* ── MIDDLE : Scrollable ── */}
@@ -229,12 +227,6 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
     },
-    fullscreenBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-    },
-
     // ── Middle ──
     middle: {
         flex: 1,

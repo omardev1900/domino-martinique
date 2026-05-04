@@ -27,6 +27,11 @@ export interface PlayerStats {
     totalCochonsSubis: number; // Manches où le joueur a pris -1 (cochon reçu)
     totalPointsAccumulated: number;
     totalRoundsWon: number;
+    totalLeague5Pts: number;
+    totalLeague4Pts: number;
+    totalLeague2Pts: number;
+    totalLeague1Pt: number;
+    totalLeagueMinus1Pt: number;
     matchHistory: MatchRecord[];
     // ─── Economy & Progression ───
     coins: number;
@@ -45,6 +50,11 @@ const DEFAULT_STATS: PlayerStats = {
     totalCochonsInflicted: 0,
     totalCochonsSubis: 0,
     totalPointsAccumulated: 0,
+    totalLeague5Pts: 0,
+    totalLeague4Pts: 0,
+    totalLeague2Pts: 0,
+    totalLeague1Pt: 0,
+    totalLeagueMinus1Pt: 0,
     matchHistory: [],
     // Economy defaults
     coins: 0,
@@ -59,6 +69,33 @@ const DEFAULT_STATS: PlayerStats = {
 class StatsService {
     private cachedStats: PlayerStats | null = null;
 
+    private getBreakdownFromHistory(history: MatchRecord[] = []) {
+        return history.reduce(
+            (acc, match) => {
+                const mancheResults = match.mancheLeaguePointsEarned?.length
+                    ? match.mancheLeaguePointsEarned
+                    : (typeof match.leaguePointsEarned === 'number' ? [match.leaguePointsEarned] : []);
+
+                for (const pts of mancheResults) {
+                    if (pts === 5) acc.totalLeague5Pts += 1;
+                    else if (pts === 4) acc.totalLeague4Pts += 1;
+                    else if (pts === 2) acc.totalLeague2Pts += 1;
+                    else if (pts === 1) acc.totalLeague1Pt += 1;
+                    else if (pts === -1) acc.totalLeagueMinus1Pt += 1;
+                }
+
+                return acc;
+            },
+            {
+                totalLeague5Pts: 0,
+                totalLeague4Pts: 0,
+                totalLeague2Pts: 0,
+                totalLeague1Pt: 0,
+                totalLeagueMinus1Pt: 0,
+            }
+        );
+    }
+
     /**
      * Load stats from AsyncStorage (or return cached)
      */
@@ -69,6 +106,8 @@ class StatsService {
             const json = await AsyncStorage.getItem(STORAGE_KEY_PLAYER_STATS);
             if (json) {
                 const parsed = JSON.parse(json);
+                const history = parsed.matchHistory ?? [];
+                const historyBreakdown = this.getBreakdownFromHistory(history);
                 this.cachedStats = {
                     gamesPlayed: parsed.gamesPlayed ?? 0,
                     gamesWon: parsed.gamesWon ?? 0,
@@ -76,7 +115,12 @@ class StatsService {
                     totalCochonsInflicted: parsed.totalCochonsInflicted ?? 0,
                     totalCochonsSubis: parsed.totalCochonsSubis ?? 0,
                     totalPointsAccumulated: parsed.totalPointsAccumulated ?? 0,
-                    matchHistory: parsed.matchHistory ?? [],
+                    totalLeague5Pts: parsed.totalLeague5Pts ?? historyBreakdown.totalLeague5Pts,
+                    totalLeague4Pts: parsed.totalLeague4Pts ?? historyBreakdown.totalLeague4Pts,
+                    totalLeague2Pts: parsed.totalLeague2Pts ?? historyBreakdown.totalLeague2Pts,
+                    totalLeague1Pt: parsed.totalLeague1Pt ?? historyBreakdown.totalLeague1Pt,
+                    totalLeagueMinus1Pt: parsed.totalLeagueMinus1Pt ?? historyBreakdown.totalLeagueMinus1Pt,
+                    matchHistory: history,
                     // Economy fields — fallback to 0/defaults for old persisted data
                     coins: parsed.coins ?? 0,
                     xp: parsed.xp ?? 0,
@@ -138,6 +182,17 @@ class StatsService {
             : (leaguePointsEarned === -1 ? 1 : 0);
         stats.totalCochonsSubis = (stats.totalCochonsSubis ?? 0) + cochonsSubisCeMatch;
 
+        const mancheResults = mancheLeaguePointsEarned?.length
+            ? mancheLeaguePointsEarned
+            : (typeof leaguePointsEarned === 'number' ? [leaguePointsEarned] : []);
+        for (const pts of mancheResults) {
+            if (pts === 5) stats.totalLeague5Pts += 1;
+            else if (pts === 4) stats.totalLeague4Pts += 1;
+            else if (pts === 2) stats.totalLeague2Pts += 1;
+            else if (pts === 1) stats.totalLeague1Pt += 1;
+            else if (pts === -1) stats.totalLeagueMinus1Pt += 1;
+        }
+
         // Add to history (keep last 100)
         const newRecord: MatchRecord = {
             id: Date.now().toString(),
@@ -188,6 +243,11 @@ class StatsService {
                     totalCochonsInflicted: stats.totalCochonsInflicted,
                     totalCochonsSubis: stats.totalCochonsSubis ?? 0,
                     totalPointsAccumulated: stats.totalPointsAccumulated,
+                    totalLeague5Pts: stats.totalLeague5Pts ?? 0,
+                    totalLeague4Pts: stats.totalLeague4Pts ?? 0,
+                    totalLeague2Pts: stats.totalLeague2Pts ?? 0,
+                    totalLeague1Pt: stats.totalLeague1Pt ?? 0,
+                    totalLeagueMinus1Pt: stats.totalLeagueMinus1Pt ?? 0,
                     matchHistory: stats.matchHistory,
                     // Economy fields
                     coins: stats.coins,
@@ -226,6 +286,7 @@ class StatsService {
                     // which contains the true canonical record of the matches.
                     // (Max history is 20, but this cleanly fixes the bloated numbers for testers).
                     const mergedHistory = this.mergeMatchHistories(localStats.matchHistory, remoteData.matchHistory || []);
+                    const historyBreakdown = this.getBreakdownFromHistory(mergedHistory);
                     
                     let realGamesPlayed = mergedHistory.length;
                     let realGamesWon = 0;
@@ -246,6 +307,11 @@ class StatsService {
                         totalCochonsInflicted: Math.max(localStats.totalCochonsInflicted, remoteData.totalCochonsInflicted || 0),
                         totalCochonsSubis: Math.max(localStats.totalCochonsSubis ?? 0, remoteData.totalCochonsSubis || 0),
                         totalPointsAccumulated: realPoints,
+                        totalLeague5Pts: Math.max(localStats.totalLeague5Pts ?? 0, remoteData.totalLeague5Pts ?? 0, historyBreakdown.totalLeague5Pts),
+                        totalLeague4Pts: Math.max(localStats.totalLeague4Pts ?? 0, remoteData.totalLeague4Pts ?? 0, historyBreakdown.totalLeague4Pts),
+                        totalLeague2Pts: Math.max(localStats.totalLeague2Pts ?? 0, remoteData.totalLeague2Pts ?? 0, historyBreakdown.totalLeague2Pts),
+                        totalLeague1Pt: Math.max(localStats.totalLeague1Pt ?? 0, remoteData.totalLeague1Pt ?? 0, historyBreakdown.totalLeague1Pt),
+                        totalLeagueMinus1Pt: Math.max(localStats.totalLeagueMinus1Pt ?? 0, remoteData.totalLeagueMinus1Pt ?? 0, historyBreakdown.totalLeagueMinus1Pt),
                         matchHistory: mergedHistory,
                         // Firestore est source de vérité pour les champs économiques.
                         // Ne jamais utiliser Math.max ici : ça empêcherait l'admin de corriger un solde.

@@ -11,6 +11,7 @@ import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
 import { EconomyHeader } from '../components/EconomyHeader';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { GradeBadge } from '../components/GradeBadge';
+import { LEAGUE_FRAMES_ENABLED } from '../core/economy.constants';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -160,7 +161,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                         cachePolicy="memory-disk"
                                     />
                                 </View>
-                                {slot.player?.activeFrame && (
+                                {LEAGUE_FRAMES_ENABLED && slot.player?.activeFrame && (
                                     <AvatarFrame frameId={slot.player.activeFrame} size={64} />
                                 )}
                             </View>

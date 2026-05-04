@@ -105,12 +105,28 @@ describe('totalCochonsSubis — mancheLeaguePointsEarned (source principale)', (
         await recordWin({ mancheLeaguePointsEarned: [4] });
         const stats = await statsService.getStats();
         expect(stats.totalCochonsSubis).toBe(3);
+        expect(stats.totalLeague4Pts).toBe(1);
+        expect(stats.totalLeagueMinus1Pt).toBe(3);
     });
 
     it('mancheLeaguePointsEarned vide ([]) ne compte aucun cochon subi', async () => {
         await recordLoss({ mancheLeaguePointsEarned: [] });
         const stats = await statsService.getStats();
         expect(stats.totalCochonsSubis).toBe(0);
+    });
+});
+
+describe('cumulative league breakdown counters', () => {
+    it('increments 5/4/2/1/-1 counters from mancheLeaguePointsEarned', async () => {
+        await recordWin({ mancheLeaguePointsEarned: [5, 2, 1] });
+        await recordLoss({ mancheLeaguePointsEarned: [-1, 4] });
+
+        const stats = await statsService.getStats();
+        expect(stats.totalLeague5Pts).toBe(1);
+        expect(stats.totalLeague4Pts).toBe(1);
+        expect(stats.totalLeague2Pts).toBe(1);
+        expect(stats.totalLeague1Pt).toBe(1);
+        expect(stats.totalLeagueMinus1Pt).toBe(1);
     });
 });
 

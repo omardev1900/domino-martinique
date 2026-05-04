@@ -107,7 +107,7 @@ describe('LeaderboardService — lecture des champs enrichis', () => {
     });
 });
 
-// ─── Helper de tri (reproduit la logique de LeagueInfoModal.renderClassement) ─
+// ─── Helper de tri (reproduit la logique de LeagueHubView) ─
 
 type Category = 'PLUS_COCHONS' | 'MOINS_COCHONS' | 'PLUS_POINTS';
 

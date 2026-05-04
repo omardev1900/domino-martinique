@@ -10,7 +10,7 @@ import { DominoTile } from './DominoTile';
 import { SkinConfig } from '../core/store.types';
 import { ChatBubble } from './ChatBubble';
 import { AvatarFrame } from './AvatarFrame';
-import { LEAGUE_GRADE_COLORS } from '../core/economy.constants';
+import { LEAGUE_FRAMES_ENABLED, LEAGUE_GRADE_COLORS } from '../core/economy.constants';
 import { LeagueGrade } from '../core/economy.types';
 import { GradeBadge } from './GradeBadge';
 
@@ -346,7 +346,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     </View>
 
                     {/* Cadre de Ligue des Cochons (Placé hors du overflow: hidden pour ne pas être rogné) */}
-                    {player.activeFrame && (
+                    {LEAGUE_FRAMES_ENABLED && player.activeFrame && (
                         <AvatarFrame frameId={player.activeFrame} size={size} />
                     )}
 

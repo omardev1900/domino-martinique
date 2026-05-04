@@ -6,6 +6,24 @@
 
 ## [2.7] — 2 Mai 2026
 
+## [2.3.3] — 2026-05-04
+
+### Modifié
+- **Mes Stats** — le menu `Stats` devient `Mes Stats` pour marquer clairement qu'il s'agit du tableau de bord personnel.
+- **Écran Stats** — ajout de 2 vues distinctes : `Ce mois-ci` par défaut et `Cumulé` en second.
+- **Lisibilité produit** — séparation plus nette entre performance personnelle, classement global (`Rank`) et progression de Ligue.
+
+---
+
+## [2.3.2] — 2026-05-04
+
+### Modifié
+- **Ligue des Cochons** — l'écran `/ligue-cochons` devient le point d'entrée unique avec 3 tabs : `Ma Ligue`, `Classement`, `Infos`.
+- **Accueil** — le bouton `(i)` du widget Ligue ouvre désormais la page Ligue au lieu d'un modal séparé.
+- **Navigation** — suppression de `LeagueInfoModal` pour éviter les doublons entre popup et écran dédié.
+
+---
+
 ### Dette technique
 - **Tests — Firebase ESM** : mock global de `firebase/firestore`, `firebase/auth`, `firebase/storage`, `firebase/app` dans `jest.setup.js` — les 3 suites `useGameTimers`, `useGameEngine`, `IntegrationArchitecture` passent désormais sans erreur ESM.
 - **Tests — GameHeader** : fichier de test réécrit pour correspondre à l'interface simplifiée du composant (3 props au lieu de 10 après la refonte R2-A5).
@@ -198,3 +216,8 @@ GameScreen (MATCH_END) → recordMatchResult(totalCochonsInfliges) + processServ
 - **Majeure (X.0)** : Refonte architecture ou fonctionnalité majeure
 - **Mineure (X.Y)** : Nouveau bloc fonctionnel complet
 - **Patch (X.Y.Z)** : Corrections de bugs et ajustements
+## [2.3.1] — 2026-05-04
+
+### Modifié
+- **Ligue des Cochons** — la progression affichée est maintenant mensuelle et synchronisée entre l’accueil, `Ma Ligue` et l’écran Ligue.
+- **Écran Ligue** — suppression des repères de jauge trompeurs ; affichage recentré sur les paliers du mois et les bonus en coins.

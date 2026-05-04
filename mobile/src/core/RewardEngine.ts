@@ -46,6 +46,7 @@ import {
     LEAGUE_GRADE_ORDER,
     LEAGUE_FRAME_THRESHOLDS,
     LEAGUE_FRAME_REWARDS,
+    LEAGUE_FRAMES_ENABLED,
     LEVEL_UP_CHESTS,
     DEFAULT_LEVEL_UP_COINS,
 } from './economy.constants';
@@ -373,6 +374,7 @@ export const RewardEngine = {
 
         const newlyUnlockedFrames: FrameUnlockEvent[] = [];
         let frameCoinsBonus = 0;
+        let unlockedPalierCount = 0;
 
         for (const grade of LEAGUE_GRADE_ORDER) {
             const threshold = LEAGUE_FRAME_THRESHOLDS[grade];
@@ -384,12 +386,15 @@ export const RewardEngine = {
                 cochonsGivenBefore < threshold &&
                 !alreadyUnlocked.includes(frameId)
             ) {
-                newlyUnlockedFrames.push({
-                    grade: grade as import('./economy.types').LeagueGrade,
-                    frameId,
-                    coinsBonus: frameReward.coinsBonus,
-                    cochonsAtUnlock: newCochonsGiven,
-                });
+                unlockedPalierCount += 1;
+                if (LEAGUE_FRAMES_ENABLED) {
+                    newlyUnlockedFrames.push({
+                        grade: grade as import('./economy.types').LeagueGrade,
+                        frameId,
+                        coinsBonus: frameReward.coinsBonus,
+                        cochonsAtUnlock: newCochonsGiven,
+                    });
+                }
                 frameCoinsBonus += frameReward.coinsBonus;
             }
         }
@@ -398,7 +403,7 @@ export const RewardEngine = {
         if (frameCoinsBonus > 0) {
             adjustedBreakdown.push({
                 id: 'league_frame_unlock',
-                label: `👀 Palier Ligue débloqué (×${newlyUnlockedFrames.length})`,
+                label: `🐷 Bonus palier Ligue (×${unlockedPalierCount})`,
                 coins: frameCoinsBonus,
                 xp: 0,
                 diamonds: 0,
@@ -449,7 +454,7 @@ export const RewardEngine = {
             gradeUp: matchReward.gradeUp,
             newGrade: matchReward.newGrade,
             newCochonsGiven: matchReward.newCochonsGiven,
-            framesUnlocked: matchReward.newlyUnlockedFrames.length,
+            framesUnlocked: unlockedPalierCount,
             lines: adjustedBreakdown.length,
         });
 

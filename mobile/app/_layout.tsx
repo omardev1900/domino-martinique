@@ -17,6 +17,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { WebFullscreenButton } from '@/components/WebFullscreenButton';
 import {
   USE_NEW_SIDEBAR,
+  SIDEBAR_WIDTH,
   SIDEBAR_HIDDEN_ROUTES,
   SIDEBAR_HIDDEN_PREFIXES,
 } from '@/core/config/navigation.config';
@@ -196,7 +197,7 @@ export default function RootLayout() {
               style={{
                 position: 'absolute',
                 top: 14,
-                right: 64,
+                left: showSidebar ? SIDEBAR_WIDTH + 12 : 18,
                 zIndex: 1000,
               }}
             >

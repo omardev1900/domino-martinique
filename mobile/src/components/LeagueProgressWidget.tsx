@@ -2,15 +2,13 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-    LEAGUE_FRAME_THRESHOLDS,
     LEAGUE_LABELS,
     LEAGUE_ICONS,
     LEAGUE_GRADE_COLORS,
-    LEAGUE_GRADE_ORDER,
 } from '../core/economy.constants';
-import { getLeagueGrade } from '../core/RewardEngine';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import { getLeagueProgress } from '../core/leagueProgress';
 
 interface LeagueProgressWidgetProps {
     points: number;
@@ -19,25 +17,13 @@ interface LeagueProgressWidgetProps {
 }
 
 export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ points, onInfoPress, style }) => {
-    const currentGrade = useMemo(() => getLeagueGrade(points), [points]);
-
-    // Prochain grade (null si déjà au max)
-    const nextGrade = useMemo(() => {
-        if (!currentGrade) return LEAGUE_GRADE_ORDER[0];
-        const idx = LEAGUE_GRADE_ORDER.indexOf(currentGrade);
-        return idx < LEAGUE_GRADE_ORDER.length - 1 ? LEAGUE_GRADE_ORDER[idx + 1] : null;
-    }, [currentGrade]);
-
-    const currentThreshold = currentGrade ? LEAGUE_FRAME_THRESHOLDS[currentGrade] : 0;
-    const nextThreshold = nextGrade ? LEAGUE_FRAME_THRESHOLDS[nextGrade] : null;
+    const progress = useMemo(() => getLeagueProgress(points), [points]);
+    const currentGrade = progress.grade;
+    const nextGrade = progress.nextGrade;
 
     const gradeColor = currentGrade ? LEAGUE_GRADE_COLORS[currentGrade] : '#888';
     const gradeIcon = currentGrade ? LEAGUE_ICONS[currentGrade] : '🔰';
     const gradeLabel = currentGrade ? LEAGUE_LABELS[currentGrade] : 'Sans grade';
-
-    const progressPct = nextThreshold
-        ? Math.min(1, (points - currentThreshold) / Math.max(1, nextThreshold - currentThreshold))
-        : 1;
 
     return (
         <Animated.View entering={FadeInUp.delay(100).duration(500)} style={[styles.container, style]}>
@@ -66,7 +52,7 @@ export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ poin
 
                 {/* Ligne 2 : compteur cochons */}
                 <Text style={styles.cochonsLine}>
-                    🐷 <Text style={styles.cochonsNumber}>{points.toLocaleString()}</Text> cochons infligés
+                    🐷 <Text style={styles.cochonsNumber}>{points.toLocaleString()}</Text> cochons du mois
                 </Text>
 
                 {/* Ligne 3 : barre de progression */}
@@ -75,12 +61,12 @@ export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ poin
                         colors={[gradeColor, '#FFA500']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
-                        style={[styles.progressFill, { width: `${Math.round(progressPct * 100)}%` }]}
+                        style={[styles.progressFill, { width: `${Math.round(progress.progressPercent * 100)}%` }]}
                     />
                 </View>
 
                 {/* Ligne 4 : prochain grade */}
-                {nextGrade && nextThreshold !== null ? (
+                {nextGrade && progress.nextThreshold !== null ? (
                     <View style={styles.nextRow}>
                         <Text style={styles.nextLabel}>Prochain</Text>
                         <View style={styles.nextRight}>
@@ -88,7 +74,7 @@ export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ poin
                             <Text style={[styles.nextName, { color: LEAGUE_GRADE_COLORS[nextGrade] }]} numberOfLines={1}>
                                 {LEAGUE_LABELS[nextGrade]}
                             </Text>
-                            <Text style={styles.nextRemaining}>{Math.max(0, nextThreshold - points)} 🐷</Text>
+                            <Text style={styles.nextRemaining}>{progress.remainingToNext} 🐷</Text>
                         </View>
                     </View>
                 ) : (
