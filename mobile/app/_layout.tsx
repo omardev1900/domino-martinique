@@ -1,6 +1,6 @@
 import 'react-native-url-polyfill/auto';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, usePathname } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -8,6 +8,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState, useCallback } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { Platform, AppState, AppStateStatus, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import SoundManager from '@/core/audio/SoundManager';
@@ -15,6 +16,8 @@ import SettingsManager from '@/core/SettingsManager';
 import { adService } from '@/core/services/ad.service';
 import { Sidebar } from '@/components/Sidebar';
 import { WebFullscreenButton } from '@/components/WebFullscreenButton';
+import { authService } from '@/core/services/auth.service';
+import { findActiveRoomForUser } from '@/core/services/firebase';
 import {
   USE_NEW_SIDEBAR,
   SIDEBAR_WIDTH,
@@ -59,6 +62,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [appReady, setAppReady] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     async function prepare() {
@@ -118,6 +122,36 @@ export default function RootLayout() {
         SoundManager.playMusic('mainMenu', 0.5);
     }
   }, [pathname, appReady]);
+
+  useEffect(() => {
+    if (!appReady) return;
+    if (pathname.startsWith('/game')) return;
+
+    let cancelled = false;
+
+    const forceBackToActiveMatch = async () => {
+      let activeRoomId = await AsyncStorage.getItem('active_roomId');
+
+      if (!activeRoomId) {
+        const currentUser = await authService.getCurrentUser();
+        if (currentUser && !currentUser.uid.startsWith('guest_')) {
+          activeRoomId = await findActiveRoomForUser(currentUser.uid);
+          if (activeRoomId) {
+            await AsyncStorage.setItem('active_roomId', activeRoomId);
+          }
+        }
+      }
+
+      if (!activeRoomId || cancelled) return;
+      router.replace({ pathname: '/game/[id]', params: { id: activeRoomId } });
+    };
+
+    forceBackToActiveMatch().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [appReady, pathname, router]);
 
   const onLayoutRootView = useCallback(async () => {
     if (appReady) {

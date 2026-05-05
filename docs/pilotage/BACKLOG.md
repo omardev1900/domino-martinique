@@ -27,17 +27,24 @@
 ## 🎯 Priorités Sprint Post-Lancement (02/05/2026)
 
 ### Priorité 0 — Correctifs critiques web / ligue / multi (retour client 04/05)
+- [ ] **[R4-B3-SESSION]** Multijoueur — reconnexion impossible après purge complète de session navigateur malgré reconnexion avec le même compte
+  - **Constat actuel** :
+    - si le joueur quitte une partie multi puis revient sans purge de session, le retour forcé vers la room fonctionne
+    - si les cookies / la session navigateur sont supprimés, puis que le joueur se reconnecte avec le même compte, l'app ne le renvoie pas encore vers la room active
+  - **Impact** :
+    - le joueur peut retomber sur l'accueil et relancer un autre flux de jeu
+    - la reprise de match n'est pas fiable dans le cas d'une vraie purge navigateur
+  - **Pistes à reprendre plus tard** :
+    - consolider la source de vérité serveur de l'appartenance à une room active
+    - fiabiliser la reprise depuis `users/{uid}.activeRoomId` même après reset complet des données locales
+    - auditer les règles Firestore / permissions si la lecture du profil ou l'écriture de `activeRoomId` échouent dans certains cas
+  - **Note** : les correctifs déjà validés sur ce chantier restent utiles (retour auto sans purge de session, suppression de table vide)
+  - **Estimation** : ~0,75 à 1,5 jour
+
 - [ ] **[R4-B2]** Ligue des Cochons — popup de passage de palier non affiché
   - **Symptôme** : l'overlay de réussite/promotion n'apparaît pas malgré un franchissement de palier
   - **Pistes** : vérifier le déclenchement de `RewardOverlay` et la propagation de `gradeUp` / `newlyUnlockedFrames` depuis le flux de fin de match
   - **Estimation** : ~0,5 jour
-
-- [ ] **[R4-B3]** Multijoueur — reprise de partie sans ressaisie du code après déconnexion / expulsion
-  - **Symptôme** : en partie multi, certains joueurs sortent de la room, la partie continue, puis ils doivent ressaisir le code pour revenir
-  - **Objectif** : reprise automatique si une session de room valide existe encore côté client ; saisie du code uniquement en fallback
-  - **À auditer** : présence joueur dans room, persistance `active_roomId`, conditions de `leaveRoom`, listeners de reconnexion
-  - **Impact** : critique pour la fiabilité du multi
-  - **Estimation** : ~1 à 1,5 jour
 
 - [ ] **[R4-B4]** Web — unifier et repositionner le bouton plein écran
   - **Symptôme** : doublons du bouton plein écran, overlap avec l'avatar sur la version web
@@ -94,6 +101,32 @@
     - partage des récompenses gagnées
   - **Point d'accroche recommandé** : à coupler avec les écrans de progression de palier et/ou de fin de match
   - **Estimation** : ~0,75 à 1 jour
+
+- [ ] **[R4-UX6]** Accueil — unifier la hauteur des 3 blocs principaux sur tous les appareils
+  - **Symptôme** : les 3 blocs de l’accueil n’ont pas toujours la même hauteur selon le device, le ratio ou le contenu
+  - **Objectif** : garantir une hauteur strictement homogène pour les 3 cartes de la rangée d’accueil, quel que soit l’écran
+  - **À auditer** : `home.tsx`, contraintes de layout web/mobile, responsive sur desktop, tablette et mobile
+  - **Estimation** : ~0,25 à 0,5 jour
+
+- [ ] **[R4-IA1]** Bots — adapter le niveau des IA au niveau réel du joueur
+  - **Demande** : un joueur avancé (ex. Maître Saucissier) ne doit plus affronter des bots débutants par défaut
+  - **Objectif** : faire varier la difficulté, le pool ou le profil des bots selon le niveau/grade du joueur
+  - **À cadrer** :
+    - source de vérité du niveau joueur à utiliser
+    - table de correspondance niveau joueur → difficulté bot
+    - exceptions volontaires si le joueur choisit explicitement un niveau facile
+  - **Estimation** : ~0,75 à 1,5 jour selon le degré d’adaptation
+
+- [ ] **[R4-ECO1]** Récompenses — différencier les gains solo et multi selon la difficulté réelle des adversaires
+  - **Problème** : les récompenses solo et multi ne devraient pas être identiques si l’opposition n’a pas la même valeur
+  - **Objectif** : rendre les gains proportionnels à la qualité des adversaires (bots faibles, bots forts, humains, table, etc.)
+  - **À réfléchir** :
+    - barème solo vs multi
+    - coefficient selon difficulté des bots
+    - coefficient selon nombre d’adversaires humains réels
+    - impact sur coins, XP et éventuels bonus de ligue
+  - **Dépendance** : cohérence avec `RewardEngine`, buy-ins de table et équilibrage économie global
+  - **Estimation** : ~1 à 2 jours avec recalibrage
 
 - [ ] **[R4-TECH-LEADERBOARD]** Refonte stats / leaderboard — découpler les agrégats globaux et mensuels de `matchHistory`
   - **Problème actuel** : `matchHistory` est tronqué (désormais à 500) pour limiter la taille des données, mais il alimente encore une partie des stats mensuelles et certaines reconstructions en sync

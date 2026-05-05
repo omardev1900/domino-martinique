@@ -17,6 +17,7 @@ interface LobbyScreenProps {
     roomData: GameRoom;
     currentUserId: string;
     onStartGame: () => void;
+    onDeleteRoom?: () => void;
 }
 
 const MODE_LABELS: Record<string, string> = {
@@ -31,9 +32,10 @@ const MODE_UNIT_LABELS: Record<string, string> = {
     COCHON: 'Cochons',
 };
 
-export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserId, onStartGame }) => {
+export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserId, onStartGame, onDeleteRoom }) => {
     const isHost = roomData.players[0]?.uid === currentUserId;
     const canStart = roomData.players.length === 3;
+    const canDeleteWaitingRoom = isHost && roomData.status === 'WAITING' && roomData.players.length <= 1 && !roomData.gameState;
     const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(null);
     const hasAutoStarted = useRef(false);
     const rootRef = useRef<View>(null);
@@ -259,6 +261,15 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                 Appuyez pour démarrer immédiatement
                             </Text>
                         )}
+                        {canDeleteWaitingRoom && onDeleteRoom ? (
+                            <TouchableOpacity
+                                style={styles.deleteRoomButton}
+                                onPress={onDeleteRoom}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.deleteRoomButtonText}>Supprimer la table</Text>
+                            </TouchableOpacity>
+                        ) : null}
                     </>
                 ) : (
                     <View style={styles.waitingContainer}>
@@ -480,6 +491,24 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.4)',
         fontSize: 11,
         marginTop: 6,
+    },
+    deleteRoomButton: {
+        marginTop: 12,
+        alignSelf: 'center',
+        minWidth: 180,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,99,71,0.5)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    deleteRoomButtonText: {
+        color: '#FF8A65',
+        fontSize: 13,
+        fontWeight: '800',
     },
     waitingContainer: {
         paddingVertical: 15,

@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft, FadeIn } from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { createRoom, joinRoom, listenToPublicRooms, findHostedWaitingRoom, findActiveRoomForUser, RoomOptions, auth } from '../src/core/services/firebase';
+import { createRoom, joinRoom, listenToPublicRooms, findHostedWaitingRoom, findActiveRoomForUser, deleteWaitingRoomIfOwner, RoomOptions, auth } from '../src/core/services/firebase';
 import { PlayerProfile, GameMode, GameRoom } from '../src/core/types';
 import { authService } from '../src/core/services/auth.service';
 import { roomNameSchema } from '../src/core/validation/schemas';
@@ -59,6 +59,7 @@ export default function LobbyScreen() {
     const [loading, setLoading] = useState(false);
     const [currentUser, setCurrentUser] = useState<PlayerProfile | null>(null);
     const [activeTab, setActiveTab] = useState<LobbyTab>('CREATE');
+    const [hostedWaitingRoomId, setHostedWaitingRoomId] = useState<string | null>(null);
 
     // — JOIN tab state —
     const [roomIdToJoin, setRoomIdToJoin] = useState('');
@@ -119,6 +120,13 @@ export default function LobbyScreen() {
                             activeFrame: eco.activeFrame ?? undefined,
                         };
                         setCurrentUser(enrichedUser);
+                        const activeRoom = await findActiveRoomForUser(user.uid);
+                        if (activeRoom) {
+                            router.replace({ pathname: '/game/[id]', params: { id: activeRoom, userId: user.uid, tableTier } });
+                            return;
+                        }
+                        const hostedRoom = await findHostedWaitingRoom(user.uid);
+                        setHostedWaitingRoomId(hostedRoom);
                         setEconomyRefresh(v => v + 1); // refresh EconomyHeader
                     } else {
                         // No user at all -> Login
@@ -209,6 +217,43 @@ export default function LobbyScreen() {
         return hasEnough;
     };
 
+    const handleDeleteHostedWaitingRoom = async (roomId?: string | null) => {
+        if (!currentUser || !roomId) return;
+        try {
+            setLoading(true);
+            const deleted = await deleteWaitingRoomIfOwner(roomId, currentUser.uid);
+            if (deleted) {
+                setHostedWaitingRoomId(null);
+                Alert.alert('Table supprimée', 'Votre table vide a bien été supprimée.');
+            }
+        } catch (error: any) {
+            Alert.alert('Suppression impossible', error?.message || 'Impossible de supprimer cette table.');
+            const hostedRoom = await findHostedWaitingRoom(currentUser.uid);
+            setHostedWaitingRoomId(hostedRoom);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const ensureNoConflictingActiveRoom = async (targetRoomId?: string) => {
+        if (!currentUser) return false;
+        const activeRoom = await findActiveRoomForUser(currentUser.uid);
+        if (!activeRoom || activeRoom === targetRoomId) return false;
+
+        Alert.alert(
+            'Partie en cours',
+            'Vous êtes déjà dans une partie active. Rejoignez-la avant d’ouvrir une autre salle.',
+            [
+                { text: 'Annuler', style: 'cancel' },
+                {
+                    text: 'Rejoindre la partie',
+                    onPress: () => router.push({ pathname: '/game/[id]', params: { id: activeRoom, userId: currentUser.uid, tableTier } })
+                }
+            ]
+        );
+        return true;
+    };
+
     const handleCreateRoom = async () => {
         if (!requireAccountForMultiplayer()) return;
         if (!currentUser) return;
@@ -216,6 +261,7 @@ export default function LobbyScreen() {
         // ❌ Vérification : l'utilisateur héberge déjà une table en attente
         const hostedRoom = await findHostedWaitingRoom(currentUser.uid);
         if (hostedRoom) {
+            setHostedWaitingRoomId(hostedRoom);
             Alert.alert(
                 'Table existante',
                 'Vous êtes déjà l\'hôte d\'une table en attente. Rejoignez-la ou attendez qu\'elle soit fermée.',
@@ -224,6 +270,11 @@ export default function LobbyScreen() {
                     {
                         text: 'Rejoindre ma table',
                         onPress: () => router.push({ pathname: '/game/[id]', params: { id: hostedRoom, userId: currentUser.uid, tableTier } })
+                    },
+                    {
+                        text: 'Supprimer ma table',
+                        style: 'destructive',
+                        onPress: () => handleDeleteHostedWaitingRoom(hostedRoom)
                     }
                 ]
             );
@@ -274,6 +325,7 @@ export default function LobbyScreen() {
                 undefined,
                 options
             );
+            setHostedWaitingRoomId(newRoomId);
             // ✅ Navigation vers la salle (le débit se fera au Start)
             router.push({ pathname: '/game/[id]', params: { id: newRoomId, userId: currentUser.uid, tableTier } });
         } catch (error) {
@@ -291,6 +343,7 @@ export default function LobbyScreen() {
             Alert.alert('Code invalide', 'Le code de la table doit contenir environ 6 caractères alphanumériques.');
             return;
         }
+        if (await ensureNoConflictingActiveRoom(cleanRoomId)) return;
         if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
@@ -313,6 +366,7 @@ export default function LobbyScreen() {
     const handleJoinPublicRoom = async (roomId: string) => {
         if (!requireAccountForMultiplayer()) return;
         if (!currentUser) return;
+        if (await ensureNoConflictingActiveRoom(roomId)) return;
         if (!await checkBalanceOnly()) return; // ❌ Solde insuffisant
         try {
             setLoading(true);
@@ -358,6 +412,32 @@ export default function LobbyScreen() {
 
     const renderCreateTab = () => (
         <Animated.View entering={FadeIn.delay(200)} style={styles.createContent}>
+            {hostedWaitingRoomId ? (
+                <View style={styles.hostedRoomCard}>
+                    <Text style={styles.hostedRoomTitle}>Table en attente détectée</Text>
+                    <Text style={styles.hostedRoomCode}>Code : {hostedWaitingRoomId}</Text>
+                    <Text style={styles.hostedRoomText}>
+                        Vous avez déjà une table en attente. Vous pouvez la rejoindre directement ou la supprimer si personne ne l&apos;a encore rejointe.
+                    </Text>
+                    <View style={styles.hostedRoomActions}>
+                        <TouchableOpacity
+                            style={styles.hostedRoomSecondary}
+                            onPress={() => handleDeleteHostedWaitingRoom(hostedWaitingRoomId)}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.hostedRoomSecondaryText}>Supprimer</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.hostedRoomPrimary}
+                            onPress={() => currentUser && router.push({ pathname: '/game/[id]', params: { id: hostedWaitingRoomId, userId: currentUser.uid, tableTier } })}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.hostedRoomPrimaryText}>Rejoindre ma table</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            ) : null}
+
             {uiStep === 'MODE' ? (
                 <View style={styles.stepContainer}>
                     <View style={styles.modesVerticalList}>
@@ -1283,6 +1363,64 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 12,
         textAlign: 'center',
+    },
+    hostedRoomCard: {
+        backgroundColor: 'rgba(255,215,0,0.08)',
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.2)',
+        padding: 16,
+        marginBottom: 16,
+    },
+    hostedRoomTitle: {
+        color: '#FFD700',
+        fontSize: 16,
+        fontWeight: '900',
+    },
+    hostedRoomCode: {
+        color: '#FFF',
+        fontSize: 20,
+        fontWeight: '900',
+        marginTop: 6,
+    },
+    hostedRoomText: {
+        color: 'rgba(255,255,255,0.72)',
+        fontSize: 13,
+        lineHeight: 19,
+        marginTop: 8,
+    },
+    hostedRoomActions: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 14,
+    },
+    hostedRoomPrimary: {
+        flex: 1,
+        borderRadius: 14,
+        backgroundColor: '#FFD700',
+        paddingVertical: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    hostedRoomPrimaryText: {
+        color: '#1A0E2E',
+        fontSize: 13,
+        fontWeight: '900',
+    },
+    hostedRoomSecondary: {
+        flex: 1,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.12)',
+        paddingVertical: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    hostedRoomSecondaryText: {
+        color: '#FFF',
+        fontSize: 13,
+        fontWeight: '800',
     },
     // ─── List Rooms (Public) ─────────────────────────────────────
     startText: {

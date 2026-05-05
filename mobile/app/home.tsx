@@ -33,6 +33,7 @@ import { Ad } from '../src/core/ad.types';
 import { AdBannerModal } from '../src/components/AdBannerModal';
 import { USE_NEW_SIDEBAR } from '../src/core/config/navigation.config';
 import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../src/core/leagueProgress';
+import { deleteWaitingRoomIfOwner, findActiveRoomForUser, findHostedWaitingRoom } from '../src/core/services/firebase';
 
 
 export default function HomeScreen() {
@@ -41,6 +42,7 @@ export default function HomeScreen() {
     const { height } = useWindowDimensions();
     const [user, setUser] = useState<PlayerProfile | null>(null);
     const [reconnectRoomId, setReconnectRoomId] = useState<string | null>(null);
+    const [hostedWaitingRoomId, setHostedWaitingRoomId] = useState<string | null>(null);
     const [economyRefresh, setEconomyRefresh] = useState(0);
     const [cochonsGiven, setCochonsGiven] = useState(0);
     const [myLeagueGrade, setMyLeagueGrade] = useState<LeagueGrade | null>(null);
@@ -167,10 +169,26 @@ export default function HomeScreen() {
         useCallback(() => {
             const checkActiveGame = async () => {
                 try {
-                    const activeRoomId = await AsyncStorage.getItem('active_roomId');
-                    if (activeRoomId) {
-                        setReconnectRoomId(activeRoomId);
+                    const currentUser = await authService.getCurrentUser();
+                    if (!currentUser || currentUser.uid.startsWith('guest_')) return;
+
+                    const firestoreActiveRoomId = await findActiveRoomForUser(currentUser.uid);
+                    const hostedRoomId = await findHostedWaitingRoom(currentUser.uid);
+                    if (firestoreActiveRoomId) {
+                        await AsyncStorage.setItem('active_roomId', firestoreActiveRoomId);
+                        setReconnectRoomId(firestoreActiveRoomId);
+                        router.replace({
+                            pathname: '/game/[id]',
+                            params: {
+                                id: firestoreActiveRoomId,
+                                userId: currentUser.uid
+                            }
+                        });
+                    } else {
+                        await AsyncStorage.removeItem('active_roomId');
+                        setReconnectRoomId(null);
                     }
+                    setHostedWaitingRoomId(hostedRoomId);
                 } catch (e) {
                     console.error('Error checking active room', e);
                 }
@@ -219,6 +237,18 @@ export default function HomeScreen() {
             setReconnectRoomId(null);
         } catch (e) {
             console.error('Error clearing active room', e);
+        }
+    };
+
+    const handleDeleteHostedRoom = async () => {
+        if (!hostedWaitingRoomId || !user?.uid) return;
+        try {
+            const deleted = await deleteWaitingRoomIfOwner(hostedWaitingRoomId, user.uid);
+            if (deleted) {
+                setHostedWaitingRoomId(null);
+            }
+        } catch (e) {
+            console.error('Error deleting hosted room', e);
         }
     };
 
@@ -312,6 +342,31 @@ export default function HomeScreen() {
                 ]}
                 showsVerticalScrollIndicator={false}
             >
+                {!reconnectRoomId && hostedWaitingRoomId ? (
+                    <View style={styles.sessionNoticeCard}>
+                        <Text style={styles.sessionNoticeTitle}>Table en attente détectée</Text>
+                        <Text style={styles.sessionNoticeText}>
+                            Vous avez une table multijoueur encore vide. Retournez-y directement ou supprimez-la avant de lancer autre chose.
+                        </Text>
+                        <View style={styles.sessionNoticeActions}>
+                            <TouchableOpacity
+                                style={styles.sessionNoticeSecondary}
+                                onPress={handleDeleteHostedRoom}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.sessionNoticeSecondaryText}>Supprimer</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.sessionNoticePrimary}
+                                onPress={() => router.push({ pathname: '/lobby', params: { autoJoinRoomId: hostedWaitingRoomId } })}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.sessionNoticePrimaryText}>Retourner à ma table</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                ) : null}
+
                 <View style={styles.topCardsRow}>
                     {/* 1. Bloc Niveau Cochon - ENLARGED AGAIN */}
                     {user && (
@@ -435,9 +490,9 @@ export default function HomeScreen() {
                             style={styles.modalGradient}
                         >
                             <Text style={styles.modalIcon}>📡</Text>
-                            <Text style={styles.modalTitle}>Partie Interrompue</Text>
+                            <Text style={styles.modalTitle}>Match en cours détecté</Text>
                             <Text style={styles.modalDescription}>
-                                Une partie multijoueur est toujours active. Souhaitez-vous la rejoindre pour reprendre la main ?
+                                Vous avez une partie multijoueur toujours active. Rejoignez-la directement pour reprendre la main.
                             </Text>
 
                             <View style={styles.modalButtons}>
@@ -445,7 +500,7 @@ export default function HomeScreen() {
                                     style={styles.modalButtonSecondary}
                                     onPress={handleCancelReconnect}
                                 >
-                                    <Text style={styles.modalButtonTextSecondary}>Abandonner</Text>
+                                    <Text style={styles.modalButtonTextSecondary}>Ignorer</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
@@ -456,7 +511,7 @@ export default function HomeScreen() {
                                         colors={['#FFD700', '#FFA500']}
                                         style={styles.modalButtonGradient}
                                     >
-                                        <Text style={styles.modalButtonTextPrimary}>REJOINDRE</Text>
+                                        <Text style={styles.modalButtonTextPrimary}>REJOINDRE LE MATCH</Text>
                                     </LinearGradient>
                                 </TouchableOpacity>
                             </View>
@@ -812,8 +867,64 @@ const styles = StyleSheet.create({
         alignItems: 'stretch',
         height: 160,
     },
+    sessionNoticeCard: {
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.18)',
+        padding: 16,
+        marginHorizontal: 10,
+        marginTop: 6,
+        marginBottom: 14,
+    },
+    sessionNoticeTitle: {
+        color: '#FFD700',
+        fontSize: 16,
+        fontWeight: '900',
+    },
+    sessionNoticeText: {
+        color: 'rgba(255,255,255,0.78)',
+        fontSize: 13,
+        lineHeight: 19,
+        marginTop: 8,
+    },
+    sessionNoticeActions: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 14,
+    },
+    sessionNoticePrimary: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFD700',
+        borderRadius: 14,
+        paddingVertical: 12,
+    },
+    sessionNoticePrimaryText: {
+        color: '#1A0E2E',
+        fontSize: 13,
+        fontWeight: '900',
+    },
+    sessionNoticeSecondary: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.14)',
+        paddingVertical: 12,
+    },
+    sessionNoticeSecondaryText: {
+        color: '#FFF',
+        fontSize: 13,
+        fontWeight: '800',
+    },
     topCardWrapper: {
         flex: 1,
+        height: '100%',
+        alignSelf: 'stretch',
     },
     leagueWidgetCompact: {
         maxWidth: '100%',
@@ -822,6 +933,7 @@ const styles = StyleSheet.create({
     },
     newsContainerCompact: {
         flex: 1,
+        height: '100%',
         borderRadius: 12,
         overflow: 'hidden',
         borderWidth: 1,
@@ -846,6 +958,7 @@ const styles = StyleSheet.create({
     },
     playCardCompact: {
         flex: 1,
+        height: '100%',
         borderRadius: 12,
         overflow: 'hidden',
         elevation: 8,

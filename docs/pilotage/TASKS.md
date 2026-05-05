@@ -9,7 +9,7 @@
 > - Décision de traiter une tâche → la déplacer ici
 > - Tâche terminée → la déplacer dans `TASKS_DONE.md` avec la date
 
-**Dernière mise à jour :** 02 mai 2026
+**Dernière mise à jour :** 05 mai 2026
 **Sprint actuel :** 🚀 Sprint Post-Lancement P1
 
 ---
@@ -49,8 +49,9 @@
 
 ## 🚀 Sprint Post-Lancement P1 — En attente de démarrage
 
-> Aucune tâche active dans `TASKS.md` pour le moment.
-> Les prochaines priorités à décider se trouvent dans `BACKLOG.md`.
+| Ticket | Description | Priorité | Statut |
+|---|---|---|---|
+| **R4-B6** | Multijoueur — suppression d'une table vide par son hôte | 🟠 UX / Fiabilité | 🔄 En cours (05/05) |
 
 ---
 

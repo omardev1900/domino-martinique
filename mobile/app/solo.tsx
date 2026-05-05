@@ -17,6 +17,7 @@ import { EconomyHeader } from '../src/components/EconomyHeader';
 import { AdBannerModal } from '../src/components/AdBannerModal';
 import { adService } from '../src/core/services/ad.service';
 import { Ad } from '../src/core/ad.types';
+import { findActiveRoomForUser } from '../src/core/services/firebase';
 
 type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
 type GameMode = 'MANCHE' | 'SCORE' | 'COCHON' | 'VICTOIRE';
@@ -83,6 +84,22 @@ export default function SoloScreen() {
             Alert.alert(
                 'Connexion requise',
                 'Vous devez être connecté pour lancer une partie.'
+            );
+            return;
+        }
+
+        const activeRoomId = await findActiveRoomForUser(user.uid);
+        if (activeRoomId) {
+            Alert.alert(
+                'Match multijoueur en cours',
+                'Vous avez une partie multijoueur encore active. Rejoignez-la avant de lancer une partie solo.',
+                [
+                    { text: 'Plus tard', style: 'cancel' },
+                    {
+                        text: 'Rejoindre le match',
+                        onPress: () => router.push({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } })
+                    }
+                ]
             );
             return;
         }

@@ -30,6 +30,12 @@ const isExpoGo = Constants.appOwnership === 'expo';
 
 WebBrowser.maybeCompleteAuthSession();
 
+const DEV_TEST_ACCOUNTS = [
+    { label: 'Adil', email: 'adil@adil.com' },
+    { label: 'Khalid', email: 'khalid@khalid.com' },
+    { label: 'Aziz', email: 'aziz@aziz.com' },
+] as const;
+
 export default function LoginScreen() {
     const router = useRouter();
     const { autoJoinRoomId } = useLocalSearchParams<{ autoJoinRoomId?: string }>();
@@ -130,20 +136,7 @@ export default function LoginScreen() {
                         const { findActiveRoomForUser } = require('../src/core/services/firebase');
                         const activeRoomId = await findActiveRoomForUser(user.uid);
                         if (activeRoomId) {
-                            setTimeout(() => {
-                                const shouldReconnect = window.confirm(
-                                    "🎮 Reconnexion\n\nVous avez une partie en cours. Voulez-vous la reprendre ?"
-                                );
-                                if (shouldReconnect) {
-                                    router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } });
-                                } else {
-                                    if (autoJoinRoomId) {
-                                        router.replace({ pathname: '/lobby', params: { autoJoinRoomId } });
-                                    } else {
-                                        router.replace('/home');
-                                    }
-                                }
-                            }, 100);
+                            router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } });
                             return;
                         }
                     } catch (e) {
@@ -167,6 +160,43 @@ export default function LoginScreen() {
                 } else {
                     router.replace('/home');
                 }
+            }
+        } catch (error: any) {
+            console.error(error);
+            setErrorMessage(getErrorMessage(error));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDevQuickLogin = async (testEmail: string) => {
+        setEmail(testEmail);
+        setPassword(testEmail);
+        setErrorMessage('');
+        setSuccessMessage('');
+        setIsForgotMode(false);
+        setIsLoginMode(true);
+        setIsLoading(true);
+
+        try {
+            const user = await authService.signIn(testEmail, testEmail);
+            if (user) {
+                try {
+                    const { findActiveRoomForUser } = require('../src/core/services/firebase');
+                    const activeRoomId = await findActiveRoomForUser(user.uid);
+                    if (activeRoomId) {
+                        router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } });
+                        return;
+                    }
+                } catch (e) {
+                    console.error("❌ Rejoin check failed:", e);
+                }
+            }
+
+            if (autoJoinRoomId) {
+                router.replace({ pathname: '/lobby', params: { autoJoinRoomId } });
+            } else {
+                router.replace('/home');
             }
         } catch (error: any) {
             console.error(error);
@@ -277,6 +307,25 @@ export default function LoginScreen() {
                                         </Text>
                                     )}
                                 </TouchableOpacity>
+
+                                {__DEV__ && isLoginMode && !isForgotMode && (
+                                    <View style={styles.devQuickLoginBlock}>
+                                        <Text style={styles.devQuickLoginTitle}>Connexion test locale</Text>
+                                        <View style={styles.devQuickLoginRow}>
+                                            {DEV_TEST_ACCOUNTS.map((account) => (
+                                                <TouchableOpacity
+                                                    key={account.email}
+                                                    style={styles.devQuickLoginButton}
+                                                    onPress={() => handleDevQuickLogin(account.email)}
+                                                    disabled={isLoading}
+                                                    activeOpacity={0.85}
+                                                >
+                                                    <Text style={styles.devQuickLoginButtonText}>{account.label}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
 
                                 {!isForgotMode && (
                                     <View style={styles.separatorRow}>
@@ -436,6 +485,38 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '900',
         color: '#0A330B',
+    },
+    devQuickLoginBlock: {
+        marginTop: 8,
+        gap: 8,
+    },
+    devQuickLoginTitle: {
+        color: 'rgba(255,255,255,0.72)',
+        fontSize: 11,
+        fontWeight: '700',
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: 0.7,
+    },
+    devQuickLoginRow: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    devQuickLoginButton: {
+        flex: 1,
+        minHeight: 38,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.28)',
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 8,
+    },
+    devQuickLoginButtonText: {
+        color: '#FFD700',
+        fontSize: 12,
+        fontWeight: '800',
     },
     toggleModeButton: {
         alignItems: 'center',

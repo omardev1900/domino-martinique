@@ -1,9 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import GameScreen from '../../src/screens/GameScreen';
 import { AdBannerModal } from '../../src/components/AdBannerModal';
 import { adService } from '../../src/core/services/ad.service';
 import { Ad } from '../../src/core/ad.types';
+import { authService } from '../../src/core/services/auth.service';
 
 export default function GameRoute() {
     const params = useLocalSearchParams<{
@@ -20,6 +22,8 @@ export default function GameRoute() {
     }>();
 
     const [adToShow, setAdToShow] = useState<Ad | null>(null);
+    const [resolvedUserId, setResolvedUserId] = useState<string | null>(params.userId ?? null);
+    const [isResolvingUserId, setIsResolvingUserId] = useState(!params.userId);
 
     useEffect(() => {
         if (params.mode !== 'solo') {
@@ -29,11 +33,52 @@ export default function GameRoute() {
         }
     }, []);
 
+    useEffect(() => {
+        let cancelled = false;
+
+        const resolveUserId = async () => {
+            if (params.userId) {
+                setResolvedUserId(params.userId);
+                setIsResolvingUserId(false);
+                return;
+            }
+
+            try {
+                const currentUser = await authService.getCurrentUser();
+                if (!cancelled) {
+                    setResolvedUserId(currentUser?.uid ?? null);
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsResolvingUserId(false);
+                }
+            }
+        };
+
+        resolveUserId().catch(() => {
+            if (!cancelled) {
+                setIsResolvingUserId(false);
+            }
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [params.userId]);
+
+    if (isResolvingUserId) {
+        return (
+            <View style={styles.loading}>
+                <ActivityIndicator size="large" color="#FFD700" />
+            </View>
+        );
+    }
+
     return (
         <>
             <GameScreen
                 gameId={params.id}
-                userId={params.userId}
+                userId={resolvedUserId ?? undefined}
                 authUid={params.authUid}
                 mode={params.mode as 'solo' | 'multiplayer' | undefined}
                 difficulty={params.difficulty as any}
@@ -47,3 +92,12 @@ export default function GameRoute() {
         </>
     );
 }
+
+const styles = StyleSheet.create({
+    loading: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#1A0E2E',
+    },
+});

@@ -595,6 +595,65 @@ export const findHostedWaitingRoom = async (userId: string): Promise<string | nu
 };
 
 /**
+ * Deletes a waiting room if the requester is its host and nobody else joined yet.
+ * Returns true when the room was deleted, false when it was already gone.
+ */
+export const deleteWaitingRoomIfOwner = async (roomId: string, userId: string): Promise<boolean> => {
+    try {
+        const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+        const roomSnap = await getDoc(roomRef);
+
+        if (!roomSnap.exists()) {
+            return false;
+        }
+
+        const roomData = roomSnap.data() as GameRoom;
+        const isOwner = roomData.createdBy === userId;
+        const isWaiting = roomData.status === RoomStatus.WAITING;
+        const isEmptyWaitingRoom = roomData.players.length <= 1 && !roomData.gameState;
+
+        if (!isOwner) {
+            throw new Error("Seul l'hôte peut supprimer cette table.");
+        }
+
+        if (!isWaiting || !isEmptyWaitingRoom) {
+            throw new Error("Impossible de supprimer cette table : un autre joueur l'a déjà rejointe ou la partie a commencé.");
+        }
+
+        await deleteDoc(roomRef);
+        LogService.info('Firebase', `Waiting room ${roomId} deleted by host ${userId}`);
+        return true;
+    } catch (e) {
+        LogService.error('Firebase', 'Error deleting waiting room:', e);
+        throw e;
+    }
+};
+
+export const setUserActiveRoom = async (userId: string, roomId: string | null): Promise<void> => {
+    if (!userId) return;
+    try {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, { activeRoomId: roomId ?? null }, { merge: true });
+    } catch (e) {
+        LogService.error('Firebase', 'Error setting user active room:', e);
+    }
+};
+
+export const getUserActiveRoom = async (userId: string): Promise<string | null> => {
+    if (!userId) return null;
+    try {
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) return null;
+        const data = userSnap.data();
+        return typeof data.activeRoomId === 'string' && data.activeRoomId.length > 0 ? data.activeRoomId : null;
+    } catch (e) {
+        LogService.error('Firebase', 'Error getting user active room:', e);
+        return null;
+    }
+};
+
+/**
  * Checks if the user is already in an active game (PLAYING status).
  * @param userId The user ID to check
  * @returns The roomId if found, or null
@@ -602,6 +661,24 @@ export const findHostedWaitingRoom = async (userId: string): Promise<string | nu
 export const findActiveRoomForUser = async (userId: string): Promise<string | null> => {
     try {
         LogService.debug('Firebase', `Searching for active room for user: ${userId}`);
+
+        const persistedRoomId = await getUserActiveRoom(userId);
+        if (persistedRoomId) {
+            const persistedRoomRef = doc(db, ROOMS_COLLECTION, persistedRoomId);
+            const persistedRoomSnap = await getDoc(persistedRoomRef);
+            if (persistedRoomSnap.exists()) {
+                const persistedRoom = persistedRoomSnap.data() as GameRoom;
+                const isPlaying = persistedRoom.status === RoomStatus.PLAYING;
+                const isInPlayersList = persistedRoom.players.some(p => p.uid === userId);
+                const isInGameState = persistedRoom.gameState?.players.some(p => p.id === userId);
+                const isInPlayerIds = persistedRoom.playerIds?.includes(userId) ?? false;
+                if (isPlaying && (isInPlayersList || isInGameState || isInPlayerIds)) {
+                    LogService.debug('Firebase', `Found persisted active room for user ${userId}: ${persistedRoomId}`);
+                    return persistedRoomId;
+                }
+            }
+            await setUserActiveRoom(userId, null);
+        }
 
         // Query for rooms that are PLAYING
         // Note: Array-contains on objects requires exact match.
@@ -627,8 +704,12 @@ export const findActiveRoomForUser = async (userId: string): Promise<string | nu
             // Check if user is in gameState players (was in game, might be disconnected)
             const isInGameState = data.gameState?.players.some(p => p.id === userId);
 
-            if (isInPlayersList || isInGameState) {
-                LogService.debug('Firebase', `Found active room for user ${userId}: ${doc.id} (inPlayersList: ${isInPlayersList}, inGameState: ${isInGameState})`);
+            // Persistent membership marker, survives temporary disconnects and session resets
+            const isInPlayerIds = data.playerIds?.includes(userId) ?? false;
+
+            if (isInPlayersList || isInGameState || isInPlayerIds) {
+                LogService.debug('Firebase', `Found active room for user ${userId}: ${doc.id} (inPlayersList: ${isInPlayersList}, inGameState: ${isInGameState}, inPlayerIds: ${isInPlayerIds})`);
+                await setUserActiveRoom(userId, doc.id);
                 return doc.id;
             }
         }
