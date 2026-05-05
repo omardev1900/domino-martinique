@@ -193,7 +193,7 @@ class StatsService {
             else if (pts === -1) stats.totalLeagueMinus1Pt += 1;
         }
 
-        // Add to history (keep last 100)
+        // Add to history (keep last 500)
         const newRecord: MatchRecord = {
             id: Date.now().toString(),
             timestamp: Date.now(),
@@ -207,7 +207,7 @@ class StatsService {
             mode
         };
 
-        stats.matchHistory = [newRecord, ...stats.matchHistory].slice(0, 100);
+        stats.matchHistory = [newRecord, ...stats.matchHistory].slice(0, 500);
 
         this.cachedStats = stats;
         await this.persistStats();
@@ -354,7 +354,7 @@ class StatsService {
                 return !duplicate;
             })
             .sort((a, b) => b.timestamp - a.timestamp)
-            .slice(0, 100);
+            .slice(0, 500);
     }
 
     /**

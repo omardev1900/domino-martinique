@@ -95,6 +95,26 @@
   - **Point d'accroche recommandé** : à coupler avec les écrans de progression de palier et/ou de fin de match
   - **Estimation** : ~0,75 à 1 jour
 
+- [ ] **[R4-TECH-LEADERBOARD]** Refonte stats / leaderboard — découpler les agrégats globaux et mensuels de `matchHistory`
+  - **Problème actuel** : `matchHistory` est tronqué (désormais à 500) pour limiter la taille des données, mais il alimente encore une partie des stats mensuelles et certaines reconstructions en sync
+  - **Risque** :
+    - stats mensuelles incomplètes pour les gros joueurs
+    - classement mensuel dépendant d'un historique tronqué
+    - reconstruction de certains cumuls globaux depuis un historique limité
+  - **Objectif cible** :
+    - `globalCounters` persistants = source de vérité globale
+    - `monthlyCounters` persistants = source de vérité mensuelle
+    - `recentHistory` limité = affichage / historique récent uniquement
+  - **À faire** :
+    - créer des agrégats mensuels persistants (`monthKey`, matchs, points, cochons donnés/subis, breakdown 5/4/2/1/-1)
+    - ne plus recalculer `gamesPlayed`, `gamesWon`, `totalPointsAccumulated` depuis `matchHistory`
+    - faire lire `Classement du mois` uniquement depuis les agrégats mensuels
+    - faire lire `Classement global` uniquement depuis les agrégats globaux
+    - préparer le rollover automatique au changement de mois
+    - garder `matchHistory` comme historique d'UI uniquement, avec limite raisonnable
+  - **Option long terme** : si besoin d'historique complet, déplacer les matchs détaillés dans une sous-collection `users/{uid}/matches`
+  - **Estimation** : ~2 à 3 jours
+
 ### Priorité 1 — Ads-to-Reward System
 - [ ] **[ADS-REWARD]** Doubler les gains après pub — post-match modal avec CTA "Doubler mes gains via pub"
   - **Flow** : Fin match → modal résultats + bouton "Voir pub (x2 coins/XP)" → Google Ad → credited + toast "Gains doublés"
