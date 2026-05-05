@@ -115,7 +115,7 @@ export default function RootLayout() {
         SoundManager.playMusic(settings.gameBgmTheme, 0.5);
       }
     } else {
-      SoundManager.playMusic('bgm3', 0.5);
+        SoundManager.playMusic('mainMenu', 0.5);
     }
   }, [pathname, appReady]);
 

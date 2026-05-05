@@ -2,18 +2,43 @@ import { createAudioPlayer, AudioPlayer, setAudioModeAsync, AudioSource } from '
 import { Platform } from 'react-native';
 import { db } from '../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import SettingsManager from '../SettingsManager';
+import SettingsManager, { BgmTheme } from '../SettingsManager';
 import { LogService } from '../services/LogService';
 
-type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | 'bgm1' | 'bgm2' | 'bgm3' | 'end' | 'toktok' | 'startGame' | 'timer' | 'end_time' | 'leagueJingle' | 'roundEnd' | 'mancheEnd' | 'matchEnd';
+type MusicContext = Exclude<BgmTheme, 'none'>;
+type LegacyMusicContext = 'bgm1' | 'bgm2' | 'bgm3';
+type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | MusicContext | 'end' | 'toktok' | 'startGame' | 'timer' | 'end_time' | 'leagueJingle' | 'roundEnd' | 'mancheEnd' | 'matchEnd';
+
+type AudioAssignments = Record<MusicContext, string | null>;
+
+const MUSIC_CONTEXT_FALLBACK: Record<MusicContext, AudioSource> = {
+    mainMenu: require('@/assets/sounds/bgm3.mp3'),
+    gameNormal: require('@/assets/sounds/bgm3.mp3'),
+    gameIntense: require('@/assets/sounds/bgm3.mp3'),
+};
+
+function normalizeMusicContext(value: string): MusicContext | null {
+    if (value === 'bgm1' || value === 'gameNormal') return 'gameNormal';
+    if (value === 'bgm2' || value === 'gameIntense') return 'gameIntense';
+    if (value === 'bgm3' || value === 'mainMenu') return 'mainMenu';
+    return null;
+}
+
+function normalizeAssignments(assignments: Record<string, string | null | undefined> | undefined): AudioAssignments {
+    return {
+        mainMenu: assignments?.mainMenu ?? assignments?.bgm3 ?? null,
+        gameNormal: assignments?.gameNormal ?? assignments?.bgm1 ?? null,
+        gameIntense: assignments?.gameIntense ?? assignments?.bgm2 ?? null,
+    };
+}
 
 class SoundManager {
     private static instance: SoundManager;
     private sounds: Record<SoundName, AudioPlayer | null> = {
         clack1: null, clack2: null, clack3: null,
         notify: null, win: null, lose: null,
-        shuffle: null, bgm1: null, bgm2: null,
-        bgm3: null, end: null, toktok: null,
+        shuffle: null, mainMenu: null, gameNormal: null,
+        gameIntense: null, end: null, toktok: null,
         startGame: null, timer: null, end_time: null, leagueJingle: null, roundEnd: null, mancheEnd: null, matchEnd: null,
     };
 
@@ -28,7 +53,7 @@ class SoundManager {
 
     // WEB AUTOPLAY GUARD
     private userInteracted = Platform.OS !== 'web';
-    private pendingMusicName: ('bgm1' | 'bgm2' | 'bgm3') | null = null;
+    private pendingMusicName: MusicContext | null = null;
 
     private constructor() {
         this.startWatchdog();
@@ -71,17 +96,17 @@ class SoundManager {
             }
 
             // 1. Fetch Remote Config & Assignments
-            let remoteBGMs: Record<string, string> = {};
+            let remoteBGMs: Partial<Record<MusicContext, string>> = {};
             try {
                 const docRef = doc(db, 'config', 'audio');
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
                     const data = snap.data();
                     const bgmList = data.bgmList || [];
-                    const assignments = data.assignments || {};
+                    const assignments = normalizeAssignments(data.assignments);
 
                     // Résoudre chaque slot (bgm1, bgm2, bgm3) en fonction de l'ID assigné
-                    ['bgm1', 'bgm2', 'bgm3'].forEach(slot => {
+                    (Object.keys(assignments) as MusicContext[]).forEach(slot => {
                         const trackId = assignments[slot];
                         if (trackId) {
                             const track = bgmList.find((t: any) => t.id === trackId);
@@ -104,9 +129,9 @@ class SoundManager {
                 lose: require('@/assets/sounds/lose.mp3'),
                 shuffle: require('@/assets/sounds/distribute.mp3'),
                 // TOUTES les musiques utilisent bgm3.mp3 par défaut localement (Généralisation)
-                bgm1: remoteBGMs['bgm1'] || require('@/assets/sounds/bgm3.mp3'),
-                bgm2: remoteBGMs['bgm2'] || require('@/assets/sounds/bgm3.mp3'),
-                bgm3: remoteBGMs['bgm3'] || require('@/assets/sounds/bgm3.mp3'),
+                mainMenu: remoteBGMs.mainMenu || MUSIC_CONTEXT_FALLBACK.mainMenu,
+                gameNormal: remoteBGMs.gameNormal || MUSIC_CONTEXT_FALLBACK.gameNormal,
+                gameIntense: remoteBGMs.gameIntense || MUSIC_CONTEXT_FALLBACK.gameIntense,
                 end: require('@/assets/sounds/end.mp3'),
                 toktok: require('@/assets/sounds/toktok.mp3'),
                 startGame: require('@/assets/sounds/start-game.mp3'),
@@ -133,15 +158,17 @@ class SoundManager {
 
     // ─── Background Music ─────────────────────────────────────────────────────
 
-    async playMusic(name: 'bgm1' | 'bgm2' | 'bgm3', volume = 0.3) {
+    async playMusic(name: MusicContext | LegacyMusicContext, volume = 0.3) {
+        const normalizedName = normalizeMusicContext(name);
+        if (!normalizedName) return;
         if (!this.isAudioAllowed) {
-            this.pendingMusicName = name;
+            this.pendingMusicName = normalizedName;
             return;
         }
 
         try {
             // Éviter de relancer la même musique si elle joue déjà
-            if (this.currentMusicName === name && this.currentMusic?.playing) {
+            if (this.currentMusicName === normalizedName && this.currentMusic?.playing) {
                 return;
             }
 
@@ -152,7 +179,7 @@ class SoundManager {
                 this.currentMusic.seekTo(0);
             }
 
-            const player = this.sounds[name];
+            const player = this.sounds[normalizedName];
             if (player) {
                 this.baseMusicVolume = volume;
                 const settings = SettingsManager.getSettings();
@@ -162,7 +189,7 @@ class SoundManager {
                 player.play();
                 
                 this.currentMusic = player;
-                this.currentMusicName = name;
+                this.currentMusicName = normalizedName;
                 
                 const musicMultiplier = settings.isSfxEnabled ? 1 : 0;
                 

@@ -22,9 +22,9 @@ const THEME_OPTIONS: { theme: TableTheme; label: string; icon: string }[] = [
 ];
 
 const BGM_OPTIONS: { theme: BgmTheme; label: string; icon: string }[] = [
-  { theme: 'bgm1', label: 'Piste 1', icon: '🎵' },
-  { theme: 'bgm2', label: 'Piste 2', icon: '🎷' },
-  { theme: 'bgm3', label: 'Piste 3', icon: '🎸' },
+  { theme: 'gameNormal', label: 'Partie normale', icon: '🎵' },
+  { theme: 'gameIntense', label: 'Partie intense', icon: '🔥' },
+  { theme: 'mainMenu', label: 'Menu principal', icon: '🏠' },
   { theme: 'none', label: 'Silence', icon: '🔇' },
 ];
 
