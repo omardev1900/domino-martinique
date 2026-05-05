@@ -13,6 +13,16 @@
 
 ### 2026-05-05 — Ligue mensuelle & aide (session Codex)
 
+- [x] **[R4-B6]** Multijoueur — suppression d'une table vide par son hôte
+  - **Accueil / modes multi** : la table vide déjà créée est détectée et peut être rejointe ou supprimée
+  - **Lobby d’attente en jeu** : l’hôte peut aussi supprimer la table directement tant qu’aucun autre joueur n’a rejoint et que la partie n’a pas commencé
+  - **Objectif** : éviter les tables orphelines et permettre au joueur de repartir proprement
+
+- [x] **[R4-UX6]** Accueil — homogénéisation de la hauteur des 3 blocs principaux
+  - **Blocs concernés** : `Jouer`, `Actus`, `Info niveau ligue`
+  - **Correction** : wrappers et cartes alignés sur une hauteur commune pour éviter les écarts visuels selon le contenu ou le device
+  - **Fichier principal** : `mobile/app/home.tsx`
+
 - [x] **[R4-UX4]** `/ligue-cochons` — séparation du hub Ligue en `Ma Ligue`, `Classement du mois`, `Classement global`
   - **Classement du mois** : mêmes familles `+ Cochons / - Cochons / + Points`, mais calculées depuis le mois courant (`matchHistory`)
   - **Classement global** : mêmes familles, calculées sur le cumul historique

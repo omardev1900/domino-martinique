@@ -10,6 +10,8 @@
 - **Ligue des Cochons** — `/ligue-cochons` sépare désormais `Classement du mois` et `Classement global`, avec les mêmes catégories `+ Cochons / - Cochons / + Points`.
 - **Aide** — les explications détaillées de la Ligue quittent la page Ligue et apparaissent maintenant dans un onglet `Ligue` du modal `Aide`.
 - **Classements de Ligue** — les vues mensuelles utilisent maintenant des métriques réellement calculées sur le mois en cours (`matchs`, `cochons`, `cochons subis`, `points`).
+- **Accueil** — les 3 blocs principaux (`Jouer`, `Actus`, `Ligue`) ont désormais une hauteur homogène pour un rendu plus propre selon les écrans.
+- **Multijoueur** — une table vide créée par l’hôte peut maintenant être supprimée aussi depuis le lobby d’attente du jeu, pas seulement depuis les écrans de navigation.
 
 ---
 

@@ -21,6 +21,7 @@ import { LobbyScreen } from './LobbyScreen';
 import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
 import { QuickChat } from '../components/QuickChat';
 import { RoundResultCard } from '../components/game/RoundResultCard';
+import { RewardOverlay } from '../components/RewardOverlay';
 
 // Core
 import { determineFirstPlayer, dealGameSolo, getForcedOpeningDominoId, getForcedTieBreakDominoId, dealGame } from '../core/LogicEngine';
@@ -306,6 +307,15 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     // -- 6. Derived State & Layout --
     const localPlayer = gameState?.players.find(p => p.id === localPlayerId);
     const isMyTurn = gameState?.currentPlayerId === localPlayerId;
+    const isLocalMatchWinner = useMemo(() => {
+        if (!gameState || gameState.phase !== 'MATCH_END') return false;
+        const sorted = [...gameState.players].sort((a, b) => {
+            if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+            if (b.totalCochons !== a.totalCochons) return b.totalCochons - a.totalCochons;
+            return b.mancheWins - a.mancheWins;
+        });
+        return sorted[0]?.id === localPlayerId;
+    }, [gameState, localPlayerId]);
     // isGameOver : logique UI générale (header, PlayerArea, QuickChat...)
     const isGameOver = gameState?.phase === 'MATCH_END' || gameState?.phase === 'MANCHE_END'
         || gameState?.phase === 'PARTIE_END' || gameState?.phase === 'BOUDE';
@@ -390,6 +400,9 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                         // ✅ Exécution sécurisée côté serveur (Backend Banker)
                         const reward = await economyService.processServerReward(rewardInput, persistenceUserId);
                         setMatchReward(reward);
+                        if (reward.gradeUp || (reward.newlyUnlockedFrames?.length ?? 0) > 0) {
+                            setShowRewardOverlay(true);
+                        }
 
                         // Les stats mensuelles doivent refléter le barème métier du RewardEngine
                         // (5/4/2/1/-1) et non le delta cumulé des cochons donnés.
@@ -441,6 +454,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         } else if (gameState?.phase !== 'MATCH_END' && gameState?.phase !== 'MANCHE_END') {
             statsRecordedRef.current = false;
             setMatchReward(null); // Reset pour la prochaine partie
+            setShowRewardOverlay(false);
         }
     }, [gameState?.phase, localPlayerId, isSoloMode, persistenceUserId]);
 
@@ -1223,6 +1237,13 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 isPaused={isPaused}
                 onResume={() => setIsPaused(false)}
                 matchReward={matchReward}
+            />
+
+            <RewardOverlay
+                visible={showRewardOverlay && !!matchReward}
+                reward={matchReward}
+                isWinner={isLocalMatchWinner}
+                onContinue={() => setShowRewardOverlay(false)}
             />
 
 

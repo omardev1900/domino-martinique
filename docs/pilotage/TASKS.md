@@ -51,7 +51,7 @@
 
 | Ticket | Description | Priorité | Statut |
 |---|---|---|---|
-| **R4-B6** | Multijoueur — suppression d'une table vide par son hôte | 🟠 UX / Fiabilité | 🔄 En cours (05/05) |
+| **R4-B2** | Ligue des Cochons — popup de passage de palier en vrai flux de jeu | 🔴 Critique | 🔄 En cours (05/05) |
 
 ---
 

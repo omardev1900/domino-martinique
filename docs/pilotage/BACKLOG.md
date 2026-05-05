@@ -102,7 +102,7 @@
   - **Point d'accroche recommandé** : à coupler avec les écrans de progression de palier et/ou de fin de match
   - **Estimation** : ~0,75 à 1 jour
 
-- [ ] **[R4-UX6]** Accueil — unifier la hauteur des 3 blocs principaux sur tous les appareils
+- [x] **[R4-UX6]** Accueil — unifier la hauteur des 3 blocs principaux sur tous les appareils *(livré le 05/05/2026)*
   - **Symptôme** : les 3 blocs de l’accueil n’ont pas toujours la même hauteur selon le device, le ratio ou le contenu
   - **Objectif** : garantir une hauteur strictement homogène pour les 3 cartes de la rangée d’accueil, quel que soit l’écran
   - **À auditer** : `home.tsx`, contraintes de layout web/mobile, responsive sur desktop, tablette et mobile
