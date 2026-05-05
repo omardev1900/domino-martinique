@@ -195,7 +195,7 @@ export default function RootLayout() {
               style={{
                 position: 'absolute',
                 top: 14,
-                left: showSidebar ? SIDEBAR_WIDTH + 56 : 72,
+                right: showSidebar ? 26 : 86,
                 zIndex: 1000,
               }}
             >

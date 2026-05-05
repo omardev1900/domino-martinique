@@ -12,7 +12,6 @@ import { leaderboardService, LeaderboardEntry, LeaderboardCategory } from '../sr
 import { authService } from '../src/core/services/auth.service';
 import { economyService } from '../src/core/services/economy.service';
 import { getAvatarImage } from '../src/core/avatars';
-import { LEAGUE_LABELS, LEAGUE_ICONS } from '../src/core/economy.constants';
 import { PlayerProfile } from '../src/core/types';
 
 export default function LeaderboardScreen() {
@@ -144,13 +143,10 @@ export default function LeaderboardScreen() {
                     </View>
                 </View>
 
-                {/* Nom et Ligue */}
+                {/* Nom */}
                 <View style={styles.nameContainer}>
                     <Text style={[styles.nameText, isCurrentUser && styles.currentUserName]} numberOfLines={1}>
                         {isCurrentUser ? `${item.displayName} (Vous)` : item.displayName}
-                    </Text>
-                    <Text style={styles.leagueText}>
-                        {LEAGUE_ICONS[item.leagueGrade]} {LEAGUE_LABELS[item.leagueGrade]}
                     </Text>
                 </View>
 
