@@ -218,7 +218,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const [showRoundResult, setShowRoundResult] = useState(false);
     // Snapshot du gameState au moment où la carte résultat est déclenchée.
     // Évite que le contenu change si la phase évolue pendant l'affichage (ex: égalité boudé).
-    const roundResultSnapshotRef = useRef<typeof gameState | null>(null);
+    const [roundResultSnapshot, setRoundResultSnapshot] = useState<typeof gameState | null>(null);
     const [isSoundEnabled, setIsSoundEnabled] = useState(() => SettingsManager.getSettings().isSfxEnabled);
     const [isVibrationEnabled, setIsVibrationEnabled] = useState(() => SettingsManager.getSettings().isVibrationEnabled);
     const [bannerState, setBannerState] = useState<'NONE' | 'MANCHE' | 'ROUND'>('NONE');
@@ -522,6 +522,15 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     useEffect(() => {
         if (!gameState) return;
 
+        if (
+            gameState.phase !== 'BOUDE'
+            && gameState.phase !== 'PARTIE_END'
+            && gameState.phase !== 'MANCHE_END'
+            && gameState.phase !== 'MATCH_END'
+        ) {
+            setRoundResultSnapshot(null);
+        }
+
         // ── Garde catch-all : si BOUDE a été affiché mais PARTIE_END a été skippé
         // (Firestore peut livrer BOUDE → PLAYING directement en multiplayer)
         // IMPORTANT : ne pas retourner early pour MANCHE_END/MATCH_END — laisser
@@ -537,7 +546,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         if (gameState.phase === 'BOUDE' && !showRoundResult) {
             // Partie bloquée : card immédiate 3.5s, host résout BOUDE au bout
             boudeHandledRef.current = true;
-            roundResultSnapshotRef.current = gameState;
+            setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             if (isLocalHost) {
                 // Host : on résout soi-même après 5s (annule le timer 6s séparé)
@@ -560,7 +569,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 return;
             }
             // PARTIE_END classique (victoire normale)
-            roundResultSnapshotRef.current = gameState;
+            setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
@@ -576,6 +585,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
         if (gameState.phase === 'MANCHE_END') {
             // Fin de manche : RoundResultCard 5s, PUIS UnifiedResultOverlay
+            setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
@@ -590,7 +600,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
         if (gameState.phase === 'MATCH_END') {
             // Fin de match : affichage temporaire du RoundResultCard (2.5s) PUIS UnifiedResultOverlay
-            roundResultSnapshotRef.current = gameState;
+            setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
@@ -1258,9 +1268,9 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             )}
 
             {/* ✨ RoundResultCard — résumé visuel avant l'écran de score */}
-            {(roundResultSnapshotRef.current ?? gameState) && (
+            {(roundResultSnapshot ?? gameState) && (
                 <RoundResultCard
-                    gameState={roundResultSnapshotRef.current ?? gameState!}
+                    gameState={roundResultSnapshot ?? gameState!}
                     visible={showRoundResult}
                 />
             )}

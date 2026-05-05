@@ -3,7 +3,10 @@ import { render, waitFor } from '@testing-library/react-native';
 import GameScreen from '../GameScreen';
 import { MatchReward } from '../../core/economy.types';
 
+jest.setTimeout(15000);
+
 const mockRewardOverlay = jest.fn(() => null);
+const mockRoundResultCard = jest.fn(() => null);
 
 jest.mock('react-native-reanimated', () => {
     const Reanimated = require('react-native-reanimated/mock');
@@ -65,7 +68,7 @@ jest.mock('../../components/QuickChat', () => ({
     QuickChat: () => null,
 }));
 jest.mock('../../components/game/RoundResultCard', () => ({
-    RoundResultCard: () => null,
+    RoundResultCard: (props: any) => mockRoundResultCard(props),
 }));
 jest.mock('../../components/FlyingDomino', () => ({
     FlyingDomino: () => null,
@@ -85,7 +88,7 @@ jest.mock('../../hooks/game/useConnectionStatus', () => ({
     }),
 }));
 
-const matchEndState = {
+let mockCurrentGameState = {
     gameId: 'game-123',
     players: [
         {
@@ -143,7 +146,7 @@ const matchEndState = {
 
 jest.mock('../../hooks/game/useGameSync', () => ({
     useGameSync: () => ({
-        gameState: matchEndState,
+        gameState: mockCurrentGameState,
         roomData: null,
         isStarting: false,
         setIsStarting: jest.fn(),
@@ -315,6 +318,61 @@ jest.mock('../../core/services/ad.service', () => ({
 describe('GameScreen grade-up flow', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockCurrentGameState = {
+            gameId: 'game-123',
+            players: [
+                {
+                    id: 'p1',
+                    name: 'Moi',
+                    avatarId: 'avatar_default',
+                    hand: [],
+                    handSize: 0,
+                    currentMancheStars: 0,
+                    wins: 0,
+                    mancheWins: 2,
+                    totalRoundWins: 5,
+                    totalPoints: 20,
+                    isCochon: false,
+                    totalCochons: 3,
+                    totalCochonsInfliges: 10,
+                    totalCochonsSubis: 1,
+                    status: 'HUMAN',
+                },
+                {
+                    id: 'bot-1',
+                    name: 'Bot',
+                    avatarId: 'avatar_default',
+                    hand: [],
+                    handSize: 0,
+                    currentMancheStars: 0,
+                    wins: 0,
+                    mancheWins: 1,
+                    totalRoundWins: 2,
+                    totalPoints: 8,
+                    isCochon: false,
+                    totalCochons: 0,
+                    totalCochonsInfliges: 0,
+                    totalCochonsSubis: 3,
+                    status: 'BOT',
+                },
+            ],
+            talonMort: [],
+            table: { sequence: [], leftValue: null, rightValue: null },
+            currentPlayerId: 'p1',
+            phase: 'MATCH_END',
+            firstPlayerOfRound: null,
+            history: [],
+            winningCondition: 3,
+            gameMode: 'MANCHE',
+            mancheResult: null,
+            turnDuration: 15,
+            lastActionTimestamp: 0,
+            turnId: 1,
+            mancheHistory: [],
+            roundNumber: 1,
+            mancheNumber: 1,
+            startingHandSize: 7,
+        };
     });
 
     it('affiche RewardOverlay quand la récompense de fin de match contient un gradeUp', async () => {
@@ -336,6 +394,63 @@ describe('GameScreen grade-up flow', () => {
             expect(lastCall.visible).toBe(true);
             expect(lastCall.reward.gradeUp).toBe(true);
             expect(lastCall.reward.newGrade).toBe('APPRENTI_1');
+        });
+    });
+
+    it('rafraîchit le snapshot de RoundResultCard en MANCHE_END au lieu de réutiliser le round précédent', async () => {
+        mockCurrentGameState = {
+            ...mockCurrentGameState,
+            phase: 'PARTIE_END',
+            history: [
+                { action: 'PLAY', playerId: 'p1', domino: { left: 6, right: 6 } },
+            ],
+        } as any;
+
+        const view = render(
+            <GameScreen
+                gameId="game-123"
+                userId="p1"
+                mode="solo"
+                gameMode="MANCHE"
+                winningCondition={3}
+                turnDuration={15}
+                startingHandSize={7}
+            />
+        );
+
+        await waitFor(() => {
+            const lastCall = mockRoundResultCard.mock.calls[mockRoundResultCard.mock.calls.length - 1][0];
+            expect(lastCall.gameState.phase).toBe('PARTIE_END');
+            expect(lastCall.gameState.history[0].domino.left).toBe(6);
+            expect(lastCall.gameState.history[0].domino.right).toBe(6);
+        });
+
+        mockCurrentGameState = {
+            ...mockCurrentGameState,
+            phase: 'MANCHE_END',
+            mancheResult: 'COCHON',
+            history: [
+                { action: 'PLAY', playerId: 'p1', domino: { left: 1, right: 4 } },
+            ],
+        } as any;
+
+        view.rerender(
+            <GameScreen
+                gameId="game-123"
+                userId="p1"
+                mode="solo"
+                gameMode="MANCHE"
+                winningCondition={3}
+                turnDuration={15}
+                startingHandSize={7}
+            />
+        );
+
+        await waitFor(() => {
+            const lastCall = mockRoundResultCard.mock.calls[mockRoundResultCard.mock.calls.length - 1][0];
+            expect(lastCall.gameState.phase).toBe('MANCHE_END');
+            expect(lastCall.gameState.history[0].domino.left).toBe(1);
+            expect(lastCall.gameState.history[0].domino.right).toBe(4);
         });
     });
 });
