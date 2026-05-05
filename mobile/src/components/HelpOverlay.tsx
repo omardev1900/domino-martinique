@@ -13,13 +13,14 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, ZoomIn, SlideInDown, useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { LeagueInfoContent } from './LeagueInfoContent';
 
 interface HelpOverlayProps {
     visible: boolean;
     onClose: () => void;
 }
 
-type TabType = 'REGLES' | 'RECOMPENSES' | 'DON';
+type TabType = 'REGLES' | 'RECOMPENSES' | 'LIGUE' | 'DON';
 
 export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) => {
     const { width, height } = useWindowDimensions();
@@ -153,7 +154,11 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
             </Section>
         </ScrollView>
     );
-
+    const renderLigue = () => (
+        <View style={styles.tabContentFull}>
+            <LeagueInfoContent />
+        </View>
+    );
 
     const renderDon = () => (
         <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
@@ -220,6 +225,7 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
                                 {renderTabButton('REGLES', 'Règles', '🎲')}
                                 {renderTabButton('RECOMPENSES', 'Récompenses', '💰')}
+                                {renderTabButton('LIGUE', 'Ligue', '🏆')}
                                 {renderTabButton('DON', 'Soutenir MDC', '🤝')}
                             </ScrollView>
                         </View>
@@ -228,6 +234,7 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ visible, onClose }) =>
                         <View style={styles.body}>
                             {activeTab === 'REGLES' && renderRegles()}
                             {activeTab === 'RECOMPENSES' && renderRecompenses()}
+                            {activeTab === 'LIGUE' && renderLigue()}
                             {activeTab === 'DON' && renderDon()}
                         </View>
                     </LinearGradient>
@@ -335,6 +342,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     tabContent: {
+        paddingVertical: 20,
+    },
+    tabContentFull: {
+        flex: 1,
         paddingVertical: 20,
     },
     section: {

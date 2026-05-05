@@ -42,6 +42,12 @@ export interface LeaderboardEntry {
     totalPointsAccumulated: number;
     /** Nombre total de matchs joués (départage en cas d'égalité) */
     gamesPlayed: number;
+    /** Nombre de matchs joués depuis le début du mois en cours */
+    gamesPlayedThisMonth: number;
+    /** Cochons subis depuis le début du mois en cours */
+    totalCochonsSubisThisMonth: number;
+    /** Points cumulés depuis le début du mois en cours */
+    totalPointsAccumulatedThisMonth: number;
     rank: number;
 }
 
@@ -55,6 +61,54 @@ const CATEGORY_FIELD: Record<LeaderboardCategory, string> = {
 };
 
 class LeaderboardService {
+    private mapUserToEntry(docId: string, data: any, rank: number, startOfMonth: number): LeaderboardEntry | null {
+        const economy = data.economy || {};
+        const stats = data.stats || {};
+
+        if (economy.xp === undefined || economy.coins === undefined) {
+            return null;
+        }
+
+        const cochonsGiven = stats.totalCochonsInflicted || economy.cochonsGiven || 0;
+        const matchHistory: Array<{
+            timestamp?: number;
+            cochons?: number;
+            score?: number;
+            leaguePointsEarned?: number;
+            mancheLeaguePointsEarned?: number[];
+        }> = stats.matchHistory || [];
+
+        const monthlyHistory = matchHistory.filter(m => (m.timestamp ?? 0) >= startOfMonth);
+        const cochonsGivenThisMonth = monthlyHistory.reduce((sum, m) => sum + (m.cochons ?? 0), 0);
+        const totalPointsAccumulatedThisMonth = monthlyHistory.reduce((sum, m) => sum + (m.score ?? 0), 0);
+        const totalCochonsSubisThisMonth = monthlyHistory.reduce((sum, m) => {
+            const mancheResults = m.mancheLeaguePointsEarned?.length
+                ? m.mancheLeaguePointsEarned
+                : (typeof m.leaguePointsEarned === 'number' ? [m.leaguePointsEarned] : []);
+            return sum + mancheResults.filter(v => v === -1).length;
+        }, 0);
+
+        return {
+            uid: docId,
+            displayName: data.displayName || data.email?.split('@')[0] || 'Joueur',
+            avatarId: data.avatarId || data.avatarUrl || 'avatar_default',
+            activeFrame: economy.activeFrame || null,
+            xp: economy.xp || 0,
+            coins: economy.coins || 0,
+            level: economy.level || 1,
+            leagueGrade: economy.leagueGrade || null,
+            leaguePoints: economy.leaguePoints || 0,
+            cochonsGiven,
+            cochonsGivenThisMonth,
+            totalCochonsSubis: stats.totalCochonsSubis ?? 0,
+            totalPointsAccumulated: stats.totalPointsAccumulated || 0,
+            gamesPlayed: stats.gamesPlayed || 0,
+            gamesPlayedThisMonth: monthlyHistory.length,
+            totalCochonsSubisThisMonth,
+            totalPointsAccumulatedThisMonth,
+            rank,
+        };
+    }
 
     /**
      * S'abonne en temps réel au classement de la catégorie donnée.
@@ -82,42 +136,10 @@ class LeaderboardService {
             const startOfMonth = getStartOfCurrentMonthUtc();
 
             snapshot.forEach((doc) => {
-                const data = doc.data();
-                const economy = data.economy || {};
-                const stats = data.stats || {};
-
-                // Ne garder que les joueurs ayant de l'XP ou des Coins (éviter les faux profils)
-                if (economy.xp !== undefined && economy.coins !== undefined) {
-                    // Priorité à stats.totalCochonsInflicted (jamais désynchronisé) avec fallback economy.cochonsGiven
-                    const cochonsGiven = stats.totalCochonsInflicted || economy.cochonsGiven || 0;
-
-                    const matchHistory: Array<{ timestamp?: number; cochons?: number }> = stats.matchHistory || [];
-
-                    // Cochons donnés ce mois — somme des m.cochons depuis le 1er du mois
-                    const cochonsGivenThisMonth = matchHistory
-                        .filter(m => (m.timestamp ?? 0) >= startOfMonth)
-                        .reduce((sum, m) => sum + (m.cochons ?? 0), 0);
-
-                    // Cochons subis : compteur persistant lifetime (jamais tronqué)
-                    const totalCochonsSubis: number = stats.totalCochonsSubis ?? 0;
-
-                    leaderboard.push({
-                        uid: doc.id,
-                        displayName: data.displayName || data.email?.split('@')[0] || 'Joueur',
-                        avatarId: data.avatarId || data.avatarUrl || 'avatar_default',
-                        activeFrame: economy.activeFrame || null,
-                        xp: economy.xp || 0,
-                        coins: economy.coins || 0,
-                        level: economy.level || 1,
-                        leagueGrade: economy.leagueGrade || null,
-                        leaguePoints: economy.leaguePoints || 0,
-                        cochonsGiven,
-                        cochonsGivenThisMonth,
-                        totalCochonsSubis,
-                        totalPointsAccumulated: stats.totalPointsAccumulated || 0,
-                        gamesPlayed: stats.gamesPlayed || 0,
-                        rank: currentRank++,
-                    });
+                const entry = this.mapUserToEntry(doc.id, doc.data(), currentRank, startOfMonth);
+                if (entry) {
+                    leaderboard.push(entry);
+                    currentRank += 1;
                 }
             });
 
@@ -128,6 +150,32 @@ class LeaderboardService {
         });
 
         return unsubscribe;
+    }
+
+    subscribeLeagueClassement(
+        callback: (entries: LeaderboardEntry[]) => void
+    ): Unsubscribe {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef);
+
+        return onSnapshot(q, (snapshot) => {
+            const entries: LeaderboardEntry[] = [];
+            const startOfMonth = getStartOfCurrentMonthUtc();
+            let currentRank = 1;
+
+            snapshot.forEach((doc) => {
+                const entry = this.mapUserToEntry(doc.id, doc.data(), currentRank, startOfMonth);
+                if (entry) {
+                    entries.push(entry);
+                    currentRank += 1;
+                }
+            });
+
+            callback(entries);
+        }, (error) => {
+            console.error('[LeaderboardService] subscribeLeagueClassement error:', error);
+            callback([]);
+        });
     }
 
     /**

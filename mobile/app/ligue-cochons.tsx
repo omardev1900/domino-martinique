@@ -12,7 +12,7 @@ export default function LigueCochonsScreen() {
         <LinearGradient colors={['#1A0535', '#0D0520', '#180830']} style={styles.container}>
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
                 <Text style={styles.headerTitle}>Ligue des Cochons</Text>
-                <Text style={styles.headerSubtitle}>Ma Ligue, Classement et Infos</Text>
+                <Text style={styles.headerSubtitle}>Ma Ligue et classements</Text>
             </View>
 
             <View style={[styles.content, { paddingBottom: insets.bottom + 16 }]}>

@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInLeft, FadeInRight, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import {
     LEAGUE_FRAME_THRESHOLDS,
@@ -19,7 +18,7 @@ import { authService } from '../core/services/auth.service';
 import { getAvatarImage } from '../core/avatars';
 import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../core/leagueProgress';
 
-type TabType = 'INFOS' | 'MA_LIGUE' | 'CLASSEMENT';
+type TabType = 'MA_LIGUE' | 'CLASSEMENT_MOIS' | 'CLASSEMENT_GLOBAL';
 type ClassementCategory = 'PLUS_COCHONS' | 'MOINS_COCHONS' | 'PLUS_POINTS';
 type ClassementMode = 'TOTAL' | 'PERF';
 
@@ -27,25 +26,6 @@ const CATEGORY_CONFIG: Record<ClassementCategory, { label: string; icon: string;
     PLUS_COCHONS: { label: '+ Cochons', icon: '🐷', color: '#FF8C00', sublabel: 'cochons infligés' },
     MOINS_COCHONS: { label: '- Cochons', icon: '🛡️', color: '#4FC3F7', sublabel: 'cochons subis' },
     PLUS_POINTS: { label: '+ Points', icon: '⭐', color: '#FFD700', sublabel: 'points cumulés' },
-};
-
-const APPRENTI_SUBS = [
-    { grade: 'APPRENTI_1' as const, num: 1, color: '#BDBDBD', seuil: LEAGUE_FRAME_THRESHOLDS.APPRENTI_1 },
-    { grade: 'APPRENTI_2' as const, num: 2, color: '#8A8A8A', seuil: LEAGUE_FRAME_THRESHOLDS.APPRENTI_2 },
-    { grade: 'APPRENTI_3' as const, num: 3, color: '#616161', seuil: LEAGUE_FRAME_THRESHOLDS.APPRENTI_3 },
-];
-
-const MAITRE_SUBS = [
-    { grade: 'MAITRE_1' as const, num: 1, color: '#FFE57A', seuil: LEAGUE_FRAME_THRESHOLDS.MAITRE_1 },
-    { grade: 'MAITRE_2' as const, num: 2, color: '#FFD700', seuil: LEAGUE_FRAME_THRESHOLDS.MAITRE_2 },
-    { grade: 'MAITRE_3' as const, num: 3, color: '#FFA000', seuil: LEAGUE_FRAME_THRESHOLDS.MAITRE_3 },
-];
-
-const gradeColor = (grade: LeagueGrade): string => {
-    if (grade.startsWith('APPRENTI')) return '#9E9E9E';
-    if (grade.startsWith('MAITRE')) return '#FFD700';
-    if (grade === 'ROI') return '#4FC3F7';
-    return '#FF5252';
 };
 
 const tierTheme = (grade: LeagueGrade) => {
@@ -81,7 +61,8 @@ export const LeagueHubView: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (activeTab !== 'CLASSEMENT') {
+        const isClassementTab = activeTab === 'CLASSEMENT_MOIS' || activeTab === 'CLASSEMENT_GLOBAL';
+        if (!isClassementTab) {
             classementUnsubRef.current?.();
             classementUnsubRef.current = null;
             return;
@@ -89,7 +70,7 @@ export const LeagueHubView: React.FC = () => {
         if (classementUnsubRef.current) return;
 
         setClassementLoading(true);
-        classementUnsubRef.current = leaderboardService.subscribeLeaderboard('COCHONS', 150, (entries) => {
+        classementUnsubRef.current = leaderboardService.subscribeLeagueClassement((entries) => {
             setAllEntries(entries);
             setClassementLoading(false);
         });
@@ -100,90 +81,9 @@ export const LeagueHubView: React.FC = () => {
         };
     }, [activeTab]);
 
-    const renderInfos = () => (
-        <ScrollView style={styles.dashContainer} contentContainerStyle={styles.dashContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.dashHeader}>
-                <Ionicons name="trophy" size={18} color="#FFD700" />
-                <Text style={styles.dashTitle}>LIGUE DES COCHONS</Text>
-                <Text style={styles.dashSub}>Infligez des cochons pour grimper les rangs</Text>
-            </View>
-
-            <View style={styles.dashMain}>
-                <View style={styles.dashLeft}>
-                    <Animated.View entering={FadeInLeft.duration(450)} style={[styles.groupCard, styles.groupCardApprentit]}>
-                        <View style={styles.groupHeader}>
-                            <Text style={styles.groupIcon}>🥈</Text>
-                            <Text style={[styles.groupTitle, { color: '#9E9E9E' }]}>APPRENTI</Text>
-                        </View>
-                        <View style={styles.subgradesRow}>
-                            {APPRENTI_SUBS.map((sub) => (
-                                <View key={sub.grade} style={[styles.subBadge, { borderColor: sub.color }]}>
-                                    <Text style={[styles.subNum, { color: sub.color }]}>{sub.num}</Text>
-                                    <Text style={styles.subSeuil}>{sub.seuil}🐷</Text>
-                                </View>
-                            ))}
-                        </View>
-                        <View style={styles.groupRewardRow}>
-                            <Ionicons name="cash-outline" size={11} color="#9E9E9E" />
-                            <Text style={[styles.groupRewardText, { color: '#9E9E9E' }]}>
-                                {LEAGUE_FRAME_REWARDS.APPRENTI_1.coinsBonus}–{LEAGUE_FRAME_REWARDS.APPRENTI_3.coinsBonus} coins
-                            </Text>
-                        </View>
-                    </Animated.View>
-
-                    <Animated.View entering={FadeInLeft.duration(450).delay(120)} style={[styles.groupCard, styles.groupCardMaitre]}>
-                        <View style={styles.groupHeader}>
-                            <Text style={styles.groupIcon}>🥇</Text>
-                            <Text style={[styles.groupTitle, { color: '#FFD700' }]}>MAÎTRE SAUCISSIER</Text>
-                        </View>
-                        <View style={styles.subgradesRow}>
-                            {MAITRE_SUBS.map((sub) => (
-                                <View key={sub.grade} style={[styles.subBadge, { borderColor: sub.color }]}>
-                                    <Text style={[styles.subNum, { color: sub.color }]}>{sub.num}</Text>
-                                    <Text style={styles.subSeuil}>{sub.seuil}🐷</Text>
-                                </View>
-                            ))}
-                        </View>
-                        <View style={styles.groupRewardRow}>
-                            <Ionicons name="cash-outline" size={11} color="#FFD700" />
-                            <Text style={[styles.groupRewardText, { color: '#FFD700' }]}>
-                                {LEAGUE_FRAME_REWARDS.MAITRE_1.coinsBonus}–{LEAGUE_FRAME_REWARDS.MAITRE_3.coinsBonus} coins
-                            </Text>
-                        </View>
-                    </Animated.View>
-                </View>
-
-                <View style={styles.dashRight}>
-                    <Animated.View entering={FadeInRight.duration(450).delay(60)} style={[styles.eliteCard, styles.eliteCardRoi]}>
-                        <Text style={styles.eliteIcon}>👑</Text>
-                        <Text style={[styles.eliteName, { color: '#4FC3F7' }]}>ROI DU BOUDIN</Text>
-                        <Text style={[styles.eliteSeuil, { color: '#4FC3F7' }]}>250 🐷</Text>
-                        <View style={[styles.eliteRewardRow, { borderColor: 'rgba(79,195,247,0.2)' }]}>
-                            <Ionicons name="cash-outline" size={11} color="#4FC3F7" />
-                            <Text style={[styles.eliteRewardText, { color: '#4FC3F7' }]}>
-                                {LEAGUE_FRAME_REWARDS.ROI.coinsBonus} coins
-                            </Text>
-                        </View>
-                    </Animated.View>
-
-                    <Animated.View entering={FadeInRight.duration(450).delay(180)} style={[styles.eliteCard, styles.eliteCardLegende]}>
-                        <Text style={styles.eliteIcon}>🔥</Text>
-                        <Text style={[styles.eliteName, { color: '#FF5252' }]}>LÉGENDE DU GROUIN</Text>
-                        <Text style={[styles.eliteSeuil, { color: '#FF5252' }]}>500 🐷</Text>
-                        <View style={[styles.eliteRewardRow, { borderColor: 'rgba(255,82,82,0.2)' }]}>
-                            <Ionicons name="cash-outline" size={11} color="#FF5252" />
-                            <Text style={[styles.eliteRewardText, { color: '#FF5252' }]}>
-                                {LEAGUE_FRAME_REWARDS.LEGENDE.coinsBonus} coins
-                            </Text>
-                        </View>
-                    </Animated.View>
-                </View>
-            </View>
-        </ScrollView>
-    );
+    const progress = useMemo(() => getLeagueProgress(leaguePoints), [leaguePoints]);
 
     const renderMaLigue = () => {
-        const progress = getLeagueProgress(leaguePoints);
         const currentIndex = progress.grade ? LEAGUE_GRADE_ORDER.indexOf(progress.grade) : -1;
         const tierCardWidth = width >= 900 ? '22.5%' : '47%';
 
@@ -277,30 +177,30 @@ export const LeagueHubView: React.FC = () => {
                     })}
                 </View>
 
-                <View style={styles.rulesCard}>
-                    <Text style={styles.rulesTitle}>Comment gagner des cochons ?</Text>
-                    <Text style={styles.rulesText}>
-                        🐷 Gagnez une manche alors qu&apos;un adversaire a <Text style={styles.rulesHighlight}>0 victoire</Text> : vous lui infligez un cochon.{'\n\n'}
-                        🐷🐷 Si <Text style={styles.rulesHighlight}>2 adversaires</Text> ont 0 victoire en même temps, vous gagnez un <Text style={styles.rulesDouble}>double cochon</Text>.{'\n\n'}
-                        La ligue repart de <Text style={styles.rulesHighlight}>zéro au début de chaque mois</Text>. Les <Text style={styles.rulesHighlight}>coins gagnés</Text> sur les paliers restent acquis.
-                    </Text>
-                </View>
             </ScrollView>
         );
     };
 
-    const renderClassement = () => {
+    const renderClassement = (scope: 'MONTHLY' | 'GLOBAL') => {
         const cfg = CATEGORY_CONFIG[classementCategory];
         const isPerfMode = classementMode === 'PERF';
-        const qualifiesForPerf = (entry: LeaderboardEntry) => entry.gamesPlayed >= 10;
+        const isMonthlyScope = scope === 'MONTHLY';
+
+        const getGamesPlayed = (entry: LeaderboardEntry) => isMonthlyScope ? entry.gamesPlayedThisMonth : entry.gamesPlayed;
+        const getCochonsGiven = (entry: LeaderboardEntry) => isMonthlyScope ? entry.cochonsGivenThisMonth : entry.cochonsGiven;
+        const getCochonsSubis = (entry: LeaderboardEntry) => isMonthlyScope ? entry.totalCochonsSubisThisMonth : entry.totalCochonsSubis;
+        const getPointsAccumulated = (entry: LeaderboardEntry) => isMonthlyScope ? entry.totalPointsAccumulatedThisMonth : entry.totalPointsAccumulated;
+
+        const qualifiesForPerf = (entry: LeaderboardEntry) => getGamesPlayed(entry) >= 10;
 
         const getPerformanceValue = (entry: LeaderboardEntry): number => {
-            if (entry.gamesPlayed <= 0) {
+            const gamesPlayed = getGamesPlayed(entry);
+            if (gamesPlayed <= 0) {
                 return classementCategory === 'MOINS_COCHONS' ? Number.POSITIVE_INFINITY : 0;
             }
-            if (classementCategory === 'PLUS_COCHONS') return entry.cochonsGiven / entry.gamesPlayed;
-            if (classementCategory === 'MOINS_COCHONS') return entry.totalCochonsSubis / entry.gamesPlayed;
-            return entry.totalPointsAccumulated / entry.gamesPlayed;
+            if (classementCategory === 'PLUS_COCHONS') return getCochonsGiven(entry) / gamesPlayed;
+            if (classementCategory === 'MOINS_COCHONS') return getCochonsSubis(entry) / gamesPlayed;
+            return getPointsAccumulated(entry) / gamesPlayed;
         };
 
         const sourceEntries = isPerfMode
@@ -308,6 +208,15 @@ export const LeagueHubView: React.FC = () => {
             : allEntries;
 
         const sorted = [...sourceEntries].sort((a, b) => {
+            const aGames = getGamesPlayed(a);
+            const bGames = getGamesPlayed(b);
+            const aCochons = getCochonsGiven(a);
+            const bCochons = getCochonsGiven(b);
+            const aSubis = getCochonsSubis(a);
+            const bSubis = getCochonsSubis(b);
+            const aPoints = getPointsAccumulated(a);
+            const bPoints = getPointsAccumulated(b);
+
             if (isPerfMode) {
                 const aQualified = qualifiesForPerf(a);
                 const bQualified = qualifiesForPerf(b);
@@ -316,37 +225,37 @@ export const LeagueHubView: React.FC = () => {
                 if (classementCategory === 'MOINS_COCHONS') {
                     const diff = getPerformanceValue(a) - getPerformanceValue(b);
                     if (diff !== 0) return diff;
-                    const tieByCochons = a.totalCochonsSubis - b.totalCochonsSubis;
+                    const tieByCochons = aSubis - bSubis;
                     if (tieByCochons !== 0) return tieByCochons;
-                    return b.gamesPlayed - a.gamesPlayed;
+                    return bGames - aGames;
                 }
 
                 const diff = getPerformanceValue(b) - getPerformanceValue(a);
                 if (diff !== 0) return diff;
 
                 if (classementCategory === 'PLUS_COCHONS') {
-                    const tieByCochons = b.cochonsGiven - a.cochonsGiven;
+                    const tieByCochons = bCochons - aCochons;
                     if (tieByCochons !== 0) return tieByCochons;
                 } else {
-                    const tieByPoints = b.totalPointsAccumulated - a.totalPointsAccumulated;
+                    const tieByPoints = bPoints - aPoints;
                     if (tieByPoints !== 0) return tieByPoints;
                 }
-                return b.gamesPlayed - a.gamesPlayed;
+                return bGames - aGames;
             }
 
             if (classementCategory === 'PLUS_COCHONS') {
-                const diff = b.cochonsGiven - a.cochonsGiven;
-                return diff !== 0 ? diff : b.gamesPlayed - a.gamesPlayed;
+                const diff = bCochons - aCochons;
+                return diff !== 0 ? diff : bGames - aGames;
             }
             if (classementCategory === 'MOINS_COCHONS') {
-                const aHasMatches = a.gamesPlayed > 0;
-                const bHasMatches = b.gamesPlayed > 0;
+                const aHasMatches = aGames > 0;
+                const bHasMatches = bGames > 0;
                 if (aHasMatches !== bHasMatches) return aHasMatches ? -1 : 1;
-                const diff = a.totalCochonsSubis - b.totalCochonsSubis;
-                return diff !== 0 ? diff : b.gamesPlayed - a.gamesPlayed;
+                const diff = aSubis - bSubis;
+                return diff !== 0 ? diff : bGames - aGames;
             }
-            const diff = b.totalPointsAccumulated - a.totalPointsAccumulated;
-            return diff !== 0 ? diff : b.gamesPlayed - a.gamesPlayed;
+            const diff = bPoints - aPoints;
+            return diff !== 0 ? diff : bGames - aGames;
         }).slice(0, 30);
 
         const rankColor = (rank: number) => {
@@ -361,21 +270,31 @@ export const LeagueHubView: React.FC = () => {
                 const perf = getPerformanceValue(entry);
                 return Number.isFinite(perf) ? perf.toFixed(2) : '—';
             }
-            if (classementCategory === 'PLUS_COCHONS') return `${entry.cochonsGiven.toLocaleString()}`;
-            if (classementCategory === 'MOINS_COCHONS') return `${entry.totalCochonsSubis.toLocaleString()}`;
-            return `${entry.totalPointsAccumulated.toLocaleString()}`;
+            if (classementCategory === 'PLUS_COCHONS') return `${getCochonsGiven(entry).toLocaleString()}`;
+            if (classementCategory === 'MOINS_COCHONS') return `${getCochonsSubis(entry).toLocaleString()}`;
+            return `${getPointsAccumulated(entry).toLocaleString()}`;
         };
 
         const getEntryMeta = (entry: LeaderboardEntry): string => {
-            const matchesLabel = `${entry.gamesPlayed} match${entry.gamesPlayed > 1 ? 's' : ''}`;
+            const gamesPlayed = getGamesPlayed(entry);
+            const matchesLabel = `${gamesPlayed} match${gamesPlayed > 1 ? 's' : ''}`;
             if (!isPerfMode) return matchesLabel;
-            if (classementCategory === 'PLUS_COCHONS') return `${entry.cochonsGiven.toLocaleString()} cochons en ${matchesLabel}`;
-            if (classementCategory === 'MOINS_COCHONS') return `${entry.totalCochonsSubis.toLocaleString()} cochons subis en ${matchesLabel}`;
-            return `${entry.totalPointsAccumulated.toLocaleString()} points en ${matchesLabel}`;
+            if (classementCategory === 'PLUS_COCHONS') return `${getCochonsGiven(entry).toLocaleString()} cochons en ${matchesLabel}`;
+            if (classementCategory === 'MOINS_COCHONS') return `${getCochonsSubis(entry).toLocaleString()} cochons subis en ${matchesLabel}`;
+            return `${getPointsAccumulated(entry).toLocaleString()} points en ${matchesLabel}`;
         };
 
         return (
             <View style={{ flex: 1 }}>
+                <View style={styles.scopeHeader}>
+                    <Text style={styles.scopeHeaderTitle}>
+                        {isMonthlyScope ? 'Classement du mois' : 'Classement global'}
+                    </Text>
+                    <Text style={styles.scopeHeaderSub}>
+                        {isMonthlyScope ? 'Basé sur les performances du mois en cours' : 'Basé sur les performances cumulées'}
+                    </Text>
+                </View>
+
                 <View style={styles.clsControlsRow}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clsMetricTabs} contentContainerStyle={styles.famRow}>
                         {(Object.keys(CATEGORY_CONFIG) as ClassementCategory[]).map((cat) => {
@@ -448,9 +367,9 @@ export const LeagueHubView: React.FC = () => {
                             const isMe = entry.uid === currentUid;
                             const localRank = index + 1;
                             const rc = rankColor(localRank);
-                            const grade = getLeagueGrade(entry.cochonsGiven) ?? 'APPRENTI_1';
                             const avatarSrc = getAvatarImage(entry.avatarId || 'avatar_default');
                             const isQualified = qualifiesForPerf(entry);
+                            const grade = isMonthlyScope ? (getLeagueGrade(entry.cochonsGivenThisMonth) ?? null) : null;
 
                             return (
                                 <Animated.View
@@ -468,9 +387,11 @@ export const LeagueHubView: React.FC = () => {
                                         <Text style={[styles.clsName, isMe && { color: cfg.color }]} numberOfLines={1}>
                                             {isMe ? `${entry.displayName} (Vous)` : entry.displayName}
                                         </Text>
-                                        <Text style={styles.clsGrade}>
-                                            {LEAGUE_ICONS[grade]} {LEAGUE_LABELS[grade]}
-                                        </Text>
+                                        {grade ? (
+                                            <Text style={styles.clsGrade}>
+                                                {LEAGUE_ICONS[grade]} {LEAGUE_LABELS[grade]}
+                                            </Text>
+                                        ) : null}
                                         {isPerfMode && !isQualified ? (
                                             <View style={styles.unqualifiedBadge}>
                                                 <Text style={styles.unqualifiedBadgeText}>-10 matchs</Text>
@@ -496,8 +417,8 @@ export const LeagueHubView: React.FC = () => {
             <View style={styles.tabs}>
                 {([
                     { id: 'MA_LIGUE', label: '🐷 Ma Ligue' },
-                    { id: 'CLASSEMENT', label: '🏅 Classement' },
-                    { id: 'INFOS', label: '🏆 Infos' },
+                    { id: 'CLASSEMENT_MOIS', label: '🏅 Classement du mois' },
+                    { id: 'CLASSEMENT_GLOBAL', label: '🌍 Classement global' },
                 ] as { id: TabType; label: string }[]).map((tab) => (
                     <TouchableOpacity
                         key={tab.id}
@@ -511,18 +432,16 @@ export const LeagueHubView: React.FC = () => {
                 ))}
             </View>
             <View style={styles.body}>
-                {activeTab === 'INFOS' ? renderInfos() : null}
                 {activeTab === 'MA_LIGUE' ? renderMaLigue() : null}
-                {activeTab === 'CLASSEMENT' ? renderClassement() : null}
+                {activeTab === 'CLASSEMENT_MOIS' ? renderClassement('MONTHLY') : null}
+                {activeTab === 'CLASSEMENT_GLOBAL' ? renderClassement('GLOBAL') : null}
             </View>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+    container: { flex: 1 },
     tabs: {
         flexDirection: 'row',
         gap: 10,
@@ -546,117 +465,10 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.55)',
         fontWeight: 'bold',
         fontSize: 12,
+        textAlign: 'center',
     },
-    tabTextActive: {
-        color: '#FFD700',
-    },
-    body: {
-        flex: 1,
-    },
-    dashContainer: { flex: 1 },
-    dashContent: { paddingBottom: 20 },
-    dashHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 12,
-        paddingBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,215,0,0.15)',
-    },
-    dashTitle: { color: '#FFD700', fontSize: 14, fontWeight: '900', letterSpacing: 1 },
-    dashSub: { flex: 1, textAlign: 'right', color: 'rgba(255,255,255,0.3)', fontSize: 10 },
-    dashMain: { flexDirection: 'row', gap: 10, alignItems: 'stretch' },
-    dashLeft: { flex: 3, flexDirection: 'column', gap: 10 },
-    dashRight: { flex: 2, flexDirection: 'column', gap: 10 },
-    groupCard: { minHeight: 140, borderRadius: 16, padding: 12, borderWidth: 1.5, justifyContent: 'space-between' },
-    groupCardApprentit: {
-        backgroundColor: 'rgba(158,158,158,0.05)',
-        borderColor: 'rgba(158,158,158,0.22)',
-        shadowColor: '#9E9E9E',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.18,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    groupCardMaitre: {
-        backgroundColor: 'rgba(255,215,0,0.05)',
-        borderColor: 'rgba(255,215,0,0.22)',
-        shadowColor: '#FFD700',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.18,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    groupHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-    groupIcon: { fontSize: 22 },
-    groupTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
-    subgradesRow: { flexDirection: 'row', gap: 6, alignItems: 'stretch' },
-    subBadge: {
-        flex: 1,
-        minHeight: 52,
-        borderWidth: 1,
-        borderRadius: 10,
-        paddingVertical: 8,
-        paddingHorizontal: 4,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.03)',
-    },
-    subNum: { fontSize: 18, fontWeight: '900' },
-    subSeuil: { fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 3 },
-    groupRewardRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        marginTop: 10,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.07)',
-    },
-    groupRewardText: { fontSize: 11, fontWeight: 'bold' },
-    eliteCard: {
-        minHeight: 140,
-        borderRadius: 16,
-        padding: 14,
-        borderWidth: 1.5,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-    },
-    eliteCardRoi: {
-        backgroundColor: 'rgba(79,195,247,0.05)',
-        borderColor: 'rgba(79,195,247,0.28)',
-        shadowColor: '#4FC3F7',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.22,
-        shadowRadius: 10,
-        elevation: 4,
-    },
-    eliteCardLegende: {
-        backgroundColor: 'rgba(255,82,82,0.05)',
-        borderColor: 'rgba(255,82,82,0.28)',
-        shadowColor: '#FF5252',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.22,
-        shadowRadius: 10,
-        elevation: 4,
-    },
-    eliteIcon: { fontSize: 38 },
-    eliteName: { fontSize: 12, fontWeight: '900', letterSpacing: 0.5, textAlign: 'center' },
-    eliteSeuil: { fontSize: 20, fontWeight: '900' },
-    eliteRewardRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 20,
-        borderWidth: 1,
-        backgroundColor: 'rgba(0,0,0,0.2)',
-        marginTop: 2,
-    },
-    eliteRewardText: { fontSize: 12, fontWeight: '900' },
+    tabTextActive: { color: '#FFD700' },
+    body: { flex: 1 },
     maLigueScroll: { flex: 1 },
     maLigueContent: { paddingBottom: 24 },
     leagueIntroCard: {
@@ -668,10 +480,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,215,0,0.2)',
         marginBottom: 18,
     },
-    leagueIntroEmoji: {
-        fontSize: 40,
-        marginBottom: 8,
-    },
+    leagueIntroEmoji: { fontSize: 40, marginBottom: 8 },
     leagueIntroTitle: {
         color: '#FFD700',
         fontSize: 22,
@@ -708,10 +517,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.1)',
         marginBottom: 18,
     },
-    monthlyGradeHeader: {
-        alignItems: 'center',
-        marginBottom: 8,
-    },
+    monthlyGradeHeader: { alignItems: 'center', marginBottom: 8 },
     monthlyGradeHeaderValue: {
         color: '#FFD700',
         fontSize: 18,
@@ -803,16 +609,9 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         letterSpacing: 1,
     },
-    tierGradeIcon: {
-        fontSize: 28,
-    },
-    tierGradeIconLocked: {
-        opacity: 0.5,
-    },
-    tierThreshold: {
-        fontSize: 16,
-        fontWeight: '900',
-    },
+    tierGradeIcon: { fontSize: 28 },
+    tierGradeIconLocked: { opacity: 0.5 },
+    tierThreshold: { fontSize: 16, fontWeight: '900' },
     tierLabel: {
         fontSize: 11,
         fontWeight: '700',
@@ -826,40 +625,15 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
     },
-    rewardBadgeText: {
-        fontWeight: '900',
-        fontSize: 12,
+    rewardBadgeText: { fontWeight: '900', fontSize: 12 },
+    scopeHeader: {
+        marginBottom: 12,
+        paddingBottom: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.06)',
     },
-    rulesCard: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 16,
-        padding: 18,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        marginTop: 18,
-    },
-    rulesTitle: {
-        color: '#FFD700',
-        fontSize: 14,
-        fontWeight: '900',
-        marginBottom: 10,
-        textAlign: 'center',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    rulesText: {
-        color: 'rgba(255,255,255,0.75)',
-        fontSize: 13,
-        lineHeight: 20,
-    },
-    rulesHighlight: {
-        fontWeight: 'bold',
-        color: '#FFD700',
-    },
-    rulesDouble: {
-        fontWeight: 'bold',
-        color: '#FF4500',
-    },
+    scopeHeaderTitle: { color: '#FFD700', fontSize: 16, fontWeight: '900' },
+    scopeHeaderSub: { color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 4 },
     clsControlsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
     clsMetricTabs: { flex: 1, marginRight: 8 },
     famRow: { flexDirection: 'row', gap: 8 },

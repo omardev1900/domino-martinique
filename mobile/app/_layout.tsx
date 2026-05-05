@@ -134,6 +134,7 @@ export default function RootLayout() {
   const showSidebar = USE_NEW_SIDEBAR &&
     !SIDEBAR_HIDDEN_ROUTES.includes(pathname) &&
     !SIDEBAR_HIDDEN_PREFIXES.some(p => pathname.startsWith(p));
+  const showFullscreenButton = Platform.OS === 'web' && !pathname.startsWith('/game');
 
   return (
     <GestureHandlerRootView
@@ -189,7 +190,7 @@ export default function RootLayout() {
 
           </View>
 
-          {Platform.OS === 'web' && (
+          {showFullscreenButton && (
             <View
               pointerEvents="box-none"
               style={{

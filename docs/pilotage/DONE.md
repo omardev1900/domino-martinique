@@ -11,6 +11,19 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-05 — Ligue mensuelle & aide (session Codex)
+
+- [x] **[R4-UX4]** `/ligue-cochons` — séparation du hub Ligue en `Ma Ligue`, `Classement du mois`, `Classement global`
+  - **Classement du mois** : mêmes familles `+ Cochons / - Cochons / + Points`, mais calculées depuis le mois courant (`matchHistory`)
+  - **Classement global** : mêmes familles, calculées sur le cumul historique
+  - **Perf / Total** : conservé sur les 2 tabs avec seuil de qualification à 10 matchs
+  - **Source dédiée** : `leaderboard.service.ts` expose désormais des métriques mensuelles (`cochons`, `cochons subis`, `points`, `matchs joués`) pour alimenter le hub Ligue
+
+- [x] **[R4-UX5]** Aide — déplacement des `Infos Ligue`
+  - **Suppression** : l’onglet `Infos` sort de `/ligue-cochons`
+  - **Ajout** : nouvel onglet `Ligue` dans `HelpOverlay`
+  - **Composant partagé** : contenu Ligue factorisé dans `LeagueInfoContent.tsx`
+
 ### 2026-05-02 — Admin Manager (P1 priorité)
 - [x] **[ADMIN-MANAGER]** Système de rôles manager avec accès limité
   - **Firestore Rules** : Ajout `isSuperAdmin()` avec fallback rétrocompatible. Collections sensibles (users, config, feedbacks, logs) = superadmin-only. Collections manager (bots, store, chat, ads, tournaments) = isAdmin()
