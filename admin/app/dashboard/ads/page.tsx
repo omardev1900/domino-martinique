@@ -11,6 +11,7 @@ import {
     deleteDoc,
     doc,
     updateDoc,
+    writeBatch,
     Timestamp,
 } from 'firebase/firestore';
 import { logAdminAction } from '@/lib/adminLog';
@@ -35,6 +36,7 @@ type Ad = {
     imageUrl: string;
     targetUrl: string | null;
     active: boolean;
+    isDailyReward: boolean;
     startsAt: number;
     endsAt: number;
     placements: AdPlacement[];
@@ -96,6 +98,7 @@ export default function AdsPage() {
                     imageUrl: (d.data().imageUrl as string) ?? '',
                     targetUrl: (d.data().targetUrl as string | null) ?? null,
                     active: d.data().active === true,
+                    isDailyReward: d.data().isDailyReward === true,
                     startsAt: resolveMs(d.data().startsAt),
                     endsAt: resolveMs(d.data().endsAt),
                     placements: (d.data().placements as AdPlacement[]) ?? [],
@@ -121,6 +124,27 @@ export default function AdsPage() {
             fetchAds();
         } catch (err) {
             console.error('toggleActive error:', err);
+        }
+    };
+
+    const toggleDailyReward = async (id: string, current: boolean, title: string) => {
+        try {
+            const batch = writeBatch(db);
+            // Retire le flag sur toutes les autres pubs d'abord
+            ads.forEach(ad => {
+                if (ad.isDailyReward && ad.id !== id) {
+                    batch.update(doc(db, 'ads', ad.id), { isDailyReward: false });
+                }
+            });
+            // Active ou désactive sur la pub choisie
+            batch.update(doc(db, 'ads', id), { isDailyReward: !current });
+            await batch.commit();
+            await logAdminAction('toggle_news' as any, {
+                details: `Pub cadeau du jour ${!current ? 'activée' : 'désactivée'} : ${title}`,
+            });
+            fetchAds();
+        } catch (err) {
+            console.error('toggleDailyReward error:', err);
         }
     };
 
@@ -179,6 +203,7 @@ export default function AdsPage() {
                                     <th className="px-5 py-4 font-semibold">Fréquence</th>
                                     <th className="px-5 py-4 font-semibold">Période</th>
                                     <th className="px-5 py-4 font-semibold">Statut</th>
+                                    <th className="px-5 py-4 font-semibold">Cadeau du jour</th>
                                     <th className="px-5 py-4 font-semibold text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -266,6 +291,21 @@ export default function AdsPage() {
                                                 }`}
                                             >
                                                 {ad.active ? '● ACTIVE' : '○ INACTIVE'}
+                                            </button>
+                                        </td>
+
+                                        {/* Cadeau du jour */}
+                                        <td className="px-5 py-4">
+                                            <button
+                                                onClick={() => toggleDailyReward(ad.id, ad.isDailyReward, ad.title)}
+                                                title={ad.isDailyReward ? 'Retirer du cadeau du jour' : 'Définir comme cadeau du jour'}
+                                                className={`px-3 py-1 rounded-full text-[11px] font-bold border transition-colors whitespace-nowrap ${
+                                                    ad.isDailyReward
+                                                        ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/25'
+                                                        : 'bg-gray-800 text-gray-500 border-gray-700 hover:bg-gray-700 hover:text-gray-300'
+                                                }`}
+                                            >
+                                                {ad.isDailyReward ? '🎁 ACTIF' : '🎁 Définir'}
                                             </button>
                                         </td>
 

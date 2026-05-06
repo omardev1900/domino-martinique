@@ -11,6 +11,21 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-06 — Correctifs critiques + Monétisation cadeau quotidien
+
+- [x] **[R4-B2]** Ligue des Cochons — popup de passage de palier en vrai flux de jeu
+  - L'overlay de réussite/promotion s'affiche désormais correctement lors d'un franchissement de palier en fin de match réel.
+
+- [x] **[R4-B5]** Web — domino gagnant parfois réutilisé depuis la partie précédente
+  - État de résultat et overlay réinitialisés entre deux parties ; le domino gagnant affiché correspond toujours à la partie en cours.
+
+- [x] **[R4-M4]** Cadeau quotidien conditionné à une pub
+  - Le bouton "RÉCLAMER !" remplacé par "📺 VOIR UNE PUB → +300 🪙"
+  - Flux : pub admin programmée (si dispo) → popup cadeau → clic "Voir une pub" → pub rejouée → animation compteur → 300 coins crédités
+  - Fallback : si aucune pub admin disponible, les 300 coins sont crédités directement
+  - Les deux pubs (admin programmée + cadeau) restent indépendantes et ne se mélangent pas
+  - Fichiers modifiés : `mobile/src/components/DailyRewardModal.tsx`, `mobile/app/home.tsx`
+
 ### 2026-05-05 — Ligue mensuelle & aide (session Codex)
 
 - [x] **[R4-B6]** Multijoueur — suppression d'une table vide par son hôte

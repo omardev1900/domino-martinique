@@ -9,7 +9,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
-import { GameTable } from '../components/GameTable';
+import { GameTable , GameTableRef } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
 import { GameHeader } from '../components/game/GameHeader';
@@ -35,7 +35,7 @@ import SettingsManager from '../core/SettingsManager';
 import { TableTheme } from '../core/themes/tableThemes';
 import { authService } from '../core/services/auth.service';
 import { AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
-import { GameTableRef } from '../components/GameTable';
+
 import { FlyingDominoData } from '../core/animations/AnimationTypes';
 import { FlyingDomino } from '../components/FlyingDomino';
 import { useConnectionStatus } from '../hooks/game/useConnectionStatus';

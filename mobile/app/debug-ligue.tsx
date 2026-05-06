@@ -18,13 +18,13 @@ import {
     ScrollView,
     Switch,
     useWindowDimensions,
-} from 'react-native';
+ Modal } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Modal } from 'react-native';
+
 
 import { AvatarFrame } from '../src/components/AvatarFrame';
 import { RewardOverlay } from '../src/components/RewardOverlay';

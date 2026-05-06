@@ -7,6 +7,12 @@
 
 // ─── Mocks ────────────────────────────────────────────────────────────────
 
+// ─── Imports (après les mocks) ────────────────────────────────────────────
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { adService } from './ad.service';
+import { Ad } from '../ad.types';
+
 jest.mock('@react-native-async-storage/async-storage', () => {
     const store = new Map<string, string>();
     return {
@@ -29,12 +35,6 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 jest.mock('./firebase', () => ({ db: {} }));
-
-// ─── Imports (après les mocks) ────────────────────────────────────────────
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { adService } from './ad.service';
-import { Ad } from '../ad.types';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────
 

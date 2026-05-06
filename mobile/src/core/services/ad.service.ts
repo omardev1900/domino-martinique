@@ -93,6 +93,23 @@ class AdService {
     }
 
     /**
+     * Retourne la pub à utiliser pour le cadeau quotidien.
+     * Priorité 1 : pub marquée `isDailyReward: true` par l'admin.
+     * Priorité 2 (fallback) : n'importe quelle pub active dans la fenêtre de dates.
+     */
+    async getDailyRewardAd(): Promise<Ad | null> {
+        if (!this.cached) await this.preload();
+
+        const now = Date.now();
+        const active = (this.cached ?? [])
+            .filter(ad => ad.active)
+            .filter(ad => ad.startsAt <= now && now <= ad.endsAt)
+            .sort((a, b) => b.createdAt - a.createdAt);
+
+        return active.find(ad => ad.isDailyReward) ?? active[0] ?? null;
+    }
+
+    /**
      * Marque la pub comme effectivement affichée à l'écran, ce qui déclenche ses cooldowns.
      * À appeler par l'UI au moment où le composant publicitaire apparaît réellement.
      */
@@ -196,16 +213,17 @@ class AdService {
 
         return {
             id,
-            title:      (data.title as string) ?? '',
+            title:         (data.title as string) ?? '',
             // Rétrocompat : les pubs créées avant l'ajout du champ n'ont pas mediaType → 'IMAGE'
-            mediaType:  (data.mediaType as Ad['mediaType']) ?? 'IMAGE',
-            imageUrl:   (data.imageUrl as string) ?? '',
-            targetUrl:  (data.targetUrl as string | null) ?? null,
-            active:     data.active === true,
+            mediaType:     (data.mediaType as Ad['mediaType']) ?? 'IMAGE',
+            imageUrl:      (data.imageUrl as string) ?? '',
+            targetUrl:     (data.targetUrl as string | null) ?? null,
+            active:        data.active === true,
+            isDailyReward: data.isDailyReward === true,
             startsAt,
             endsAt,
-            placements: Array.isArray(data.placements) ? (data.placements as Ad['placements']) : [],
-            frequency:  (data.frequency as Ad['frequency']) ?? 'EVERY_TIME',
+            placements:    Array.isArray(data.placements) ? (data.placements as Ad['placements']) : [],
+            frequency:     (data.frequency as Ad['frequency']) ?? 'EVERY_TIME',
             createdAt,
         };
     }

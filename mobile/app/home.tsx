@@ -48,6 +48,10 @@ export default function HomeScreen() {
     const [myLeagueGrade, setMyLeagueGrade] = useState<LeagueGrade | null>(null);
     const [showDailyReward, setShowDailyReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
+    // Pub à rejouer après le clic "Voir une pub" dans le modal cadeau
+    const [dailyAdToShow, setDailyAdToShow] = useState<Ad | null>(null);
+    // Ref vers la fonction d'animation de claim dans DailyRewardModal
+    const dailyClaimTriggerRef = useRef<(() => void) | null>(null);
     const [newsList, setNewsList] = useState<NewsItem[]>([]);
     const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
     const [showHelp, setShowHelp] = useState(false);
@@ -125,12 +129,13 @@ export default function HomeScreen() {
                     if (dailyAvailable) {
                         setDailyRewardAmount(DAILY_REWARD_COINS);
                         if (ad) {
-                            // Pub d'abord → cadeau après fermeture. On diffère l'ouverture du modal.
+                            // Pub admin d'abord → cadeau après fermeture (spec R2-M7)
                             setPendingDailyReward(true);
                             homeAdTimeoutRef.current = setTimeout(() => {
                                 setAdToShow(ad);
                             }, HOME_AD_DELAY_MS);
                         } else {
+                            // Pas de pub admin → popup cadeau directement
                             setShowDailyReward(true);
                         }
                     } else if (ad) {
@@ -200,16 +205,34 @@ export default function HomeScreen() {
         }, [])
     );
 
+    // Appelé par DailyRewardModal après la fin de l'animation compteur
     const handleClaimDailyReward = async () => {
-        // [R3-B9] FIX : on utilise claimDailyRewardNow() au lieu de checkAndClaimDailyReward()
-        // car entre l'affichage du modal et le clic, le listener Firestore peut avoir
-        // mis à jour le cache avec un timestamp récent → shouldReward=false → 0 coins crédités.
-        // La disponibilité a déjà été vérifiée avant d'afficher le modal.
+        // [R3-B9] FIX : claimDailyRewardNow() évite la race condition avec le listener Firestore
         await economyService.claimDailyRewardNow(user?.uid);
         setShowDailyReward(false);
+        setDailyAdToShow(null);
         setEconomyRefresh(v => v + 1);
     };
 
+    // Appelé quand le joueur clique "Voir une pub → +300 🪙" dans le modal cadeau
+    const handleWatchAdForReward = async () => {
+        // Priorité : pub marquée "Cadeau du jour" par l'admin, sinon n'importe quelle pub active
+        const ad = await adService.getDailyRewardAd();
+        if (ad) {
+            setDailyAdToShow(ad);
+        } else {
+            // Aucune pub disponible → crédit direct (fallback)
+            dailyClaimTriggerRef.current?.();
+        }
+    };
+
+    // Fermeture de la pub jouée depuis le modal cadeau → déclenche l'animation de compteur
+    const handleDailyAdClose = () => {
+        setDailyAdToShow(null);
+        dailyClaimTriggerRef.current?.();
+    };
+
+    // Fermeture de la pub admin programmée (non liée au cadeau)
     const handleAdClose = () => {
         setAdToShow(null);
         if (pendingDailyReward) {
@@ -467,7 +490,7 @@ export default function HomeScreen() {
                 onClose={() => setShowHelp(false)} 
             />
 
-            {/* Pub HOME — s'affiche avant le cadeau quotidien */}
+            {/* Pub HOME admin — s'affiche avant le cadeau quotidien (spec R2-M7) */}
             <AdBannerModal ad={adToShow} onClose={handleAdClose} />
 
             {/* Daily Reward Modal — affiché uniquement si aucun modal de reconnexion */}
@@ -475,7 +498,12 @@ export default function HomeScreen() {
                 visible={showDailyReward && !reconnectRoomId}
                 amount={dailyRewardAmount}
                 onClaim={handleClaimDailyReward}
+                onWatchAd={handleWatchAdForReward}
+                claimTriggerRef={dailyClaimTriggerRef}
             />
+
+            {/* Pub jouée après clic "Voir une pub" dans le modal cadeau — indépendante de la pub admin */}
+            <AdBannerModal ad={dailyAdToShow} onClose={handleDailyAdClose} />
 
             {/* Reconnection Modal */}
             <Modal

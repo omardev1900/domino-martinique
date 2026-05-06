@@ -24,6 +24,8 @@ interface DailyRewardModalProps {
     visible: boolean;
     amount: number;
     onClaim: () => void;
+    onWatchAd: () => void;
+    claimTriggerRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 const CoinParticle = ({ delay, index, screenW }: { delay: number; index: number; screenW: number }) => {
@@ -94,6 +96,8 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
     visible,
     amount,
     onClaim,
+    onWatchAd,
+    claimTriggerRef,
 }) => {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
@@ -150,17 +154,18 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
         transform: [{ scale: titleScale.value }],
     }));
 
-    // [R3-B9] Animation d'incrémentation du compteur de coins
+    // Animation d'incrémentation du compteur de coins — jouée après la pub
     const [displayedAmount, setDisplayedAmount] = useState(0);
     const [isClaiming, setIsClaiming] = useState(false);
     const counterRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const handleClaimPress = () => {
+    // Appelé par home.tsx après fermeture de la pub, pour lancer l'animation et créditer les coins
+    const playClaimAnimation = () => {
         if (isClaiming) return;
         setIsClaiming(true);
         setDisplayedAmount(0);
 
-        const duration = 1200; // ms total
+        const duration = 1200;
         const steps = 30;
         const stepTime = duration / steps;
         let current = 0;
@@ -168,7 +173,6 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
         counterRef.current = setInterval(() => {
             current += 1;
             const progress = current / steps;
-            // ease-out : rapide au début, ralentit à la fin
             const eased = 1 - Math.pow(1 - progress, 3);
             setDisplayedAmount(Math.round(eased * amount));
 
@@ -176,11 +180,17 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                 clearInterval(counterRef.current!);
                 counterRef.current = null;
                 setDisplayedAmount(amount);
-                // Appeler onClaim après la fin de l'animation
                 setTimeout(() => onClaim(), 400);
             }
         }, stepTime);
     };
+
+    // Exposé via ref pour que home.tsx puisse déclencher l'animation après la pub
+    const claimAnimRef = useRef(playClaimAnimation);
+    claimAnimRef.current = playClaimAnimation;
+    useEffect(() => {
+        if (claimTriggerRef) claimTriggerRef.current = () => claimAnimRef.current();
+    }, [claimTriggerRef]);
 
     // Nettoyage si le modal se ferme pendant l'animation
     useEffect(() => {
@@ -257,7 +267,7 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
 
                                 <TouchableOpacity
                                     style={[styles.claimButton, isLandscape && { width: '100%' }, isClaiming && { opacity: 0.7 }]}
-                                    onPress={handleClaimPress}
+                                    onPress={isClaiming ? undefined : onWatchAd}
                                     activeOpacity={0.85}
                                     disabled={isClaiming}
                                 >
@@ -270,7 +280,7 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                                         <Text style={[styles.claimButtonText, {
                                             fontSize: isLandscape ? Math.min(height * 0.07, 14) : 16,
                                         }]}>
-                                            {isClaiming ? '🪙 ...' : 'RÉCLAMER !'}
+                                            {isClaiming ? `🪙 +${displayedAmount}` : '📺 VOIR UNE PUB → +300 🪙'}
                                         </Text>
                                     </LinearGradient>
                                 </TouchableOpacity>

@@ -4,6 +4,19 @@
 
 ---
 
+## [2.3.6] — 2026-05-06
+
+### Modifié
+- **Cadeau quotidien** — les 300 coins journaliers ne sont plus accordés automatiquement. Un bouton "📺 Voir une pub → +300 🪙" s'affiche à l'accueil une fois par jour. Si une pub admin est programmée, elle passe en premier ; le bouton cadeau apparaît ensuite. Si aucune pub admin n'est disponible, une pub est quand même jouée avant le crédit.
+
+## [2.3.5] — 2026-05-06
+
+### Corrigé
+- **Ligue des Cochons** — le popup de passage de palier s'affiche maintenant correctement en fin de match réel (flux de jeu complet).
+- **Web** — le domino gagnant affiché en fin de partie correspond toujours à la partie en cours (état réinitialisé entre deux parties).
+
+---
+
 ## [2.3.4] — 2026-05-05
 
 ### Modifié

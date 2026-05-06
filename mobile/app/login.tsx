@@ -13,10 +13,6 @@ import {
     useWindowDimensions,
     ImageBackground
 } from 'react-native';
-
-const GOOGLE_ANDROID_CLIENT_ID = '916243245615-m3biip70ga7nlgm1mf8kqaa4tggl7g3g.apps.googleusercontent.com';
-// Masqué jusqu'au passage en test interne Google Play (EAS build requis pour Android)
-const GOOGLE_SIGNIN_ENABLED = false;
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +21,10 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
 import { authService } from '../src/core/services/auth.service';
+
+const GOOGLE_ANDROID_CLIENT_ID = '916243245615-m3biip70ga7nlgm1mf8kqaa4tggl7g3g.apps.googleusercontent.com';
+// Masqué jusqu'au passage en test interne Google Play (EAS build requis pour Android)
+const GOOGLE_SIGNIN_ENABLED = false;
 
 const isExpoGo = Constants.appOwnership === 'expo';
 
@@ -87,7 +87,7 @@ export default function LoginScreen() {
         setErrorMessage('');
         setIsLoading(true);
         try {
-            await authService.signInWithGoogleCredential(idToken, accessToken);
+            const user = await authService.signInWithGoogleCredential(idToken, accessToken);
             if (autoJoinRoomId) {
                 router.replace({ pathname: '/lobby', params: { autoJoinRoomId } });
             } else {
@@ -154,7 +154,7 @@ export default function LoginScreen() {
                     setIsLoading(false);
                     return;
                 }
-                await authService.signUp(email, password);
+                const newUser = await authService.signUp(email, password);
                 if (autoJoinRoomId) {
                     router.replace({ pathname: '/lobby', params: { autoJoinRoomId } });
                 } else {

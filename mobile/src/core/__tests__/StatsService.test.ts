@@ -9,6 +9,11 @@
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
+// ─── Import après mocks ───────────────────────────────────────────────────────
+
+import { statsService } from '../services/stats.service';
+import { getDoc, setDoc } from 'firebase/firestore';
+
 const mockSetItem = jest.fn().mockResolvedValue(undefined);
 const mockGetItem = jest.fn().mockResolvedValue(null);
 
@@ -28,11 +33,6 @@ jest.mock('../services/firebase', () => ({ db: {} }));
 jest.mock('../services/economy.service', () => ({
     economyService: { getEconomy: jest.fn(), setEconomy: jest.fn() },
 }));
-
-// ─── Import après mocks ───────────────────────────────────────────────────────
-
-import { statsService } from '../services/stats.service';
-import { getDoc, setDoc } from 'firebase/firestore';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

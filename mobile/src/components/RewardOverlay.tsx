@@ -10,6 +10,9 @@ import { xpRequiredForLevel } from '../core/RewardEngine';
 import SoundManager from '../core/audio/SoundManager';
 import { AvatarFrame } from './AvatarFrame';
 
+
+import RollingNumber from './RollingNumber';
+
 interface RewardOverlayProps {
     visible: boolean;
     reward: MatchReward | null;
@@ -66,9 +69,6 @@ const XPIcon = ({ size = 18 }: { size?: number }) => (
         </SvgText>
     </Svg>
 );
-
-
-import RollingNumber from './RollingNumber';
 
 
 // ─── Main Overlay ───────────────────────────────────────────────────────────

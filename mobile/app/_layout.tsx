@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { Platform, AppState, AppStateStatus, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -63,6 +63,7 @@ export default function RootLayout() {
   const [appReady, setAppReady] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const previousPathname = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     async function prepare() {
@@ -106,6 +107,11 @@ export default function RootLayout() {
     });
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    if (!appReady) return;
+    previousPathname.current = pathname;
+  }, [pathname, appReady]);
 
   // Global Music Manager — switch BGM based on route
   useEffect(() => {

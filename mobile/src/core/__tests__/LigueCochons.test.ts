@@ -10,6 +10,8 @@
  */
 
 // Mocks Firebase
+import { leagueService } from '../services/league.service';
+
 jest.mock('firebase/firestore', () => ({
   doc: jest.fn(),
   getDoc: jest.fn(),
@@ -21,8 +23,6 @@ jest.mock('firebase/firestore', () => ({
 jest.mock('../services/firebase', () => ({
   db: {},
 }));
-
-import { leagueService } from '../services/league.service';
 
 const NO_FRAMES: string[] = [];
 

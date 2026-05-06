@@ -70,13 +70,13 @@ class LeaderboardService {
         }
 
         const cochonsGiven = stats.totalCochonsInflicted || economy.cochonsGiven || 0;
-        const matchHistory: Array<{
+        const matchHistory: {
             timestamp?: number;
             cochons?: number;
             score?: number;
             leaguePointsEarned?: number;
             mancheLeaguePointsEarned?: number[];
-        }> = stats.matchHistory || [];
+        }[] = stats.matchHistory || [];
 
         const monthlyHistory = matchHistory.filter(m => (m.timestamp ?? 0) >= startOfMonth);
         const cochonsGivenThisMonth = monthlyHistory.reduce((sum, m) => sum + (m.cochons ?? 0), 0);

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Switch, ScrollView, useWindowDimensions, Modal as RNModal, TextInput, KeyboardAvoidingView, ActivityIndicator, Platform } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Switch, ScrollView, useWindowDimensions, Modal as RNModal, TextInput, KeyboardAvoidingView, ActivityIndicator, Platform , Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, usePathname } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,7 +11,7 @@ import SettingsManager, { BgmTheme } from '../src/core/SettingsManager';
 import SoundManager from '../src/core/audio/SoundManager';
 import { TABLE_THEMES, TableTheme } from '../src/core/themes/tableThemes';
 import { botService } from '../src/core/services/bot.service';
-import { Alert } from 'react-native';
+
 import { getAvatarImage, AvatarId, AVAILABLE_AVATARS } from '../src/core/avatars';
 import { playerNameSchema } from '../src/core/validation/schemas';
 

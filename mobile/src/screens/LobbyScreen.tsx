@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Linking as RNLinking, Platfor
 import * as Linking from 'expo-linking';
 import { Image } from 'expo-image';
 import { GameRoom, GameMode } from '../core/types';
-import { FadeIn, FadeInUp } from 'react-native-reanimated';
-import Animated from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';

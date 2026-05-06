@@ -1,6 +1,14 @@
 import { Domino, DominoSide, Player, PlayerId, GameState, GamePhase, GameMode, MancheResult } from './types';
 import { ALL_DOMINOS, HAND_SIZE, TALON_MORT_SIZE, WINS_TO_WIN_MATCH, MAX_PLAYERS, MANCHE_WIN_THRESHOLD } from './constants';
-import { preparePlayersForNextRound } from './ScoringEngine';
+import { preparePlayersForNextRound , finalizeRound } from './ScoringEngine';
+
+import { getValidMoves } from './DominoEngine';
+
+
+/**
+ * resolveBoude : Résout la partie bloquée après l'animation
+ */
+import { determineWinnerOnBoudé } from './ScoringEngine';
 
 interface HighestDoubleInfo {
     playerId: PlayerId;
@@ -262,10 +270,7 @@ export const checkValidMove = (
     if (domino.right === rightValue) return { canPlay: true, side: 'right', isReversed: true };
 
     return { canPlay: false };
-};
-
-import { getValidMoves } from './DominoEngine';
-import { finalizeRound } from './ScoringEngine'; // NEW IMPORTS
+}; // NEW IMPORTS
 
 // Re-export specific helpers if needed by UI, or prefer direct import from ScoringEngine
 export { calculateHandPoints, finalizeRound, determineWinnerOnBoudé } from './ScoringEngine';
@@ -458,11 +463,6 @@ export const passTurn = (
 
     return newState;
 };
-
-/**
- * resolveBoude : Résout la partie bloquée après l'animation
- */
-import { determineWinnerOnBoudé } from './ScoringEngine';
 
 export const resolveBoude = (gameState: GameState): { newState: GameState; isTie: boolean; tiedPlayerIds?: PlayerId[] } => {
     let winnerId = determineWinnerOnBoudé(gameState.players);

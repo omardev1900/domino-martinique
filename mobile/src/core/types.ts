@@ -1,5 +1,5 @@
-export type DominoSide = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 import { PlayerInventory } from './store.types';
+export type DominoSide = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface Domino {
     id: string;

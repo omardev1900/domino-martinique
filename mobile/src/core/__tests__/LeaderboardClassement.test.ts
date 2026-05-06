@@ -10,6 +10,9 @@
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
+import { onSnapshot } from 'firebase/firestore';
+import { leaderboardService, LeaderboardEntry } from '../services/leaderboard.service';
+
 jest.mock('firebase/firestore', () => ({
     collection: jest.fn(),
     query: jest.fn(),
@@ -24,9 +27,6 @@ jest.mock('../services/firebase', () => ({ db: {} }));
 jest.mock('../services/leaderboard.time', () => ({
     getStartOfCurrentMonthUtc: () => 0,
 }));
-
-import { onSnapshot } from 'firebase/firestore';
-import { leaderboardService, LeaderboardEntry } from '../services/leaderboard.service';
 
 // ─── Helper : construire un doc Firestore simulé ──────────────────────────────
 

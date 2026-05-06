@@ -28,15 +28,16 @@ export type AdMediaType = 'IMAGE' | 'VIDEO';
 
 /** Document d'une pub hydraté côté mobile (Timestamps convertis en ms). */
 export interface Ad {
-    id:         string;
-    title:      string;            // Label admin uniquement (non affiché in-app)
-    mediaType:  AdMediaType;       // 'IMAGE' (défaut rétrocompat) | 'VIDEO'
-    imageUrl:   string;            // URL du média (image ou vidéo .mp4)
-    targetUrl:  string | null;     // Lien ouvert au tap (optionnel)
-    active:     boolean;           // Toggle ON/OFF global
-    startsAt:   number;            // Timestamp de début de diffusion (ms)
-    endsAt:     number;            // Timestamp de fin de diffusion (ms)
-    placements: AdPlacement[];     // Points d'injection activés
-    frequency:  AdFrequency;       // Fréquence d'affichage
-    createdAt:  number;            // Timestamp de création (ms) — tri en cas de conflit
+    id:            string;
+    title:         string;            // Label admin uniquement (non affiché in-app)
+    mediaType:     AdMediaType;       // 'IMAGE' (défaut rétrocompat) | 'VIDEO'
+    imageUrl:      string;            // URL du média (image ou vidéo .mp4)
+    targetUrl:     string | null;     // Lien ouvert au tap (optionnel)
+    active:        boolean;           // Toggle ON/OFF global
+    isDailyReward: boolean;           // Si true : utilisée pour le cadeau quotidien
+    startsAt:      number;            // Timestamp de début de diffusion (ms)
+    endsAt:        number;            // Timestamp de fin de diffusion (ms)
+    placements:    AdPlacement[];     // Points d'injection activés
+    frequency:     AdFrequency;       // Fréquence d'affichage
+    createdAt:     number;            // Timestamp de création (ms) — tri en cas de conflit
 }
