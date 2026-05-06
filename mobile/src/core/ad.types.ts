@@ -21,7 +21,12 @@ export type AdPlacement =
     | 'END_OF_MANCHE_SOLO'  // Fin de manche (solo)
     | 'END_OF_MATCH_SOLO'   // Fin de match complet (solo)
     | 'BEFORE_MULTI'        // Avant de rejoindre/créer une table multi
-    | 'END_OF_MATCH_MULTI'; // Fin de match complet (multi)
+    | 'END_OF_MATCH_MULTI'  // Fin de match complet (multi)
+    | 'STORE'               // Boutique
+    | 'COLLECTION'          // Vestiaire
+    | 'STATS'               // Mes Stats
+    | 'LEADERBOARD'         // Classement
+    | 'LIGUE';              // Ligue des Cochons
 
 /** Format du média principal de la pub */
 export type AdMediaType = 'IMAGE' | 'VIDEO';

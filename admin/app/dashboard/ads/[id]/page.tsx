@@ -25,7 +25,12 @@ type AdPlacement =
     | 'END_OF_MANCHE_SOLO'
     | 'END_OF_MATCH_SOLO'
     | 'BEFORE_MULTI'
-    | 'END_OF_MATCH_MULTI';
+    | 'END_OF_MATCH_MULTI'
+    | 'STORE'
+    | 'COLLECTION'
+    | 'STATS'
+    | 'LEADERBOARD'
+    | 'LIGUE';
 
 // ─── Config des enums (source de vérité pour les dropdowns/checkboxes) ────────
 
@@ -37,6 +42,11 @@ const ALL_PLACEMENTS: { value: AdPlacement; label: string; desc: string }[] = [
     { value: 'END_OF_MATCH_SOLO',  label: 'Fin de match (solo)',  desc: "À la fin d'un match complet en solo" },
     { value: 'BEFORE_MULTI',       label: 'Avant partie multi',   desc: "Lors de l'entrée dans une partie multijoueur" },
     { value: 'END_OF_MATCH_MULTI', label: 'Fin de match (multi)', desc: "À la fin d'un match multijoueur" },
+    { value: 'STORE',              label: 'Boutique',             desc: "À l'ouverture de l'écran Boutique" },
+    { value: 'COLLECTION',         label: 'Vestiaire',            desc: "À l'ouverture de l'écran Vestiaire" },
+    { value: 'STATS',              label: 'Mes Stats',            desc: "À l'ouverture de l'écran Statistiques" },
+    { value: 'LEADERBOARD',        label: 'Classement',           desc: "À l'ouverture de l'écran Classement" },
+    { value: 'LIGUE',              label: 'Ligue des Cochons',    desc: "À l'ouverture de l'écran Ligue des Cochons" },
 ];
 
 const ALL_FREQUENCIES: { value: AdFrequency; label: string; desc: string }[] = [

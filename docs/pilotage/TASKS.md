@@ -54,6 +54,7 @@
 | **R4-B2** | Ligue des Cochons — popup de passage de palier en vrai flux de jeu | 🔴 Critique | ✅ Terminé (06/05) |
 | **R4-B5** | Web — domino gagnant parfois réutilisé depuis la partie précédente | 🔴 Critique | ✅ Terminé (06/05) |
 | **R4-M4** | Cadeau quotidien conditionné à une pub — bouton "Voir une pub → +300 🪙" | 🟠 Monétisation | ✅ Terminé (06/05) |
+| **R4-M2** | Pubs dans boutique, vestiaire, stats, classement, ligue + admin CRUD placements | 🟠 Monétisation | ✅ Terminé (06/05) |
 
 ---
 

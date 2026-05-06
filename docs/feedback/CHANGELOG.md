@@ -4,6 +4,14 @@
 
 ---
 
+## [2.3.7] — 2026-05-06
+
+### Ajouté
+- **Pubs étendues** — les publicités admin-managed peuvent désormais apparaître dans 5 nouveaux écrans : Boutique, Vestiaire, Mes Stats, Classement et Ligue des Cochons. La pub s'affiche 2 secondes après l'ouverture de chaque écran, sans bloquer la navigation.
+- **Admin** — 5 nouveaux placements disponibles dans le formulaire de création/édition d'une pub (`STORE`, `COLLECTION`, `STATS`, `LEADERBOARD`, `LIGUE`). L'admin peut aussi désigner une pub comme "Cadeau du jour" (🎁) depuis la liste.
+
+---
+
 ## [2.3.6] — 2026-05-06
 
 ### Modifié

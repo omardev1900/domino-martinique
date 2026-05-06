@@ -27,7 +27,12 @@ type AdPlacement =
     | 'END_OF_MANCHE_SOLO'
     | 'END_OF_MATCH_SOLO'
     | 'BEFORE_MULTI'
-    | 'END_OF_MATCH_MULTI';
+    | 'END_OF_MATCH_MULTI'
+    | 'STORE'
+    | 'COLLECTION'
+    | 'STATS'
+    | 'LEADERBOARD'
+    | 'LIGUE';
 
 type Ad = {
     id: string;
@@ -60,6 +65,11 @@ const PLACEMENT_LABELS: Record<AdPlacement, string> = {
     END_OF_MATCH_SOLO: 'Fin match (solo)',
     BEFORE_MULTI: 'Avant multi',
     END_OF_MATCH_MULTI: 'Fin match (multi)',
+    STORE: 'Boutique',
+    COLLECTION: 'Vestiaire',
+    STATS: 'Mes Stats',
+    LEADERBOARD: 'Classement',
+    LIGUE: 'Ligue',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

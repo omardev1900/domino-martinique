@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,9 @@ import { StoreItemPreview } from '../src/components/store/StoreItemPreview';
 import { economyService } from '../src/core/services/economy.service';
 import { storeService } from '../src/core/services/store.service';
 import { StoreItem, StoreItemType, PlayerInventory } from '../src/core/store.types';
+import { adService } from '../src/core/services/ad.service';
+import { Ad } from '../src/core/ad.types';
+import { AdBannerModal } from '../src/components/AdBannerModal';
 
 type TabType = 'ALL' | StoreItemType;
 
@@ -59,9 +62,20 @@ export default function StoreScreen() {
         return tabs;
     }, [catalog]);
 
+    const [adToShow, setAdToShow] = useState<Ad | null>(null);
+    const adTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     useFocusEffect(
         useCallback(() => {
             loadData();
+            adService.getAdForPlacement('STORE').then(ad => {
+                if (ad) {
+                    adTimeoutRef.current = setTimeout(() => setAdToShow(ad), 2000);
+                }
+            });
+            return () => {
+                if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
+            };
         }, [])
     );
 
@@ -289,6 +303,7 @@ export default function StoreScreen() {
                     )}
                 </ScrollView>
             )}
+            <AdBannerModal ad={adToShow} onClose={() => setAdToShow(null)} />
         </SafeAreaView>
     );
 }

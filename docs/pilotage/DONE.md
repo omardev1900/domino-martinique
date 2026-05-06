@@ -26,6 +26,13 @@
   - Les deux pubs (admin programmée + cadeau) restent indépendantes et ne se mélangent pas
   - Fichiers modifiés : `mobile/src/components/DailyRewardModal.tsx`, `mobile/app/home.tsx`
 
+- [x] **[R4-M2]** Pubs étendues à la boutique, vestiaire, stats, classement et ligue
+  - 5 nouveaux placements : `STORE`, `COLLECTION`, `STATS`, `LEADERBOARD`, `LIGUE`
+  - Popup admin-managed apparaît 2s après l'ouverture de chaque écran (même pattern que HOME)
+  - Admin peut activer/désactiver chaque placement via la liste de cases à cocher dans `/dashboard/ads/[id]`
+  - Admin peut aussi désigner une pub "Cadeau du jour" via le bouton 🎁 dans `/dashboard/ads`
+  - Fichiers modifiés : `mobile/src/core/ad.types.ts`, `mobile/src/core/services/ad.service.ts`, `mobile/app/store.tsx`, `mobile/app/collection.tsx`, `mobile/app/stats.tsx`, `mobile/app/leaderboard.tsx`, `mobile/app/ligue-cochons.tsx`, `admin/app/dashboard/ads/[id]/page.tsx`, `admin/app/dashboard/ads/page.tsx`
+
 ### 2026-05-05 — Ligue mensuelle & aide (session Codex)
 
 - [x] **[R4-B6]** Multijoueur — suppression d'une table vide par son hôte
