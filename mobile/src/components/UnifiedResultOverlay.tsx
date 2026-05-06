@@ -18,6 +18,7 @@ import { getAvatarImage, AvatarId } from '@/core/avatars';
 import SoundManager from '@/core/audio/SoundManager';
 import { calculateHandPoints } from '@/core/ScoringEngine';
 import { GradeBadge } from './GradeBadge';
+import { ShareTextButton, buildWinShareText, WinShareCard } from './ShareButton';
 
 interface UnifiedResultOverlayProps {
     gameState: GameState;
@@ -421,6 +422,24 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     </View>
                 </Animated.View>
             )}
+
+            {isMeWinner && isMatchOver && (() => {
+                const me = gameState.players.find(p => p.id === currentUserId);
+                const winParams = {
+                    playerName: me?.name ?? 'Mwen',
+                    cochons: me?.totalCochons ?? 0,
+                    gradeLabel: matchReward?.newGrade ?? 'Apprenti Boucher',
+                };
+                return (
+                    <Animated.View entering={reducedMotion ? undefined : FadeInUp.delay(600).duration(300)}>
+                        <ShareTextButton
+                            label="Partager ma victoire"
+                            text={buildWinShareText(winParams)}
+                            cardContent={<WinShareCard {...winParams} />}
+                        />
+                    </Animated.View>
+                );
+            })()}
         </ScrollView>
     );
 

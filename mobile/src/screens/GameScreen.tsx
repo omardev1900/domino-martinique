@@ -1254,6 +1254,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 reward={matchReward}
                 isWinner={isLocalMatchWinner}
                 onContinue={() => setShowRewardOverlay(false)}
+                playerName={localPlayer?.name ?? ''}
             />
 
 

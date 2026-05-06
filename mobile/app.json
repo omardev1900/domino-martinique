@@ -80,7 +80,8 @@
           "color": "#1A0E2E",
           "sounds": []
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

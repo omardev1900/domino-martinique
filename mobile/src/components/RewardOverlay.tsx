@@ -9,6 +9,7 @@ import { LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_GRADE_COLORS, MAX_LEVEL, LEAGUE_GRA
 import { xpRequiredForLevel } from '../core/RewardEngine';
 import SoundManager from '../core/audio/SoundManager';
 import { AvatarFrame } from './AvatarFrame';
+import { ShareImageButton, GradeShareCard, buildGradeShareText } from './ShareButton';
 
 
 import RollingNumber from './RollingNumber';
@@ -18,6 +19,7 @@ interface RewardOverlayProps {
     reward: MatchReward | null;
     isWinner: boolean;
     onContinue: () => void;
+    playerName?: string;
 }
 
 function getGradeTheme(grade: NonNullable<MatchReward['newGrade']>) {
@@ -72,7 +74,7 @@ const XPIcon = ({ size = 18 }: { size?: number }) => (
 
 
 // ─── Main Overlay ───────────────────────────────────────────────────────────
-export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardOverlayProps) {
+export function RewardOverlay({ visible, reward, isWinner, onContinue, playerName = '' }: RewardOverlayProps) {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
     const [infoModalVisible, setInfoModalVisible] = useState(false);
@@ -493,6 +495,21 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue }: RewardO
                                         </Text>
                                     </View>
                                 </View>
+                                <ShareImageButton
+                                    text={buildGradeShareText({
+                                        gradeLabel: LEAGUE_LABELS[reward.newGrade],
+                                        totalCochons: reward.newLeaguePoints,
+                                    })}
+                                    label="Partager mon palier"
+                                >
+                                    <GradeShareCard
+                                        playerName={playerName}
+                                        gradeLabel={LEAGUE_LABELS[reward.newGrade]}
+                                        gradeIcon={LEAGUE_ICONS[reward.newGrade]}
+                                        totalCochons={reward.newLeaguePoints}
+                                        accentColor={gradeTheme?.accent ?? '#FFD700'}
+                                    />
+                                </ShareImageButton>
                                 <Text style={styles.tapToCloseText}>(Appuyez pour continuer)</Text>
                             </Animated.View>
                             </ScrollView>
