@@ -179,7 +179,9 @@ export const useActionDispatcher = ({
                     console.error('[ActionDispatcher] Sound error:', e);
                 }
 
-                if (command.type !== 'NEXT_ROUND' && command.type !== 'RESOLVE_BOUDE' && command.type !== 'MARK_BOUDE') {
+                // Clear timer on MARK_BOUDE aussi — le timer ne doit pas expirer
+                // pendant que le badge Boudé est affiché et que Firestore propage l'état.
+                if (command.type !== 'NEXT_ROUND' && command.type !== 'RESOLVE_BOUDE') {
                     setOvertime(null);
                     clearAllTurnTimers();
                 }

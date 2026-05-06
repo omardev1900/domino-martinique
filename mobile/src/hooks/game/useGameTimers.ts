@@ -62,7 +62,9 @@ export const useGameTimers = ({
 
         if (!gameState || isPaused) return;
 
-        if (gameState.phase !== 'PLAYING') {
+        // Arrêter le timer pour toute phase non-active (y compris PARTIE_END/BOUDE
+        // qui peuvent arriver avec du délai Firestore en multi).
+        if (gameState.phase !== 'PLAYING' && gameState.phase !== 'BOUDE') {
             setTimeLeft(null);
             return;
         }

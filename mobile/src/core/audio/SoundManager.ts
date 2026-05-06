@@ -186,7 +186,7 @@ class SoundManager {
                 
                 player.loop = true;
                 player.volume = 0; // Commencer à 0 pour le fade-in
-                player.play();
+                player.play().catch(() => {});
                 
                 this.currentMusic = player;
                 this.currentMusicName = normalizedName;
@@ -274,7 +274,7 @@ class SoundManager {
             if (this.currentMusic && !this.currentMusic.playing && this.currentMusicName) {
                 if (settings.bgmVolume > 0) {
                     LogService.info('SoundManager', 'Watchdog: Music stalled, restarting...');
-                    this.currentMusic.play();
+                    this.currentMusic.play().catch(() => {});
                 }
             }
         }, 3000);
@@ -306,7 +306,7 @@ class SoundManager {
 
                 player.volume = settings.sfxVolume;
                 player.seekTo(0);
-                player.play();
+                player.play().catch(() => {});
             }
         } catch (error) {
             LogService.warn('SoundManager', `SFX error "${name}"`, error);
@@ -352,7 +352,7 @@ class SoundManager {
             } else {
                 // Si on réactive le son, on s'assure que la musique repart
                 if (!this.currentMusic.playing && this.currentMusicName) {
-                    this.currentMusic.play();
+                    this.currentMusic.play().catch(() => {});
                 }
                 this.currentMusic.volume = this.baseMusicVolume * settings.bgmVolume;
             }

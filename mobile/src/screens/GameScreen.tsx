@@ -293,6 +293,21 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const [hiddenDominoId, setHiddenDominoId] = useState<string | null>(null);
     const [flyingDomino, setFlyingDomino] = useState<FlyingDominoData | null>(null);
 
+    // Badge Boudé local : se reset dès que turnId change pour éviter la persistance
+    // en multi quand Firestore tarde à propager boudePlayerId = null.
+    const [localBoudedPlayerId, setLocalBoudedPlayerId] = useState<string | null>(null);
+    const lastBoudeTurnIdRef = useRef<number>(-1);
+    useEffect(() => {
+        const turnId = gameState?.turnId ?? -1;
+        const firebaseBoudedId = gameState?.boudePlayerId ?? null;
+        if (firebaseBoudedId && turnId !== lastBoudeTurnIdRef.current) {
+            lastBoudeTurnIdRef.current = turnId;
+            setLocalBoudedPlayerId(firebaseBoudedId);
+        } else if (!firebaseBoudedId && localBoudedPlayerId) {
+            setLocalBoudedPlayerId(null);
+        }
+    }, [gameState?.boudePlayerId, gameState?.turnId]);
+
     const tableRef = useRef<GameTableRef>(null);
     const rootRef = useRef<View>(null);
     const lastPlayStartPos = useRef<{ x: number, y: number } | null>(null);
@@ -1197,7 +1212,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     localPlayer={localPlayer as any}
                     gameState={gameState}
                     localPlayerId={localPlayerId}
-                    boudedPlayerId={gameState.boudePlayerId ?? null}
+                    boudedPlayerId={localBoudedPlayerId}
                     playersChat={playersChat as any}
                     overtime={overtime}
                     isBotPlaying={isProcessingMove}

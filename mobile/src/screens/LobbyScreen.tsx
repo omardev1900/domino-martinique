@@ -11,7 +11,7 @@ import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
 import { EconomyHeader } from '../components/EconomyHeader';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { GradeBadge } from '../components/GradeBadge';
-import { LEAGUE_FRAMES_ENABLED } from '../core/economy.constants';
+import { LEAGUE_FRAMES_ENABLED, LEAGUE_GRADE_COLORS } from '../core/economy.constants';
 
 interface LobbyScreenProps {
     roomData: GameRoom;

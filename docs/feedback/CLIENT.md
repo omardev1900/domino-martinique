@@ -183,3 +183,31 @@
 | R4-M3 | Rendre les phrases et emojis vendables à l'unité et non à vie. | 📋 BACKLOG |
 | R4-M4 | Enlever les 300 coins cadeaux journaliers sauf si le joueur clique sur un bouton pour voir une pub. | 📋 BACKLOG |
 | R4-M5 | Ajouter une notification quotidienne pour inviter les joueurs à venir jouer. | 📋 BACKLOG |
+
+---
+
+## 📋 RETOUR #5 — 06 mai 2026 (testeurs + Manuel Voitier)
+
+> Retour reçu le 06 mai 2026 lors de sessions de test multijoueur.
+
+### 🔴 BUGS MULTIJOUEUR
+
+| # | Description brute | Statut |
+|---|---|---|
+| R5-B1 | Fin de round en multi : un joueur voit encore son tour avec le timer qui décompte, puis le message de fin de round apparaît quelques secondes après | 📋 BACKLOG |
+| R5-B2 | Boudé ne s'affiche pas pour tous les joueurs | 📋 BACKLOG |
+| R5-B3 | "Rodrigue reste boudé au moins 10s" — badge Boudé persistant chez certains joueurs en multi | 📋 BACKLOG |
+| R5-B4 | Écran violet pour certains joueurs (Moi + Rodrigue) mais pas pour d'autres (Yoyo) | 📋 BACKLOG |
+| R5-B5 | Jeu "beaucoup plus lent" depuis la dernière session | 📋 BACKLOG |
+
+### Verbatim client (Manuel Voitier)
+> "Ecran violet pr moi et rodrigue maintenant et pas pr yoyo / Qd yoyo est boudé cela ne s'affiche pas pr moi / Et toujours le bug de Rodrigue tu le vois sur les vidéo il reste boudé au moins 10s / Franchement cest bcp bcp bcp plus lent"
+
+### 🔴 ERREURS SENTRY (session du 06/05/2026)
+
+| # | Erreur | URL | Priorité |
+|---|---|---|---|
+| S-1 | `LEAGUE_GRADE_COLORS is not defined` (ReferenceError) | entry | 🔴 Critique |
+| S-2 | `NotAllowedError` — permission audio refusée (5 events, 3 users) | /game/VVVWRW | 🟠 |
+| S-3 | `AbortError: The operation was aborted` (4 events) | /game/VVVWRW | 🟠 |
+| S-4 | `AbortError: play() interrupted by pause` | /game/VVVWRW | 🟡 |
