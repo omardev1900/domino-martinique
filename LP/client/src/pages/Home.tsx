@@ -350,7 +350,7 @@ export default function Home() {
           <div className="border-t border-background/20 pt-8 text-center text-sm text-background/70">
             <p>&copy; 2026 Domino Martinique. Tous droits réservés.</p>
             <p className="mt-2">
-              <Link href="/politique-de-confidentialite" className="underline hover:text-background transition-colors">
+              <Link href="/policy" className="underline hover:text-background transition-colors">
                 Politique de confidentialité & Suppression des données
               </Link>
             </p>

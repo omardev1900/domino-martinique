@@ -14,6 +14,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/politique-de-confidentialite"} component={PrivacyPolicy} />
       <Route path={"/privacy-policy"} component={PrivacyPolicy} />
+      <Route path={"/policy"} component={PrivacyPolicy} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

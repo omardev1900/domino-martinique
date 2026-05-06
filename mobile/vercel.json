@@ -1,5 +1,22 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/policy",
+      "destination": "https://domino-martinique.online/policy",
+      "permanent": true
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "https://domino-martinique.online/policy",
+      "permanent": true
+    },
+    {
+      "source": "/politique-de-confidentialite",
+      "destination": "https://domino-martinique.online/policy",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

@@ -183,7 +183,7 @@ export default function PrivacyPolicy() {
           <p className="mt-1">
             <Link href="/" className="text-primary hover:underline">Retour à l'accueil</Link>
             {" · "}
-            <Link href="/politique-de-confidentialite" className="hover:underline">Politique de confidentialité</Link>
+            <Link href="/policy" className="hover:underline">Politique de confidentialité</Link>
           </p>
         </div>
       </footer>
