@@ -54,3 +54,5 @@ functions/lib/
 .agent/
 error.txt
 
+
+.env.local

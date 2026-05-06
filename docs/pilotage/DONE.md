@@ -11,6 +11,15 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-06 — Sentry monitoring + Pubs étendues + Cadeau quotidien
+
+- [x] **[SENTRY]** Intégration Sentry React Native (Bloc 12 partiel)
+  - Wizard Sentry configuré automatiquement (`@sentry/react-native`)
+  - DSN configuré, source maps et debug symbols uploadés au build
+  - Projet Sentry : `happy-agency / react-native`
+  - Capture automatique des crashs JS et erreurs natives
+  - Validé : premier fatal error capté avant même le bouton de test
+
 ### 2026-05-06 — Correctifs critiques + Monétisation cadeau quotidien
 
 - [x] **[R4-B2]** Ligue des Cochons — popup de passage de palier en vrai flux de jeu

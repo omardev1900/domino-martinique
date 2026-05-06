@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     ScrollView,
     useWindowDimensions,
-    Modal
+    Modal,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';

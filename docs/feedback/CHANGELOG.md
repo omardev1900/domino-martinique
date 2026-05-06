@@ -4,6 +4,13 @@
 
 ---
 
+## [2.3.8] — 2026-05-06
+
+### Ajouté
+- **Sentry monitoring** — les crashs et erreurs JS sont désormais capturés automatiquement et visibles en temps réel sur le dashboard Sentry (`happy-agency.sentry.io`).
+
+---
+
 ## [2.3.7] — 2026-05-06
 
 ### Ajouté

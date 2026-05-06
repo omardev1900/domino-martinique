@@ -24,6 +24,22 @@ import {
   SIDEBAR_HIDDEN_ROUTES,
   SIDEBAR_HIDDEN_PREFIXES,
 } from '@/core/config/navigation.config';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://b42b9f54cd5334acbc2310a30f9fc5fb@o4511343295987712.ingest.de.sentry.io/4511343301034064',
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: true,
+  integrations: [Sentry.feedbackIntegration()],
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
 
 // Keep the native splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -58,7 +74,7 @@ async function applyImmersiveMode() {
   }
 }
 
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   const colorScheme = useColorScheme();
   const [appReady, setAppReady] = useState(false);
   const pathname = usePathname();
@@ -263,4 +279,4 @@ export default function RootLayout() {
       </ThemeProvider>
     </GestureHandlerRootView>
   );
-}
+});
