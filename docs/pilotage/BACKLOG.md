@@ -24,7 +24,33 @@
 
 ---
 
-## 🎯 Priorités Sprint Post-Lancement (02/05/2026)
+## 🎯 Priorités avant lancement Play Store (reclassé 06/05/2026)
+
+### 🔴 Priorité 1 — BLOQUANTS LANCEMENT (à livrer avant soumission Play Store)
+
+- [ ] **[R4-UX3]** Partage social — WhatsApp, Instagram, Facebook
+- [ ] **[R4-M3]** Tchat — phrases et emojis consommables à l'unité (20-50 coins/envoi)
+- [ ] **[R4-B3-SESSION]** Multijoueur — reconnexion après purge complète de session
+
+### 🟠 Priorité 2 — Post-lancement immédiat
+
+- [ ] **[R4-IA1]** Bots adaptés au niveau réel du joueur
+- [ ] **[R4-ECO1]** Récompenses différenciées solo vs multi
+- [ ] **[R4-M1]** Ligue — reset mensuel du niveau
+- [ ] **[R4-TECH-LEADERBOARD]** Agrégats mensuels persistants (refonte stats)
+- [ ] **[R4-B4]** Web — bouton plein écran dupliqué
+
+### 🔵 Priorité 3 — Moyen terme
+
+- [ ] **[ADS-REWARD]** Doubler les gains après pub (post-match)
+- [ ] **[NOTIF-WEB]** Notifications push Web (PWA — Safari iOS + Chrome Android)
+- [ ] **[R4-M5-DAILY]** Notification push quotidienne automatique (relance joueurs)
+- [ ] **[R4-UX-BOTS]** Bots achetables en Mode Légende
+- [ ] **[ANIM-DOMINO]** Animation glissé + distribution dominos
+
+---
+
+## 📋 Détail des tâches Priorité 1
 
 ### Priorité 0 — Correctifs critiques web / ligue / multi (retour client 04/05)
 - [ ] **[R4-B3-SESSION]** Multijoueur — reconnexion impossible après purge complète de session navigateur malgré reconnexion avec le même compte

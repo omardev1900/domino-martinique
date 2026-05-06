@@ -11,6 +11,21 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-06 — Partage social + Page politique de confidentialité
+
+- [x] **[R4-UX3]** Partage social — victoire et passage de palier
+  - `ShareTextButton` : partage une image capturée de la `WinShareCard` (logo + nom joueur + cochons + grade) via `expo-sharing`
+  - `ShareImageButton` : capture la `GradeShareCard` (passage de palier) et la partage comme image PNG
+  - Textes en français, seul « Vini joué épi mwen » reste en créole
+  - Fallback texte seul si `expo-sharing` n'est pas disponible (web)
+  - Intégré dans `UnifiedResultOverlay` (victoire de match) et `RewardOverlay` (passage de palier)
+
+- [x] **[LP-POLICY]** Landing page — page Politique de confidentialité
+  - Nouvelle page `/politique-de-confidentialite` (alias `/privacy-policy`) sur la LP
+  - Contient : données collectées, finalités, partage, conservation, droits RGPD, **procédure de suppression de compte** (section #6 dédiée), sécurité, mineurs, contact
+  - Lien ajouté dans le footer de la page d'accueil
+  - URL requise par Google Play Console pour la conformité
+
 ### 2026-05-06 — Notifications push + Sentry + Pubs étendues + Cadeau quotidien
 
 - [x] **[R4-M5 / NOTIF-1]** Notifications push Android natif

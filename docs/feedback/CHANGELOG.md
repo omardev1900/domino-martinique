@@ -4,6 +4,14 @@
 
 ---
 
+## [2.4.1] — 2026-05-06
+
+### Ajouté
+- **Partage social** — bouton « Partager ma victoire » en fin de match : génère une image (carte avec logo, nom du joueur, cochons infligés, rang) et l'ouvre dans la sheet de partage native (WhatsApp, Instagram, etc.). Bouton similaire au passage de palier Ligue des Cochons (carte grade capturée comme image).
+- **Page Politique de confidentialité** — nouvelle page sur la landing page (`/politique-de-confidentialite`), accessible depuis le footer. Contient la procédure de suppression de compte (section dédiée), les droits RGPD, et les informations sur les données collectées. Requise par Google Play Console.
+
+---
+
 ## [2.3.9] — 2026-05-06
 
 ### Ajouté
