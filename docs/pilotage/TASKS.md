@@ -55,6 +55,7 @@
 | **R4-B5** | Web — domino gagnant parfois réutilisé depuis la partie précédente | 🔴 Critique | ✅ Terminé (06/05) |
 | **R4-M4** | Cadeau quotidien conditionné à une pub — bouton "Voir une pub → +300 🪙" | 🟠 Monétisation | ✅ Terminé (06/05) |
 | **R4-M2** | Pubs dans boutique, vestiaire, stats, classement, ligue + admin CRUD placements | 🟠 Monétisation | ✅ Terminé (06/05) |
+| **R4-M5** | Notifications push quotidiennes — expo-notifications + token FCM dans Firestore | 🟠 Rétention | ✅ Terminé (06/05) |
 
 ---
 

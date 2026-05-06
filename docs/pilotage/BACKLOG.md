@@ -457,11 +457,19 @@
 
 ## 🔔 Notifications Push (FCM)
 
-- [ ] **[NOTIF-1]** Intégration notifications push pilotables depuis l'admin
+- [ ] **[NOTIF-1]** Intégration notifications push Android natif pilotables depuis l'admin
   - Mobile : intégrer `expo-notifications` + enregistrement token FCM dans `users/{uid}.fcmToken`
   - Cloud Function : endpoint d'envoi FCM (ciblé par uid, ou broadcast)
   - Admin : brancher la page `/dashboard/notifications` existante sur la Cloud Function
-  - Types prévus : invitation table, début tournoi, message système admin
+  - Types prévus : invitation table, début tournoi, message système admin, relance quotidienne
+  - **Estimation** : ~1 jour
+
+- [ ] **[NOTIF-WEB]** Notifications push Web (PWA) — Android browser + iPhone Safari 16.4+
+  - Stack séparée de NOTIF-1 : Firebase Web SDK (`messaging()`) + service worker
+  - Demande permission au premier lancement web
+  - Token FCM web enregistré dans `users/{uid}.fcmTokenWeb`
+  - Admin : même page `/dashboard/notifications`, envoie aux deux types de tokens
+  - **Pré-requis** : NOTIF-1 terminé
   - **Estimation** : ~1 jour
 
 ---

@@ -11,6 +11,14 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-06 — Notifications push + Sentry + Pubs étendues + Cadeau quotidien
+
+- [x] **[R4-M5 / NOTIF-1]** Notifications push Android natif
+  - `expo-notifications` installé et configuré (plugin dans `app.json`)
+  - `registerPushToken()` dans `_layout.tsx` : demande permission au lancement, écrit le token dans `users/{uid}.fcmToken`
+  - Page admin `/dashboard/notifications` + route `/api/notify` déjà opérationnelles (broadcast ou ciblé par uid, batch 500)
+  - ⚠️ Nécessite un build EAS pour générer les vrais tokens FCM (ne fonctionne pas en Expo Go)
+
 ### 2026-05-06 — Sentry monitoring + Pubs étendues + Cadeau quotidien
 
 - [x] **[SENTRY]** Intégration Sentry React Native (Bloc 12 partiel)

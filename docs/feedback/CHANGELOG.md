@@ -4,6 +4,13 @@
 
 ---
 
+## [2.3.9] — 2026-05-06
+
+### Ajouté
+- **Notifications push** — l'app demande la permission au lancement et enregistre le token FCM dans Firestore. L'admin peut envoyer des notifications à tous les joueurs depuis `/dashboard/notifications` (nécessite un build EAS).
+
+---
+
 ## [2.3.8] — 2026-05-06
 
 ### Ajouté

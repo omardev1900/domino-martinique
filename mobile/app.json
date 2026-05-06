@@ -72,6 +72,14 @@
           "project": "react-native",
           "organization": "happy-agency"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/images/icon.png",
+          "color": "#1A0E2E",
+          "sounds": []
+        }
       ]
     ],
     "experiments": {

@@ -18,6 +18,9 @@ import { Sidebar } from '@/components/Sidebar';
 import { WebFullscreenButton } from '@/components/WebFullscreenButton';
 import { authService } from '@/core/services/auth.service';
 import { findActiveRoomForUser } from '@/core/services/firebase';
+import * as Notifications from 'expo-notifications';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/core/services/firebase';
 import {
   USE_NEW_SIDEBAR,
   SIDEBAR_WIDTH,
@@ -63,6 +66,27 @@ export const unstable_settings = {
   initialRouteName: 'index',
 };
 
+async function registerPushToken() {
+  if (Platform.OS === 'web') return;
+  try {
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    let finalStatus = existing;
+    if (existing !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') return;
+
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    const user = await authService.getCurrentUser();
+    if (user && !user.uid.startsWith('guest_')) {
+      await updateDoc(doc(db, 'users', user.uid), { fcmToken: token });
+    }
+  } catch (_) {
+    // Non-critical — permission refusée ou appareil sans services Google
+  }
+}
+
 async function applyImmersiveMode() {
   if (Platform.OS !== 'android') return;
   try {
@@ -89,6 +113,9 @@ export default Sentry.wrap(function RootLayout() {
         // Réinitialise les cooldowns de session pub + charge les pubs actives (fire-and-forget)
         await adService.resetSessionCooldowns();
         adService.preload();
+
+        // Enregistre le token FCM pour les notifications push
+        registerPushToken();
 
         // Preload audio assets
         await SoundManager.preloadSounds();
