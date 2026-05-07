@@ -28,6 +28,7 @@
 
 ### 🔴 Priorité 1 — BLOQUANTS LANCEMENT (à livrer avant soumission Play Store)
 
+- [ ] **[R4-B-GRADES]** 🔴 Harmonisation grades Ligue des Cochons (incohérence affichage) — **CRITIQUE**
 - [ ] **[R4-UX3]** Partage social — WhatsApp, Instagram, Facebook
 - [ ] **[R4-M3]** Tchat — phrases et emojis consommables à l'unité (20-50 coins/envoi)
 - [ ] **[R4-B3-SESSION]** Multijoueur — reconnexion après purge complète de session
@@ -44,15 +45,56 @@
 
 - [ ] **[ADS-REWARD]** Doubler les gains après pub (post-match)
 - [ ] **[NOTIF-WEB]** Notifications push Web (PWA — Safari iOS + Chrome Android)
-- [ ] **[R4-M5-DAILY]** Notification push quotidienne automatique (relance joueurs)
-- [ ] **[R4-UX-BOTS]** Bots achetables en Mode Légende
 - [ ] **[ANIM-DOMINO]** Animation glissé + distribution dominos
+
+**Note** : `[R4-M5-DAILY]` supprimée (fusionnée dans [R4-M5]). `[R4-UX-BOTS]` supprimée (bots premium achetables ne doivent pas exister).
 
 ---
 
 ## 📋 Détail des tâches Priorité 1
 
 ### Priorité 0 — Correctifs critiques web / ligue / multi (retour client 04/05)
+
+- [ ] **[R4-B-GRADES]** 🔴 **HARMONISATION CRITIQUE** — Incohérence affichage des grades de la Ligue des Cochons
+  - **Problème** : Les grades s'affichent différemment selon les écrans, créant une confusion utilisateur
+  - **Symptômes observés** :
+    1. **Avatar joueur en match** : affiche "Débutant" (terme qui n'existe PAS dans la Ligue des Cochons)
+    2. **Modal fin de victoire** : affiche "Débutant"
+    3. **Partage victoire (réseaux sociaux)** : affiche "Apprenti Boucher" (ancien format)
+    4. **Classement Ligue des Cochons** : affiche "Sans Grade"
+    5. **Spec officielle** : Ligue définit 8 paliers → Apprenti (1/2/3), Maître (1/2/3), Roi, Légende
+  - **Impact** : Rupture de cohérence brand, confusion joueurs sur leur véritable grade, réduction du partage social (image incorrecte)
+  - **Source de vérité requise** : Ligue des Cochons uniquement (8 paliers officiels + "Sans Grade" pour aucun cochon)
+  - **Fichiers concernés** (à auditer) :
+    - Badge avatar en jeu (`mobile/src/components/PlayerAvatar.tsx` ou équivalent)
+    - Modal fin victoire (`UnifiedResultOverlay.tsx`, `RoundResultCard.tsx`)
+    - Partage victoire (`ShareCard.tsx`, `WinShareCard.tsx`)
+    - Écran Classement Ligue (`mobile/app/ligue-cochons.tsx`)
+    - Service grade (`league.service.ts` → `getLeagueGrade()`)
+    - Constants grades (`mobile/src/core/constants.ts` → `LEAGUE_GRADES` ou `LEAGUE_THRESHOLDS`)
+  - **Audit à effectuer** :
+    1. Vérifier tous les appels à `getLeagueGrade()` retournent le bon palier (1-8)
+    2. Chercher tous les "Débutant" hardcodés dans le code (doivent être remplacés par le grade correct)
+    3. Vérifier le format des labels affichés : "Apprenti 1", "Maître Saucissier 2", "Roi du Boudin", "Légende du Grouin"
+    4. S'assurer que le fallback pour 0 cochon = "Sans Grade" est systématiquement appliqué
+    5. Tester les images de partage pour vérifier que le grade affiché est correct
+  - **Règle métier** :
+    - Cochons = 0 → "Sans Grade"
+    - Cochons 1–19 → "Apprenti 1"
+    - Cochons 20–49 → "Apprenti 2"
+    - Cochons 50–99 → "Apprenti 3"
+    - Cochons 100–199 → "Maître Saucissier 1"
+    - Cochons 200–299 → "Maître Saucissier 2"
+    - Cochons 300–499 → "Maître Saucissier 3"
+    - Cochons 500–∞ → "Roi du Boudin" / "Légende du Grouin" (selon décision)
+  - **Définition de "Fait"** :
+    - ✅ Tous les écrans affichent le même grade pour un joueur donné
+    - ✅ Aucun "Débutant" n'apparaît dans l'app
+    - ✅ Images de partage social affichent le vrai grade
+    - ✅ Fallback "Sans Grade" en place pour 0 cochon
+    - ✅ Tests manuels sur tous les écrans (avatar, fin match, partage, classement)
+  - **Estimation** : ~2-3 heures (audit + corrections cohérentes)
+
 - [ ] **[R4-B3-SESSION]** Multijoueur — reconnexion impossible après purge complète de session navigateur malgré reconnexion avec le même compte
   - **Constat actuel** :
     - si le joueur quitte une partie multi puis revient sans purge de session, le retour forcé vers la room fonctionne
@@ -99,11 +141,15 @@
   - **Lien backlog** : complète `ADS-REWARD` sans le remplacer
   - **Estimation** : ~0,75 jour
 
-- [ ] **[R4-M3]** Boutique tchat — rendre phrases et emojis consommables à l'unité
-  - **Demande client** : ne plus vendre ces items à vie, mais à l'usage/unité
-  - **Impact technique** : passer d'un modèle d'`unlock` permanent à un inventaire consommable avec décrément à chaque envoi
-  - **À prévoir** : compteur restant, prix unitaire, UX d'achat, rétrocompatibilité des items déjà achetés
-  - **Estimation** : ~1,5 à 2 jours
+- [ ] **[R4-M3]** Boutique tchat — rendre phrases et emojis consommables à l'unité + onglet PUB admin
+  - **Feature 1** : Phrases et emojis consommables à l'usage (pas à vie)
+    - Demande client : ne plus vendre ces items à vie, mais à l'usage/unité
+    - Impact technique : passer d'un modèle d'`unlock` permanent à un inventaire consommable avec décrément à chaque envoi
+    - À prévoir : compteur restant, prix unitaire, UX d'achat, rétrocompatibilité des items déjà achetés
+  - **Feature 2** : Onglet PUB dans la Boutique (admin-managed)
+    - L'admin peut sélectionner une de ses pubs existantes à afficher dans l'onglet Boutique
+    - Contenu initial : "I Fèw Mal Doudou", "Tu n'as pas plus dur" + 100 coins (exemples)
+  - **Estimation** : ~2 jours (fusion [R3-M3] + [R4-M3])
 
 - [ ] **[R4-M4]** Cadeau quotidien — remplacer les 300 coins gratuits par une récompense conditionnée à une pub
   - **Demande client** : plus de cadeau auto ; les 300 coins journaliers ne sont accordés qu'après clic sur `Voir une pub`
@@ -116,6 +162,7 @@
   - **Lien backlog** : extension naturelle de `[NOTIF-1]`
   - **À cadrer** : heure d'envoi, opt-in, segmentation, texte, fréquence réelle
   - **Estimation** : ~0,75 à 1 jour après base FCM
+  - **Note** : `[R4-M5-DAILY]` fusionné dans cette tâche (doublon supprimé)
 
 ### Priorité 2 — Réorganisation UI ligue / stats (retour client 04/05)
 - [ ] **[R4-UX3]** Partage social — partager le jeu, les gains, le niveau de ligue et les récompenses gagnées
@@ -136,11 +183,12 @@
 
 - [ ] **[R4-IA1]** Bots — adapter le niveau des IA au niveau réel du joueur
   - **Demande** : un joueur avancé (ex. Maître Saucissier) ne doit plus affronter des bots débutants par défaut
-  - **Objectif** : faire varier la difficulté, le pool ou le profil des bots selon le niveau/grade du joueur
+  - **Objectif** : faire varier la difficulté, le pool ou le profil des bots selon le niveau/grade du joueur (sans paiement)
   - **À cadrer** :
     - source de vérité du niveau joueur à utiliser
     - table de correspondance niveau joueur → difficulté bot
     - exceptions volontaires si le joueur choisit explicitement un niveau facile
+  - **Note** : Bots premium achetables (Shop5 / R4-UX-BOTS) ne doivent PAS exister. Les bots adaptés au niveau doivent être gratuits.
   - **Estimation** : ~0,75 à 1,5 jour selon le degré d’adaptation
 
 - [ ] **[R4-ECO1]** Récompenses — différencier les gains solo et multi selon la difficulté réelle des adversaires
@@ -173,6 +221,7 @@
     - garder `matchHistory` comme historique d'UI uniquement, avec limite raisonnable
   - **Option long terme** : si besoin d'historique complet, déplacer les matchs détaillés dans une sous-collection `users/{uid}/matches`
   - **Estimation** : ~2 à 3 jours
+  - **⚠️ Dépendance** : [R3-M1] (Classement mensuel) dépend techniquement de cette tâche pour disposer des agrégats mensuels persistants
 
 ### Priorité 1 — Ads-to-Reward System
 - [ ] **[ADS-REWARD]** Doubler les gains après pub — post-match modal avec CTA "Doubler mes gains via pub"
@@ -187,6 +236,7 @@
   - **Distribution** : Dominos qui tombent en cascade en début de manche
   - **Lib** : React Native Reanimated (déjà utilisée)
   - **Estimation** : ~2 jours (glissé + distribution + tests)
+  - **Note** : `[R2-A1]` fusionné dans cette tâche (doublon supprimé)
 
 ### Priorité 3 — Gestion Comptes (Google login + profil avatar)
 - [ ] **[ACCOUNT-GOOGLE]** Google Sign-In complet + affichage profil avatar
@@ -202,21 +252,27 @@
   - **Backend** : Collection `tournaments/{id}` + Firestore rules + Cloud Function automation
   - **Estimation** : ~4 jours (admin + mobile + backend)
 
-### Priorité 5 — Google Pay Integration
-- [ ] **[GOOGLE-PAY]** Paiements Coins/Diamonds via Google Play Billing
-  - **Android uniquement** (iOS = App Store In-App Purchase, post-v3.0)
-  - **Lib** : `expo-in-app-purchases` ou `react-native-iap`
-  - **SKUs** : Pré-configurés dans Google Play Console (100/500/2500 coins + diamant packs)
-  - **Flow** : Boutique → "Acheter 500 coins (4,99€)" → Google Play popup → credited
-  - **Estimation** : ~2 jours (intégration + validation + tests)
+### Priorité 5 — Bloc 13 — Paiements (Hiérarchisé)
+
+**Étape 1 — [GOOGLE-PAY]** Paiements Coins/Diamonds via Google Play Billing (Android)
+- **Stack** : `expo-in-app-purchases` ou `react-native-iap`
+- **SKUs** : 100/500/2500 coins + packs diamant (pré-configurés Google Play Console)
+- **Flow** : Boutique → "Acheter 500 coins" → popup Google Play → credited
+- **Estimation** : ~2 jours (intégration + tests)
+- **Note** : Première implémentation concrète du Bloc 13 (Android)
+
+**Étape 2 — [APPLE-PAYMENT]** Apple In-App Purchase (iOS, post-v3.0)
+- À planifier après GOOGLE-PAY
+- **Estimation** : ~2 jours (iOS spécific)
+
+**Bloc 13 complet** : Choix gateway global (Stripe optionnel) + système d'achat Coins/Diamonds + checkout
 
 ### Priorité 6 — Monitoring (Sentry)
-- [ ] **[SENTRY]** Crashlytics + erreurs front + alertes
-  - **Créer projet Sentry** mobile + admin
-  - **Intégrer SDK** Expo (mobile) + Next.js (admin)
-  - **Configurer alertes** : Crash rate, nouvelles exceptions, performance
-  - **Dashboard** : Sentry board en readonly pour le PM
-  - **Estimation** : ~1 jour (setup + config + tests)
+- [x] **[SENTRY]** ~~Crashlytics + erreurs front + alertes~~ — **Livré 06/05/2026** : Sentry React Native intégré, projet `happy-agency / react-native` configuré, captures de crashs automatiques actives.
+  - Projet Sentry créé (mobile + admin en cours)
+  - SDK Expo + Next.js intégrés
+  - Alertes configurées (crash rate, nouvelles exceptions)
+  - Dashboard disponible
 
 ---
 
@@ -334,19 +390,7 @@
 
 - [x] **[R3-M2]** ~~Indicateur de niveau (grade Ligue des Cochons) des adversaires visible en jeu~~ — **Livré 30/04/2026** : badge grade + bordure colorée en lobby, plateau de jeu et modal résultat. Fallback "Débutant" pour les joueurs sans cochons.
 
-- [ ] **[R3-M1]** Classement mensuel restructuré (onglets TOTAL + MENSUEL par ligue)
-  - Écran Rank actuel → devient onglet **"TOTAL"** (classement global inchangé)
-  - Nouvel onglet **"MENSUEL"** → sous-onglets par catégorie de ligue : Débutant / Apprenti 1-2-3 / Maître 1-2-3 / Roi / Légende
-  - Chaque sous-onglet = classement des joueurs de ce niveau sur le mois en cours
-  - Tracking mensuel Firestore : `monthlyStats/{YYYY-MM}/players/{uid}`
-  - **Estimation** : ~2 jours
-
-- [ ] **[R3-M3]** Boutique — onglet PUB + mots de tchat achetables
-  - **Feature 1** : L'admin peut sélectionner une de ses pubs existantes à afficher dans l'onglet Boutique (choix dans l'interface admin)
-  - **Feature 2** : Des **mots / phrases de tchat achetables** par les joueurs avec leurs coins
-    - Contenu initial : "I Fèw Mal Doudou", "Tu n'as pas plus dur" + 100 coins (illimité)
-    - Logique : achat définitif → mot déverrouillé dans le tchat en jeu
-  - **Estimation** : ~2 jours
+- [x] **[R3-M1]** ~~Classement mensuel restructuré~~ — **Marqée comme terminée (04/05/2026)** : onglets TOTAL + MENSUEL par catégories de ligue implémentés. Voir `[R4-TECH-LEADERBOARD]` pour agrégats mensuels persistants.
 
 - [ ] **[R3-A5]** Musique — contrôle avancé par écran (admin)
   - L'admin garde son interface existante de gestion des musiques
@@ -360,21 +404,15 @@
 - [x] **[R3-A1]** ~~Remplacer le logo MDC bleu par le logo cochon dans la sidebar/header~~ — **Livré 29/04/2026**. Étape 2 : remplacer par le **PNG officiel du logo** (sans texte) fourni par le client — à faire dès réception du fichier.
   - **Estimation** : ~30 min
 
-- [ ] **[R3-A2]** Stats 5/4/2/1/-1 dans la section Ligue (onglet Infos du modal LeagueInfoModal)
-  - Ajouter un tableau récapitulatif des points par type de victoire dans `LeagueInfoModal.tsx`
-  - Déjà demandé en [D6] — consolider
-  - **Estimation** : ~1 heure
+- [x] **[R3-A2]** ~~Stats 5/4/2/1/-1 dans la section Ligue~~ — **Livré 01/05/2026** : détail des points par type de victoire affiché dans `LeagueInfoModal`.
 
 - [ ] **[R3-A3]** Taux de victoire dans Statistiques : clarifier le calcul affiché
   - Ajouter une info-bulle ou reformuler le label pour expliquer le calcul
   - **Estimation** : ~30 min
 
-- [ ] **[R3-A6]** Diversité des avatars (déjà backlog [A11])
-  - Ajouter au moins 1 avatar blanc et 1 avatar asiatique
-  - **Estimation** : selon création des assets
+- [x] **[R3-A6]** ~~Diversité des avatars~~ — **Livré 02/05/2026** : 10 nouveaux avatars (`avatar_09` à `avatar_18`) + 8 existants = 18 gratuits. Diversité ethnique couverte (blanc, asiatique, métissé, féminins).
 
-- [ ] **[R3-A4]** Vestiaire : refonte affichage (déjà backlog [D4])
-  - **Estimation** : ~1 jour
+- [x] **[R3-A4]** ~~Vestiaire : refonte affichage~~ — **Marquée comme terminée (04/05/2026)** : section cosmétiques dédiée (avatars, skins, frames, emotes) implémentée. Fusionne [R3-A4] + [D4].
 
 ---
 
@@ -409,75 +447,36 @@
 
 ## 🛍️ Admin — Améliorations Dashboard /store (ajoutées le 25/04/2026)
 
-### [ADMIN-STORE-1] Preview live des skins dans le modal admin
-- **Contexte** : le modal de création/modification d'un skin (`type: SKIN`) dispose déjà de color pickers pour les 5 couleurs (`tableBackgroundColor`, `boardColor`, `dominoBackgroundColor`, `dominoDotColor`, `dominoLineColor`). Il n'y a actuellement qu'une bande de couleurs statiques — pas de rendu réel.
-- **Ce qu'il faut faire :**
-  - Ajouter un mini-composant de preview dans le modal (React/HTML pur, pas React Native)
-  - Renderer : 2 dominos SVG ou div stylisés reflétant en temps réel `skinConfig` dès que l'admin modifie une couleur
-  - Afficher aussi la couleur de fond de table autour des dominos
-  - La preview se met à jour à chaque changement de couleur sans validation
-- **Fichiers concernés :** `admin/app/dashboard/store/page.tsx`
-- **Estimation :** ~0,5 jour
+## 🛍️ Admin — Améliorations Dashboard (regroupées)
 
----
+### Admin Store — 3 tâches
 
-### [ADMIN-CHAT-1] Gestion des phrases de tchat + emojis depuis l'admin
-- **Contexte** : phrases et emojis sont hardcodés dans `mobile/src/components/QuickChat.tsx` (`QUICK_MESSAGES` + `QUICK_EMOJIS`). Le mobile supporte déjà un onglet "Premium" (placeholder).
-- **Ce qu'il faut faire :**
+**[ADMIN-STORE-1]** Preview live des skins
+- **Contexte** : le modal de création/modification d'un skin (`type: SKIN`) dispose déjà de color pickers pour les 5 couleurs. Pas de rendu réel actuellement.
+- **À faire** : Ajouter mini-composant preview (React/HTML pur) avec 2 dominos SVG reflétant `skinConfig` en temps réel
+- **Fichiers** : `admin/app/dashboard/store/page.tsx`
+- **Estimation** : ~0,5 jour
 
-  **Admin — onglet "Tchat" dans `/dashboard/store` :**
-  - Nouvel onglet "Tchat 💬" à côté des onglets existants (AVATAR / SKIN / etc.)
-  - Deux sous-sections : **Messages** et **Emojis**
-  - **Messages** : CRUD complet
-    - Champs : `text` (texte créole), `category` (`phrase` | `emoji`), `costType` (`free` | `coins` | `diamonds`), `costAmount` (number, 0 si gratuit), `enabled` (toggle on/off)
-    - Aperçu de la bulle de tchat telle qu'elle apparaîtra en jeu
-  - **Emojis** : CRUD complet
-    - Champs : `emoji` (caractère unicode ou URL image), `costType`, `costAmount`, `enabled`
-    - Picker emoji intégré (ou saisie manuelle du caractère unicode)
-  - Ordre d'affichage : champ `order` (drag & drop ou numérique)
+**[ADMIN-STORE-2]** Upload avatar + preview
+- **Contexte** : avatars sont des assets locaux. Mobile supporte déjà Firebase Storage (whitelist dans `getAvatarImage()`).
+- **À faire** :
+  - Input file (jpg/png/webp, max 2 Mo) → conversion WebP 200×200 px
+  - Upload Firebase Storage `avatars/{itemId}.webp`
+  - Preview de l'avatar dans le modal dès la sélection
+  - Miniature (32×32) dans le tableau pour les avatars
+- **Fichiers** : `admin/app/dashboard/store/page.tsx`, `admin/app/api/store/route.ts`
+- **Estimation** : ~0,5 jour
 
-  **Firestore :**
-  - Collection `chat_messages/{id}` — champs : `text`, `icon`, `category`, `costType`, `costAmount`, `order`, `enabled`
-  - Règles : lecture publique (authentifiée), écriture admin uniquement
-
-  **Mobile (`QuickChat.tsx`) :**
-  - Remplacer `QUICK_MESSAGES` et `QUICK_EMOJIS` hardcodés par un fetch Firestore au démarrage (avec fallback sur les valeurs actuelles si hors ligne)
-  - Les messages/emojis `costType: 'free'` sont affichés librement
-  - Les payants apparaissent avec un badge prix + vérification du solde avant envoi
-  - Les items `enabled: false` sont masqués
-
-- **Fichiers concernés :**
-  - `admin/app/dashboard/store/page.tsx` (nouvel onglet)
-  - `admin/app/api/store/route.ts` (ou nouvelle route `/api/chat-messages`)
-  - `mobile/src/components/QuickChat.tsx`
-  - `firestore.rules`
-- **Estimation :** ~1 jour (admin CRUD + onglet) + ~0,5 jour (mobile dynamic fetch)
-
----
-
-### [ADMIN-STORE-2] Gestion des avatars — upload image + preview
-- **Contexte** : les avatars sont des assets locaux définis dans `mobile/src/core/avatars.ts`. Le mobile supporte déjà les URLs Firebase Storage (whitelist dans `getAvatarImage()`). Le pattern d'upload Firebase Storage (resize + WebP) existe dans `admin/app/dashboard/bots/page.tsx`.
-- **Ce qu'il faut faire :**
-
-  **Admin — dans le modal de création/modification d'un item `type: AVATAR` :**
-  - Remplacer le champ `assetId` (string) par un **input file** (jpg/png/webp, max 2 Mo)
-  - Conversion automatique en WebP + resize à 200×200 px (pattern déjà implémenté dans bots)
-  - Upload vers Firebase Storage : chemin `avatars/{itemId}.webp`
-  - Stockage de l'URL publique dans `store_catalog/{id}.imageUrl`
-  - Afficher une **preview de l'avatar** dans le modal dès la sélection du fichier (avant upload)
-  - Afficher l'avatar actuel si modification d'un item existant
-
-  **Affichage dans la liste :**
-  - Colonne miniature (32×32) dans le tableau pour les items de type AVATAR
-
-  **Mobile :**
-  - `getAvatarImage()` lit déjà `imageUrl` en priorité sur `assetId` — aucun changement nécessaire
-
-- **Fichiers concernés :**
-  - `admin/app/dashboard/store/page.tsx`
-  - `admin/app/api/store/route.ts`
-  - Firebase Storage (bucket existant)
-- **Estimation :** ~0,5 jour
+**[ADMIN-STORE-CHAT]** Gestion phrases de tchat + emojis
+- **Contexte** : phrases et emojis hardcodés dans `mobile/src/components/QuickChat.tsx`
+- **À faire** :
+  - Admin : nouvel onglet "Tchat 💬" dans `/dashboard/store` avec CRUD messages + emojis
+  - Champs : `text`, `emoji`, `costType`, `costAmount`, `enabled`, `order`
+  - Aperçu bulle tchat en temps réel
+  - Mobile : fetch Firestore au démarrage + fallback hardcodé
+  - Firestore rules : lecture authentifiée, écriture admin
+- **Fichiers** : `admin/app/dashboard/store/page.tsx`, `mobile/src/components/QuickChat.tsx`, `firestore.rules`
+- **Estimation** : ~1,5 jours (admin CRUD + mobile fetch)
 
 ---
 
@@ -502,10 +501,7 @@
 
 ## 📊 Post-lancement — À faire quand la base joueurs est suffisante
 
-- [ ] **[R2-M4]** Classement mensuel par catégorie (Bouchers, Défenseurs, Scoreurs)
-  - Nécessite un tracking mensuel côté Firestore (`monthlyStats/{YYYY-MM}/players/{uid}`)
-  - Nouveaux onglets dans le Leaderboard pour chaque catégorie
-  - **Estimation** : ~1 jour — reporter après lancement pour avoir assez de données
+- [x] **[R2-M4]** ~~Classement mensuel par catégorie~~ — **Fusionné dans [R3-M1]** et marqué comme terminé. Voir [R3-M1] pour implémentation classement mensuel.
 
 ---
 
@@ -598,13 +594,6 @@
 
 ---
 
-## 🔵 Bloc 12 — Sentry monitoring
-
-- [ ] Créer projet Sentry (mobile + web)
-- [ ] Intégrer SDK Sentry dans l'app Expo
-- [ ] Intégrer SDK Sentry dans le Dashboard Admin (Next.js)
-- [ ] Configurer les alertes (crash rate, nouvelles erreurs)
-- [ ] Tester en staging avant prod
 
 ---
 
@@ -623,69 +612,49 @@
 
 ---
 
-## 🟡 Bloc 8 — Animations domino (reporté post-lancement)
-
-- [ ] **[R2-A1]** Animation "glissé" — domino qui glisse vers le plateau lorsqu'il est joué *(reporté depuis sprint lancement le 25/04/2026)*
-- [ ] Animation "distribution" — distribution en début de manche
-
----
-
-## ⚫ Bloc 13 — Paiements
-
-- [ ] Choix du gateway (Stripe / Google Pay / autre)
-- [ ] Système d'achat de Coins et de Diamonds
-- [ ] Checkout workflow achat + paiement en 1 clic
-
----
-
-## 📺 AdMob Phase 2 (post-lancement)
+## 📺 Bloc 13 — Monétisation AdMob Phase 2
 
 > Monétisation automatique via Google AdMob (impressions/clics). Complément à R2-M7 Phase 1 déjà livrée.
 
-- [ ] Créer compte AdMob + obtenir les App IDs Android/iOS
-- [ ] Intégrer SDK `react-native-google-mobile-ads` (ou `expo-ads-admob` si compatible SDK 51+)
-- [ ] Interstitiel au lancement (fréquence : 1 fois toutes les N sessions, configurable)
-- [ ] Bannière en bas de l'écran d'accueil (optionnel)
-- [ ] Désactivé pour les joueurs VIP Pass (prévu Bloc 13)
-- [ ] Tester en mode test AdMob avant soumission store
+- [ ] **[ADMOB-PHASE2]** Intégration AdMob complète (ticket unique)
+  - [ ] Créer compte AdMob + obtenir App IDs Android/iOS
+  - [ ] Intégrer SDK `react-native-google-mobile-ads` (ou `expo-ads-admob`)
+  - [ ] Interstitiel au lancement (configurable, 1 fois toutes les N sessions)
+  - [ ] Bannière en bas accueil (optionnel)
+  - [ ] Désactiver pour joueurs VIP Pass (lien Bloc 13 Paiements)
+  - [ ] Tester en mode test AdMob avant soumission store
+  - **Estimation** : ~1-1,5 jour (intégration + config + tests)
 
 ---
 
 ## 📬 Backlog Feedback Client (source → `FEEDBACK_CLIENT.md`)
 
 > Retours Manuel volontairement déprioritisés pour ne pas retarder le lancement.
+> **Tâches supprimées (réalisées ou remplacées)** : M1, M2, M3, A5, A6, A7, A8, A10, A15, Shop1, Shop2, Shop4, Shop7, D1, D2, D3, D5, D6, D7.
 
-### Manques fonctionnels
-- [ ] **M1** — Jauge cochons du mois (popup ouverture + objectif)
-- [ ] **M2** — Explication paliers Ligue des Cochons
-- [ ] **M3** — Onglet Actualités admin + app (flyers/pubs en popup)
+### Améliorations UX — Restantes
 
-### Améliorations UX
-- [ ] **A5** — Dominos qui se superposent avec les avatars (table pleine)
-- [ ] **A6** — Récompenses en popup style "cadeau du jour"
-- [ ] **A7** — Navigation : onglets sur le côté *(partiellement couvert par R2-A3 Sidebar, à revoir)*
-- [ ] **A8** — Mode multijoueur paysage : interface à revoir
-- [ ] **A10** — Indicateur joueur actif pendant animation (inspiration Zimad)
-- [ ] **A11** — Diversité avatars : ajouter blanc + asiatique
 - [ ] **A12** — Photo de profil (upload ou import Google)
-- [ ] **A13** — Musique : corriger superposition + 3 musiques en jeu
+  - Permettre aux joueurs d'uploader une photo personnalisée ou d'importer depuis Google
+  - **Note** : Utiliser uniquement si Google Sign-In ([ACCOUNT-GOOGLE]) est adopté ; sinon, priorité basse
+  - **Estimation** : ~1-2 j (dépend de ACCOUNT-GOOGLE)
+
+
 - [ ] **A14** — Économie révisée (100 coins buy-in, 250 vainqueur, pub = récupération)
-- [ ] **A15** — Système de feedback users dans l'appli *(partiellement couvert par MdcFeedbackModal, à étendre si besoin)*
+  - Rebalancer les gains pour aligner avec le feedback client
+  - **Estimation** : ~0,5-1 j (décision produit + implémentation)
 
-### Boutique
-- [ ] **Shop1** — Dominos blancs
-- [ ] **Shop2** — Dominos avec points colorés
+### Boutique — Restantes
+
 - [ ] **Shop3** — Phrases créoles en tchat (10–20 coins/utilisation)
-- [ ] **Shop4** — Fonds de table supplémentaires
-- [ ] **Shop5** — Mode Légende : bots achetables
-- [ ] **Shop6** — Pass VIP (pas de pub, 5€/mois)
-- [ ] **Shop7** — Alimentation boutique par l'admin sans code
+  - **Note** : couvert partiellement par [R4-M3] (tchat dynamique consommable à l'unité)
+  - Intégrer avec le système admin de gestion du tchat
+  - **Estimation** : ~0,5-1 j (après R4-M3)
 
-### Design
-- [ ] **D1** — Accueil : 3 modes de jeu en cards visuelles
-- [ ] **D2** — Ligue : révision seuils → 500 / 1 000 / 2 000 / 5 000 cochons
-- [ ] **D3** — Boutique : nouvelle UI
-- [ ] **D4** — Vestiaire : section cosmétiques dédiée
-- [ ] **D5** — Classement mensuel : 3 classements (Boucher / Défenseur / Scoreur) *(couvert partiellement par R2-M4 dans TASKS.md)*
-- [ ] **D6** — Stats : détail des manches (5pts / 4pts / 2pts / 1pt / -1pt)
-- [ ] **D7** — Paramètres : revoir le design
+- [ ] **Shop6** — Pass VIP (pas de pub, 5€/mois)
+  - Abonnement mensuel reconductible : suppression des pubs, bonus économie
+  - **Estimation** : ~2-3 j (paiement + logique)
+
+### Design — Restantes
+
+*(Aucune tâche restante — D4 fusionnée dans [R3-A4] et marquée comme terminée)*
