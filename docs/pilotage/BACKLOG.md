@@ -24,37 +24,35 @@
 
 ---
 
-## 🎯 Priorités avant lancement Play Store (reclassé 06/05/2026)
+## 🎯 Priorités avant lancement Play Store (reclassé 08/05/2026)
 
-### 🔴 Priorité 1 — BLOQUANTS LANCEMENT (à livrer avant soumission Play Store)
+### ✅ Bloquants lancement — TOUS TERMINÉS
 
-- [ ] **[R4-B-GRADES]** 🔴 Harmonisation grades Ligue des Cochons (incohérence affichage) — **CRITIQUE**
-- [ ] **[R4-UX3]** Partage social — WhatsApp, Instagram, Facebook
-- [ ] **[R4-M3]** Tchat — phrases et emojis consommables à l'unité (20-50 coins/envoi)
-- [ ] **[R4-B3-SESSION]** Multijoueur — reconnexion après purge complète de session
+- [x] **[R4-B-GRADES]** ✅ Terminé (08/05) — Harmonisation grades Ligue
+- [x] **[R4-UX3]** ✅ Terminé (06/05) — Partage social
+- [x] **[R4-M3]** ✅ Terminé (08/05) — Tchat consommable à l'unité
+- [ ] **[R4-B3-SESSION]** ⏸️ Déprioritisé (client 08/05) — Cas rare (purge cookies), à traiter post-lancement si signalements
 
-### 🟠 Priorité 2 — Post-lancement immédiat
+### 🟠 Post-lancement — À planifier
 
-- [ ] **[R4-IA1]** Bots adaptés au niveau réel du joueur
-- [ ] **[R4-ECO1]** Récompenses différenciées solo vs multi
-- [ ] **[R4-M1]** Ligue — reset mensuel du niveau
+- [ ] **[BOT-ADAPTIVE]** Bots adaptatifs + IA MÈTKAYALI — fusion de `[R4-IA1]` + `[BOT_METKAYALI]`
+  - Spec complète → `docs/specs/features/BOT_ADAPTIVE.md`
+  - Grade du joueur = niveau plancher (ne peut pas jouer en dessous), peut choisir un niveau supérieur
+  - Inclut : 4 couches IA MÈTKAYALI + `getBotsForGrade()` + refonte UX solo.tsx + admin dropdown
+  - Estimation : ~3,25 jours
 - [ ] **[R4-TECH-LEADERBOARD]** Agrégats mensuels persistants (refonte stats)
-- [ ] **[R4-B4]** Web — bouton plein écran dupliqué
-
-### 🔵 Priorité 3 — Moyen terme
-
 - [ ] **[ADS-REWARD]** Doubler les gains après pub (post-match)
 - [ ] **[NOTIF-WEB]** Notifications push Web (PWA — Safari iOS + Chrome Android)
 - [ ] **[ANIM-DOMINO]** Animation glissé + distribution dominos
-- [ ] **[AUDIO-IOS-FALLBACK]** Fallback WebAudio API pour les SFX sur Safari iOS
-  - **Contexte** : `expo-audio` lance `NotSupportedError` au `.play()` sur Safari iOS (mode privé, Low Power Mode, iOS < 14.5). 135+ erreurs Sentry/jour avant fix.
-  - **Fix temporaire appliqué (08/05/2026)** : audio désactivé d'office sur Safari iOS dans `SoundManager.isAudioAllowed`. Plus d'erreur, mais plus de SFX non plus.
-  - **Décision produit** : on ne bloque PAS Safari iOS (Chrome iOS utilise le même moteur WebKit, donc inutile). On préfère laisser jouer sans son que de perdre 50% des utilisateurs iOS web.
-  - **Solution cible** : générer le clack/notify procéduralement via Web Audio API (`AudioContext` + `OscillatorNode`/`BufferSource`) — marche dans tous les navigateurs, y compris Safari iOS.
-  - **Périmètre** : a minima `playClack` (le plus utilisé), idéalement aussi `notify`, `win`, `timer`. La BGM peut rester désactivée sur iOS web.
-  - **Fichier** : `mobile/src/core/audio/SoundManager.ts` — ajouter une branche `if (isIOSSafari) playWebAudioFallback(name)` + nouveau module `WebAudioFallback.ts`.
-  - **Estimation** : ~0,5 jour
-  - **Bénéfice secondaire** : les utilisateurs iOS web retrouvent un feedback sonore en attendant l'app native iOS.
+
+### ✅ Clôturés / Annulés (décisions client 08/05/2026)
+
+- [x] **[R4-ECO1]** ❌ Annulé — Récompenses différenciées solo vs multi
+- [x] **[R4-M1]** ✅ Déjà en place — Reset mensuel ligue via `startOfMonth` dans `leagueProgress.ts`
+- [x] **[R4-B4]** ✅ Déjà fait — Bouton plein écran unique (`WebFullscreenButton.tsx`)
+- [x] **[AUDIO-IOS-FALLBACK]** ✅ Fix temporaire livré (08/05) — Safari iOS silencieux (plus d'erreurs Sentry). Fallback WebAudio API reporté post-lancement.
+- [x] **[ACCOUNT-GOOGLE]** ❌ Annulé (client 08/05)
+- [x] **[ADMIN-AUDIT]** ✅ Déjà fait (client 08/05)
 
 **Note** : `[R4-M5-DAILY]` supprimée (fusionnée dans [R4-M5]). `[R4-UX-BOTS]` supprimée (bots premium achetables ne doivent pas exister).
 
@@ -545,38 +543,12 @@
 
 ---
 
-## 🧠 Bot MÈTKAYALI (Niveau 4 IA)
+## 🧠 Bot MÈTKAYALI + Bots Adaptatifs → fusionné dans `[BOT-ADAPTIVE]`
 
-> **Spec complète → `docs/specs/BOT_METKAYALI.md`**
-> 4ᵉ niveau de difficulté IA : comptage parfait, Monte-Carlo, blocage prédictif, adaptation dynamique.
-> **Estimation** : 4-6 jours de dev. **Priorité** : post-lancement.
-
-### Couche 1 — TileTracker (comptage des 28 tuiles)
-- [ ] `mobile/src/core/ai/TileTracker.ts` — matrice de probabilités + exclusion par passes
-- [ ] `mobile/src/core/ai/__tests__/TileTracker.test.ts` — tests unitaires
-
-### Couche 2 — Monte-Carlo (simulation de parties)
-- [ ] `mobile/src/core/ai/MonteCarlo.ts` — simulation 500-1000 parties par coup, contraintes TileTracker
-- [ ] `mobile/src/core/ai/__tests__/MonteCarlo.test.ts` — tests unitaires + benchmark perf (< 100ms)
-
-### Couche 3 — EndgameAnalyzer (prédiction de Boudé)
-- [ ] `mobile/src/core/ai/EndgameAnalyzer.ts` — calcul risque de Boudé + bascule stratégie Score/Contrôle
-
-### Couche 4 — OpponentModeler (profiling adversaire)
-- [ ] `mobile/src/core/ai/OpponentModeler.ts` — profil temps réel, mode alerte CRITICAL (1-2 tuiles)
-
-### Moteur principal + intégration
-- [ ] `mobile/src/core/MeytKayaliEngine.ts` — orchestration des 4 couches + `getMeytKayaliMove()`
-- [ ] `mobile/src/core/__tests__/MeytKayaliEngine.test.ts` — tests complets + benchmark vs GRAN_MOUN (> 60% victoires sur 100 parties)
-- [ ] `mobile/src/core/types.ts` — ajouter `'METKAYALI'` au type `BotDifficulty`
-- [ ] `mobile/src/core/DominoEngine.ts` — ajouter le cas `'METKAYALI'` dans `getBotMove()`
-- [ ] `mobile/src/core/BotEngine.ts` — passer le `gameState` complet pour MÈTKAYALI
-- [ ] `mobile/src/core/LogicEngine.ts` — ajouter bots MÈTKAYALI dans `dealGameSolo()`
-- [ ] `mobile/src/core/services/bot.service.ts` — pool METKAYALI dans `LOCAL_BOTS_FALLBACK`
-
-### UI + accès
-- [ ] `mobile/app/solo.tsx` — ajouter le 4ᵉ choix de difficulté
-- [ ] Verrouillage : débloqué au grade "Roi du Boudin" ou achat boutique (à décider)
+> ⚠️ Cette section est remplacée par le ticket `[BOT-ADAPTIVE]` (fusion R4-IA1 + BOT_METKAYALI).
+> **Spec complète → `docs/specs/features/BOT_ADAPTIVE.md`**
+> Spec IA de référence (4 couches) → `docs/specs/BOT_METKAYALI.md`
+> Estimation : ~3,25 jours. Priorité : post-lancement, à planifier.
 
 ---
 

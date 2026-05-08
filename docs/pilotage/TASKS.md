@@ -9,8 +9,8 @@
 > - Décision de traiter une tâche → la déplacer ici
 > - Tâche terminée → la déplacer dans `TASKS_DONE.md` avec la date
 
-**Dernière mise à jour :** 05 mai 2026
-**Sprint actuel :** 🚀 Sprint Post-Lancement P1
+**Dernière mise à jour :** 08 mai 2026
+**Sprint actuel :** 🚀 Sprint Post-Lancement P2
 
 ---
 
@@ -52,7 +52,7 @@
 | Ticket | Description | Priorité | Statut |
 |---|---|---|---|
 | **R4-B-GRADES** | Harmonisation grades Ligue (Débutant/Apprenti Boucher → Sans grade + LEAGUE_LABELS) | 🔴 Bloquant store | ✅ Terminé (08/05) |
-| **R4-M3** | Tchat — phrases et emojis consommables à l'unité (20-50 coins/envoi) | 🔴 Bloquant store | 🚧 En cours (08/05) |
+| **R4-M3** | Tchat — phrases et emojis consommables à l'unité (20-50 coins/envoi) | 🔴 Bloquant store | ✅ Terminé (08/05) |
 
 ---
 
@@ -67,6 +67,29 @@
 | **R4-M5** | Notifications push quotidiennes — expo-notifications + token FCM dans Firestore | 🟠 Rétention | ✅ Terminé (06/05) |
 | **R4-UX3** | Partage social — victoire (image carte) + passage de palier (carte grade) | 🟠 Rétention | ✅ Terminé (06/05) |
 | **LP-POLICY** | Landing page — page Politique de confidentialité + suppression de données (Google Play) | 🔴 Bloquant store | ✅ Terminé (06/05) |
+
+---
+
+## 🚀 Sprint Post-Lancement P2 — En cours (08/05/2026)
+
+| Ticket | Description | Priorité | Statut |
+|---|---|---|---|
+| **BOT-ADAPTIVE** | Bots adaptatifs + IA MÈTKAYALI (fusion R4-IA1 + BOT_METKAYALI) | 🔴 Priorité haute | 🚧 En cours (08/05) |
+
+### Progression BOT-ADAPTIVE
+- [x] Spec fusionnée → `docs/specs/features/BOT_ADAPTIVE.md`
+- [x] `TileTracker.ts` — Couche 1 IA (8 tests ✅)
+- [x] `EndgameAnalyzer.ts` — Couche 3 IA
+- [x] `OpponentModeler.ts` — Couche 4 IA
+- [x] `MonteCarlo.ts` — Couche 2 IA
+- [x] `MeytKayaliEngine.ts` — Orchestrateur principal
+- [x] `types.ts` — `BotDifficulty` étendu à `METKAYALI`
+- [x] `BotEngine.ts` — signature étendue + fallback GRAN_MOUN
+- [x] `bot.service.ts` — pool METKAYALI + `getBotsForGrade()` + `getFloorLevel()` + `isLevelAllowed()`
+- [x] `solo.tsx` — sélecteur adaptatif (plancher bloqué, niveaux sup disponibles)
+- [x] Tests `MeytKayaliEngine.test.ts` — 4/4 tests verts, 44% victoires vs 2× GRAN_MOUN (> 33% hasard) ✅
+- [x] Intégration `useBotDecision` — appel `getMeytKayaliMove()` pour les bots METKAYALI ✅
+- [x] Admin `/dashboard/bots` — dropdown METKAYALI (🧠 Mèt Kayali) ✅
 
 ---
 

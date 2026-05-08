@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
+type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' | 'METKAYALI';
 
 type BotProfile = {
   firestoreId?: string; // ID réel du document Firestore
@@ -35,9 +35,10 @@ const LOCAL_BOTS: BotProfile[] = [
 ];
 
 const DIFF_META: Record<Difficulty, { label: string; color: string; icon: string; desc: string }> = {
-  TI_MANMAY: { label: 'Ti Manmay',  icon: '🌱', color: 'text-green-400 bg-green-500/10 border-green-500/20',   desc: 'Débutant' },
-  MAPIPI:    { label: 'Mapipi',     icon: '⚔️', color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20', desc: 'Intermédiaire' },
-  GRAN_MOUN: { label: 'Gran Moun',  icon: '👑', color: 'text-red-400 bg-red-500/10 border-red-500/20',         desc: 'Expert' },
+  TI_MANMAY:  { label: 'Ti Manmay',   icon: '🌱', color: 'text-green-400 bg-green-500/10 border-green-500/20',    desc: 'Débutant' },
+  MAPIPI:     { label: 'Mapipi',      icon: '⚔️', color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20', desc: 'Intermédiaire' },
+  GRAN_MOUN:  { label: 'Gran Moun',   icon: '👑', color: 'text-red-400 bg-red-500/10 border-red-500/20',          desc: 'Expert' },
+  METKAYALI:  { label: 'Mèt Kayali',  icon: '🧠', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20', desc: 'Maître Absolu' },
 };
 
 const EMPTY: Partial<BotProfile> = { name: '', avatarId: '', difficulty: 'TI_MANMAY' };
@@ -412,6 +413,7 @@ export default function BotsPage() {
                   <option value="TI_MANMAY">🌱 Ti Manmay (Débutant)</option>
                   <option value="MAPIPI">⚔️ Mapipi (Intermédiaire)</option>
                   <option value="GRAN_MOUN">👑 Gran Moun (Expert)</option>
+                  <option value="METKAYALI">🧠 Mèt Kayali (Maître Absolu)</option>
                 </select>
               </div>
             </div>

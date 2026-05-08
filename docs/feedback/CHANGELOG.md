@@ -4,6 +4,13 @@
 
 ---
 
+## [2.4.3] — 2026-05-08
+
+### Ajouté
+- **Tchat consommable** — les phrases et emojis payants s'achètent désormais en packs d'usages (ex : 50 envois pour 100 coins) plutôt qu'à vie. Le nombre d'envois restants est affiché directement dans la bulle de tchat. Les items gratuits restent illimités. L'admin peut configurer le nombre d'usages par achat depuis `/dashboard/chat`.
+
+---
+
 ## [2.4.2] — 2026-05-08
 
 ### Corrigé

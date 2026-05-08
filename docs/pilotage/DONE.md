@@ -11,6 +11,18 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-08 — Harmonisation grades Ligue + page logs admin + fix audio iOS + tchat consommable
+
+- [x] **[R4-M3]** Tchat — phrases et emojis consommables à l'unité
+  - Modèle d'achat migré de "à vie" vers "consommable" : chaque envoi décrémente un compteur d'usages
+  - `usagesPerPurchase` : 0 = à vie (illimité), N = pack de N envois
+  - Inventaire par joueur : `chatInventory` dans l'économie (compteur restant par item)
+  - `unlockedChatItems` conservé pour les achats à vie
+  - Admin (`/dashboard/chat`) : champ "Usages par achat" + badge "🎫 N envois" ou "♾️ à vie"
+  - Mobile (`QuickChat.tsx`) : décrément côté client + sync Firestore, affichage du nombre restant
+  - Achat depuis la bulle de tchat : prix en coins, confirmation, crédit immédiat
+  - Items gratuits inchangés (toujours disponibles sans restriction)
+
 ### 2026-05-08 — Harmonisation grades Ligue + page logs admin + fix audio iOS
 
 - [x] **[R4-B-GRADES]** Harmonisation des grades de la Ligue des Cochons à travers tous les écrans
