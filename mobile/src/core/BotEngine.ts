@@ -19,7 +19,7 @@ export const getBotMove = (
     hand: Domino[],
     leftValue: DominoSide | null,
     rightValue: DominoSide | null,
-    difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' = 'MAPIPI',
+    difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' | 'METKAYALI' = 'MAPIPI',
     playedTiles?: Domino[],
     opponentPassedValues?: number[]
 ): BotDecision | null => {
@@ -44,7 +44,10 @@ export const getBotMove = (
         }
     }
 
-    const decision = getEngineBotMove(hand, { left: leftValue, right: rightValue }, difficulty, playedTiles, opponentPassedValues);
+    // MÈTKAYALI utilise getMeytKayaliMove() via computeBotDecision() avec le gameState complet
+    // Ce fallback GRAN_MOUN ne doit pas être atteint pour METKAYALI en conditions normales
+    const safeDifficulty = difficulty === 'METKAYALI' ? 'GRAN_MOUN' : difficulty;
+    const decision = getEngineBotMove(hand, { left: leftValue, right: rightValue }, safeDifficulty, playedTiles, opponentPassedValues);
 
     if (!decision) return null;
 

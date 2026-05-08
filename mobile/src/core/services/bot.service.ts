@@ -1,15 +1,17 @@
 import { collection, getDocs, query, where, addDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
+export type BotDifficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' | 'METKAYALI';
+
 export interface BotProfile {
     id: string;
     name: string;
     avatarId: string;
-    imageUrl?: string; // URL distante optionnelle
-    difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
+    imageUrl?: string;
+    difficulty: BotDifficulty;
 }
 
-export const LOCAL_BOTS_FALLBACK: Record<'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN', BotProfile[]> = {
+export const LOCAL_BOTS_FALLBACK: Record<BotDifficulty, BotProfile[]> = {
     'TI_MANMAY': [
         { id: 'bot_ti_1', name: 'Ti-Sonson', avatarId: 'avatar_ti_sonson', difficulty: 'TI_MANMAY' }
     ],
@@ -18,11 +20,15 @@ export const LOCAL_BOTS_FALLBACK: Record<'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN', B
     ],
     'GRAN_MOUN': [
         { id: 'bot_gran_1', name: 'Tonton-Léon', avatarId: 'avatar_tonton_leon', difficulty: 'GRAN_MOUN' }
-    ]
+    ],
+    'METKAYALI': [
+        { id: 'bot_mk_1', name: 'Man-Diab', avatarId: 'avatar_bot_07', difficulty: 'METKAYALI' },
+        { id: 'bot_mk_2', name: 'Papa-Zombi', avatarId: 'avatar_bot_08', difficulty: 'METKAYALI' },
+    ],
 };
 
 class BotService {
-    async getBotsForLevel(level: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN', count: number = 2): Promise<BotProfile[]> {
+    async getBotsForLevel(level: BotDifficulty, count: number = 2): Promise<BotProfile[]> {
         // Fallback de sécurité immédiat si le niveau n'existe pas localement (prévention crash absolu)
         const localPool = LOCAL_BOTS_FALLBACK[level];
         if (!localPool || !Array.isArray(localPool)) {
@@ -122,3 +128,65 @@ class BotService {
 }
 
 export const botService = new BotService();
+
+// ─── Logique adaptative — Grade → Niveau plancher ────────────────────────────
+
+/**
+ * Retourne le niveau plancher (difficulté minimale) pour un grade donné.
+ * Le joueur peut choisir un niveau supérieur, jamais inférieur.
+ */
+export const GRADE_FLOOR_BOTS: Record<string, BotDifficulty[]> = {
+    'null':      ['TI_MANMAY', 'TI_MANMAY'],
+    'APPRENTI_1': ['TI_MANMAY', 'TI_MANMAY'],
+    'APPRENTI_2': ['TI_MANMAY', 'MAPIPI'],
+    'APPRENTI_3': ['MAPIPI',    'MAPIPI'],
+    'MAITRE_1':   ['MAPIPI',    'GRAN_MOUN'],
+    'MAITRE_2':   ['MAPIPI',    'GRAN_MOUN'],
+    'MAITRE_3':   ['GRAN_MOUN', 'GRAN_MOUN'],
+    'ROI':        ['GRAN_MOUN', 'METKAYALI'],
+    'LEGENDE':    ['METKAYALI', 'METKAYALI'],
+};
+
+const DIFFICULTY_ORDER: BotDifficulty[] = ['TI_MANMAY', 'MAPIPI', 'GRAN_MOUN', 'METKAYALI'];
+
+/**
+ * Retourne le niveau plancher pour un grade donné.
+ */
+export function getFloorLevel(grade: string | null): BotDifficulty {
+    const key = grade ?? 'null';
+    const floor = GRADE_FLOOR_BOTS[key] ?? ['TI_MANMAY', 'TI_MANMAY'];
+    // Le plancher = le niveau le plus élevé des deux bots par défaut
+    const idx = Math.max(
+        DIFFICULTY_ORDER.indexOf(floor[0]),
+        DIFFICULTY_ORDER.indexOf(floor[1])
+    );
+    return DIFFICULTY_ORDER[Math.max(0, idx)];
+}
+
+/**
+ * Vérifie si un niveau est jouable pour un grade donné (>= plancher).
+ */
+export function isLevelAllowed(grade: string | null, level: BotDifficulty): boolean {
+    const floorIdx = DIFFICULTY_ORDER.indexOf(getFloorLevel(grade));
+    const levelIdx = DIFFICULTY_ORDER.indexOf(level);
+    return levelIdx >= floorIdx;
+}
+
+/**
+ * Charge les 2 bots adaptés au niveau choisi par le joueur.
+ * Si aucun niveau n'est fourni, utilise le plancher du grade.
+ */
+export async function getBotsForGrade(
+    grade: string | null,
+    chosenLevel?: BotDifficulty
+): Promise<BotProfile[]> {
+    const floor = getFloorLevel(grade);
+    const level = chosenLevel ?? floor;
+
+    // Sécurité : jamais en dessous du plancher
+    const floorIdx = DIFFICULTY_ORDER.indexOf(floor);
+    const levelIdx = DIFFICULTY_ORDER.indexOf(level);
+    const safeLevel = levelIdx >= floorIdx ? level : floor;
+
+    return botService.getBotsForLevel(safeLevel, 2);
+}

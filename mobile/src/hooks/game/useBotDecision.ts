@@ -2,6 +2,13 @@ import { useEffect, useRef } from 'react';
 import { GameState, GameRoom } from '../../core/types';
 import { computeBotDecision } from '../../core/BotEngine';
 import { ActionCommand } from './useActionDispatcher';
+import {
+    MeytKayaliState,
+    initMeytKayali,
+    getMeytKayaliMove,
+    updateAfterOpponentPlay,
+    updateAfterOpponentPass,
+} from '../../core/MeytKayaliEngine';
 
 export interface UseBotDecisionProps {
     gameState: GameState | null;
@@ -24,20 +31,39 @@ export const useBotDecision = ({
 }: UseBotDecisionProps) => {
 
     const dispatchRef = useRef(dispatch);
-    useEffect(() => {
-        dispatchRef.current = dispatch;
-    });
+    useEffect(() => { dispatchRef.current = dispatch; });
 
     const canActionRef = useRef(canAction);
-    useEffect(() => {
-        canActionRef.current = canAction;
-    });
+    useEffect(() => { canActionRef.current = canAction; });
 
     // Garder le state frais
     const gameStateRef = useRef(gameState);
+    useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+
+    // État interne du moteur MÈTKAYALI par bot (clé = playerId)
+    const meytKayaliStates = useRef<Map<string, MeytKayaliState>>(new Map());
+
+    // Initialiser / réinitialiser le moteur MÈTKAYALI quand une nouvelle partie commence
+    const lastGameIdRef = useRef<string | null>(null);
     useEffect(() => {
-        gameStateRef.current = gameState;
-    }, [gameState]);
+        if (!gameState || gameState.phase === 'LOBBY') return;
+        if (gameState.gameId === lastGameIdRef.current) return;
+        lastGameIdRef.current = gameState.gameId;
+
+        // Pour chaque bot METKAYALI, initialiser son état
+        meytKayaliStates.current.clear();
+        for (const player of gameState.players) {
+            if (player.difficulty === 'METKAYALI' && player.status === 'BOT') {
+                const opponentIds = gameState.players
+                    .filter(p => p.id !== player.id)
+                    .map(p => p.id);
+                meytKayaliStates.current.set(
+                    player.id,
+                    initMeytKayali(player.hand, opponentIds)
+                );
+            }
+        }
+    }, [gameState?.gameId]);
 
     useEffect(() => {
         if (!gameState || gameState.phase !== 'PLAYING' || isPaused) {
@@ -84,18 +110,38 @@ export const useBotDecision = ({
             }
 
             // Calcul de la décision
-            const decision = computeBotDecision(freshState, currentPlayerId);
+            let tileToPlay = null;
+            let sideToPlay: 'left' | 'right' | 'start' = 'start';
 
-            if (decision) {
+            if (activePlayer.difficulty === 'METKAYALI') {
+                // Moteur Monte-Carlo MÈTKAYALI
+                const mkState = meytKayaliStates.current.get(currentPlayerId)
+                    ?? initMeytKayali(activePlayer.hand, freshState.players.filter(p => p.id !== currentPlayerId).map(p => p.id));
 
+                const { decision: mkDecision, updatedState } = getMeytKayaliMove(mkState, freshState, currentPlayerId);
+                meytKayaliStates.current.set(currentPlayerId, updatedState);
+
+                if (mkDecision) {
+                    tileToPlay = mkDecision.tile;
+                    sideToPlay = mkDecision.side;
+                }
+            } else {
+                // Moteur classique (TI_MANMAY / MAPIPI / GRAN_MOUN)
+                const decision = computeBotDecision(freshState, currentPlayerId);
+                if (decision) {
+                    tileToPlay = decision.tile;
+                    sideToPlay = decision.side as 'left' | 'right' | 'start';
+                }
+            }
+
+            if (tileToPlay) {
                 dispatchRef.current({
                     type: 'PLAY_TILE',
                     playerId: currentPlayerId,
-                    tile: decision.tile,
-                    side: decision.side
+                    tile: tileToPlay,
+                    side: sideToPlay
                 });
             } else {
-
                 dispatchRef.current({
                     type: 'PASS_TURN',
                     playerId: currentPlayerId

@@ -18,8 +18,9 @@ import { AdBannerModal } from '../src/components/AdBannerModal';
 import { adService } from '../src/core/services/ad.service';
 import { Ad } from '../src/core/ad.types';
 import { findActiveRoomForUser } from '../src/core/services/firebase';
+import { BotDifficulty, getFloorLevel, isLevelAllowed } from '../src/core/services/bot.service';
 
-type Difficulty = 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN';
+type Difficulty = BotDifficulty;
 type GameMode = 'MANCHE' | 'SCORE' | 'COCHON' | 'VICTOIRE';
 
 const MODE_LABELS: Record<GameMode, string> = {
@@ -43,6 +44,7 @@ export default function SoloScreen() {
     const isLandscape = width > height;
 
     const [difficulty, setDifficulty] = useState<Difficulty>('MAPIPI');
+    const [playerGrade, setPlayerGrade] = useState<string | null>(null);
     const [gameMode, setGameMode] = useState<GameMode>('VICTOIRE');
     const [winningCondition, setWinningCondition] = useState(5);
     const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
@@ -67,8 +69,16 @@ export default function SoloScreen() {
 
     useFocusEffect(
         React.useCallback(() => {
-            authService.getCurrentUser().then(setUser);
-            setEconomyRefresh(v => v + 1); // refresh EconomyHeader
+            authService.getCurrentUser().then(u => {
+                setUser(u);
+                // Charger le grade du joueur pour calculer le plancher de difficulté
+                economyService.getEconomy().then(eco => {
+                    const grade = eco?.leagueGrade ?? null;
+                    setPlayerGrade(grade);
+                    setDifficulty(d => isLevelAllowed(grade, d) ? d : getFloorLevel(grade));
+                }).catch(() => {});
+            });
+            setEconomyRefresh(v => v + 1);
             adService.getAdForPlacement('BEFORE_SOLO').then(ad => {
                 if (ad) setAdToShow(ad);
             });
@@ -255,23 +265,42 @@ export default function SoloScreen() {
                                     {/* Right Col: Settings (Now full width) */}
                                     <View style={styles.configRightCol}>
                                         <View style={styles.paramsHorizontalStack}>
-                                            {/* 1. Difficulté */}
+                                            {/* 1. Difficulté adaptative */}
                                             <View style={styles.paramItemHorizontal}>
                                                 <Text style={styles.paramLabelSmall}>DIFFICULTÉ</Text>
                                                 <View style={styles.diffToggleSmall}>
-                                                    {['TI_MANMAY', 'MAPIPI', 'GRAN_MOUN'].map((d) => (
-                                                        <TouchableOpacity
-                                                            key={d}
-                                                            style={[styles.diffBtnSmall, difficulty === d && styles.activeDiffBtnSmall]}
-                                                            onPress={() => setDifficulty(d as any)}
-                                                        >
-                                                            <Text style={styles.diffIconSmall}>
-                                                                {d === 'TI_MANMAY' ? '🌱' : d === 'MAPIPI' ? '🌶️' : '👑'}
-                                                            </Text>
-                                                        </TouchableOpacity>
-                                                    ))}
+                                                    {(['TI_MANMAY', 'MAPIPI', 'GRAN_MOUN', 'METKAYALI'] as BotDifficulty[]).map((d) => {
+                                                        const allowed = isLevelAllowed(playerGrade, d);
+                                                        const isFloor = d === getFloorLevel(playerGrade);
+                                                        return (
+                                                            <TouchableOpacity
+                                                                key={d}
+                                                                style={[
+                                                                    styles.diffBtnSmall,
+                                                                    difficulty === d && styles.activeDiffBtnSmall,
+                                                                    !allowed && styles.diffBtnLocked,
+                                                                ]}
+                                                                onPress={() => allowed && setDifficulty(d)}
+                                                                disabled={!allowed}
+                                                            >
+                                                                <Text style={[styles.diffIconSmall, !allowed && { opacity: 0.3 }]}>
+                                                                    {d === 'TI_MANMAY' ? '🌱' : d === 'MAPIPI' ? '🌶️' : d === 'GRAN_MOUN' ? '👑' : '🧠'}
+                                                                </Text>
+                                                                {!allowed && (
+                                                                    <Text style={styles.diffLockIcon}>🔒</Text>
+                                                                )}
+                                                                {isFloor && allowed && (
+                                                                    <View style={styles.diffFloorDot} />
+                                                                )}
+                                                            </TouchableOpacity>
+                                                        );
+                                                    })}
                                                 </View>
-                                                <Text style={styles.paramSubtext}>{difficulty === 'TI_MANMAY' ? 'Facile' : difficulty === 'MAPIPI' ? 'Moyen' : 'Difficile'}</Text>
+                                                <Text style={styles.paramSubtext}>
+                                                    {difficulty === 'TI_MANMAY' ? 'Facile' :
+                                                     difficulty === 'MAPIPI' ? 'Moyen' :
+                                                     difficulty === 'GRAN_MOUN' ? 'Difficile' : '👑 Mèt Kayali'}
+                                                </Text>
                                             </View>
 
                                             {/* 2. Objectif */}
@@ -545,6 +574,24 @@ const styles = StyleSheet.create({
     },
     activeDiffBtnSmall: {
         backgroundColor: '#FFD700',
+    },
+    diffBtnLocked: {
+        opacity: 0.4,
+    },
+    diffLockIcon: {
+        position: 'absolute',
+        fontSize: 8,
+        bottom: 2,
+        right: 2,
+    },
+    diffFloorDot: {
+        position: 'absolute',
+        bottom: 3,
+        right: 3,
+        width: 5,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: '#4CAF50',
     },
     diffIconSmall: {
         fontSize: 18,

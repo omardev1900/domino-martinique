@@ -39,7 +39,7 @@ export interface Player {
     totalCochonsInfliges: number; // ✅ NEW: Cochons donnés aux autres (Stats Vainqueur)
     totalCochonsSubis: number; // ✅ NEW: Cochons reçus (Stats Perdant)
     status: PlayerStatus; // (Sprint 3-10) Remplace isBot et isDisconnected
-    difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN'; // NEW: Niveau spécifique du bot
+    difficulty?: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' | 'METKAYALI'; // Niveau spécifique du bot
 }
 
 export type GamePhase = 'LOBBY' | 'DEALING' | 'PLAYING' | 'BOUDE' | 'PARTIE_END' | 'MATCH_END' | 'MANCHE_END';
