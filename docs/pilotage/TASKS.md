@@ -51,7 +51,8 @@
 
 | Ticket | Description | Priorité | Statut |
 |---|---|---|---|
-| **R4-B-GRADES** | Harmonisation grades Ligue (Débutant/Apprenti Boucher → Sans grade + LEAGUE_LABELS) | 🔴 Bloquant store | 🚧 En cours (08/05) |
+| **R4-B-GRADES** | Harmonisation grades Ligue (Débutant/Apprenti Boucher → Sans grade + LEAGUE_LABELS) | 🔴 Bloquant store | ✅ Terminé (08/05) |
+| **R4-M3** | Tchat — phrases et emojis consommables à l'unité (20-50 coins/envoi) | 🔴 Bloquant store | 🚧 En cours (08/05) |
 
 ---
 

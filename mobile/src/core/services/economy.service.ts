@@ -525,6 +525,10 @@ class EconomyService {
                 local.lastDailyRewardTimestamp ?? 0,
                 remote.lastDailyRewardTimestamp ?? 0
             ) || undefined,
+            // ─── Tchat (inventaire consommable) ───
+            unlockedChatItems: remote.unlockedChatItems ?? local.unlockedChatItems ?? [],
+            chatInventory: remote.chatInventory ?? local.chatInventory ?? {},
+            chatInventoryMigratedAt: remote.chatInventoryMigratedAt ?? local.chatInventoryMigratedAt,
         };
     }
 
@@ -546,6 +550,10 @@ class EconomyService {
             unlockedFrames: (partial.unlockedFrames as LeagueFrameId[]) ?? [],
             activeFrame: (partial.activeFrame as LeagueFrameId | null) ?? null,
             lastDailyRewardTimestamp: partial.lastDailyRewardTimestamp,
+            // ─── Tchat (inventaire consommable) ───
+            unlockedChatItems: partial.unlockedChatItems ?? [],
+            chatInventory: partial.chatInventory ?? {},
+            chatInventoryMigratedAt: partial.chatInventoryMigratedAt,
         };
     }
 }

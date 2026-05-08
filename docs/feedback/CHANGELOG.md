@@ -4,6 +4,14 @@
 
 ---
 
+## [2.4.2] — 2026-05-08
+
+### Corrigé
+- **Ligue des Cochons** — harmonisation du grade affiché dans toute l'app. Auparavant le même joueur pouvait voir « Débutant » sur l'avatar de match, « Apprenti Boucher » sur la carte de partage et « Sans grade » dans le classement. Désormais le label est cohérent partout : « Sans grade » pour 0 cochon, puis les 8 paliers officiels (« Apprenti 1 » → « Légende du Grouin »).
+- **Audio Safari iOS** — l'app ne lance plus d'erreur quand le navigateur Safari iOS refuse de jouer un son. Les SFX restent désactivés sur Safari iOS (limitation du navigateur, à fixer post-lancement avec un fallback WebAudio).
+
+---
+
 ## [2.4.1] — 2026-05-06
 
 ### Ajouté

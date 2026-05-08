@@ -11,12 +11,13 @@ type ChatItem = {
   category: Category;
   costType: CostType;
   costAmount: number;
+  usagesPerPurchase: number; // 0 = achat à vie, N = pack de N envois consommables
   order: number;
   enabled: boolean;
 };
 
 const EMPTY_MESSAGE: Partial<ChatItem> = {
-  text: '', category: 'message', costType: 'free', costAmount: 0, order: 0, enabled: true,
+  text: '', category: 'message', costType: 'free', costAmount: 0, usagesPerPurchase: 0, order: 0, enabled: true,
 };
 
 // Messages et emojis par défaut (codés en dur côté mobile → à migrer)
@@ -44,7 +45,7 @@ const DEFAULT_MESSAGES: Omit<ChatItem, 'firestoreId'>[] = [
 ];
 
 const EMPTY_EMOJI: Partial<ChatItem> = {
-  text: '', category: 'emoji', costType: 'free', costAmount: 0, order: 0, enabled: true,
+  text: '', category: 'emoji', costType: 'free', costAmount: 0, usagesPerPurchase: 0, order: 0, enabled: true,
 };
 
 export default function ChatAdminPage() {
@@ -206,6 +207,9 @@ export default function ChatAdminPage() {
               ) : (
                 <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-400/10 text-yellow-400 border border-yellow-400/20">
                   🪙 {item.costAmount}
+                  {item.usagesPerPurchase > 0
+                    ? ` · 🎫 ${item.usagesPerPurchase} envois`
+                    : ' · ♾️ à vie'}
                 </span>
               )}
 
@@ -286,16 +290,31 @@ export default function ChatAdminPage() {
 
             {/* Montant si payant */}
             {editing.costType === 'coins' && (
-              <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider">Prix (coins)</label>
-                <input
-                  type="number"
-                  className="mt-1 w-full bg-gray-800 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-yellow-400 outline-none"
-                  value={editing.costAmount ?? 100}
-                  onChange={e => setEditing({ ...editing, costAmount: Number(e.target.value) })}
-                  min={1}
-                />
-              </div>
+              <>
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wider">Prix (coins)</label>
+                  <input
+                    type="number"
+                    className="mt-1 w-full bg-gray-800 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-yellow-400 outline-none"
+                    value={editing.costAmount ?? 100}
+                    onChange={e => setEditing({ ...editing, costAmount: Number(e.target.value) })}
+                    min={1}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wider">
+                    Usages par achat
+                  </label>
+                  <p className="text-xs text-gray-600 mb-1">0 = achat à vie (illimité) · ex: 50 = le joueur reçoit 50 envois</p>
+                  <input
+                    type="number"
+                    className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-yellow-400 outline-none"
+                    value={editing.usagesPerPurchase ?? 0}
+                    onChange={e => setEditing({ ...editing, usagesPerPurchase: Number(e.target.value) })}
+                    min={0}
+                  />
+                </div>
+              </>
             )}
 
             {/* Ordre */}

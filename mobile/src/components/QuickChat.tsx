@@ -18,6 +18,8 @@ const FALLBACK_MESSAGES = [
 
 const FALLBACK_EMOJIS = ['😂', '😡', '😱', '👏', '🥳', '😭', '🤔', '🤫', '💀', '🔥', '🏆', '👎'];
 
+const MIGRATION_CREDIT = 50; // Usages offerts aux anciens acheteurs pour chaque item devenu consommable
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type CostType = 'free' | 'coins';
@@ -28,6 +30,7 @@ interface ChatItem {
     category: 'message' | 'emoji';
     costType: CostType;
     costAmount: number;
+    usagesPerPurchase: number; // 0 = à vie, N > 0 = pack de N envois
     order: number;
     enabled: boolean;
 }
@@ -53,7 +56,8 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
     const [chatLoading, setChatLoading] = useState(true);
 
     // Inventaire & économie
-    const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set());
+    const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set()); // items achetés à vie
+    const [chatInventory, setChatInventory] = useState<Record<string, { remaining: number }>>({});
     const [userCoins, setUserCoins] = useState(0);
     const [purchaseMsg, setPurchaseMsg] = useState<string | null>(null);
 
@@ -63,22 +67,21 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
             try {
                 const snap = await getDocs(query(collection(db, 'chat_messages'), orderBy('order', 'asc')));
                 const all = snap.docs
-                    .map(d => ({ firestoreId: d.id, ...d.data() } as ChatItem))
+                    .map(d => ({ firestoreId: d.id, usagesPerPurchase: 0, ...d.data() } as ChatItem))
                     .filter(i => i.enabled);
 
                 const free_msgs = all.filter(i => i.category === 'message' && i.costType === 'free');
                 const free_emojis = all.filter(i => i.category === 'emoji' && i.costType === 'free');
                 const premium = all.filter(i => i.costType === 'coins');
 
-                // Fallback si Firestore vide (admin n'a rien créé encore)
                 if (free_msgs.length === 0 && free_emojis.length === 0 && premium.length === 0) {
                     setMessages(FALLBACK_MESSAGES.map((t, i) => ({
                         firestoreId: `fallback_msg_${i}`, text: t, category: 'message',
-                        costType: 'free', costAmount: 0, order: i, enabled: true,
+                        costType: 'free', costAmount: 0, usagesPerPurchase: 0, order: i, enabled: true,
                     })));
                     setEmojis(FALLBACK_EMOJIS.map((t, i) => ({
                         firestoreId: `fallback_emoji_${i}`, text: t, category: 'emoji',
-                        costType: 'free', costAmount: 0, order: i, enabled: true,
+                        costType: 'free', costAmount: 0, usagesPerPurchase: 0, order: i, enabled: true,
                     })));
                 } else {
                     setMessages(free_msgs);
@@ -89,11 +92,11 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
                 LogService.warn('QuickChat', 'Firestore fetch failed, using fallback', e);
                 setMessages(FALLBACK_MESSAGES.map((t, i) => ({
                     firestoreId: `fallback_msg_${i}`, text: t, category: 'message',
-                    costType: 'free', costAmount: 0, order: i, enabled: true,
+                    costType: 'free', costAmount: 0, usagesPerPurchase: 0, order: i, enabled: true,
                 })));
                 setEmojis(FALLBACK_EMOJIS.map((t, i) => ({
                     firestoreId: `fallback_emoji_${i}`, text: t, category: 'emoji',
-                    costType: 'free', costAmount: 0, order: i, enabled: true,
+                    costType: 'free', costAmount: 0, usagesPerPurchase: 0, order: i, enabled: true,
                 })));
             } finally {
                 setChatLoading(false);
@@ -102,13 +105,45 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
         load();
     }, []);
 
-    // Charger l'inventaire et les coins au montage
+    // Charger l'inventaire et appliquer la migration one-shot si nécessaire
     useEffect(() => {
         const loadEconomy = async () => {
             try {
                 const eco = await economyService.getEconomy();
+                const legacy = eco.unlockedChatItems ?? [];
+                const inventory = eco.chatInventory ?? {};
+
+                // Migration one-shot : anciens items dans unlockedChatItems
+                // → crédit MIGRATION_CREDIT usages pour ceux devenus consommables
+                if (!eco.chatInventoryMigratedAt && legacy.length > 0) {
+                    const snap = await getDocs(collection(db, 'chat_messages'));
+                    const allItems = snap.docs.map(d => ({
+                        firestoreId: d.id, usagesPerPurchase: 0, ...d.data()
+                    } as ChatItem));
+
+                    const newInventory = { ...inventory };
+                    for (const itemId of legacy) {
+                        const item = allItems.find(i => i.firestoreId === itemId);
+                        if (item && item.usagesPerPurchase > 0) {
+                            // Item devenu consommable → crédit de compensation
+                            const current = newInventory[itemId]?.remaining ?? 0;
+                            newInventory[itemId] = { remaining: current + MIGRATION_CREDIT };
+                        }
+                        // Si usagesPerPurchase === 0 → reste dans unlockedIds (achat à vie)
+                    }
+
+                    await economyService.setEconomy({
+                        chatInventory: newInventory,
+                        chatInventoryMigratedAt: Date.now(),
+                    });
+
+                    setChatInventory(newInventory);
+                } else {
+                    setChatInventory(inventory);
+                }
+
                 setUserCoins(eco.coins ?? 0);
-                setUnlockedIds(new Set(eco.unlockedChatItems ?? []));
+                setUnlockedIds(new Set(legacy));
             } catch (e) {
                 LogService.warn('QuickChat', 'Failed to load economy', e);
             }
@@ -128,46 +163,97 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
         setIsOpen(false);
     };
 
+    const showMsg = (msg: string, isError = false) => {
+        setPurchaseMsg(msg);
+        setTimeout(() => setPurchaseMsg(null), isError ? 3000 : 2500);
+    };
+
+    const sendItem = (item: ChatItem) => {
+        if (item.category === 'message') handleSelectMessage(item.text);
+        else handleSelectEmoji(item.text);
+    };
+
     const handlePremiumSelect = async (item: ChatItem) => {
-        // Déjà débloqué → utiliser directement
-        if (unlockedIds.has(item.firestoreId)) {
-            if (item.category === 'message') handleSelectMessage(item.text);
-            else handleSelectEmoji(item.text);
+        const isLifetime = item.usagesPerPurchase === 0;
+        const remaining = chatInventory[item.firestoreId]?.remaining ?? 0;
+
+        // ── CAS 1 : item à vie déjà débloqué ──
+        if (isLifetime && unlockedIds.has(item.firestoreId)) {
+            sendItem(item);
             return;
         }
 
-        // Pas assez de coins
+        // ── CAS 2 : item consommable avec usages restants ──
+        if (!isLifetime && remaining > 0) {
+            const newRemaining = remaining - 1;
+            const newInventory = {
+                ...chatInventory,
+                [item.firestoreId]: { remaining: newRemaining },
+            };
+            setChatInventory(newInventory);
+            try {
+                await economyService.setEconomy({ chatInventory: newInventory });
+            } catch (e) {
+                LogService.warn('QuickChat', 'Failed to decrement usage', e);
+            }
+            sendItem(item);
+            return;
+        }
+
+        // ── CAS 3 : épuisé ou non acheté → achat ──
         if (userCoins < item.costAmount) {
-            setPurchaseMsg(`Il te faut ${item.costAmount} 🪙 pour débloquer cet item.`);
-            setTimeout(() => setPurchaseMsg(null), 3000);
+            showMsg(`Il te faut ${item.costAmount} 🪙 pour acheter cet item.`, true);
             return;
         }
 
-        // Achat définitif
         try {
-            const user = await authService.getCurrentUser();
-            if (!user) return;
-
+            await authService.getCurrentUser(); // s'assure que l'user est connecté
             const newCoins = userCoins - item.costAmount;
-            const newUnlocked = [...unlockedIds, item.firestoreId];
 
-            await economyService.setEconomy({
-                coins: newCoins,
-                unlockedChatItems: newUnlocked,
-            });
+            if (isLifetime) {
+                // Achat à vie
+                const newUnlocked = [...unlockedIds, item.firestoreId];
+                await economyService.setEconomy({ coins: newCoins, unlockedChatItems: newUnlocked });
+                setUserCoins(newCoins);
+                setUnlockedIds(new Set(newUnlocked));
+                showMsg(`"${item.text}" débloqué à vie !`);
+            } else {
+                // Achat consommable : ajouter N usages (rechargeable)
+                const currentRemaining = chatInventory[item.firestoreId]?.remaining ?? 0;
+                const newInventory = {
+                    ...chatInventory,
+                    [item.firestoreId]: { remaining: currentRemaining + item.usagesPerPurchase },
+                };
+                await economyService.setEconomy({ coins: newCoins, chatInventory: newInventory });
+                setUserCoins(newCoins);
+                setChatInventory(newInventory);
+                showMsg(`+${item.usagesPerPurchase} envois achetés !`);
+            }
 
-            setUserCoins(newCoins);
-            setUnlockedIds(new Set(newUnlocked));
-            setPurchaseMsg(`"${item.text}" débloqué !`);
-            setTimeout(() => setPurchaseMsg(null), 2500);
-
-            if (item.category === 'message') handleSelectMessage(item.text);
-            else handleSelectEmoji(item.text);
+            sendItem(item);
         } catch (e) {
             LogService.error('QuickChat', 'Purchase failed', e);
-            setPurchaseMsg('Erreur lors de l\'achat.');
-            setTimeout(() => setPurchaseMsg(null), 3000);
+            showMsg('Erreur lors de l\'achat.', true);
         }
+    };
+
+    // Rendu d'un badge d'état pour un item premium
+    const renderPremiumBadge = (item: ChatItem) => {
+        const isLifetime = item.usagesPerPurchase === 0;
+        const owned = isLifetime && unlockedIds.has(item.firestoreId);
+        const remaining = chatInventory[item.firestoreId]?.remaining ?? 0;
+
+        if (owned) return <Text style={styles.ownedBadge}>♾️</Text>;
+        if (!isLifetime && remaining > 0) return <Text style={styles.remainingBadge}>🎫 {remaining}</Text>;
+        if (!isLifetime && remaining === 0 && Object.prototype.hasOwnProperty.call(chatInventory, item.firestoreId)) {
+            return <Text style={styles.depletedBadge}>🪙 {item.costAmount} →↺</Text>;
+        }
+        // Jamais acheté
+        return (
+            <Text style={styles.priceBadge}>
+                🪙 {item.costAmount}{item.usagesPerPurchase > 0 ? ` / ${item.usagesPerPurchase}` : ''}
+            </Text>
+        );
     };
 
     return (
@@ -267,19 +353,21 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
                                     {activeTab === 'premium' && (
                                         <View style={styles.messagesGrid}>
                                             {premiumItems.map(item => {
-                                                const owned = unlockedIds.has(item.firestoreId);
+                                                const isLifetime = item.usagesPerPurchase === 0;
+                                                const owned = isLifetime && unlockedIds.has(item.firestoreId);
+                                                const remaining = chatInventory[item.firestoreId]?.remaining ?? 0;
+                                                const hasUsages = !isLifetime && remaining > 0;
                                                 return (
                                                     <TouchableOpacity
                                                         key={item.firestoreId}
-                                                        style={[styles.messageItem, owned && styles.messageItemOwned]}
+                                                        style={[
+                                                            styles.messageItem,
+                                                            (owned || hasUsages) && styles.messageItemOwned,
+                                                        ]}
                                                         onPress={() => handlePremiumSelect(item)}
                                                     >
                                                         <Text style={styles.messageText}>{item.text}</Text>
-                                                        {owned ? (
-                                                            <Text style={styles.ownedBadge}>✓</Text>
-                                                        ) : (
-                                                            <Text style={styles.priceBadge}>🪙 {item.costAmount}</Text>
-                                                        )}
+                                                        {renderPremiumBadge(item)}
                                                     </TouchableOpacity>
                                                 );
                                             })}
@@ -381,7 +469,13 @@ const styles = StyleSheet.create({
         fontSize: 10, fontWeight: '800', color: '#8B6508', marginTop: 3,
     },
     ownedBadge: {
-        fontSize: 11, fontWeight: '900', color: '#4CAF50', marginTop: 3,
+        fontSize: 13, marginTop: 3,
+    },
+    remainingBadge: {
+        fontSize: 10, fontWeight: '800', color: '#4CAF50', marginTop: 3,
+    },
+    depletedBadge: {
+        fontSize: 10, fontWeight: '800', color: '#FF6B35', marginTop: 3,
     },
     emojisGrid: {
         flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8,

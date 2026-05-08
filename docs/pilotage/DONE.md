@@ -11,6 +11,34 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-08 — Harmonisation grades Ligue + page logs admin + fix audio iOS
+
+- [x] **[R4-B-GRADES]** Harmonisation des grades de la Ligue des Cochons à travers tous les écrans
+  - **GradeBadge** (avatar match, lobby, modal résultat) : `'Débutant'` → `'Sans grade'`
+  - **UnifiedResultOverlay** (carte de partage victoire) : fallback obsolète `'Apprenti Boucher'` → `LEAGUE_LABELS[matchReward.newGrade]`
+  - **PlayerAvatar** : commentaire mis à jour ("débutants" → "joueurs sans grade")
+  - **Durcissement Sentry** : optional chaining `?.` sur les 3 dictionnaires (`LEAGUE_ICONS`, `LEAGUE_LABELS`, `LEAGUE_GRADE_COLORS`) au cas où le bundle web aurait un souci de tree-shaking
+  - 4 écrans concernés affichent maintenant le même label cohérent : avatar en match, modal victoire, carte de partage social, classement Ligue
+  - Tests : 41 tests `LigueCochons.test.ts` toujours verts
+  - Fichiers : `mobile/src/components/GradeBadge.tsx`, `mobile/src/components/UnifiedResultOverlay.tsx`, `mobile/src/components/PlayerAvatar.tsx`
+
+- [x] **[ADMIN-LOGS]** Page logs admin refondue (correction du 404 + 2 onglets + lien Sentry)
+  - Cache `.next` corrompu (cause du 404) supprimé
+  - Page refondue en 2 onglets : `Actions admin` (collection `admin_logs`) + `Système` (collection `system_logs`, alimentée par les Cloud Functions)
+  - Bouton externe vers Sentry mobile (`happy-agency.sentry.io`)
+  - Helper `logSystemEvent()` ajouté dans les Cloud Functions ; `processMatchReward`, `migrateCochonsGiven`, `closeTournament`, `deleteUserAccount` instrumentés (succès + erreurs)
+  - Règle Firestore `system_logs` : lecture superadmin uniquement, écriture côté CF uniquement (Admin SDK bypasse)
+  - Fichiers : `admin/app/dashboard/logs/page.tsx`, `functions/src/systemLog.ts`, `functions/src/index.ts`, `firestore.rules`
+
+- [x] **[AUDIO-IOS-SAFARI]** Silence des erreurs Sentry `NotSupportedError` sur Safari iOS
+  - 135 occurrences/jour de `NotSupportedError` au `play()` du SFX `clack` sur Safari iOS
+  - Cause : `expo-audio` lance l'erreur au runtime (mode privé, Low Power, iOS < 14.5) malgré l'interaction utilisateur
+  - Fix 1 : try/catch synchrone autour de `seekTo()` + `.play()` dans `SoundManager.playSound()`
+  - Fix 2 : détection Safari iOS dans `isAudioAllowed` → l'audio est désactivé d'office (jeu jouable sans SFX, plus aucune erreur)
+  - Décision produit : ne pas bloquer Safari iOS (Chrome iOS utilise le même moteur WebKit, donc inutile)
+  - Item backlog `[AUDIO-IOS-FALLBACK]` ajouté pour un fallback WebAudio API post-lancement
+  - Fichier : `mobile/src/core/audio/SoundManager.ts`
+
 ### 2026-05-06 — Partage social + Page politique de confidentialité
 
 - [x] **[R4-UX3]** Partage social — victoire et passage de palier
