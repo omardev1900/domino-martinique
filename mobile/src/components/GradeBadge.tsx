@@ -14,11 +14,11 @@ interface GradeBadgeProps {
  */
 export const GradeBadge: React.FC<GradeBadgeProps> = ({ grade, size = 'sm' }) => {
     // Grade null = joueur sans cochons encore (< 10 cochons donnés)
-    // → afficher un badge "DÉBUTANT" plutôt que rien
+    // → afficher un badge "Sans grade" cohérent avec getLeagueGradeLabel()
     const isDefault = !grade;
-    const icon  = isDefault ? '🌱' : (LEAGUE_ICONS[grade as LeagueGrade]  || '🔰');
-    const label = isDefault ? 'Débutant'  : (LEAGUE_LABELS[grade as LeagueGrade]  || grade);
-    const color = isDefault ? '#78909C'   : (LEAGUE_GRADE_COLORS[grade as LeagueGrade] || 'rgba(255,255,255,0.4)');
+    const icon  = isDefault ? '🌱' : (LEAGUE_ICONS?.[grade as LeagueGrade]  || '🔰');
+    const label = isDefault ? 'Sans grade' : (LEAGUE_LABELS?.[grade as LeagueGrade]  || grade);
+    const color = isDefault ? '#78909C'   : (LEAGUE_GRADE_COLORS?.[grade as LeagueGrade] || 'rgba(255,255,255,0.4)');
 
     const fontSize   = size === 'xs' ? 7  : size === 'sm' ? 8  : 10;
     const iconSize   = size === 'xs' ? 9  : size === 'sm' ? 10 : 13;

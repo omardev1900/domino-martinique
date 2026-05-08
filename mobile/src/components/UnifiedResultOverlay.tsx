@@ -14,6 +14,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { GameState, Player } from '@/core/types';
 import { MatchReward } from '@/core/economy.types';
+import { LEAGUE_LABELS } from '@/core/economy.constants';
 import { getAvatarImage, AvatarId } from '@/core/avatars';
 import SoundManager from '@/core/audio/SoundManager';
 import { calculateHandPoints } from '@/core/ScoringEngine';
@@ -428,7 +429,9 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 const winParams = {
                     playerName: me?.name ?? 'Mwen',
                     cochons: me?.totalCochons ?? 0,
-                    gradeLabel: matchReward?.newGrade ?? 'Apprenti Boucher',
+                    gradeLabel: matchReward?.newGrade
+                        ? LEAGUE_LABELS[matchReward.newGrade]
+                        : 'Sans grade',
                 };
                 return (
                     <Animated.View entering={reducedMotion ? undefined : FadeInUp.delay(600).duration(300)}>

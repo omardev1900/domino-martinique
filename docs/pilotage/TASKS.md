@@ -47,7 +47,15 @@
 
 ---
 
-## 🚀 Sprint Post-Lancement P1 — En attente de démarrage
+## 🚀 Sprint Pré-Lancement Play Store — En cours (08/05/2026)
+
+| Ticket | Description | Priorité | Statut |
+|---|---|---|---|
+| **R4-B-GRADES** | Harmonisation grades Ligue (Débutant/Apprenti Boucher → Sans grade + LEAGUE_LABELS) | 🔴 Bloquant store | 🚧 En cours (08/05) |
+
+---
+
+## 🚀 Sprint Post-Lancement P1 — Terminé (06/05/2026)
 
 | Ticket | Description | Priorité | Statut |
 |---|---|---|---|
