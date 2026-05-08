@@ -166,6 +166,9 @@ export const LEAGUE_FRAME_REWARDS: Record<LeagueGrade, { frameId: string; coinsB
     LEGENDE:    { frameId: 'frame_legende',     coinsBonus: 10000 },
 };
 
+/** Les cadres de ligue ne sont plus utilisés dans le modèle mensuel. */
+export const LEAGUE_FRAMES_ENABLED = false;
+
 /** Ordre des grades du plus faible au plus fort */
 export const LEAGUE_GRADE_ORDER: LeagueGrade[] = [
     'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',

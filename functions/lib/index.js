@@ -37,10 +37,11 @@ exports.deleteUserAccount = exports.closeTournament = exports.migrateCochonsGive
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const RewardEngine_1 = require("./core/RewardEngine");
+const systemLog_1 = require("./systemLog");
 admin.initializeApp();
 const db = admin.firestore();
 exports.processMatchReward = functions.https.onCall(async (data, context) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     // 1. Vérifier l'authentification
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Il faut être connecté pour traiter une récompense.');
@@ -119,12 +120,36 @@ exports.processMatchReward = functions.https.onCall(async (data, context) => {
                 }
             });
             console.log(`[processMatchReward] Joueur ${uid} crédité: +${pointsToAdd} pts au tournoi ${tournamentId}.`);
+            await (0, systemLog_1.logSystemEvent)({
+                event: 'tournament_score_update',
+                level: 'info',
+                functionName: 'processMatchReward',
+                uid,
+                message: `+${pointsToAdd} pts ajoutés au tournoi ${tournamentId}`,
+                metadata: { tournamentId, pointsToAdd },
+            });
         }
         catch (e) {
             console.error(`Erreur maj tournoi ${clientInput.tournamentId} pour user ${uid}:`, e);
+            await (0, systemLog_1.logSystemEvent)({
+                event: 'function_error',
+                level: 'error',
+                functionName: 'processMatchReward',
+                uid,
+                message: `Erreur maj tournoi ${clientInput.tournamentId}: ${(_d = e === null || e === void 0 ? void 0 : e.message) !== null && _d !== void 0 ? _d : e}`,
+                metadata: { tournamentId: clientInput.tournamentId },
+            });
         }
     }
     console.log(`[processMatchReward] Joueur ${uid} crédité: +${reward.coinsEarned} pièces.`);
+    await (0, systemLog_1.logSystemEvent)({
+        event: 'match_reward',
+        level: 'info',
+        functionName: 'processMatchReward',
+        uid,
+        message: `+${reward.coinsEarned} coins crédités après match`,
+        metadata: { coinsEarned: reward.coinsEarned, xpEarned: reward.xpEarned },
+    });
     // On retourne le résultat au client pour déclencher ses propres animations
     return reward;
 });
@@ -164,6 +189,14 @@ exports.migrateCochonsGiven = functions.https.onCall(async (_data, context) => {
     });
     await batch.commit();
     console.log(`[migrateCochonsGiven] Migrated: ${migrated}, Skipped: ${skipped}`);
+    await (0, systemLog_1.logSystemEvent)({
+        event: 'cochons_migrated',
+        level: 'info',
+        functionName: 'migrateCochonsGiven',
+        uid: context.auth.uid,
+        message: `Migration cochons terminée : ${migrated} migrés, ${skipped} ignorés`,
+        metadata: { migrated, skipped },
+    });
     return { migrated, skipped };
 });
 exports.closeTournament = functions.https.onCall(async (data, context) => {
@@ -211,6 +244,18 @@ exports.closeTournament = functions.https.onCall(async (data, context) => {
         }
         // Marquer le tournoi comme ENDED
         t.update(tRef, { status: 'ENDED' });
+        // Note: log écrit hors transaction pour ne pas bloquer
+        setTimeout(() => {
+            var _a;
+            (0, systemLog_1.logSystemEvent)({
+                event: 'tournament_closed',
+                level: 'info',
+                functionName: 'closeTournament',
+                uid: (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid,
+                message: `Tournoi ${tournamentId} clôturé avec ${winners.length} gagnants`,
+                metadata: { tournamentId, winnersCount: winners.length },
+            });
+        }, 0);
         return { success: true, winnersCount: winners.length };
     });
 });
@@ -220,6 +265,7 @@ exports.closeTournament = functions.https.onCall(async (data, context) => {
  * Seul l'utilisateur authentifié peut supprimer son propre compte.
  */
 exports.deleteUserAccount = functions.https.onCall(async (_data, context) => {
+    var _a;
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
     }
@@ -238,10 +284,24 @@ exports.deleteUserAccount = functions.https.onCall(async (_data, context) => {
         // Supprimer le compte Firebase Auth en dernier
         await admin.auth().deleteUser(uid);
         console.log(`[deleteUserAccount] Compte supprimé : ${uid}`);
+        await (0, systemLog_1.logSystemEvent)({
+            event: 'account_deleted',
+            level: 'info',
+            functionName: 'deleteUserAccount',
+            uid,
+            message: `Compte supprimé`,
+        });
         return { success: true };
     }
     catch (error) {
         console.error(`[deleteUserAccount] Erreur pour ${uid}:`, error);
+        await (0, systemLog_1.logSystemEvent)({
+            event: 'function_error',
+            level: 'error',
+            functionName: 'deleteUserAccount',
+            uid,
+            message: `Erreur suppression compte: ${(_a = error === null || error === void 0 ? void 0 : error.message) !== null && _a !== void 0 ? _a : error}`,
+        });
         throw new functions.https.HttpsError('internal', 'Erreur lors de la suppression du compte.');
     }
 });

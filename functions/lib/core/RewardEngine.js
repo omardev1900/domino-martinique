@@ -321,6 +321,7 @@ exports.RewardEngine = {
         const newCochonsGiven = cochonsGivenBefore + totalLeaguePoints;
         const newlyUnlockedFrames = [];
         let frameCoinsBonus = 0;
+        let unlockedPalierCount = 0;
         for (const grade of economy_constants_1.LEAGUE_GRADE_ORDER) {
             const threshold = economy_constants_1.LEAGUE_FRAME_THRESHOLDS[grade];
             const frameReward = economy_constants_1.LEAGUE_FRAME_REWARDS[grade];
@@ -328,12 +329,15 @@ exports.RewardEngine = {
             if (newCochonsGiven >= threshold &&
                 cochonsGivenBefore < threshold &&
                 !alreadyUnlocked.includes(frameId)) {
-                newlyUnlockedFrames.push({
-                    grade: grade,
-                    frameId,
-                    coinsBonus: frameReward.coinsBonus,
-                    cochonsAtUnlock: newCochonsGiven,
-                });
+                unlockedPalierCount += 1;
+                if (economy_constants_1.LEAGUE_FRAMES_ENABLED) {
+                    newlyUnlockedFrames.push({
+                        grade: grade,
+                        frameId,
+                        coinsBonus: frameReward.coinsBonus,
+                        cochonsAtUnlock: newCochonsGiven,
+                    });
+                }
                 frameCoinsBonus += frameReward.coinsBonus;
             }
         }
@@ -341,7 +345,7 @@ exports.RewardEngine = {
         if (frameCoinsBonus > 0) {
             adjustedBreakdown.push({
                 id: 'league_frame_unlock',
-                label: `👀 Palier Ligue débloqué (×${newlyUnlockedFrames.length})`,
+                label: `🐷 Bonus palier Ligue (×${unlockedPalierCount})`,
                 coins: frameCoinsBonus,
                 xp: 0,
                 diamonds: 0,
@@ -386,7 +390,7 @@ exports.RewardEngine = {
             gradeUp: matchReward.gradeUp,
             newGrade: matchReward.newGrade,
             newCochonsGiven: matchReward.newCochonsGiven,
-            framesUnlocked: matchReward.newlyUnlockedFrames.length,
+            framesUnlocked: unlockedPalierCount,
             lines: adjustedBreakdown.length,
         });
         return matchReward;

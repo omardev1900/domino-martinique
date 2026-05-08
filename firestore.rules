@@ -68,6 +68,13 @@ service cloud.firestore {
       allow update, delete: if false; // Les logs sont immuables
     }
 
+    // Logs système (Cloud Functions) : lecture superadmin uniquement.
+    // Écriture réservée aux Cloud Functions via Admin SDK (qui bypasse les rules).
+    match /system_logs/{logId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
     // Actualités (News) : Lecture pour tous, écriture pour les admins
     match /news/{newsId} {
       allow read: if true;

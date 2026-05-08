@@ -46,6 +46,15 @@
 - [ ] **[ADS-REWARD]** Doubler les gains après pub (post-match)
 - [ ] **[NOTIF-WEB]** Notifications push Web (PWA — Safari iOS + Chrome Android)
 - [ ] **[ANIM-DOMINO]** Animation glissé + distribution dominos
+- [ ] **[AUDIO-IOS-FALLBACK]** Fallback WebAudio API pour les SFX sur Safari iOS
+  - **Contexte** : `expo-audio` lance `NotSupportedError` au `.play()` sur Safari iOS (mode privé, Low Power Mode, iOS < 14.5). 135+ erreurs Sentry/jour avant fix.
+  - **Fix temporaire appliqué (08/05/2026)** : audio désactivé d'office sur Safari iOS dans `SoundManager.isAudioAllowed`. Plus d'erreur, mais plus de SFX non plus.
+  - **Décision produit** : on ne bloque PAS Safari iOS (Chrome iOS utilise le même moteur WebKit, donc inutile). On préfère laisser jouer sans son que de perdre 50% des utilisateurs iOS web.
+  - **Solution cible** : générer le clack/notify procéduralement via Web Audio API (`AudioContext` + `OscillatorNode`/`BufferSource`) — marche dans tous les navigateurs, y compris Safari iOS.
+  - **Périmètre** : a minima `playClack` (le plus utilisé), idéalement aussi `notify`, `win`, `timer`. La BGM peut rester désactivée sur iOS web.
+  - **Fichier** : `mobile/src/core/audio/SoundManager.ts` — ajouter une branche `if (isIOSSafari) playWebAudioFallback(name)` + nouveau module `WebAudioFallback.ts`.
+  - **Estimation** : ~0,5 jour
+  - **Bénéfice secondaire** : les utilisateurs iOS web retrouvent un feedback sonore en attendant l'app native iOS.
 
 **Note** : `[R4-M5-DAILY]` supprimée (fusionnée dans [R4-M5]). `[R4-UX-BOTS]` supprimée (bots premium achetables ne doivent pas exister).
 

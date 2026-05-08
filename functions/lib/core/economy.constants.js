@@ -7,7 +7,7 @@
  * Aucune constante économique ne doit être hardcodée ailleurs.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LEAGUE_GRADE_COLORS = exports.LEAGUE_ICONS = exports.LEAGUE_LABELS = exports.LEAGUE_GRADE_ORDER = exports.LEAGUE_FRAME_REWARDS = exports.LEAGUE_FRAME_THRESHOLDS = exports.LEAGUE_THRESHOLDS = exports.DEFAULT_LEVEL_UP_COINS = exports.LEVEL_UP_CHESTS = exports.MAX_LEVEL = exports.COIN_MULTIPLIER_PER_LEVEL = exports.XP_GROWTH_RATE = exports.XP_PER_LEVEL_BASE = exports.DAILY_REWARD_COINS = exports.NEW_PLAYER_COINS = exports.SOLO_WIN_FLAT_REWARD = exports.POT_DISTRIBUTION = exports.RAKE_PERCENT = exports.TABLE_CONFIGS = exports.BASE_REWARDS = void 0;
+exports.LEAGUE_GRADE_COLORS = exports.LEAGUE_ICONS = exports.LEAGUE_LABELS = exports.LEAGUE_GRADE_ORDER = exports.LEAGUE_FRAMES_ENABLED = exports.LEAGUE_FRAME_REWARDS = exports.LEAGUE_FRAME_THRESHOLDS = exports.LEAGUE_THRESHOLDS = exports.DEFAULT_LEVEL_UP_COINS = exports.LEVEL_UP_CHESTS = exports.MAX_LEVEL = exports.COIN_MULTIPLIER_PER_LEVEL = exports.XP_GROWTH_RATE = exports.XP_PER_LEVEL_BASE = exports.DAILY_REWARD_COINS = exports.NEW_PLAYER_COINS = exports.SOLO_WIN_FLAT_REWARD = exports.POT_DISTRIBUTION = exports.RAKE_PERCENT = exports.TABLE_CONFIGS = exports.BASE_REWARDS = void 0;
 // ─── Matrice des Gains ────────────────────────────────────────────────────────
 /** Gains par événement de jeu (avant multiplicateur de niveau) */
 exports.BASE_REWARDS = {
@@ -145,6 +145,8 @@ exports.LEAGUE_FRAME_REWARDS = {
     ROI: { frameId: 'frame_roi', coinsBonus: 5000 },
     LEGENDE: { frameId: 'frame_legende', coinsBonus: 10000 },
 };
+/** Les cadres de ligue ne sont plus utilisés dans le modèle mensuel. */
+exports.LEAGUE_FRAMES_ENABLED = false;
 /** Ordre des grades du plus faible au plus fort */
 exports.LEAGUE_GRADE_ORDER = [
     'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',

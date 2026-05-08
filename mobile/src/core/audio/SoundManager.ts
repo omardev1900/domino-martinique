@@ -68,6 +68,14 @@ class SoundManager {
 
     private get isAudioAllowed(): boolean {
         if (Platform.OS !== 'web') return true;
+        // Safari iOS : l'API HTMLMediaElement.play() jette NotSupportedError dans plusieurs
+        // contextes (mode privé, Low Power Mode, iOS < 14.5). On désactive l'audio plutôt
+        // que de polluer Sentry de 135+ erreurs/jour. À retirer si on ajoute un fallback WebAudio.
+        if (typeof navigator !== 'undefined') {
+            const ua = navigator.userAgent || '';
+            const isIOSSafari = /iPad|iPhone|iPod/.test(ua) && /WebKit/.test(ua) && !/CriOS|FxiOS/.test(ua);
+            if (isIOSSafari) return false;
+        }
         if (typeof navigator !== 'undefined' && 'userActivation' in navigator) {
             return (navigator as any).userActivation.hasBeenActive;
         }
@@ -305,8 +313,13 @@ class SoundManager {
                 }
 
                 player.volume = settings.sfxVolume;
-                player.seekTo(0);
-                player.play().catch(() => {});
+                try {
+                    player.seekTo(0);
+                    const p = player.play();
+                    if (p && typeof p.catch === 'function') p.catch(() => {});
+                } catch {
+                    // NotSupportedError / NotAllowedError / AbortError sur web : ignorer
+                }
             }
         } catch (error) {
             LogService.warn('SoundManager', `SFX error "${name}"`, error);

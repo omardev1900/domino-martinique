@@ -38,6 +38,7 @@ export interface PlayerEconomy {
     unlockedFrames?: LeagueFrameId[]; // Cadres avatar débloqués (liste des paliers atteints)
     activeFrame?: LeagueFrameId | null; // Cadre actuellement équipé
     lastDailyRewardTimestamp?: number; // 📅 Dernier cadeau reçu (pour check quotidien)
+    unlockedChatItems?: string[];      // IDs Firestore des items de tchat achetés définitivement
 }
 
 export type LeagueGrade =

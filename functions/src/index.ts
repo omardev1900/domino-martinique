@@ -2,6 +2,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { RewardEngine } from './core/RewardEngine';
 import { RewardCalculationInput } from './core/economy.types';
+import { logSystemEvent } from './systemLog';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -112,12 +113,36 @@ export const processMatchReward = functions.https.onCall(async (data: { input: P
                 }
             });
             console.log(`[processMatchReward] Joueur ${uid} crédité: +${pointsToAdd} pts au tournoi ${tournamentId}.`);
+            await logSystemEvent({
+                event: 'tournament_score_update',
+                level: 'info',
+                functionName: 'processMatchReward',
+                uid,
+                message: `+${pointsToAdd} pts ajoutés au tournoi ${tournamentId}`,
+                metadata: { tournamentId, pointsToAdd },
+            });
         } catch (e: any) {
             console.error(`Erreur maj tournoi ${clientInput.tournamentId} pour user ${uid}:`, e);
+            await logSystemEvent({
+                event: 'function_error',
+                level: 'error',
+                functionName: 'processMatchReward',
+                uid,
+                message: `Erreur maj tournoi ${clientInput.tournamentId}: ${e?.message ?? e}`,
+                metadata: { tournamentId: clientInput.tournamentId },
+            });
         }
     }
 
     console.log(`[processMatchReward] Joueur ${uid} crédité: +${reward.coinsEarned} pièces.`);
+    await logSystemEvent({
+        event: 'match_reward',
+        level: 'info',
+        functionName: 'processMatchReward',
+        uid,
+        message: `+${reward.coinsEarned} coins crédités après match`,
+        metadata: { coinsEarned: reward.coinsEarned, xpEarned: reward.xpEarned },
+    });
 
     // On retourne le résultat au client pour déclencher ses propres animations
     return reward;
@@ -163,6 +188,14 @@ export const migrateCochonsGiven = functions.https.onCall(async (_data, context)
     await batch.commit();
 
     console.log(`[migrateCochonsGiven] Migrated: ${migrated}, Skipped: ${skipped}`);
+    await logSystemEvent({
+        event: 'cochons_migrated',
+        level: 'info',
+        functionName: 'migrateCochonsGiven',
+        uid: context.auth.uid,
+        message: `Migration cochons terminée : ${migrated} migrés, ${skipped} ignorés`,
+        metadata: { migrated, skipped },
+    });
     return { migrated, skipped };
 });
 
@@ -214,6 +247,18 @@ export const closeTournament = functions.https.onCall(async (data: { tournamentI
         // Marquer le tournoi comme ENDED
         t.update(tRef, { status: 'ENDED' });
 
+        // Note: log écrit hors transaction pour ne pas bloquer
+        setTimeout(() => {
+            logSystemEvent({
+                event: 'tournament_closed',
+                level: 'info',
+                functionName: 'closeTournament',
+                uid: context.auth?.uid,
+                message: `Tournoi ${tournamentId} clôturé avec ${winners.length} gagnants`,
+                metadata: { tournamentId, winnersCount: winners.length },
+            });
+        }, 0);
+
         return { success: true, winnersCount: winners.length };
     });
 });
@@ -247,10 +292,24 @@ export const deleteUserAccount = functions.https.onCall(async (_data, context) =
         await admin.auth().deleteUser(uid);
 
         console.log(`[deleteUserAccount] Compte supprimé : ${uid}`);
+        await logSystemEvent({
+            event: 'account_deleted',
+            level: 'info',
+            functionName: 'deleteUserAccount',
+            uid,
+            message: `Compte supprimé`,
+        });
         return { success: true };
 
     } catch (error: any) {
         console.error(`[deleteUserAccount] Erreur pour ${uid}:`, error);
+        await logSystemEvent({
+            event: 'function_error',
+            level: 'error',
+            functionName: 'deleteUserAccount',
+            uid,
+            message: `Erreur suppression compte: ${error?.message ?? error}`,
+        });
         throw new functions.https.HttpsError('internal', 'Erreur lors de la suppression du compte.');
     }
 });
