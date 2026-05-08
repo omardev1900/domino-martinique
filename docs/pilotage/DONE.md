@@ -11,6 +11,18 @@
 
 ## 📅 Mai 2026
 
+### 2026-05-08 — Bots adaptatifs + IA MÈTKAYALI niveau 4
+
+- [x] **[BOT-ADAPTIVE]** Bots adaptatifs + IA MÈTKAYALI (fusion R4-IA1 + BOT_METKAYALI)
+  - Moteur IA 4 couches : `TileTracker` (comptage 28 tuiles), `MonteCarlo` (500 simulations/coup), `EndgameAnalyzer` (risque Boudé), `OpponentModeler` (profil adversaire temps réel)
+  - Performance : < 100ms/décision, 44% victoires vs 2× GRAN_MOUN (> 33% hasard pur)
+  - `bot.service.ts` : `getBotsForGrade()` + `getFloorLevel()` + `isLevelAllowed()` — grade du joueur = niveau plancher
+  - `solo.tsx` : sélecteur 4 niveaux adaptatif (niveaux inférieurs au grade grisés, niveaux supérieurs disponibles comme défi)
+  - `useBotDecision` : branchement `getMeytKayaliMove()` pour les bots METKAYALI en partie
+  - Admin `/dashboard/bots` : dropdown 🧠 Mèt Kayali (Maître Absolu)
+  - 12 tests unitaires — tous verts
+  - Validé en production : bot joué et battu en solo ✅
+
 ### 2026-05-08 — Harmonisation grades Ligue + page logs admin + fix audio iOS + tchat consommable
 
 - [x] **[R4-M3]** Tchat — phrases et emojis consommables à l'unité

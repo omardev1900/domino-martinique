@@ -2,8 +2,8 @@
 
 > Application mobile React Native (Expo) de Domino martiniquais (règles créoles, 3 joueurs). Disponible sur Android + iOS.
 
-**Dernière mise à jour :** 24 avril 2026
-**Version app :** 2.2
+**Dernière mise à jour :** 08 mai 2026
+**Version app :** 2.5
 **Lead Dev :** Omatrice
 **github :** omardev1900
 ---
@@ -32,28 +32,33 @@
 
 ## 3. État actuel
 
-### ✅ Livré (blocs 1-9)
+### ✅ Livré (blocs 1-9 + sprint tests fermés)
 - Sécurité Firestore + rotation des clés
-- Moteur de jeu complet (127 tests, 0% failure)
+- Moteur de jeu complet (127+ tests, 0% failure)
 - UI/UX complète (paysage, animations, audio)
 - Mode Solo + Mode Multijoueur
 - Modes de jeu : Manche, Score, Cochon
-- Ligue des Cochons (8 paliers)
+- Ligue des Cochons (8 paliers) — grades harmonisés sur tous les écrans
 - Système économique (Coins, XP, Diamonds, niveaux)
-- Boutique & cosmétiques
-- Dashboard Admin (Next.js)
-- Sidebar navigation (R2-A3)
-- Publicité Phase 1 (admin-managed, R2-M7)
+- Boutique & cosmétiques — tchat consommable à l'unité
+- Dashboard Admin (Next.js) — logs, bots, tchat, boutique, pubs
+- Sidebar navigation + partage social (victoire + grade)
+- Publicité admin-managed (6 emplacements) + cadeau quotidien conditionné pub
+- Notifications push Android (FCM)
+- Sentry monitoring (crashs + erreurs JS)
+- IA MÈTKAYALI Niveau 4 (Monte-Carlo) + bots adaptatifs au grade
+- Suppression de compte (exigence Google Play)
+- Landing page + Politique de confidentialité
 
-### 🔄 En cours (sprint lancement)
-3 tâches restantes → voir `docs/pilotage/TASKS.md`
+### 🔄 Avant lancement officiel
+5 tâches → voir `docs/pilotage/TASKS.md` (sprint "Pré-Lancement Officiel")
 
-### 📋 À venir (post-lancement, priorité décroissante)
-1. Bloc 11 — Tournois
-2. Bot MÈTKAYALI (Niveau 4 IA)
-3. Bloc 12 — Sentry monitoring
-4. Bloc 10 — Gestion des comptes (OTP, reset MDP)
-5. Bloc 13 — Paiements
+### 📋 À venir (post-lancement officiel, priorité décroissante)
+1. AdMob automatique (impressions/clics)
+2. Bloc 11 — Tournois
+3. Paiements in-app Android (Google Pay)
+4. Notifications push Web (PWA)
+5. Fallback audio Safari iOS
 
 ---
 

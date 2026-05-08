@@ -4,6 +4,15 @@
 
 ---
 
+## [2.5.0] — 2026-05-08
+
+### Ajouté
+- **IA MÈTKAYALI (Niveau 4)** — nouveau niveau de difficulté "Maître Absolu" disponible en solo. Le bot utilise un moteur Monte-Carlo (500 simulations par coup) pour anticiper toute la suite de la partie, contre les 3 niveaux précédents qui ne regardaient qu'un coup à l'avance.
+- **Bots adaptatifs** — la difficulté des bots s'adapte automatiquement au grade Ligue des Cochons du joueur. Le grade définit un niveau plancher (impossible de jouer en dessous), mais le joueur peut choisir un niveau supérieur comme défi. Les niveaux inférieurs au grade sont grisés dans le sélecteur.
+- **Admin** — nouveau niveau 🧠 Mèt Kayali disponible dans le dropdown de création de bots (`/dashboard/bots`).
+
+---
+
 ## [2.4.3] — 2026-05-08
 
 ### Ajouté

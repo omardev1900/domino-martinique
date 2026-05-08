@@ -70,26 +70,23 @@
 
 ---
 
-## 🚀 Sprint Post-Lancement P2 — En cours (08/05/2026)
+## ✅ Sprint Post-Lancement P2 — Terminé (08/05/2026)
 
 | Ticket | Description | Priorité | Statut |
 |---|---|---|---|
-| **BOT-ADAPTIVE** | Bots adaptatifs + IA MÈTKAYALI (fusion R4-IA1 + BOT_METKAYALI) | 🔴 Priorité haute | 🚧 En cours (08/05) |
+| **BOT-ADAPTIVE** | Bots adaptatifs + IA MÈTKAYALI (fusion R4-IA1 + BOT_METKAYALI) | 🔴 Priorité haute | ✅ Terminé (08/05) |
 
-### Progression BOT-ADAPTIVE
-- [x] Spec fusionnée → `docs/specs/features/BOT_ADAPTIVE.md`
-- [x] `TileTracker.ts` — Couche 1 IA (8 tests ✅)
-- [x] `EndgameAnalyzer.ts` — Couche 3 IA
-- [x] `OpponentModeler.ts` — Couche 4 IA
-- [x] `MonteCarlo.ts` — Couche 2 IA
-- [x] `MeytKayaliEngine.ts` — Orchestrateur principal
-- [x] `types.ts` — `BotDifficulty` étendu à `METKAYALI`
-- [x] `BotEngine.ts` — signature étendue + fallback GRAN_MOUN
-- [x] `bot.service.ts` — pool METKAYALI + `getBotsForGrade()` + `getFloorLevel()` + `isLevelAllowed()`
-- [x] `solo.tsx` — sélecteur adaptatif (plancher bloqué, niveaux sup disponibles)
-- [x] Tests `MeytKayaliEngine.test.ts` — 4/4 tests verts, 44% victoires vs 2× GRAN_MOUN (> 33% hasard) ✅
-- [x] Intégration `useBotDecision` — appel `getMeytKayaliMove()` pour les bots METKAYALI ✅
-- [x] Admin `/dashboard/bots` — dropdown METKAYALI (🧠 Mèt Kayali) ✅
+---
+
+## 🚀 Sprint Pré-Lancement Officiel — À venir
+
+| Ticket | Description | Priorité |
+|---|---|---|
+| **ANIM-DOMINO** | Animation glissé des dominos pendant le jeu | 🟠 UX |
+| **ECO-REBALANCE** | Économie révisée — coins pour jouer, récompenses, gains post-match | 🔴 Produit |
+| **ADS-REWARD** | Doubler les gains après pub — modal post-match | 🟠 Monétisation |
+| **OTP-INSCRIPTION** | OTP email à l'inscription (code 6 chiffres) | 🔴 Compte |
+| **R4-TECH-LEADERBOARD** | Agrégats mensuels persistants (dette technique) | 🟡 Technique |
 
 ---
 
