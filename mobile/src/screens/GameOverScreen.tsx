@@ -89,7 +89,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     const roundWinner = gameState.mancheResult === 'CHIRE' ? null : getRoundWinner();
     // Tri conditionnel selon le mode de jeu
     const sortedPlayers = [...gameState.players].sort((a, b) => {
-        if (gameState.gameMode === 'COCHON') return b.totalCochons - a.totalCochons;
+        if (gameState.gameMode === 'COCHON') return (b.totalCochonsInfliges || 0) - (a.totalCochonsInfliges || 0);
         if (gameState.gameMode === 'VICTOIRE') return b.totalRoundWins - a.totalRoundWins;
         if (gameState.gameMode === 'SCORE') return b.totalPoints - a.totalPoints;
         return b.currentMancheStars - a.currentMancheStars; // MANCHE (défaut)
@@ -350,7 +350,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
                                                     <View style={styles.scoreColumnEnd}>
                                                         {gameState.gameMode === 'COCHON' && (
-                                                            <Text style={styles.cochonCountLabel}>{p.totalCochons} 🐷</Text>
+                                                            <Text style={styles.cochonCountLabel}>{p.totalCochonsInfliges || 0} 🐷</Text>
                                                         )}
                                                         {(isMatchOver || gameState.gameMode === 'SCORE' || p.totalPoints !== 0) && (
                                                             <Text style={[styles.points, p.totalPoints < 0 && styles.pointsNegative, gameState.mancheResult === 'COCHON' && p.currentMancheStars === 0 && styles.statPointsCochon]}>

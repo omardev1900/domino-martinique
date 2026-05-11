@@ -15,6 +15,8 @@ const createMockState = (playersData: { id: string, stars: number, totalPoints: 
         mancheWins: 0,
         totalRoundWins: 0,
         totalCochons: 0,
+        totalCochonsInfliges: 0,
+        totalCochonsSubis: 0,
         isCochon: false,
         status: 'HUMAN',
         hand: [],
@@ -173,24 +175,25 @@ describe('Scoring Verification', () => {
         expect(result.phase).toBe('MATCH_END');
     });
 
-    test('Bug B2 — COCHON : MATCH_END déclenché quand totalCochons >= winningCondition', () => {
-        // A=2 étoiles. B=0 étoile (1 cochon existant). C=0 étoile (1 cochon existant).
-        // Objectif = 2 cochons. A gagne le round → Manche terminée → B et C = cochons → 2e cochon → MATCH_END.
+    test('Bug B2 — COCHON : MATCH_END déclenché quand le vainqueur atteint le quota de cochons infligés', () => {
+        // A a déjà 1 cochon infligé. En gagnant une manche simple cochon, il atteint 2.
         const state: any = createMockState([
             { id: 'A', stars: 2, totalPoints: 4 },
             { id: 'B', stars: 0, totalPoints: -1 },
             { id: 'C', stars: 0, totalPoints: -1 }
         ], 'COCHON', 2);
-        state.players[1].totalCochons = 1;
-        state.players[2].totalCochons = 1;
+        state.players[0].totalCochons = 1;
+        state.players[0].totalCochonsInfliges = 1;
 
         const result = finalizeRound(state, 'A');
-        logResult('Bug B2: COCHON — MATCH_END au 2e cochon', result, {});
+        logResult('Bug B2: COCHON — MATCH_END au 2e cochon infligé', result, {});
 
         expect(result.phase).toBe('MATCH_END');
         expect(result.mancheResult).toBe('COCHON');
+        const playerA = result.players.find((p: any) => p.id === 'A');
         const playerB = result.players.find((p: any) => p.id === 'B');
-        expect(playerB?.totalCochons).toBe(2);
+        expect(playerA?.totalCochonsInfliges).toBe(3);
+        expect(playerB?.totalCochons).toBe(0);
     });
 
     test('Bug B5 — VICTOIRE : isolation complète, pas de MANCHE_END', () => {
@@ -398,7 +401,8 @@ describe('Scoring Verification', () => {
             { id: 'B', stars: 0, totalPoints: 2 },
             { id: 'C', stars: 0, totalPoints: 2 }
         ], 'COCHON', 3);
-        state.players[0].totalCochons = 2; // A a déjà 2 cochons, seuil = 3
+        state.players[0].totalCochons = 2;
+        state.players[0].totalCochonsInfliges = 2; // A a déjà 2 cochons infligés, seuil = 3
 
         const newState = finalizeRound(state, 'A');
 
@@ -413,8 +417,11 @@ describe('Scoring Verification', () => {
             { id: 'C', stars: 0, totalPoints: 1 }
         ], 'COCHON', 2);
         state.players[0].totalCochons = 2;
+        state.players[0].totalCochonsInfliges = 2;
         state.players[1].totalCochons = 1;
+        state.players[1].totalCochonsInfliges = 1;
         state.players[2].totalCochons = 0;
+        state.players[2].totalCochonsInfliges = 0;
 
         const newState = finalizeRound(state, 'C');
 

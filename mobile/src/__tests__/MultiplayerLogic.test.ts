@@ -48,16 +48,19 @@ describe('Multiplayer Game Logic & Rules Verification', () => {
             expect(newState.phase).toBe('MATCH_END');
         });
 
-        test('Mode COCHON: totalCochons increments and triggers Match End', () => {
+        test('Mode COCHON: only winner infliges cochons and triggers Match End', () => {
             const state = createMockState('COCHON', 2);
-            state.players[1].totalCochons = 1; // P2 already has 1 cochon
+            state.players[0].totalCochonsInfliges = 1; // P1 already inflicted 1 cochon
+            state.players[0].totalCochons = 1; // Legacy alias kept aligned for old screens
             state.players[0].currentMancheStars = 2;
             state.players[1].currentMancheStars = 0; // P2 about to be cochon again
             state.players[2].currentMancheStars = 1;
 
             const newState = handleEndOfRound(state, 'p1');
 
-            expect(newState.players[1].totalCochons).toBe(2);
+            expect(newState.players[0].totalCochonsInfliges).toBe(2);
+            expect(newState.players[1].totalCochons).toBe(0);
+            expect(newState.players[1].totalCochonsSubis).toBe(1);
             expect(newState.phase).toBe('MATCH_END');
         });
 

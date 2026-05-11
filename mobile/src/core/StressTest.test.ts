@@ -13,6 +13,8 @@ const createMockPlayer = (id: string, name: string): Player => ({
     totalPoints: 0,
     isCochon: false,
     totalCochons: 0,
+    totalCochonsInfliges: 0,
+    totalCochonsSubis: 0,
     status: 'HUMAN',
     currentMancheStars: 0,
     totalRoundWins: 0
@@ -70,7 +72,7 @@ describe('Phase 2.3: Stress Test Simulation', () => {
     test('Match termination in COCHON mode (individual limit)', () => {
         const { state } = simulateMatch('COCHON', 3);
         expect(state.phase).toBe('MATCH_END');
-        expect(state.players.some(p => p.totalCochons >= 3)).toBe(true);
+        expect(state.players.some(p => (p.totalCochonsInfliges || 0) >= 3)).toBe(true);
     });
 
     test('Points consistency after multiple rounds', () => {

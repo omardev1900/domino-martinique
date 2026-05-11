@@ -96,6 +96,12 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     })();
 
     const matchOverallWinner = [...gameState.players].sort((a, b) => {
+        if (gameState.gameMode === 'COCHON') {
+            if ((b.totalCochonsInfliges || 0) !== (a.totalCochonsInfliges || 0)) {
+                return (b.totalCochonsInfliges || 0) - (a.totalCochonsInfliges || 0);
+            }
+            return b.totalPoints - a.totalPoints;
+        }
         if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
         if (b.totalCochons !== a.totalCochons) return b.totalCochons - a.totalCochons;
         return b.mancheWins - a.mancheWins;
@@ -190,7 +196,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
         switch (gameState.gameMode) {
             case 'VICTOIRE': return `${p.totalRoundWins} V`;
             case 'SCORE':    return `${p.totalPoints} pts`;
-            case 'COCHON':   return `${p.totalCochons} 🐷`;
+            case 'COCHON':   return `${p.totalCochonsInfliges || 0} 🐷`;
             default:         return `${p.totalPoints} pts`;
         }
     };
@@ -428,7 +434,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 const me = gameState.players.find(p => p.id === currentUserId);
                 const winParams = {
                     playerName: me?.name ?? 'Mwen',
-                    cochons: me?.totalCochons ?? 0,
+                    cochons: me?.totalCochonsInfliges ?? 0,
                     gradeLabel: matchReward?.newGrade
                         ? LEAGUE_LABELS[matchReward.newGrade]
                         : 'Sans grade',

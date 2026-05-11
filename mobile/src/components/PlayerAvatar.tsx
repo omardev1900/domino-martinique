@@ -426,7 +426,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                 {gameMode === 'COCHON' && (
                                     <View style={styles.opponentStatCol}>
                                         <Text style={styles.statLabelCochon}>🐷</Text>
-                                        <Text style={styles.statValueCochon}>{player.totalCochons || 0}</Text>
+                                        <Text style={styles.statValueCochon}>{player.totalCochonsInfliges || 0}</Text>
                                     </View>
                                 )}
                                 <View style={styles.opponentStatCol}>

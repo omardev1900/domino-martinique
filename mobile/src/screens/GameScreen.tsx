@@ -325,6 +325,12 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const isLocalMatchWinner = useMemo(() => {
         if (!gameState || gameState.phase !== 'MATCH_END') return false;
         const sorted = [...gameState.players].sort((a, b) => {
+            if (gameState.gameMode === 'COCHON') {
+                if ((b.totalCochonsInfliges || 0) !== (a.totalCochonsInfliges || 0)) {
+                    return (b.totalCochonsInfliges || 0) - (a.totalCochonsInfliges || 0);
+                }
+                return b.totalPoints - a.totalPoints;
+            }
             if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
             if (b.totalCochons !== a.totalCochons) return b.totalCochons - a.totalCochons;
             return b.mancheWins - a.mancheWins;
@@ -382,6 +388,12 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             if (localPlayer) {
                 // Determine Match Winner
                 const sorted = [...gameState.players].sort((a, b) => {
+                    if (gameState.gameMode === 'COCHON') {
+                        if ((b.totalCochonsInfliges || 0) !== (a.totalCochonsInfliges || 0)) {
+                            return (b.totalCochonsInfliges || 0) - (a.totalCochonsInfliges || 0);
+                        }
+                        return b.totalPoints - a.totalPoints;
+                    }
                     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
                     if (b.totalCochons !== a.totalCochons) return b.totalCochons - a.totalCochons;
                     return b.mancheWins - a.mancheWins;
@@ -1129,7 +1141,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 const prevPoints = (player.totalPoints || 0) - (player.currentMancheStars || 0);
                 return `${prevPoints} pts`;
             }
-            case 'COCHON': return `${player.totalCochons} 🐷`;
+            case 'COCHON': return `${player.totalCochonsInfliges || 0} 🐷`;
             default: return "";
         }
     };

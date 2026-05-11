@@ -477,9 +477,19 @@ export const RewardEngine = {
         isSoloMode: boolean;
     }): RewardCalculationInput {
         const { gameState, localPlayerId, currentLevel, currentXP, currentLeaguePoints, currentCochonsGiven, unlockedFrames, tableTier, isSoloMode } = params;
+        const getCochonRankingValue = (player: GameState['players'][number]) =>
+            gameState.gameMode === 'COCHON'
+                ? (player.totalCochonsInfliges || 0)
+                : (player.totalCochons || 0);
 
         // Classement final
         const sortedPlayers = [...gameState.players].sort((a, b) => {
+            if (gameState.gameMode === 'COCHON') {
+                if (getCochonRankingValue(b) !== getCochonRankingValue(a)) {
+                    return getCochonRankingValue(b) - getCochonRankingValue(a);
+                }
+                return b.totalPoints - a.totalPoints;
+            }
             if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
             if (b.totalCochons !== a.totalCochons) return b.totalCochons - a.totalCochons;
             return b.mancheWins - a.mancheWins;
@@ -488,7 +498,7 @@ export const RewardEngine = {
         const finalRanking: PlayerMatchSnapshot[] = sortedPlayers.map((p, i) => ({
             playerId: p.id,
             totalPoints: p.totalPoints,
-            totalCochons: p.totalCochons,
+            totalCochons: getCochonRankingValue(p),
             mancheWins: p.mancheWins,
             totalRoundWins: p.totalRoundWins || 0,
             rank: i + 1,

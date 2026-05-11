@@ -1,79 +1,76 @@
-# 🗺️ ROADMAP — Domino Martiniquais
+# ROADMAP - Domino Martiniquais
 
-> Feuille de route globale du projet. Mise à jour uniquement à chaque fin de bloc.
-> Pour les tâches détaillées du sprint en cours → voir `TASKS.md`
+> Feuille de route produit a moyen terme.
+> Pour le sprint actif et les tickets prets a etre traites, voir `docs/pilotage/TASKS.md`.
 
-**Dernière mise à jour :** 15 avril 2026
+**Derniere mise a jour :** 2026-05-10
 
 ---
 
-## 📊 Vue d'ensemble des blocs
+## Vue d'ensemble des blocs
 
 | Bloc | Description | Statut |
-|------|-------------|--------|
-| 🔒 Bloc 1 | **Urgence Sécurité** — Firestore rules, validation serveur, rotation clés | ✅ Complet |
-| 🧠 Bloc 2 | **Stabilité logique** — Tests, timer, anti-boucle, scoring | ✅ Complet |
-| 🛡️ Bloc 3 | **Qualité & Sécurité** — LogService, Zod, debounce, 127 tests | ✅ Complet |
-| 🏗️ Bloc 4 | **Architecture** — React Native Expo, Firebase, modélisation données | ✅ Complet |
-| 🎮 Bloc 5 | **Moteur de jeu** — Logique martiniquaise complète, Boudé, Chiré, Cochon | ✅ Complet |
-| 🎨 Bloc 6 | **UX/UI & Design System** — Table 3 joueurs, dominos, animations | ✅ Complet |
-| 🤖 Bloc 7 | **Moteur de jeu final** — Modes Cochon/Manche, IA 3 niveaux, timer | ✅ Complet |
-| ✨ Bloc 8 | **Immersion & Métagame UI** — Audio, chat, boutique, overlay, animations | ✅ Complet (partiel) |
-| 🐷 Bloc 9 | **Ligue des Cochons** — 4 paliers, cadres avatar, backend + mobile | ✅ Complet |
-| 🏆 Bloc 11 | **Tournois** — Création admin, lobby mobile, brackets, automation | ❌ Priorité actuelle |
-| 🖥️ Bloc 12 | **Pilotage Admin** — Dashboard Next.js + Sentry monitoring | ⚠️ Partiel |
-| 👤 Bloc 10 | **Gestion des comptes** — OTP email, reset MDP, suppression compte | 🔜 Avant-dernière étape |
-| 💳 Bloc 13 | **Paiement** — Checkout Coins/Diamonds, gateway | 🔜 Dernière étape |
+|---|---|---|
+| Bloc 1 | Urgence securite - Firestore rules, validation serveur, rotation des cles | Termine |
+| Bloc 2 | Stabilite logique - tests, timer, anti-boucle, scoring | Termine |
+| Bloc 3 | Qualite & securite - LogService, Zod, debounce, couverture logique | Termine |
+| Bloc 4 | Architecture - React Native Expo, Firebase, modelisation des donnees | Termine |
+| Bloc 5 | Moteur de jeu - logique martiniquaise complete | Termine |
+| Bloc 6 | UX/UI & design system - table 3 joueurs, ecrans, composants | Termine |
+| Bloc 7 | Moteur de jeu final - modes Manche/Score/Cochon, IA 3 niveaux, timer | Termine |
+| Bloc 8 | Immersion & metagame - audio, chat, boutique, overlays, partage | Termine partiel |
+| Bloc 9 | Ligue des Cochons - progression, leaderboard, grades, rewards | Termine |
+| Bloc 10 | Gestion des comptes - OTP, reset MDP, suppression compte | En consolidation |
+| Bloc 11 | Tournois - creation admin, lobby mobile, brackets, automation | A venir |
+| Bloc 12 | Pilotage admin - dashboard Next.js, logs, moderation, Sentry | En cours continu |
+| Bloc 13 | Paiements - achats in-app et monetisation avancee | A venir |
 
 ---
 
-## 🎯 Ordre des priorités actives
+## Priorites actuelles
 
-1. 🟠 **Bloc 11 — Tournois** *(en cours → détail dans `TASKS.md`)*
-2. 🔵 **Bloc 12 — Sentry** monitoring crash
-3. 🟡 **Bloc 8 — Animations domino** glissé + distribution *(reporté à la fin)*
-4. 🔴 **Bloc 10 — Gestion compte** OTP, reset MDP, suppression
-5. ⚫ **Bloc 13 — Paiements** checkout Coins/Diamonds
+L'ordre reel au 10 mai 2026 n'est plus "Tournois d'abord". La priorite immediate est le sas de pre-lancement officiel.
 
----
-
-## 📋 Specs techniques des blocs à venir
-
-### Bloc 11 — Tournois
-- **Format Manches** : tournoi se termine après N manches jouées
-- **Format Points** : tournoi se termine quand un joueur atteint un score cible
-- **Vainqueur** : plus grand nombre de points → départage par delta cochons donnés/reçus
-- Détail des tâches → `TASKS.md`
+1. Fermer le sprint `Pre-Lancement Officiel` dans `docs/pilotage/TASKS.md`
+2. Stabiliser le compte et la retention avec `OTP-INSCRIPTION`
+3. Finaliser la monetisation courte boucle avec `ADS-REWARD` et `ECO-REBALANCE`
+4. Corriger la dette de stats mensuelles avec `R4-TECH-LEADERBOARD`
+5. Laisser `TOURNAMENTS`, `GOOGLE-PAY` et `ADMOB-PHASE2` en post-lancement
 
 ---
 
-## ✅ Historique des blocs terminés
+## Cap avant lancement officiel
 
-### Bloc 9 — Ligue des Cochons ✅ (Avril 2026)
-- 4 paliers (30 / 150 / 250 / 500 cochons infligés)
-- Cadres d'avatar animés (Argent / Or / Diamant / Feu)
-- Cloud Function `processMatchReward` mise à jour
-- Leaderboard tab COCHONS + écran Ligue dans profil
+Les 5 tickets qui conditionnent la phase suivante sont :
 
-### Bloc 8 — Immersion & Métagame ✅ (partiel)
-- Audio complet (BGM + SFX événements)
-- Chat emoji en cours de partie
-- Refactor GameScreen en Custom Hooks
-- Boutique & cosmétiques (skins table/dominos, inventaire hybride)
-- Aide interactive (HelpOverlay)
-- Refonte UX Mobile Solo & Lobby (flow 2 étapes)
-- Code table court (6 chars) + WhatsApp Deep-Link
-- ⚠️ *Animations domino (glissé + distribution) : REPORTÉ*
+- `ANIM-DOMINO`
+- `ECO-REBALANCE`
+- `ADS-REWARD`
+- `OTP-INSCRIPTION`
+- `R4-TECH-LEADERBOARD`
 
-### Blocs 1–7 ✅ (Janvier–Mars 2026)
-Voir `docs/archive/` pour les plans et résumés de ces blocs.
+Une fois ce lot ferme, le projet bascule en priorites post-lancement :
+
+- `ADMOB-PHASE2`
+- `TOURNAMENTS`
+- `GOOGLE-PAY`
+- `NOTIF-WEB`
+- `AUDIO-IOS-FALLBACK`
 
 ---
 
-## 🚫 Hors scope définitif
+## Historique recent utile
 
-- ~~Système d'amis~~ — Retiré définitivement
+- Avril-mai 2026 : la Ligue des Cochons a ete refondue, harmonisee et recentree sur une progression mensuelle coherente.
+- Mai 2026 : boutique/tchat consommable, pubs admin-managees, cadeau quotidien conditionne a la pub, partage social, push Android, IA METKAYALI et bots adaptatifs sont livres.
+- Les animations de domino restent volontairement reportees jusqu'au sprint de finition.
+
+---
+
+## Hors scope definitif
+
+- Systeme d'amis
 - Graphismes 3D
-- IA experte probabiliste
 - Chat texte libre
 - Cash-prize dans les tournois
+- Reintroduction du mode invite

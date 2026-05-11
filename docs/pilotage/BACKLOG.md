@@ -1,60 +1,54 @@
-# 📋 BACKLOG — Tâches à planifier
+# BACKLOG - Taches a planifier
 
-> **Rôle** : backlog de toutes les tâches connues mais non encore planifiées.
-> Dès qu'une tâche est décidée → **la déplacer vers `TASKS.md`**.
->
-> **Dernière mise à jour :** 08 mai 2026 — restructuré pour lancement officiel
+> Ce fichier contient les sujets connus mais non encore planifies.
+> Des qu'une tache devient prioritaire et decidee, elle sort du backlog pour aller dans `TASKS.md`.
 
----
-
-## 🚀 Avant lancement officiel
-
-| Ticket | Description | Estimation |
-|---|---|---|
-| **ANIM-DOMINO** | Animation glissé des dominos pendant le jeu (distribution déjà présente) | ~2 jours |
-| **ADS-REWARD** | Doubler les gains après pub — modal post-match "Voir pub → ×2 coins/XP" | ~1,5 jour |
-| **R4-TECH-LEADERBOARD** | Agrégats mensuels persistants — décrocher les stats mensuelles de `matchHistory` (limité à 500) | ~2-3 jours |
-| **ECO-REBALANCE** | Économie révisée — revoir coins offerts, coins pour jouer et récompenses de fin de match | ~1 jour |
-| **OTP-INSCRIPTION** | OTP email à l'inscription — code 6 chiffres à la création de compte | ~1 jour |
+**Derniere mise a jour :** 2026-05-10
 
 ---
 
-## 📦 Après lancement officiel
+## Apres lancement officiel
 
 | Ticket | Description | Estimation |
 |---|---|---|
-| **ADMOB-PHASE2** | AdMob automatique (impressions/clics) — SDK `react-native-google-mobile-ads` | ~1-1,5 jour |
-| **TOURNAMENTS** | Bloc 11 — Tournois complets (admin + mobile + brackets + Cloud Functions) | ~4 jours |
+| **ADMOB-PHASE2** | AdMob automatique impressions/clics via `react-native-google-mobile-ads` | ~1-1,5 jour |
+| **TOURNAMENTS** | Bloc 11 - Tournois complets : admin, mobile, brackets, Cloud Functions | ~4 jours |
 | **GOOGLE-PAY** | Paiements in-app Android via Google Play Billing | ~2 jours |
-| **AUDIO-IOS-FALLBACK** | Fallback WebAudio API Safari iOS — SFX procéduraux sans `expo-audio` | ~0,5 jour |
-| **R4-B3-SESSION** | Multijoueur — reconnexion après purge complète de session navigateur | ~1 jour |
-| **NOTIF-WEB** | Notifications push Web PWA (Safari iOS 16.4+ + Chrome Android) | ~1 jour |
+| **NOTIF-WEB** | Notifications push Web PWA | ~1 jour |
+| **R4-B3-SESSION** | Multijoueur - reconnexion apres purge complete de session navigateur | ~1 jour |
+| **AUDIO-IOS-FALLBACK** | Fallback WebAudio API Safari iOS pour les SFX | ~0,5 jour |
 
 ---
 
-## ❌ Annulés (décisions client 08/05/2026)
-
-| Ticket | Raison |
-|---|---|
-| **APPLE-PAYMENT** | Annulé |
-| **A12** | Photo de profil — annulé |
-| **Shop3** | Phrases créoles tchat — déjà livré via R4-M3 ✅ |
-| **Shop6** | Pass VIP 5€/mois — annulé |
-| **R4-ECO1** | Récompenses différenciées solo/multi — annulé |
-| **ACCOUNT-GOOGLE** | Google Sign-In — annulé |
-
----
-
-## 🔵 Moyen / Long terme
+## Moyen / long terme
 
 | Ticket | Description |
 |---|---|
-| **ANIM-DOMINO-DISTRIB** | Animation distribution dominos en cascade (si non couverte par ANIM-DOMINO) |
+| **ANIM-DOMINO-DISTRIB** | Animation de distribution en cascade si `ANIM-DOMINO` ne couvre pas ce besoin |
 
 ---
 
-## 📚 Specs de référence
+## Annules
 
-- Spec bots adaptatifs → `docs/specs/features/BOT_ADAPTIVE.md`
-- Spec IA MÈTKAYALI → `docs/specs/BOT_METKAYALI.md`
-- Spec tournois → `docs/specs/ARCHITECTURE.md`
+| Ticket | Raison |
+|---|---|
+| **APPLE-PAYMENT** | Annule |
+| **A12** | Photo de profil annulee |
+| **Shop6** | Pass VIP 5 EUR/mois annule |
+| **R4-ECO1** | Recompenses differenciees solo/multi annulees |
+| **ACCOUNT-GOOGLE** | Google Sign-In annule |
+
+---
+
+## Notes de hygiene
+
+- Les tickets du sprint `Pre-Lancement Officiel` ne doivent plus vivre ici : ils sont maintenant dans `docs/pilotage/TASKS.md`.
+- `Shop3` sort de cette liste : la demande a deja ete livree via `R4-M3`.
+
+---
+
+## Specs de reference
+
+- Bots adaptatifs : `docs/specs/features/BOT_ADAPTIVE.md`
+- IA METKAYALI : `docs/specs/BOT_METKAYALI.md`
+- Architecture / tournois : `docs/specs/ARCHITECTURE.md`

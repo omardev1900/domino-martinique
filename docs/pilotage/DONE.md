@@ -1,319 +1,48 @@
-# ✅ TASKS_DONE — Archive des tâches terminées
+# DONE - Archive des taches terminees
 
-> **Rôle** : archive historique de toutes les tâches livrées.
-> **Ne contient aucune tâche active** — tout ce qui est ici est figé.
+> Archive historique des taches livrees.
+> Ce fichier ne contient aucune tache active.
 >
-> **Flux** : `TASKS_TODO.md` → `TASKS.md` → **`TASKS_DONE.md`**
+> **Flux obligatoire :** `BACKLOG.md` -> `TASKS.md` -> `DONE.md`
 >
-> Convention : classement par date descendante (plus récent en haut), date au format AAAA-MM-JJ.
+> Convention : classement par date descendante (plus recent en haut), date au format AAAA-MM-JJ.
 
----
+## Mai 2026
 
-## 📅 Mai 2026
+### 2026-05-08 - Bots adaptatifs + IA METKAYALI niveau 4
 
-### 2026-05-08 — Bots adaptatifs + IA MÈTKAYALI niveau 4
+- [x] **[BOT-ADAPTIVE]** Bots adaptatifs + IA METKAYALI
+  - Moteur IA 4 couches : suivi des tuiles, Monte Carlo, analyse endgame, modelisation adverse
+  - Performance cible tenue : decision < 100 ms
+  - Niveau 4 branche dans le jeu, le solo et l'admin
+  - Tests unitaires verts
 
-- [x] **[BOT-ADAPTIVE]** Bots adaptatifs + IA MÈTKAYALI (fusion R4-IA1 + BOT_METKAYALI)
-  - Moteur IA 4 couches : `TileTracker` (comptage 28 tuiles), `MonteCarlo` (500 simulations/coup), `EndgameAnalyzer` (risque Boudé), `OpponentModeler` (profil adversaire temps réel)
-  - Performance : < 100ms/décision, 44% victoires vs 2× GRAN_MOUN (> 33% hasard pur)
-  - `bot.service.ts` : `getBotsForGrade()` + `getFloorLevel()` + `isLevelAllowed()` — grade du joueur = niveau plancher
-  - `solo.tsx` : sélecteur 4 niveaux adaptatif (niveaux inférieurs au grade grisés, niveaux supérieurs disponibles comme défi)
-  - `useBotDecision` : branchement `getMeytKayaliMove()` pour les bots METKAYALI en partie
-  - Admin `/dashboard/bots` : dropdown 🧠 Mèt Kayali (Maître Absolu)
-  - 12 tests unitaires — tous verts
-  - Validé en production : bot joué et battu en solo ✅
+### 2026-05-08 - Harmonisation grades Ligue + logs admin + fix audio iOS + tchat consommable
 
-### 2026-05-08 — Harmonisation grades Ligue + page logs admin + fix audio iOS + tchat consommable
+- [x] **[R4-M3]** Tchat consommable a l'unite
+- [x] **[R4-B-GRADES]** Harmonisation des grades de la Ligue
+- [x] **[ADMIN-LOGS]** Refonte page logs admin + lien Sentry
+- [x] **[AUDIO-IOS-SAFARI]** Silence des erreurs Safari iOS autour du son
 
-- [x] **[R4-M3]** Tchat — phrases et emojis consommables à l'unité
-  - Modèle d'achat migré de "à vie" vers "consommable" : chaque envoi décrémente un compteur d'usages
-  - `usagesPerPurchase` : 0 = à vie (illimité), N = pack de N envois
-  - Inventaire par joueur : `chatInventory` dans l'économie (compteur restant par item)
-  - `unlockedChatItems` conservé pour les achats à vie
-  - Admin (`/dashboard/chat`) : champ "Usages par achat" + badge "🎫 N envois" ou "♾️ à vie"
-  - Mobile (`QuickChat.tsx`) : décrément côté client + sync Firestore, affichage du nombre restant
-  - Achat depuis la bulle de tchat : prix en coins, confirmation, crédit immédiat
-  - Items gratuits inchangés (toujours disponibles sans restriction)
+### 2026-05-06 - Partage social + politique de confidentialite
 
-### 2026-05-08 — Harmonisation grades Ligue + page logs admin + fix audio iOS
+- [x] **[R4-UX3]** Partage social victoire + passage de palier
+- [x] **[LP-POLICY]** Page Politique de confidentialite pour la landing page
 
-- [x] **[R4-B-GRADES]** Harmonisation des grades de la Ligue des Cochons à travers tous les écrans
-  - **GradeBadge** (avatar match, lobby, modal résultat) : `'Débutant'` → `'Sans grade'`
-  - **UnifiedResultOverlay** (carte de partage victoire) : fallback obsolète `'Apprenti Boucher'` → `LEAGUE_LABELS[matchReward.newGrade]`
-  - **PlayerAvatar** : commentaire mis à jour ("débutants" → "joueurs sans grade")
-  - **Durcissement Sentry** : optional chaining `?.` sur les 3 dictionnaires (`LEAGUE_ICONS`, `LEAGUE_LABELS`, `LEAGUE_GRADE_COLORS`) au cas où le bundle web aurait un souci de tree-shaking
-  - 4 écrans concernés affichent maintenant le même label cohérent : avatar en match, modal victoire, carte de partage social, classement Ligue
-  - Tests : 41 tests `LigueCochons.test.ts` toujours verts
-  - Fichiers : `mobile/src/components/GradeBadge.tsx`, `mobile/src/components/UnifiedResultOverlay.tsx`, `mobile/src/components/PlayerAvatar.tsx`
+### 2026-05-06 - Sprint Post-Lancement P1
 
-- [x] **[ADMIN-LOGS]** Page logs admin refondue (correction du 404 + 2 onglets + lien Sentry)
-  - Cache `.next` corrompu (cause du 404) supprimé
-  - Page refondue en 2 onglets : `Actions admin` (collection `admin_logs`) + `Système` (collection `system_logs`, alimentée par les Cloud Functions)
-  - Bouton externe vers Sentry mobile (`happy-agency.sentry.io`)
-  - Helper `logSystemEvent()` ajouté dans les Cloud Functions ; `processMatchReward`, `migrateCochonsGiven`, `closeTournament`, `deleteUserAccount` instrumentés (succès + erreurs)
-  - Règle Firestore `system_logs` : lecture superadmin uniquement, écriture côté CF uniquement (Admin SDK bypasse)
-  - Fichiers : `admin/app/dashboard/logs/page.tsx`, `functions/src/systemLog.ts`, `functions/src/index.ts`, `firestore.rules`
+- [x] **[R4-B2]** Popup de passage de palier dans le vrai flux de jeu
+- [x] **[R4-B5]** Fix web sur le domino gagnant reutilise
+- [x] **[R4-M4]** Cadeau quotidien conditionne a une pub
+- [x] **[R4-M2]** Pubs dans boutique, vestiaire, stats, classement et ligue
+- [x] **[R4-M5]** Notifications push quotidiennes Android
 
-- [x] **[AUDIO-IOS-SAFARI]** Silence des erreurs Sentry `NotSupportedError` sur Safari iOS
-  - 135 occurrences/jour de `NotSupportedError` au `play()` du SFX `clack` sur Safari iOS
-  - Cause : `expo-audio` lance l'erreur au runtime (mode privé, Low Power, iOS < 14.5) malgré l'interaction utilisateur
-  - Fix 1 : try/catch synchrone autour de `seekTo()` + `.play()` dans `SoundManager.playSound()`
-  - Fix 2 : détection Safari iOS dans `isAudioAllowed` → l'audio est désactivé d'office (jeu jouable sans SFX, plus aucune erreur)
-  - Décision produit : ne pas bloquer Safari iOS (Chrome iOS utilise le même moteur WebKit, donc inutile)
-  - Item backlog `[AUDIO-IOS-FALLBACK]` ajouté pour un fallback WebAudio API post-lancement
-  - Fichier : `mobile/src/core/audio/SoundManager.ts`
-
-### 2026-05-06 — Partage social + Page politique de confidentialité
-
-- [x] **[R4-UX3]** Partage social — victoire et passage de palier
-  - `ShareTextButton` : partage une image capturée de la `WinShareCard` (logo + nom joueur + cochons + grade) via `expo-sharing`
-  - `ShareImageButton` : capture la `GradeShareCard` (passage de palier) et la partage comme image PNG
-  - Textes en français, seul « Vini joué épi mwen » reste en créole
-  - Fallback texte seul si `expo-sharing` n'est pas disponible (web)
-  - Intégré dans `UnifiedResultOverlay` (victoire de match) et `RewardOverlay` (passage de palier)
-
-- [x] **[LP-POLICY]** Landing page — page Politique de confidentialité
-  - Nouvelle page `/politique-de-confidentialite` (alias `/privacy-policy`) sur la LP
-  - Contient : données collectées, finalités, partage, conservation, droits RGPD, **procédure de suppression de compte** (section #6 dédiée), sécurité, mineurs, contact
-  - Lien ajouté dans le footer de la page d'accueil
-  - URL requise par Google Play Console pour la conformité
-
-### 2026-05-06 — Notifications push + Sentry + Pubs étendues + Cadeau quotidien
-
-- [x] **[R4-M5 / NOTIF-1]** Notifications push Android natif
-  - `expo-notifications` installé et configuré (plugin dans `app.json`)
-  - `registerPushToken()` dans `_layout.tsx` : demande permission au lancement, écrit le token dans `users/{uid}.fcmToken`
-  - Page admin `/dashboard/notifications` + route `/api/notify` déjà opérationnelles (broadcast ou ciblé par uid, batch 500)
-  - ⚠️ Nécessite un build EAS pour générer les vrais tokens FCM (ne fonctionne pas en Expo Go)
-
-### 2026-05-06 — Sentry monitoring + Pubs étendues + Cadeau quotidien
-
-- [x] **[SENTRY]** Intégration Sentry React Native (Bloc 12 partiel)
-  - Wizard Sentry configuré automatiquement (`@sentry/react-native`)
-  - DSN configuré, source maps et debug symbols uploadés au build
-  - Projet Sentry : `happy-agency / react-native`
-  - Capture automatique des crashs JS et erreurs natives
-  - Validé : premier fatal error capté avant même le bouton de test
-
-### 2026-05-06 — Correctifs critiques + Monétisation cadeau quotidien
-
-- [x] **[R4-B2]** Ligue des Cochons — popup de passage de palier en vrai flux de jeu
-  - L'overlay de réussite/promotion s'affiche désormais correctement lors d'un franchissement de palier en fin de match réel.
-
-- [x] **[R4-B5]** Web — domino gagnant parfois réutilisé depuis la partie précédente
-  - État de résultat et overlay réinitialisés entre deux parties ; le domino gagnant affiché correspond toujours à la partie en cours.
-
-- [x] **[R4-M4]** Cadeau quotidien conditionné à une pub
-  - Le bouton "RÉCLAMER !" remplacé par "📺 VOIR UNE PUB → +300 🪙"
-  - Flux : pub admin programmée (si dispo) → popup cadeau → clic "Voir une pub" → pub rejouée → animation compteur → 300 coins crédités
-  - Fallback : si aucune pub admin disponible, les 300 coins sont crédités directement
-  - Les deux pubs (admin programmée + cadeau) restent indépendantes et ne se mélangent pas
-  - Fichiers modifiés : `mobile/src/components/DailyRewardModal.tsx`, `mobile/app/home.tsx`
-
-- [x] **[R4-M2]** Pubs étendues à la boutique, vestiaire, stats, classement et ligue
-  - 5 nouveaux placements : `STORE`, `COLLECTION`, `STATS`, `LEADERBOARD`, `LIGUE`
-  - Popup admin-managed apparaît 2s après l'ouverture de chaque écran (même pattern que HOME)
-  - Admin peut activer/désactiver chaque placement via la liste de cases à cocher dans `/dashboard/ads/[id]`
-  - Admin peut aussi désigner une pub "Cadeau du jour" via le bouton 🎁 dans `/dashboard/ads`
-  - Fichiers modifiés : `mobile/src/core/ad.types.ts`, `mobile/src/core/services/ad.service.ts`, `mobile/app/store.tsx`, `mobile/app/collection.tsx`, `mobile/app/stats.tsx`, `mobile/app/leaderboard.tsx`, `mobile/app/ligue-cochons.tsx`, `admin/app/dashboard/ads/[id]/page.tsx`, `admin/app/dashboard/ads/page.tsx`
-
-### 2026-05-05 — Ligue mensuelle & aide (session Codex)
-
-- [x] **[R4-B6]** Multijoueur — suppression d'une table vide par son hôte
-  - **Accueil / modes multi** : la table vide déjà créée est détectée et peut être rejointe ou supprimée
-  - **Lobby d’attente en jeu** : l’hôte peut aussi supprimer la table directement tant qu’aucun autre joueur n’a rejoint et que la partie n’a pas commencé
-  - **Objectif** : éviter les tables orphelines et permettre au joueur de repartir proprement
-
-- [x] **[R4-UX6]** Accueil — homogénéisation de la hauteur des 3 blocs principaux
-  - **Blocs concernés** : `Jouer`, `Actus`, `Info niveau ligue`
-  - **Correction** : wrappers et cartes alignés sur une hauteur commune pour éviter les écarts visuels selon le contenu ou le device
-  - **Fichier principal** : `mobile/app/home.tsx`
-
-- [x] **[R4-UX4]** `/ligue-cochons` — séparation du hub Ligue en `Ma Ligue`, `Classement du mois`, `Classement global`
-  - **Classement du mois** : mêmes familles `+ Cochons / - Cochons / + Points`, mais calculées depuis le mois courant (`matchHistory`)
-  - **Classement global** : mêmes familles, calculées sur le cumul historique
-  - **Perf / Total** : conservé sur les 2 tabs avec seuil de qualification à 10 matchs
-  - **Source dédiée** : `leaderboard.service.ts` expose désormais des métriques mensuelles (`cochons`, `cochons subis`, `points`, `matchs joués`) pour alimenter le hub Ligue
-
-- [x] **[R4-UX5]** Aide — déplacement des `Infos Ligue`
-  - **Suppression** : l’onglet `Infos` sort de `/ligue-cochons`
-  - **Ajout** : nouvel onglet `Ligue` dans `HelpOverlay`
-  - **Composant partagé** : contenu Ligue factorisé dans `LeagueInfoContent.tsx`
-
-### 2026-05-02 — Admin Manager (P1 priorité)
-- [x] **[ADMIN-MANAGER]** Système de rôles manager avec accès limité
-  - **Firestore Rules** : Ajout `isSuperAdmin()` avec fallback rétrocompatible. Collections sensibles (users, config, feedbacks, logs) = superadmin-only. Collections manager (bots, store, chat, ads, tournaments) = isAdmin()
-  - **AdminAuth** : Lecture champ `role` depuis Firestore, fallback `superadmin` si absent, exposé dans `AdminState`
-  - **Layout** : Redirection si manager tente accès routes superadmin-only
-  - **Sidebar** : Filtrage items selon rôle, affichage badge rôle (jaune/bleu), listener feedbacks conditionné
-  - **API Routes** : `/api/admins` (GET + POST), `/api/admins/[uid]` (PATCH + DELETE), sécurisées avec `verifyIdToken()` + `isSuperAdmin` check
-  - **Page `/dashboard/access`** : UI CRUD (table admins, ajout modal, modification rôle, suppression avec self-delete bloqué)
-  - **Rétrocompatibilité** : Admins existants sans champ `role` = superadmin automatiquement
-
-### 2026-05-02 — Dette technique — Tests (TECH-TEST-1/2/3)
-
-- [x] **[TECH-TEST-1]** Assertions `totalCochons` sur perdants — ScoringScenarios était déjà vert (corrigé lors d'un sprint précédent)
-- [x] **[TECH-TEST-2]** Config Jest ESM Firebase — mock global de `firebase/firestore`, `firebase/auth`, `firebase/storage`, `firebase/app` ajouté dans `jest.setup.js`
-- [x] **[TECH-TEST-3]** Tests GameHeader réécrits pour la nouvelle interface (3 props), GameOverlays corrigé (flow confirmation quit en 2 étapes), mock `LogicEngine` complété avec `getForcedTieBreakDominoId`
-- **Résultat** : 51 tests / 6 suites / 0 échec
-
----
-
-### 2026-05-02 — Admin dashboard — Boutique, Bots IA, Tchat
-
-**Boutique (`/dashboard/store`)**
-- [x] **[ADMIN-STORE]** Upload image avatar — input fichier, preview immédiate, conversion WebP 200×200, stockage Firebase Storage `avatars/`
-- [x] **[ADMIN-STORE]** Preview skin dynamique — composant live affichant 2 dominos avec les vraies couleurs sur le vrai fond de table
-- [x] **[ADMIN-STORE]** Suppression du type EMOTE (remplacé par `/dashboard/chat`)
-- [x] **[ADMIN-STORE]** Affichage image réelle dans la liste (au lieu de l'icône emoji générique)
-
-**Bots IA (`/dashboard/bots`)**
-- [x] **[ADMIN-BOTS]** Formulaire simplifié — nom, image, difficulté uniquement (IDs gérés en coulisses)
-- [x] **[ADMIN-BOTS]** Fix firestoreId — modification et suppression utilisent désormais l'ID réel du document Firestore
-- [x] **[ADMIN-BOTS]** Aperçu avatar dans la liste — image réelle si disponible, icône de difficulté sinon
-- [x] **[ADMIN-BOTS]** Suppression colonnes ID et Avatar ID de la table
-
-**Tchat en jeu (`/dashboard/chat`)**
-- [x] **[R3-M3]** Page admin CRUD complète — messages et emojis gratuits ou payants, toggle activé/désactivé, ordre d'affichage
-- [x] **[R3-M3]** Bouton "⚡ Initialiser les défauts" — insère les 8 messages + 12 emojis codés en dur en un clic
-- [x] **[R3-M3]** `QuickChat.tsx` — fetch Firestore au démarrage, fallback sur valeurs codées en dur si hors ligne
-- [x] **[R3-M3]** Onglet Premium — items payants visibles avec prix, achat définitif en coins, badge ✓ après achat
-- [x] **[R3-M3]** Règles Firestore `chat_messages` déployées (lecture authentifiée)
-
-**Infrastructure**
-- [x] **[STORAGE-RULES]** Règles Firebase Storage — dossiers `bots/`, `avatars/`, `audio/` ouverts en écriture admin authentifié
-
-### 2026-05-01 — Suppression de compte (ACCOUNT-DELETE)
-- [x] **[ACCOUNT-DELETE]** Suppression de compte — exigence Google Play 2024
-  - Cloud Function `deleteUserAccount` : supprime `users/{uid}`, `stats/{uid}`, `economy/{uid}` puis `auth.deleteUser(uid)`
-  - `auth.service.ts` : méthode `deleteAccount()` via `httpsCallable`
-  - `modal.tsx` onglet COMPTE : bouton + 2 modals de confirmation (avertissement → saisie email → suppression)
-  - Déployé sur Firebase (`us-central1`)
-
-### 2026-05-01 — Stats, UX résultats & Interface (session Codex)
-
-**Logique / Stats**
-- [x] **[FIX-ECO-SYNC-SOLO]** Synchro economy/leaderboard corrigée pour le solo authentifié — les gains et compteurs remontent désormais correctement dans le leaderboard après une partie solo.
-- [x] **[FIX-MONTHLY-STATS]** `/stats` — section "STATISTIQUES DU MOIS" : décompte correct des manches gagnées en 5 / 4 / 2 / 1 / -1 points (barème officiel respecté).
-- [x] **[FIX-MANCHES-COUNT]** Bug de comptage : certaines manches n'étaient pas comptabilisées dans les stats — toutes les manches sont maintenant prises en compte.
-
-**UX — Fin de manche / résultats**
-- [x] **[UX-CHIRE-AUTO]** Modal CHIRÉ — bouton supprimé, passage automatique au round suivant (plus fluide, moins d'interruption).
-- [x] **[UX-BOUDE-CARDS]** Modal partie bloquée / égalité — refonte en cartes joueur côte à côte avec dominos affichés verticalement (lisibilité nettement améliorée).
-- [x] **[UX-ROUND-WIN-TEASER]** Teaser de fin de round gagnant — version plus dramatique (animation/présentation renforcée).
-- [x] **[UX-ROUND-WIN-MOBILE]** Version mobile du teaser ajustée pour rester lisible sur petits écrans.
-- [x] **[FIX-COCHON-SCROLL]** Écran fin de partie Mode Cochon — vue rendue scrollable + footer accessible (correction du blocage apparent sur téléphone).
-
-**Interface**
-- [x] **[UX-OPTIONS-HISTORY]** Onglet "Historique" ajouté dans le menu Options pendant le match (consultation de l'historique des manches sans quitter la partie).
-- [x] **[UX-LIGUE-PROGRESS]** `/ligue-cochons` — compteur de progression repositionné pour ne plus chevaucher l'affichage des paliers.
-
----
-
-## 📅 Avril 2026
-
-### 2026-04-29 — Sprint Correctif Post-Lancement (Retour client #3)
-- [x] **[R3-B1]** Mode Score : blocage de fin de partie — la partie s'arrête dès l'objectif atteint ; en cas d'égalité parfaite, le jeu continue jusqu'à ce qu'un joueur prenne l'avantage.
-- [x] **[R3-B4]** Synchronisation cochons & grades — compteur mis à jour en temps réel après chaque match ; fenêtre de félicitations au passage de grade (nouveau rang + total cochons).
-- [x] **[R3-B2]** Onglet DÉTAILS vide en Mode Score — historique et scores s'affichent correctement quel que soit l'objectif ou la durée du match.
-- [x] **[R3-B8]** Fond d'écran quadrillage — fond uni et propre sur tous les écrans clés (Accueil, Menu Solo, Lobby).
-- [x] **[R3-B5]** Widget Ligue : superposition texte/jauge — espacement corrigé, grade/compteur/barre disposent chacun de leur espace dédié.
-- [x] **[R3-B6]** Boutique : affichage skins & prix — dominos affichés en grand (mode paysage) ; prix coins/diamants listés séparément l'un sous l'autre.
-- [x] **[R3-B3]** Égalité Boudé — en cas d'égalité parfaite en main, les scores de chaque joueur s'affichent correctement dans la fenêtre de résultat.
-- [x] **[R3-M4]** Aide Mode Cochon — texte corrigé (arrêt au quota défini) ; barème clarifié : Donner 1 cochon = +1 pt, Double Cochon = +2 pts, Recevoir = -1 pt.
-- [x] **[BONUS]** Modal fin de match — header affiche le contexte au centre (ex: MODE SCORE · 10 PTS).
-- [x] **[BONUS]** Statistiques — suppression de la ligne "Manches Gagnées" sous le taux de victoire pour éviter toute confusion.
-- [x] **[R3-B7]** Mode paysage fixe — confirmé N/A (comportement voulu, verrouillage par conception).
-
-### 2026-04-25
-- [x] **[LAUNCH-AUTH-1]** Auth — Reset mot de passe + Google Sign-In (partiel)
-  - Reset MDP : `sendPasswordReset()` dans `auth.service.ts` + UI "Mot de passe oublié ?" dans `login.tsx` (message vert succès, erreurs Firebase localisées)
-  - Google Sign-In : `signInWithGoogleCredential()` dans `auth.service.ts`, hook `Google.useAuthRequest` + bouton "Continuer avec Google" dans `login.tsx` — **masqué provisoirement** (`GOOGLE_SIGNIN_ENABLED = false`) jusqu'au passage en test interne Google Play (EAS build Android requis). Client IDs configurés : Web + Android (`916243245615-m3biip70ga7nlgm1mf8kqaa4tggl7g3g`), URI Expo proxy ajoutée. Réactiver en changeant `GOOGLE_SIGNIN_ENABLED = true` dans `login.tsx`.
-  - Sidebar : avatar cliquable → `/profile`, Réglages → `/modal` (onglet Compte + bouton déconnexion retrouvé)
-  - AdBannerModal : fallback image si vidéo échoue
-- [x] **[R2-T1]** Universal Links WhatsApp (Android) — domaine `domino-martinique.online`, `intentFilters` + `assetlinks.json` Android opérationnels, page fallback `/join/<code>`, `shareToWhatsApp()` génère l'URL HTTPS, deep-link handler `join/[id].tsx`. iOS : `associatedDomains` + `apple-app-site-association` configurés avec Team ID de test (5LKJF84FN2) — build TestFlight + mise à jour Team ID prod reportés post-lancement (voir [R2-T1-IOS] dans backlog).
-- [x] **[UX-NAV]** Simplification navigation — supprimé headers/flèches/titres redondants sur 7 écrans (profil, game-modes, ligue, leaderboard, stats, boutique, vestiaire), retiré item Profil de la sidebar, supprimé onglet Thème des Paramètres. Fichiers : `profile.tsx`, `game-modes.tsx`, `ligue-cochons.tsx`, `leaderboard.tsx`, `stats.tsx`, `store.tsx`, `collection.tsx`, `Sidebar.tsx`, `modal.tsx`.
-- [x] **[UX-LEAGUE]** Refonte widget Ligue des Cochons — nouveau LeagueProgressWidget (icône grade 38px, compteur cochons, barre progression colorée, prochain grade, bouton info), réordonnancement onglets modal (Ma Ligue → Classement → Infos). Fichiers : `LeagueProgressWidget.tsx`, `LeagueInfoModal.tsx`.
-- [x] **[UX-ADS]** Pub HOME non-intrusive — délai 3,5s avant affichage, badge "Ads" permanent, countdown 10s avant bouton fermeture, blocage back Android pendant le décompte. Fichiers : `home.tsx`, `AdBannerModal.tsx`.
-- [x] **[UX-MATCH-END]** Refonte modal fin de match — fix confettis (autoStart, suppression fadeOut, boucle 3,5s), navigation (🏠 + Détails) déplacée en haut du modal. Fichier : `UnifiedResultOverlay.tsx`.
-- [x] **[UX-ROUND-END]** Refonte modal fin de round — modal agrandi (92% × 82%), dominos 40px, textes épurés (suppression VICTOIRE/DANS LA MAIN/PTS), format inline Nom(score), couronne 👑 vainqueur. Fichier : `RoundResultCard.tsx`.
-- [x] **[FIX-PROFILE]** Fix pseudo/avatar — regex élargie (accepte apostrophes, tirets, underscores, points), avatar auto-save ne revalide plus le displayName existant. Fichiers : `schemas.ts`, `profile.tsx`.
-
-### 2026-04-24
-- [x] **[R2-A3]** Sidebar navigation — menu latéral gauche permanent façon "Dashboard jeu vidéo", feature flag `USE_NEW_SIDEBAR`, modal MDC crédits + feedback Firestore. Fichiers : `Sidebar.tsx`, `MdcFeedbackModal.tsx`, `navigation.config.ts`, `_layout.tsx`, `firestore.rules`, `home.tsx`.
-
-### 2026-04-23
-- [x] **[B-LEAGUE-THRESHOLDS]** Grade Ligue des Cochons incohérent entre accueil, Infos et Ma Ligue — `LEAGUE_THRESHOLDS` avait les valeurs décalées (APPRENTI_2 à 10 au lieu de 20, etc.) ; grade recalculé à la volée via `getLeagueGrade()` dans `LeagueInfoModal` au lieu de lire `eco.leagueGrade` périmé (`economy.constants.ts` mobile + functions, `LeagueInfoModal.tsx`).
-- [x] **[R2-M5]** Classement par cochon par niveau cochon — onglet "Classement" dans le modal Ligue des Cochons (3 familles : Apprentis / Maîtres / Élite).
-
-### 2026-04-22
-- [x] **[R2-M7]** Pub au lancement Phase 1 — popup admin-managed (moteur, UI mobile, dashboard admin Next.js) + règles Firestore `ads/{adId}`.
-- [x] **[R2-M3]** + **[R2-M6]** + **Refonte paliers** : 8 paliers Ligue des Cochons (`APPRENTI_1/2/3`, `MAITRE_1/2/3`, `ROI`, `LEGENDE`), cadre en jeu par couleur de grade, labels longs ("Apprenti 1", "Maître Saucissier 2", "Roi du Boudin", "Légende du Grouin") dans toute l'UI.
-- [x] **[R2-A2]** Design dominos — couleurs par défaut + modification depuis admin (color pickers, preview dans modal StoreItem, persistance `skinConfig`).
-
-### 2026-04-21 (retour client #2)
-- [x] **[R2-B6]** Plein écran Android — `AppState` listener + `overlay-swipe` pour ré-appliquer l'immersive mode au retour en foreground (`_layout.tsx`).
-- [x] **[R2-A5]** Plateau de jeu — `GameOptionsMenu` centré (tabs Jeu/Infos + quitter Solo) remplace les 4–5 icônes du header ; `GameHeader` réduit à 2 badges + ⚙️ (`GameHeader.tsx`, `GameOptionsMenu.tsx`, `GameScreen.tsx`).
-- [x] **[R2-A6]** Popup fin de match refonte — groupe résultats + Mes gains + animation confetti / Historique via icône.
-- [x] **[R2-A4]** Stats Ligue Cochons regroupées dans le (i) de l'accueil (onglets Infos / Ma Ligue dans `LeagueInfoModal`).
-- [x] **[R2-B5]** Contour blanc dominos — remplacement du fond SVG `<Rect rx=8>` par `expo-linear-gradient` natif (`DominoTile.tsx`).
-- [x] **[R2-B4]** Icône couper son — `toggleMute` + pause forcée BGM + `isSfxEnabled` propagé à fade/duck/watchdog (`SoundManager.ts`).
-- [x] **[R2-B3]** Popup égalité qui dépassait l'écran — maxHeight + ScrollView + layout compact (`RoundResultCard.tsx`).
-- [x] **[R2-B7]** Popup résultats fin de match caché par le popup du dernier round qui s'affiche en retard.
-- [x] **[R2-B2]** Égalité : force le plus grand double entre les 2 en égalité uniquement.
-- [x] **[R2-B8]** Status "Boudé" persistant : le badge restait affiché après la fin d'une manche.
-- [x] **[R2-B1]** Boudé visible en multi — `boudePlayerId` synchro via Firestore + clignotement avatar + masquage compteur.
-- [x] **[R2-M1]** Délai 2s après Boudé avant passage au joueur suivant.
-- [x] **[R2-M2]** Mode Score : valeur par défaut à 10 (2e signalement).
-
----
-
-## 📅 Avril 2026 — retour client #1 (14/04/2026)
-
-- [x] **Ligue des Cochons** — 4 paliers, cadres avatar, backend + UI + leaderboard + tests *(remplacé ensuite par 8 paliers le 22/04/2026)*.
-- [x] **[B1]** Dominos jouables non mis en avant au 1er tour (`PlayerHand.tsx`).
-- [x] **[B2]** Dominos qui se bousculent lors du tour du joueur (`PlayerHand.tsx`).
-- [x] **[B3]** Mode Cochon : inversion logique d'attribution (`ScoringEngine`).
-- [x] **[B4]** Mode Score : valeur par défaut 100 → 10 (`solo.tsx`).
-- [x] **[A1]** Badge "Boudé" flottant.
-- [x] **[A2]** Vibration de tour + toggle en-tête in-game.
-- [x] **[A3]** Dominos non jouables : suppression du grisage.
-- [x] **[A4]** Objectif de partie visible en multijoueur (badge header).
-- [x] **[A9]** Renommage bot "Béké" → "Chabine".
-- [x] **[A15]** Taille des dominos réduite (42px → 38px).
-- [x] **[M4]** Onglet DONATION dans l'overlay d'aide.
-
----
-
-## 📅 Antérieur (blocs 1-9 terminés entre janvier et avril 2026)
-
-- [x] Code table court (6 caractères).
-- [x] Lien d'invitation WhatsApp Deep-Link (protocole custom `domino-martinique://`).
-- [x] Suppression définitive du mode invité.
-- [x] Refonte UX Mobile Solo & Lobby (flow 2 étapes).
-- [x] Bloc 1 — Urgence Sécurité (Firestore rules, validation serveur, rotation clés).
-- [x] Bloc 2 — Stabilité logique (tests, timer, anti-boucle, scoring).
-- [x] Bloc 3 — Qualité & Sécurité (LogService, Zod, debounce, 127 tests).
-- [x] Bloc 4 — Architecture (React Native Expo, Firebase, modélisation données).
-- [x] Bloc 5 — Moteur de jeu martiniquais complet (Boudé, Chiré, Cochon).
-- [x] Bloc 6 — UX/UI & Design System (table 3 joueurs, dominos, animations).
-- [x] Bloc 7 — Moteur de jeu final (modes Cochon/Manche, IA 3 niveaux, timer).
-- [x] Bloc 8 — Immersion & Métagame UI (audio, chat, boutique, overlay). *Animations domino reportées.*
-- [x] Bloc 9 — Ligue des Cochons (initialement 4 paliers, refondue en 8 le 22/04/2026).
 ### 2026-05-04
-- [x] **[R4-B1]** Ligue des Cochons — source de vérité mensuelle unifiée entre l'accueil, `Ma Ligue` et `/ligue-cochons`
-  - Progression ligue recalculée depuis les cochons du mois au lieu du total historique
-  - Helper partagé pour grade, seuil précédent/suivant et pourcentage de progression
-  - Marqueurs de jauge trompeurs supprimés de l'écran `/ligue-cochons`
-  - Écran Ligue simplifié : suppression de la logique d'équipement de cadres persistants, paliers centrés sur la progression mensuelle et les bonus coins
-  - Calcul de fin de match aligné sur la progression mensuelle pour les passages de grade
-- [x] **[R4-UX1]** Navigation Ligue — `/ligue-cochons` devient l'écran maître de la Ligue des Cochons
-  - L'écran Ligue intègre maintenant les 3 tabs `Ma Ligue`, `Classement` et `Infos`
-  - Le bouton `(i)` du widget accueil redirige désormais vers `/ligue-cochons`
-  - `LeagueInfoModal` a été supprimé pour éliminer la redondance entre modal et page dédiée
-  - La navigation Ligue est maintenant centralisée sur un seul point d'entrée cohérent
-- [x] **[R4-UX2]** Mes Stats — séparation nette entre vue mensuelle et cumulée
-  - Le menu `Stats` est renommé en `Mes Stats`
-  - L'écran `/stats` ouvre désormais par défaut sur `Ce mois-ci`
-  - Une seconde vue `Cumulé` permet de relire la progression globale sans confusion avec `Rank` ou `Ligue`
-  - L'historique des matchs est conservé dans le même écran via le bouton dédié
+
+- [x] **[R4-B1]** Source de verite mensuelle unifiee pour la Ligue des Cochons
+- [x] **[R4-UX1]** `/ligue-cochons` devient l'ecran maitre de la ligue
+- [x] **[R4-UX2]** Separation nette entre stats mensuelles et cumulees
+
+## Avril 2026
+
+L'historique detaille d'avril reste archive dans `history.md` et dans les versions precedentes de ce fichier.

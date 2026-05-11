@@ -12,9 +12,9 @@ type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 's
 type AudioAssignments = Record<MusicContext, string | null>;
 
 const MUSIC_CONTEXT_FALLBACK: Record<MusicContext, AudioSource> = {
-    mainMenu: require('@/assets/sounds/bgm3.mp3'),
-    gameNormal: require('@/assets/sounds/bgm3.mp3'),
-    gameIntense: require('@/assets/sounds/bgm3.mp3'),
+    mainMenu: require('@/assets/sounds/bgm.mp3'),
+    gameNormal: require('@/assets/sounds/bgm.mp3'),
+    gameIntense: require('@/assets/sounds/bgm.mp3'),
 };
 
 function normalizeMusicContext(value: string): MusicContext | null {
@@ -136,7 +136,7 @@ class SoundManager {
                 win: require('@/assets/sounds/win.mp3'),
                 lose: require('@/assets/sounds/lose.mp3'),
                 shuffle: require('@/assets/sounds/distribute.mp3'),
-                // TOUTES les musiques utilisent bgm3.mp3 par défaut localement (Généralisation)
+                // TOUTES les musiques utilisent bgm.mp3 par défaut localement (Généralisation)
                 mainMenu: remoteBGMs.mainMenu || MUSIC_CONTEXT_FALLBACK.mainMenu,
                 gameNormal: remoteBGMs.gameNormal || MUSIC_CONTEXT_FALLBACK.gameNormal,
                 gameIntense: remoteBGMs.gameIntense || MUSIC_CONTEXT_FALLBACK.gameIntense,

@@ -155,18 +155,20 @@ export const finalizeRound = (
                     ...p,
                     mancheWins: p.mancheWins + 1,
                     totalPoints: (p.totalPoints || 0) + bonus,
-                    // ✅ B3 FIX: Le vainqueur cumule les cochons donnés (1 ou 2 selon les perdants à 0)
+                    // Source de vérité métier : les cochons visibles/gagnants sont les cochons infligés.
+                    // `totalCochons` reste un alias legacy aligné sur ce compteur pour éviter de casser
+                    // d'anciens écrans qui ne seraient pas encore migrés.
                     totalCochonsInfliges: (p.totalCochonsInfliges || 0) + cochonCount,
-                    totalCochons: (p.totalCochons || 0) + cochonCount // On garde l'ancien champ par sécurité
+                    totalCochons: (p.totalCochons || 0) + cochonCount
                 };
             } else if (p.currentMancheStars === 0) {
                 historyPointsForManche = -1;
                 updatedPlayer = {
                     ...p,
                     isCochon: true,
-                    totalPoints: (p.totalPoints || 0) - 1, // Receives -1 for being cochon
-                    totalCochons: (p.totalCochons || 0) + 1,
-                    totalCochonsSubis: (p.totalCochonsSubis || 0) + 1 // ✅ B3 FIX: Le perdant reçoit le cochon
+                    totalPoints: (p.totalPoints || 0) - 1,
+                    // Le perdant ne gagne pas de cochon : il subit seulement le malus.
+                    totalCochonsSubis: (p.totalCochonsSubis || 0) + 1
                 };
             } else {
                 historyPointsForManche = p.currentMancheStars;
@@ -224,7 +226,7 @@ export const finalizeRound = (
                 }
             }
         } else if (newState.gameMode === 'COCHON') {
-            const maxCochons = Math.max(...newState.players.map(p => p.totalCochons));
+            const maxCochons = Math.max(...newState.players.map(p => p.totalCochonsInfliges || 0));
             if (maxCochons >= newState.winningCondition) {
                 isMatchOver = true;
             }

@@ -74,9 +74,9 @@ describe('Multiplayer Cochon Synchronization Integration', () => {
     const createInitialCochonState = (): GameState => {
         return createBaseGameState({
             players: [
-                { id: 'A', name: 'Player A', hand: [], handSize: 0, currentMancheStars: 2, totalPoints: 10, totalCochons: 0, wins: 2, mancheWins: 0, totalRoundWins: 0, isCochon: false, status: 'HUMAN' } as Player,
-                { id: 'B', name: 'Player B', hand: [{ id: 'd1', sum: 5 } as any], handSize: 1, currentMancheStars: 0, totalPoints: 5, totalCochons: 1, wins: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, status: 'HUMAN' } as Player,
-                { id: 'C', name: 'Player C', hand: [{ id: 'd2', sum: 10 } as any], handSize: 1, currentMancheStars: 0, totalPoints: 3, totalCochons: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, status: 'HUMAN' } as Player
+                { id: 'A', name: 'Player A', hand: [], handSize: 0, currentMancheStars: 2, totalPoints: 10, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, wins: 2, mancheWins: 0, totalRoundWins: 0, isCochon: false, status: 'HUMAN' } as Player,
+                { id: 'B', name: 'Player B', hand: [{ id: 'd1', sum: 5 } as any], handSize: 1, currentMancheStars: 0, totalPoints: 5, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, status: 'HUMAN' } as Player,
+                { id: 'C', name: 'Player C', hand: [{ id: 'd2', sum: 10 } as any], handSize: 1, currentMancheStars: 0, totalPoints: 3, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, isCochon: false, status: 'HUMAN' } as Player
             ],
             gameMode: 'COCHON',
             phase: 'PLAYING',
@@ -129,10 +129,13 @@ describe('Multiplayer Cochon Synchronization Integration', () => {
         expect(latestHistory.points['B']).toBe(-1);
         expect(latestHistory.points['C']).toBe(-1);
 
-        // Case with totalCochons
-        expect(playerA?.totalCochons).toBe(0); 
-        expect(playerB?.totalCochons).toBe(2); 
-        expect(playerC?.totalCochons).toBe(1); 
+        // Seul le vainqueur cumule les cochons infligés ; les perdants subissent seulement le malus.
+        expect(playerA?.totalCochonsInfliges).toBe(2);
+        expect(playerA?.totalCochons).toBe(2);
+        expect(playerB?.totalCochons).toBe(0);
+        expect(playerC?.totalCochons).toBe(0);
+        expect(playerB?.totalCochonsSubis).toBe(1);
+        expect(playerC?.totalCochonsSubis).toBe(1);
 
         // 2. Propagation to DB
         await db.runTransaction(() => newStateAfterWin);
