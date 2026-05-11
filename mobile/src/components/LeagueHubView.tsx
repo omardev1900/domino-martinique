@@ -19,6 +19,7 @@ import { getAvatarImage } from '../core/avatars';
 import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../core/leagueProgress';
 
 type TabType = 'MA_LIGUE' | 'CLASSEMENT_MOIS' | 'CLASSEMENT_GLOBAL';
+export type LeagueHubTabType = TabType;
 type ClassementCategory = 'PLUS_COCHONS' | 'MOINS_COCHONS' | 'PLUS_POINTS';
 type ClassementMode = 'TOTAL' | 'PERF';
 
@@ -41,9 +42,19 @@ const tierTheme = (grade: LeagueGrade) => {
     return { tint: '#FF5252', bg: 'rgba(255,82,82,0.05)', border: 'rgba(255,82,82,0.28)' };
 };
 
-export const LeagueHubView: React.FC = () => {
+interface LeagueHubViewProps {
+    activeTab?: TabType;
+    onActiveTabChange?: (tab: TabType) => void;
+    hidePrimaryTabs?: boolean;
+}
+
+export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
+    activeTab: controlledActiveTab,
+    onActiveTabChange,
+    hidePrimaryTabs = false,
+}) => {
     const { width } = useWindowDimensions();
-    const [activeTab, setActiveTab] = useState<TabType>('MA_LIGUE');
+    const [internalActiveTab, setInternalActiveTab] = useState<TabType>('MA_LIGUE');
     const [leaguePoints, setLeaguePoints] = useState(0);
     const [classementCategory, setClassementCategory] = useState<ClassementCategory>('PLUS_COCHONS');
     const [classementMode, setClassementMode] = useState<ClassementMode>('TOTAL');
@@ -52,6 +63,15 @@ export const LeagueHubView: React.FC = () => {
     const [classementLoading, setClassementLoading] = useState(false);
     const [currentUid, setCurrentUid] = useState<string | null>(null);
     const classementUnsubRef = useRef<(() => void) | null>(null);
+    const activeTab = controlledActiveTab ?? internalActiveTab;
+
+    const handleTabChange = (tab: TabType) => {
+        if (onActiveTabChange) {
+            onActiveTabChange(tab);
+            return;
+        }
+        setInternalActiveTab(tab);
+    };
 
     useEffect(() => {
         statsService.getStats().then((stats) => {
@@ -286,15 +306,6 @@ export const LeagueHubView: React.FC = () => {
 
         return (
             <View style={{ flex: 1 }}>
-                <View style={styles.scopeHeader}>
-                    <Text style={styles.scopeHeaderTitle}>
-                        {isMonthlyScope ? 'Classement du mois' : 'Classement global'}
-                    </Text>
-                    <Text style={styles.scopeHeaderSub}>
-                        {isMonthlyScope ? 'Basé sur les performances du mois en cours' : 'Basé sur les performances cumulées'}
-                    </Text>
-                </View>
-
                 <View style={styles.clsControlsRow}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clsMetricTabs} contentContainerStyle={styles.famRow}>
                         {(Object.keys(CATEGORY_CONFIG) as ClassementCategory[]).map((cat) => {
@@ -414,7 +425,8 @@ export const LeagueHubView: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.tabs}>
+            {!hidePrimaryTabs ? (
+                <View style={styles.tabs}>
                 {([
                     { id: 'MA_LIGUE', label: '🐷 Ma Ligue' },
                     { id: 'CLASSEMENT_MOIS', label: '🏅 Classement du mois' },
@@ -423,14 +435,15 @@ export const LeagueHubView: React.FC = () => {
                     <TouchableOpacity
                         key={tab.id}
                         style={[styles.tabBtn, activeTab === tab.id && styles.tabBtnActive]}
-                        onPress={() => setActiveTab(tab.id)}
+                        onPress={() => handleTabChange(tab.id)}
                     >
                         <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
                             {tab.label}
                         </Text>
                     </TouchableOpacity>
                 ))}
-            </View>
+                </View>
+            ) : null}
             <View style={styles.body}>
                 {activeTab === 'MA_LIGUE' ? renderMaLigue() : null}
                 {activeTab === 'CLASSEMENT_MOIS' ? renderClassement('MONTHLY') : null}
@@ -445,8 +458,8 @@ const styles = StyleSheet.create({
     tabs: {
         flexDirection: 'row',
         gap: 10,
-        marginBottom: 14,
-        marginTop: 4,
+        marginBottom: 10,
+        marginTop: 0,
     },
     tabBtn: {
         flex: 1,
@@ -626,14 +639,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     rewardBadgeText: { fontWeight: '900', fontSize: 12 },
-    scopeHeader: {
-        marginBottom: 12,
-        paddingBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.06)',
-    },
-    scopeHeaderTitle: { color: '#FFD700', fontSize: 16, fontWeight: '900' },
-    scopeHeaderSub: { color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 4 },
     clsControlsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
     clsMetricTabs: { flex: 1, marginRight: 8 },
     famRow: { flexDirection: 'row', gap: 8 },
@@ -688,44 +693,45 @@ const styles = StyleSheet.create({
     clsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        padding: 12,
-        borderRadius: 14,
+        gap: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.06)',
         backgroundColor: 'rgba(255,255,255,0.03)',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     clsRankCircle: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         borderWidth: 1.4,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    clsRankText: { fontSize: 13, fontWeight: '900' },
+    clsRankText: { fontSize: 12, fontWeight: '900' },
     clsAvatarWrap: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 38,
+        height: 38,
+        borderRadius: 19,
         overflow: 'hidden',
         backgroundColor: 'rgba(255,255,255,0.08)',
     },
     clsAvatar: { width: '100%', height: '100%' },
-    clsName: { color: '#FFF', fontSize: 13, fontWeight: '800' },
-    clsGrade: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 },
-    clsScore: { alignItems: 'flex-end', marginLeft: 8, minWidth: 86 },
-    clsScoreNum: { fontSize: 18, fontWeight: '900' },
+    clsName: { color: '#FFF', fontSize: 12, fontWeight: '800' },
+    clsGrade: { color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 1 },
+    clsScore: { alignItems: 'flex-end', marginLeft: 6, minWidth: 74 },
+    clsScoreNum: { fontSize: 16, fontWeight: '900' },
     clsScoreLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 10, marginTop: -1 },
-    clsMeta: { color: 'rgba(255,255,255,0.28)', fontSize: 10, marginTop: 4, textAlign: 'right' },
+    clsMeta: { color: 'rgba(255,255,255,0.28)', fontSize: 9, marginTop: 2, textAlign: 'right' },
     unqualifiedBadge: {
         alignSelf: 'flex-start',
-        marginTop: 6,
+        marginTop: 4,
         borderRadius: 10,
         backgroundColor: 'rgba(255,255,255,0.08)',
         paddingHorizontal: 7,
-        paddingVertical: 3,
+        paddingVertical: 2,
     },
     unqualifiedBadgeText: { color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '800' },
 });

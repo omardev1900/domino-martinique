@@ -9,6 +9,22 @@
 
 ## Mai 2026
 
+### 2026-05-11 - Fix gameplay Cochon + tie-break Boudé en multijoueur
+
+- [x] **[COCHON-SCORE-FIX]** Correction de l'imputation des cochons
+  - Le compteur `🐷` visible en mode Cochon correspond maintenant uniquement aux cochons infliges par le vainqueur
+  - Les joueurs a `0 etoile` ne gagnent plus de `🐷` par erreur : ils recoivent seulement le malus `-1 point`
+  - La condition de fin de match en mode Cochon s'appuie desormais sur `totalCochonsInfliges`
+  - Les ecrans de jeu, modals de fin, resultats et recompenses lisent tous la meme source de verite
+  - Tests solo, multi local et tests automatises valides
+
+- [x] **[BOUDE-TIEBREAK-FIX]** Correction de la redonne apres egalite sur partie bloquee
+  - Apres une egalite a 2 joueurs, seul un joueur ex aequo peut demarrer la redonne
+  - Le starter est choisi via le plus grand double parmi les joueurs a egalite uniquement
+  - Le 3e joueur non ex aequo est exclu du tie-break de redemarrage
+  - Ajout d'un garde-fou UI pour fermer le modal de fin de round si le client a deja recu la phase suivante
+  - Tests moteur et test d'integration ajoutes sur la sequence `BOUDE -> redonne -> premier coup force`
+
 ### 2026-05-08 - Bots adaptatifs + IA METKAYALI niveau 4
 
 - [x] **[BOT-ADAPTIVE]** Bots adaptatifs + IA METKAYALI
