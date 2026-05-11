@@ -10,19 +10,16 @@ const GAME_BGM_THEME_KEY = '@domino_settings_game_bgm_theme';
 const BGM_VOLUME_KEY = '@domino_settings_bgm_volume';
 const SFX_VOLUME_KEY = '@domino_settings_sfx_volume';
 
-export type BgmTheme = 'mainMenu' | 'gameNormal' | 'gameIntense' | 'none';
+export type BgmTheme = 'inGame' | 'none';
 
 function isLegacyBgmTheme(value: string | null): value is 'bgm1' | 'bgm2' | 'bgm3' {
     return value === 'bgm1' || value === 'bgm2' || value === 'bgm3';
 }
 
 function normalizeBgmTheme(value: string | null): BgmTheme | null {
-    if (value === 'bgm1') return 'gameNormal';
-    if (value === 'bgm2') return 'gameIntense';
-    if (value === 'bgm3') return 'mainMenu';
-    if (value === 'mainMenu' || value === 'gameNormal' || value === 'gameIntense' || value === 'none') {
-        return value;
-    }
+    if (value === 'bgm1' || value === 'bgm2' || value === 'bgm3') return 'inGame';
+    if (value === 'mainMenu' || value === 'gameNormal' || value === 'gameIntense' || value === 'inGame') return 'inGame';
+    if (value === 'none') return 'none';
     return null;
 }
 
@@ -33,7 +30,7 @@ class SettingsManager {
     private isSfxEnabled: boolean = true;
     private isVibrationEnabled: boolean = true;
     private tableTheme: TableTheme = 'classic';
-    private gameBgmTheme: BgmTheme = 'gameNormal';
+    private gameBgmTheme: BgmTheme = 'inGame';
     private bgmVolume: number = 0.25;
     private sfxVolume: number = 1.0;
 

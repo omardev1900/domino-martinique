@@ -276,7 +276,7 @@ jest.mock('../../core/SettingsManager', () => ({
             isBgmEnabled: true,
             isSfxEnabled: true,
             isVibrationEnabled: true,
-            gameBgmTheme: 'mainMenu',
+            gameBgmTheme: 'inGame',
         })),
         setVibrationEnabled: jest.fn().mockResolvedValue(undefined),
     },

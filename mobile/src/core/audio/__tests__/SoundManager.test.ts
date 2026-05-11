@@ -35,7 +35,7 @@ jest.mock('../../SettingsManager', () => ({
             isSfxEnabled: true,
             sfxVolume: 1,
             bgmVolume: 1,
-            gameBgmTheme: 'gameNormal',
+            gameBgmTheme: 'inGame',
         })),
         setAudioEnabled: jest.fn().mockResolvedValue(undefined),
         setBgmEnabled: jest.fn().mockResolvedValue(undefined),
@@ -89,8 +89,8 @@ describe('SoundManager priority policy', () => {
 
     test('can mute BGM without muting SFX', async () => {
         const SettingsManager = require('../../SettingsManager').default;
-        await SoundManager.playMusic('gameNormal');
-        expect(SoundManager.sounds.gameNormal.play).toHaveBeenCalled();
+        await SoundManager.playMusic('inGame');
+        expect(SoundManager.sounds.inGame.play).toHaveBeenCalled();
 
         SettingsManager.getSettings.mockReturnValue({
             isAudioEnabled: true,
@@ -98,18 +98,18 @@ describe('SoundManager priority policy', () => {
             isSfxEnabled: true,
             sfxVolume: 1,
             bgmVolume: 1,
-            gameBgmTheme: 'gameNormal',
+            gameBgmTheme: 'inGame',
         });
 
         await SoundManager.setBgmEnabled(false);
-        expect(SoundManager.sounds.gameNormal.pause).toHaveBeenCalled();
+        expect(SoundManager.sounds.inGame.pause).toHaveBeenCalled();
 
         await SoundManager.playSound('clack1');
         expect(SoundManager.sounds.clack1.play).toHaveBeenCalled();
     });
 
     test('tolerates web players whose play() returns void', async () => {
-        SoundManager.sounds.mainMenu.play = jest.fn(() => undefined);
-        await expect(SoundManager.playMusic('mainMenu')).resolves.toBeUndefined();
+        SoundManager.sounds.appActive.play = jest.fn(() => undefined);
+        await expect(SoundManager.playMusic('appActive')).resolves.toBeUndefined();
     });
 });

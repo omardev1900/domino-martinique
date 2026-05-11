@@ -165,11 +165,18 @@ export default Sentry.wrap(function RootLayout() {
       if (settings.gameBgmTheme === 'none') {
         SoundManager.stopMusic();
       } else {
-        SoundManager.playMusic(settings.gameBgmTheme, 0.5);
+        SoundManager.playMusic('inGame', 0.5);
       }
-    } else {
-        SoundManager.playMusic('mainMenu', 0.5);
+      return;
     }
+
+    const shouldStaySilent = pathname === '/' || pathname === '/login';
+    if (shouldStaySilent) {
+      SoundManager.stopMusic();
+      return;
+    }
+
+    SoundManager.playMusic('appActive', 0.5);
   }, [pathname, appReady]);
 
   useEffect(() => {

@@ -5,8 +5,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import SettingsManager, { BgmTheme } from '../SettingsManager';
 import { LogService } from '../services/LogService';
 
-type MusicContext = Exclude<BgmTheme, 'none'>;
-type LegacyMusicContext = 'bgm1' | 'bgm2' | 'bgm3';
+type MusicContext = 'appActive' | 'inGame';
+type LegacyMusicContext = 'bgm1' | 'bgm2' | 'bgm3' | 'mainMenu' | 'gameNormal' | 'gameIntense';
 type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | MusicContext | 'end' | 'toktok' | 'startGame' | 'timer' | 'end_time' | 'leagueJingle' | 'roundEnd' | 'mancheEnd' | 'matchEnd';
 type SoundCategory = 'ui' | 'gameplay' | 'stinger_major';
 
@@ -23,9 +23,8 @@ type SoundPolicy = {
 };
 
 const MUSIC_CONTEXT_FALLBACK: Record<MusicContext, AudioSource> = {
-    mainMenu: require('@/assets/sounds/bgm.mp3'),
-    gameNormal: require('@/assets/sounds/bgm.mp3'),
-    gameIntense: require('@/assets/sounds/bgm.mp3'),
+    appActive: require('@/assets/sounds/bgm.mp3'),
+    inGame: require('@/assets/sounds/bgm.mp3'),
 };
 
 const SOUND_POLICIES: Partial<Record<SoundName, SoundPolicy>> = {
@@ -72,17 +71,15 @@ const SOUND_MIX_GAINS: Partial<Record<SoundName, number>> = {
 };
 
 function normalizeMusicContext(value: string): MusicContext | null {
-    if (value === 'bgm1' || value === 'gameNormal') return 'gameNormal';
-    if (value === 'bgm2' || value === 'gameIntense') return 'gameIntense';
-    if (value === 'bgm3' || value === 'mainMenu') return 'mainMenu';
+    if (value === 'bgm1' || value === 'bgm2' || value === 'gameNormal' || value === 'gameIntense' || value === 'inGame') return 'inGame';
+    if (value === 'bgm3' || value === 'mainMenu' || value === 'appActive') return 'appActive';
     return null;
 }
 
 function normalizeAssignments(assignments: Record<string, string | null | undefined> | undefined): AudioAssignments {
     return {
-        mainMenu: assignments?.mainMenu ?? assignments?.bgm3 ?? null,
-        gameNormal: assignments?.gameNormal ?? assignments?.bgm1 ?? null,
-        gameIntense: assignments?.gameIntense ?? assignments?.bgm2 ?? null,
+        appActive: assignments?.appActive ?? assignments?.mainMenu ?? assignments?.bgm3 ?? null,
+        inGame: assignments?.inGame ?? assignments?.gameIntense ?? assignments?.gameNormal ?? assignments?.bgm2 ?? assignments?.bgm1 ?? null,
     };
 }
 
@@ -91,8 +88,8 @@ class SoundManager {
     private sounds: Record<SoundName, AudioPlayer | null> = {
         clack1: null, clack2: null, clack3: null,
         notify: null, win: null, lose: null,
-        shuffle: null, mainMenu: null, gameNormal: null,
-        gameIntense: null, end: null, toktok: null,
+        shuffle: null, appActive: null, inGame: null,
+        end: null, toktok: null,
         startGame: null, timer: null, end_time: null, leagueJingle: null, roundEnd: null, mancheEnd: null, matchEnd: null,
     };
 
@@ -214,9 +211,8 @@ class SoundManager {
                 lose: require('@/assets/sounds/lose.mp3'),
                 shuffle: require('@/assets/sounds/distribute.mp3'),
                 // TOUTES les musiques utilisent bgm.mp3 par défaut localement (Généralisation)
-                mainMenu: remoteBGMs.mainMenu || MUSIC_CONTEXT_FALLBACK.mainMenu,
-                gameNormal: remoteBGMs.gameNormal || MUSIC_CONTEXT_FALLBACK.gameNormal,
-                gameIntense: remoteBGMs.gameIntense || MUSIC_CONTEXT_FALLBACK.gameIntense,
+                appActive: remoteBGMs.appActive || MUSIC_CONTEXT_FALLBACK.appActive,
+                inGame: remoteBGMs.inGame || MUSIC_CONTEXT_FALLBACK.inGame,
                 end: require('@/assets/sounds/end.mp3'),
                 toktok: require('@/assets/sounds/toktok.mp3'),
                 startGame: require('@/assets/sounds/start-game.mp3'),
