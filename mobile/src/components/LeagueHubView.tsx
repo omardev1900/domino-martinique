@@ -306,61 +306,6 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
 
         return (
             <View style={{ flex: 1 }}>
-                <View style={styles.clsControlsRow}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clsMetricTabs} contentContainerStyle={styles.famRow}>
-                        {(Object.keys(CATEGORY_CONFIG) as ClassementCategory[]).map((cat) => {
-                            const catCfg = CATEGORY_CONFIG[cat];
-                            const active = cat === classementCategory;
-                            return (
-                                <TouchableOpacity
-                                    key={cat}
-                                    style={[styles.famBtn, active && { borderColor: catCfg.color, backgroundColor: `${catCfg.color}18` }]}
-                                    onPress={() => setClassementCategory(cat)}
-                                >
-                                    <Text style={styles.famBtnText}>{catCfg.icon}</Text>
-                                    <Text style={[styles.famBtnLabel, { color: active ? catCfg.color : 'rgba(255,255,255,0.45)' }]}>
-                                        {catCfg.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
-
-                    <View style={styles.modeSwitch}>
-                        {(['TOTAL', 'PERF'] as ClassementMode[]).map((mode) => {
-                            const active = mode === classementMode;
-                            return (
-                                <TouchableOpacity
-                                    key={mode}
-                                    style={[styles.modeBtn, active && styles.modeBtnActive]}
-                                    onPress={() => {
-                                        setClassementMode(mode);
-                                        if (mode === 'TOTAL') setShowAllPlayers(false);
-                                    }}
-                                >
-                                    <Text style={[styles.modeBtnText, active && styles.modeBtnTextActive]}>
-                                        {mode === 'TOTAL' ? 'Total' : 'Perf'}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-                </View>
-
-                {isPerfMode ? (
-                    <View style={styles.perfInfoRow}>
-                        <TouchableOpacity
-                            style={[styles.showAllBtn, showAllPlayers && styles.showAllBtnActive]}
-                            onPress={() => setShowAllPlayers((prev) => !prev)}
-                        >
-                            <Text style={[styles.showAllBtnText, showAllPlayers && styles.showAllBtnTextActive]}>
-                                Afficher tous
-                            </Text>
-                        </TouchableOpacity>
-                        <Text style={styles.perfHint}>Par défaut : minimum 10 matchs</Text>
-                    </View>
-                ) : null}
-
                 {classementLoading ? (
                     <View style={styles.clsCenter}>
                         <ActivityIndicator color="#FFD700" size="large" />
@@ -373,51 +318,111 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
                         </Text>
                     </View>
                 ) : (
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-                        {sorted.map((entry, index) => {
-                            const isMe = entry.uid === currentUid;
-                            const localRank = index + 1;
-                            const rc = rankColor(localRank);
-                            const avatarSrc = getAvatarImage(entry.avatarId || 'avatar_default');
-                            const isQualified = qualifiesForPerf(entry);
-                            const grade = isMonthlyScope ? (getLeagueGrade(entry.cochonsGivenThisMonth) ?? null) : null;
-
-                            return (
-                                <Animated.View
-                                    key={entry.uid}
-                                    entering={FadeInUp.delay(index * 35).duration(300)}
-                                    style={[styles.clsRow, isMe && { borderColor: cfg.color, backgroundColor: `${cfg.color}10` }]}
-                                >
-                                    <View style={[styles.clsRankCircle, { borderColor: rc }]}>
-                                        <Text style={[styles.clsRankText, { color: rc }]}>{localRank}</Text>
-                                    </View>
-                                    <View style={styles.clsAvatarWrap}>
-                                        <Image source={avatarSrc} style={styles.clsAvatar} contentFit="cover" cachePolicy="memory-disk" />
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={[styles.clsName, isMe && { color: cfg.color }]} numberOfLines={1}>
-                                            {isMe ? `${entry.displayName} (Vous)` : entry.displayName}
-                                        </Text>
-                                        {grade ? (
-                                            <Text style={styles.clsGrade}>
-                                                {LEAGUE_ICONS[grade]} {LEAGUE_LABELS[grade]}
+                    <View style={styles.classementLayout}>
+                        <View style={styles.classementSidebar}>
+                            {(Object.keys(CATEGORY_CONFIG) as ClassementCategory[]).map((cat) => {
+                                const catCfg = CATEGORY_CONFIG[cat];
+                                const active = cat === classementCategory;
+                                return (
+                                    <View key={cat} style={styles.sidebarBlock}>
+                                        <TouchableOpacity
+                                            style={[styles.sidebarCategoryBtn, active && { borderColor: catCfg.color, backgroundColor: `${catCfg.color}18` }]}
+                                            onPress={() => setClassementCategory(cat)}
+                                        >
+                                            <Text style={styles.sidebarCategoryIcon}>{catCfg.icon}</Text>
+                                            <Text style={[styles.sidebarCategoryText, { color: active ? catCfg.color : 'rgba(255,255,255,0.52)' }]}>
+                                                {catCfg.label}
                                             </Text>
-                                        ) : null}
-                                        {isPerfMode && !isQualified ? (
-                                            <View style={styles.unqualifiedBadge}>
-                                                <Text style={styles.unqualifiedBadgeText}>-10 matchs</Text>
-                                            </View>
+                                        </TouchableOpacity>
+
+                                        {active ? (
+                                            <>
+                                                <View style={styles.sidebarModeSwitch}>
+                                                    {(['TOTAL', 'PERF'] as ClassementMode[]).map((mode) => {
+                                                        const modeActive = mode === classementMode;
+                                                        return (
+                                                            <TouchableOpacity
+                                                                key={mode}
+                                                                style={[styles.sidebarModeBtn, modeActive && styles.sidebarModeBtnActive]}
+                                                                onPress={() => {
+                                                                    setClassementMode(mode);
+                                                                    if (mode === 'TOTAL') setShowAllPlayers(false);
+                                                                }}
+                                                            >
+                                                                <Text style={[styles.sidebarModeBtnText, modeActive && styles.sidebarModeBtnTextActive]}>
+                                                                    {mode === 'TOTAL' ? 'Total' : 'Perf'}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        );
+                                                    })}
+                                                </View>
+
+                                                {isPerfMode ? (
+                                                    <>
+                                                        <TouchableOpacity
+                                                            style={[styles.sidebarShowAllBtn, showAllPlayers && styles.sidebarShowAllBtnActive]}
+                                                            onPress={() => setShowAllPlayers((prev) => !prev)}
+                                                        >
+                                                            <Text style={[styles.sidebarShowAllText, showAllPlayers && styles.sidebarShowAllTextActive]}>
+                                                                Tous
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                        <Text style={styles.sidebarPerfHint}>10+ matchs</Text>
+                                                    </>
+                                                ) : null}
+                                            </>
                                         ) : null}
                                     </View>
-                                    <View style={styles.clsScore}>
-                                        <Text style={[styles.clsScoreNum, { color: cfg.color }]}>{getEntryScore(entry)}</Text>
-                                        <Text style={styles.clsScoreLabel}>{isPerfMode ? '/ match' : cfg.sublabel}</Text>
-                                        <Text style={styles.clsMeta}>{getEntryMeta(entry)}</Text>
-                                    </View>
-                                </Animated.View>
-                            );
-                        })}
-                    </ScrollView>
+                                );
+                            })}
+                        </View>
+
+                        <ScrollView style={styles.classementList} showsVerticalScrollIndicator={false} contentContainerStyle={styles.classementListContent}>
+                            {sorted.map((entry, index) => {
+                                const isMe = entry.uid === currentUid;
+                                const localRank = index + 1;
+                                const rc = rankColor(localRank);
+                                const avatarSrc = getAvatarImage(entry.avatarId || 'avatar_default');
+                                const isQualified = qualifiesForPerf(entry);
+                                const grade = isMonthlyScope ? (getLeagueGrade(entry.cochonsGivenThisMonth) ?? null) : null;
+
+                                return (
+                                    <Animated.View
+                                        key={entry.uid}
+                                        entering={FadeInUp.delay(index * 35).duration(300)}
+                                        style={[styles.clsRow, isMe && { borderColor: cfg.color, backgroundColor: `${cfg.color}10` }]}
+                                    >
+                                        <View style={[styles.clsRankCircle, { borderColor: rc }]}>
+                                            <Text style={[styles.clsRankText, { color: rc }]}>{localRank}</Text>
+                                        </View>
+                                        <View style={styles.clsAvatarWrap}>
+                                            <Image source={avatarSrc} style={styles.clsAvatar} contentFit="cover" cachePolicy="memory-disk" />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.clsName, isMe && { color: cfg.color }]} numberOfLines={1}>
+                                                {isMe ? `${entry.displayName} (Vous)` : entry.displayName}
+                                            </Text>
+                                            {grade ? (
+                                                <Text style={styles.clsGrade}>
+                                                    {LEAGUE_ICONS[grade]} {LEAGUE_LABELS[grade]}
+                                                </Text>
+                                            ) : null}
+                                            {isPerfMode && !isQualified ? (
+                                                <View style={styles.unqualifiedBadge}>
+                                                    <Text style={styles.unqualifiedBadgeText}>-10 matchs</Text>
+                                                </View>
+                                            ) : null}
+                                        </View>
+                                        <View style={styles.clsScore}>
+                                            <Text style={[styles.clsScoreNum, { color: cfg.color }]}>{getEntryScore(entry)}</Text>
+                                            <Text style={styles.clsScoreLabel}>{isPerfMode ? '/ match' : cfg.sublabel}</Text>
+                                            <Text style={styles.clsMeta}>{getEntryMeta(entry)}</Text>
+                                        </View>
+                                    </Animated.View>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
                 )}
             </View>
         );
@@ -639,54 +644,100 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     rewardBadgeText: { fontWeight: '900', fontSize: 12 },
-    clsControlsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-    clsMetricTabs: { flex: 1, marginRight: 8 },
-    famRow: { flexDirection: 'row', gap: 8 },
-    famBtn: {
+    classementLayout: {
+        flex: 1,
         flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 5,
-        paddingVertical: 9,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        alignItems: 'stretch',
+        gap: 10,
     },
-    famBtnText: { fontSize: 14 },
-    famBtnLabel: { fontSize: 11, fontWeight: '800' },
-    modeSwitch: {
+    classementSidebar: {
+        width: 96,
+        gap: 8,
+    },
+    sidebarBlock: {
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        padding: 6,
+    },
+    sidebarCategoryBtn: {
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        paddingHorizontal: 8,
+        paddingVertical: 8,
+        alignItems: 'flex-start',
+        gap: 3,
+    },
+    sidebarCategoryIcon: {
+        fontSize: 14,
+    },
+    sidebarCategoryText: {
+        fontSize: 11,
+        fontWeight: '800',
+        lineHeight: 13,
+    },
+    sidebarModeSwitch: {
+        marginTop: 6,
         flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 18,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
         overflow: 'hidden',
+        backgroundColor: 'rgba(255,255,255,0.04)',
     },
-    modeBtn: { paddingHorizontal: 12, paddingVertical: 9 },
-    modeBtnActive: { backgroundColor: 'rgba(255,215,0,0.18)' },
-    modeBtnText: { color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: '800' },
-    modeBtnTextActive: { color: '#FFD700' },
-    perfInfoRow: {
-        flexDirection: 'row',
+    sidebarModeBtn: {
+        flex: 1,
+        paddingVertical: 6,
         alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 12,
-        gap: 10,
     },
-    showAllBtn: {
-        borderRadius: 16,
+    sidebarModeBtnActive: {
+        backgroundColor: 'rgba(255,215,0,0.18)',
+    },
+    sidebarModeBtnText: {
+        color: 'rgba(255,255,255,0.45)',
+        fontSize: 10,
+        fontWeight: '800',
+    },
+    sidebarModeBtnTextActive: {
+        color: '#FFD700',
+    },
+    sidebarShowAllBtn: {
+        marginTop: 6,
+        borderRadius: 10,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.12)',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        borderColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        paddingVertical: 5,
+        alignItems: 'center',
     },
-    showAllBtnActive: { borderColor: '#FFD700', backgroundColor: 'rgba(255,215,0,0.14)' },
-    showAllBtnText: { color: 'rgba(255,255,255,0.38)', fontSize: 11, fontWeight: '800' },
-    showAllBtnTextActive: { color: '#FFD700' },
-    perfHint: { flex: 1, textAlign: 'right', color: 'rgba(255,255,255,0.45)', fontSize: 11 },
+    sidebarShowAllBtnActive: {
+        borderColor: '#FFD700',
+        backgroundColor: 'rgba(255,215,0,0.14)',
+    },
+    sidebarShowAllText: {
+        color: 'rgba(255,255,255,0.45)',
+        fontSize: 10,
+        fontWeight: '800',
+    },
+    sidebarShowAllTextActive: {
+        color: '#FFD700',
+    },
+    sidebarPerfHint: {
+        marginTop: 4,
+        color: 'rgba(255,255,255,0.34)',
+        fontSize: 9,
+        textAlign: 'center',
+    },
+    classementList: {
+        flex: 1,
+        minHeight: 0,
+    },
+    classementListContent: {
+        paddingBottom: 20,
+    },
     clsCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 },
     clsLoadText: { color: 'rgba(255,255,255,0.4)', marginTop: 12, fontSize: 13 },
     clsEmpty: { color: 'rgba(255,255,255,0.35)', fontSize: 14, textAlign: 'center', paddingHorizontal: 20 },
