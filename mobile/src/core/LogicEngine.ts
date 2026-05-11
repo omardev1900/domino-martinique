@@ -42,6 +42,25 @@ const findHighestDouble = (players: Player[]): HighestDoubleInfo | null => {
     return best;
 };
 
+const determineBestStarterFromPlayers = (players: Player[]): PlayerId => {
+    const highestDouble = findHighestDouble(players);
+    if (highestDouble) {
+        return highestDouble.playerId;
+    }
+
+    let bestSum: { sum: number; playerId: PlayerId } | null = null;
+    for (const player of players) {
+        for (const domino of player.hand) {
+            const sum = domino.left + domino.right;
+            if (!bestSum || sum > bestSum.sum) {
+                bestSum = { sum, playerId: player.id };
+            }
+        }
+    }
+
+    return bestSum ? bestSum.playerId : players[0].id;
+};
+
 export const getForcedOpeningDominoId = (gameState: GameState, playerId: PlayerId): string | null => {
     if (!isVeryFirstTurnOfMatch(gameState)) return null;
 
@@ -492,22 +511,20 @@ export const resolveBoude = (gameState: GameState): { newState: GameState; isTie
  * determineFirstPlayer : Détermine qui commence (Plus gros double ou plus gros domino)
  */
 export const determineFirstPlayer = (players: Player[]): string => {
-    const highestDouble = findHighestDouble(players);
-    if (highestDouble) {
-        return highestDouble.playerId;
+    return determineBestStarterFromPlayers(players);
+};
+
+export const determineTieBreakStarter = (players: Player[], tiedPlayerIds?: PlayerId[]): PlayerId => {
+    if (!tiedPlayerIds || tiedPlayerIds.length === 0) {
+        return determineFirstPlayer(players);
     }
 
-    let bestSum: { sum: number; playerId: string } | null = null;
-    for (const player of players) {
-        for (const domino of player.hand) {
-            const sum = domino.left + domino.right;
-            if (!bestSum || sum > bestSum.sum) {
-                bestSum = { sum, playerId: player.id };
-            }
-        }
+    const tiedPlayers = players.filter(player => tiedPlayerIds.includes(player.id));
+    if (tiedPlayers.length === 0) {
+        return determineFirstPlayer(players);
     }
 
-    return bestSum ? bestSum.playerId : players[0].id;
+    return determineBestStarterFromPlayers(tiedPlayers);
 };
 
 /**
@@ -574,7 +591,7 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
     );
 
     if (!winnerId) {
-        winnerId = determineFirstPlayer(newPlayers);
+        winnerId = determineTieBreakStarter(newPlayers, activeState.tiedPlayerIds);
     }
 
     return {

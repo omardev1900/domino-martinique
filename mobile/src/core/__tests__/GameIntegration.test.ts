@@ -1,4 +1,4 @@
-import { dealGame, handleTurn, passTurn, checkValidMove, determineFirstPlayer, computeNextRoundState } from '../LogicEngine';
+import { dealGame, handleTurn, passTurn, checkValidMove, determineFirstPlayer, computeNextRoundState, resolveBoude } from '../LogicEngine';
 import { getBotMove } from '../BotEngine';
 import { GameState, PlayerId, GamePhase } from '../types';
 import { WINS_TO_WIN_MATCH, MAX_PLAYERS } from '../constants';
@@ -98,5 +98,63 @@ describe('GameIntegration - Full Game Simulation', () => {
         expect(state.phase).toBe('MATCH_END');
         expect(winner).toBeDefined();
         // Check no pig (isCochon) logic if needed, but basic check passes.
+    });
+
+    it('should resolve a two-player BOUDE tie into a redeal with a forced opening for the correct tied player', () => {
+        const d11 = { id: 'd11', left: 1, right: 1, isDouble: true };
+        const d20 = { id: 'd20', left: 2, right: 0, isDouble: false };
+        const d66 = { id: 'd66', left: 6, right: 6, isDouble: true };
+
+        const boudeState = createBaseGameState({
+            gameId: 'integration-boude-tie-2p',
+            phase: 'BOUDE',
+            gameMode: 'COCHON',
+            roundNumber: 6,
+            mancheNumber: 5,
+            firstPlayerOfRound: null,
+            currentPlayerId: 'p1',
+            table: { sequence: [], leftValue: null, rightValue: null },
+            history: [],
+            players: [
+                { id: 'p1', name: 'P1', hand: [d11 as any], handSize: 1, currentMancheStars: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'HUMAN' },
+                { id: 'p2', name: 'P2', hand: [d20 as any], handSize: 1, currentMancheStars: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'HUMAN' },
+                { id: 'p3', name: 'P3', hand: [d66 as any], handSize: 1, currentMancheStars: 0, wins: 0, mancheWins: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'HUMAN' },
+            ],
+        } as any);
+
+        const { newState, isTie, tiedPlayerIds } = resolveBoude(boudeState);
+        expect(isTie).toBe(true);
+        expect(tiedPlayerIds).toEqual(['p1', 'p2']);
+
+        const redealState = {
+            ...computeNextRoundState({
+            ...newState,
+            phase: 'PARTIE_END',
+            reDealCount: 1,
+            tiedPlayerIds,
+            }),
+            tiedPlayerIds,
+        };
+
+        expect(redealState.phase).toBe('PLAYING');
+        expect(redealState.roundNumber).toBe(7);
+        expect(tiedPlayerIds).toContain(redealState.currentPlayerId);
+
+        const forcedStarterId = redealState.currentPlayerId;
+        const forcedStarter = redealState.players.find(p => p.id === forcedStarterId);
+        const otherTiedId = tiedPlayerIds?.find(id => id !== forcedStarterId)!;
+        const otherTiedPlayer = redealState.players.find(p => p.id === otherTiedId)!;
+
+        forcedStarter!.hand = [
+            { id: 'starter-55', left: 5, right: 5, isDouble: true } as any,
+            { id: 'starter-11', left: 1, right: 1, isDouble: true } as any,
+        ];
+        otherTiedPlayer.hand = [{ id: 'other-33', left: 3, right: 3, isDouble: true } as any];
+
+        expect(() => handleTurn(redealState, forcedStarterId, forcedStarter!.hand[1])).toThrow('Tie-break rule:');
+
+        const afterOpening = handleTurn(redealState, forcedStarterId, forcedStarter!.hand[0]);
+        expect(afterOpening.table.sequence).toHaveLength(1);
+        expect(afterOpening.table.sequence[0].domino.id).toBe('starter-55');
     });
 });

@@ -555,6 +555,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             && gameState.phase !== 'MANCHE_END'
             && gameState.phase !== 'MATCH_END'
         ) {
+            setShowRoundResult(false);
             setRoundResultSnapshot(null);
         }
 

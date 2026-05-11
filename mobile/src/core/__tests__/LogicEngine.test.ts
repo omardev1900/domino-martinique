@@ -1,6 +1,7 @@
 
 import { dealGame, checkValidMove, determineFirstPlayer, determineWinnerOnBoudé, calculateHandPoints, passTurn, handleTurn, getForcedOpeningDominoId, getForcedTieBreakDominoId } from '../LogicEngine';
 import { Domino, Player, DominoSide, GameState } from '../types';
+import { determineTieBreakStarter, computeNextRoundState, resolveBoude } from '../LogicEngine';
 import { createBaseGameState } from '../../hooks/game/__tests__/testUtils';
 
 describe('LogicEngine', () => {
@@ -275,6 +276,167 @@ describe('getForcedTieBreakDominoId — R2-B2', () => {
     it('handleTurn accepte le plus grand double pour le joueur à égalité', () => {
         const newState = handleTurn(tiedState, 'p1', d66);
         expect(newState.table.sequence[0].domino.id).toBe('dtie66');
+    });
+
+    it('determineTieBreakStarter exclut le 3e joueur non ex aequo meme avec un plus grand double', () => {
+        const outsiderDouble: Domino = { id: 'dtie77', left: 6, right: 6, isDouble: true };
+        const stateWithStrongerOutsider: GameState = {
+            ...tiedState,
+            players: [
+                { ...tiedState.players[0], hand: [d33, d52] },
+                { ...tiedState.players[1], hand: [d52] },
+                { ...tiedState.players[2], hand: [outsiderDouble] },
+            ],
+        };
+
+        expect(determineTieBreakStarter(stateWithStrongerOutsider.players, stateWithStrongerOutsider.tiedPlayerIds)).toBe('p1');
+    });
+
+    it('computeNextRoundState choisit le starter de redonne parmi les joueurs a egalite uniquement', () => {
+        const baseHand: Domino = { id: 'base', left: 0, right: 1, isDouble: false };
+        const tieRedealState: GameState = {
+            ...tiedState,
+            phase: 'PARTIE_END',
+            firstPlayerOfRound: null,
+            currentPlayerId: 'p3',
+            players: [
+                { ...tiedState.players[0], hand: [baseHand], handSize: 1 },
+                { ...tiedState.players[1], hand: [baseHand], handSize: 1 },
+                { ...tiedState.players[2], hand: [baseHand], handSize: 1 },
+            ],
+            roundNumber: 6,
+            mancheNumber: 5,
+            startingHandSize: 7,
+            tiedPlayerIds: ['p1', 'p2'],
+        };
+
+        const nextState = computeNextRoundState(tieRedealState);
+        expect(['p1', 'p2']).toContain(nextState.currentPlayerId);
+    });
+});
+
+describe('resolveBoude + redonne tie-break integration', () => {
+    const mkPlayer = (id: string, hand: Domino[]): Player => ({
+        id,
+        name: id,
+        hand,
+        handSize: hand.length,
+        currentMancheStars: 0,
+        wins: 0,
+        mancheWins: 0,
+        totalRoundWins: 0,
+        totalPoints: 0,
+        isCochon: false,
+        totalCochons: 0,
+        totalCochonsInfliges: 0,
+        totalCochonsSubis: 0,
+        status: 'HUMAN',
+    });
+
+    const mkState = (players: Player[]): GameState => ({
+        gameId: 'tie-test',
+        players,
+        talonMort: [],
+        table: { sequence: [], leftValue: null, rightValue: null },
+        currentPlayerId: players[0].id,
+        phase: 'BOUDE',
+        firstPlayerOfRound: null,
+        history: [],
+        winningCondition: 3,
+        gameMode: 'COCHON',
+        mancheResult: null,
+        turnDuration: 30,
+        lastActionTimestamp: 0,
+        turnId: 0,
+        mancheHistory: [],
+        roundNumber: 6,
+        mancheNumber: 5,
+        startingHandSize: 7,
+        reDealCount: 0,
+        boudePlayerId: null,
+    });
+
+    it('egalite a 2 joueurs: resolveBoude marque uniquement les 2 ex aequo', () => {
+        const d11: Domino = { id: 'd11', left: 1, right: 1, isDouble: true };
+        const d20: Domino = { id: 'd20', left: 2, right: 0, isDouble: false };
+        const d66: Domino = { id: 'd66', left: 6, right: 6, isDouble: true };
+        const state = mkState([
+            mkPlayer('p1', [d11]),
+            mkPlayer('p2', [d20]),
+            mkPlayer('p3', [d66]),
+        ]);
+
+        const result = resolveBoude(state);
+        expect(result.isTie).toBe(true);
+        expect(result.tiedPlayerIds).toEqual(['p1', 'p2']);
+    });
+
+    it('egalite a 2 joueurs: le starter de redonne est choisi parmi les 2 ex aequo seulement', () => {
+        const tiedStarter: Domino = { id: 'tied-55', left: 5, right: 5, isDouble: true };
+        const tiedOther: Domino = { id: 'tied-33', left: 3, right: 3, isDouble: true };
+        const outsiderStronger: Domino = { id: 'outsider-66', left: 6, right: 6, isDouble: true };
+
+        const starter = determineTieBreakStarter(
+            [
+                mkPlayer('p1', [tiedStarter]),
+                mkPlayer('p2', [tiedOther]),
+                mkPlayer('p3', [outsiderStronger]),
+            ],
+            ['p1', 'p2']
+        );
+
+        expect(starter).toBe('p1');
+    });
+
+    it('egalite a 3 joueurs: resolveBoude conserve les 3 joueurs dans tiedPlayerIds', () => {
+        const d11: Domino = { id: 'd11', left: 1, right: 1, isDouble: true };
+        const d20: Domino = { id: 'd20', left: 2, right: 0, isDouble: false };
+        const d20b: Domino = { id: 'd20b', left: 2, right: 0, isDouble: false };
+        const state = mkState([
+            mkPlayer('p1', [d11]),
+            mkPlayer('p2', [d20]),
+            mkPlayer('p3', [d20b]),
+        ]);
+
+        const result = resolveBoude(state);
+        expect(result.isTie).toBe(true);
+        expect(result.tiedPlayerIds).toEqual(['p1', 'p2', 'p3']);
+    });
+
+    it('egalite a 3 joueurs: le starter devient le plus grand double parmi les 3 ex aequo', () => {
+        const d11: Domino = { id: 'd11', left: 1, right: 1, isDouble: true };
+        const d33: Domino = { id: 'd33', left: 3, right: 3, isDouble: true };
+        const d22: Domino = { id: 'd22', left: 2, right: 2, isDouble: true };
+
+        const starter = determineTieBreakStarter(
+            [
+                mkPlayer('p1', [d11]),
+                mkPlayer('p2', [d33]),
+                mkPlayer('p3', [d22]),
+            ],
+            ['p1', 'p2', 'p3']
+        );
+
+        expect(starter).toBe('p2');
+    });
+
+    it('egalite a 3 joueurs: le premier coup est force au starter retenu', () => {
+        const d11: Domino = { id: 'd11', left: 1, right: 1, isDouble: true };
+        const d33: Domino = { id: 'd33', left: 3, right: 3, isDouble: true };
+        const d22: Domino = { id: 'd22', left: 2, right: 2, isDouble: true };
+        const playState = mkState([
+            mkPlayer('p1', [d11]),
+            mkPlayer('p2', [d33]),
+            mkPlayer('p3', [d22]),
+        ]);
+        playState.phase = 'PLAYING';
+        playState.currentPlayerId = 'p2';
+        playState.tiedPlayerIds = ['p1', 'p2', 'p3'];
+
+        expect(() => handleTurn(playState, 'p2', d11)).toThrow('Tie-break rule:');
+
+        const nextState = handleTurn(playState, 'p2', d33);
+        expect(nextState.table.sequence[0].domino.id).toBe('d33');
     });
 });
 
