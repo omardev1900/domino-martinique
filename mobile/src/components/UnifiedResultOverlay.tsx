@@ -49,6 +49,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     const [showHistory, setShowHistory] = useState(false);
     const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState<number | null>(null);
     const confettiRef = useRef<ConfettiCannon>(null);
+    const lastPlayedPhaseRef = useRef<string | null>(null);
 
     const isMatchOver = gameState.phase === 'MATCH_END';
     const isBoude = gameState.phase === 'BOUDE';
@@ -58,6 +59,14 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     useEffect(() => {
         if (visible) setShowHistory(false);
     }, [visible]);
+
+    useEffect(() => {
+        if (!visible || !isMatchOver) return;
+        if (lastPlayedPhaseRef.current === gameState.phase) return;
+
+        lastPlayedPhaseRef.current = gameState.phase;
+        SoundManager.playSound('matchEnd');
+    }, [visible, isMatchOver, gameState.phase]);
 
     useEffect(() => {
         if (!visible || mancheResult !== 'CHIRE' || isMatchOver || showHistory) {

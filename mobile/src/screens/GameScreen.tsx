@@ -219,7 +219,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     // Snapshot du gameState au moment où la carte résultat est déclenchée.
     // Évite que le contenu change si la phase évolue pendant l'affichage (ex: égalité boudé).
     const [roundResultSnapshot, setRoundResultSnapshot] = useState<typeof gameState | null>(null);
-    const [isSoundEnabled, setIsSoundEnabled] = useState(() => SettingsManager.getSettings().isAudioEnabled ?? true);
+    const [isBgmEnabled, setIsBgmEnabled] = useState(() => SettingsManager.getSettings().isBgmEnabled ?? true);
+    const [isSfxEnabled, setIsSfxEnabled] = useState(() => SettingsManager.getSettings().isSfxEnabled ?? true);
     const [isVibrationEnabled, setIsVibrationEnabled] = useState(() => SettingsManager.getSettings().isVibrationEnabled);
     const [bannerState, setBannerState] = useState<'NONE' | 'MANCHE' | 'ROUND'>('NONE');
     const [playersChat, setPlayersChat] = useState<{ [playerId: string]: string | null }>({});
@@ -497,7 +498,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             const loadSettings = async () => {
                 const settings = SettingsManager.getSettings();
                 setTableTheme(settings.tableTheme);
-                setIsSoundEnabled(settings.isAudioEnabled ?? true);
+                setIsBgmEnabled(settings.isBgmEnabled ?? true);
+                setIsSfxEnabled(settings.isSfxEnabled ?? true);
 
                 if (isSoloMode) {
                     try {
@@ -1195,10 +1197,15 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     gameState={gameState}
                     gameId={gameId}
                     roomData={roomData}
-                    isSoundEnabled={isSoundEnabled}
-                    onToggleSound={async () => {
-                        const newState = await SoundManager.toggleMute();
-                        setIsSoundEnabled(newState);
+                    isBgmEnabled={isBgmEnabled}
+                    onToggleBgm={async () => {
+                        const newState = await SoundManager.setBgmEnabled(!isBgmEnabled);
+                        setIsBgmEnabled(newState);
+                    }}
+                    isSfxEnabled={isSfxEnabled}
+                    onToggleSfx={async () => {
+                        const newState = await SoundManager.setSfxEnabled(!isSfxEnabled);
+                        setIsSfxEnabled(newState);
                     }}
                     isVibrationEnabled={isVibrationEnabled}
                     onToggleVibration={async () => {

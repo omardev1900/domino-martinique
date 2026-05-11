@@ -52,6 +52,25 @@ const DEFAULT_SOUND_POLICY: SoundPolicy = {
     cooldownMs: 100,
 };
 
+const SOUND_MIX_GAINS: Partial<Record<SoundName, number>> = {
+    clack1: 0.42,
+    clack2: 0.38,
+    clack3: 0.36,
+    notify: 0.5,
+    shuffle: 0.58,
+    toktok: 0.48,
+    timer: 0.28,
+    end_time: 0.52,
+    startGame: 0.5,
+    win: 0.58,
+    lose: 0.52,
+    end: 0.55,
+    roundEnd: 0.62,
+    mancheEnd: 0.68,
+    matchEnd: 0.74,
+    leagueJingle: 0.66,
+};
+
 function normalizeMusicContext(value: string): MusicContext | null {
     if (value === 'bgm1' || value === 'gameNormal') return 'gameNormal';
     if (value === 'bgm2' || value === 'gameIntense') return 'gameIntense';
@@ -123,7 +142,7 @@ class SoundManager {
 
     private getTargetMusicVolume(): number {
         const settings = SettingsManager.getSettings();
-        if (!settings.isAudioEnabled) return 0;
+        if (!settings.isBgmEnabled) return 0;
         return Math.max(0, Math.min(1, this.baseMusicVolume * settings.bgmVolume));
     }
 
@@ -234,8 +253,24 @@ class SoundManager {
         player.seekTo(0);
     }
 
+    private safePlayPlayer(player: AudioPlayer | null) {
+        if (!player) return;
+        try {
+            const result = player.play();
+            if (result && typeof (result as Promise<void>).catch === 'function') {
+                (result as Promise<void>).catch(() => {});
+            }
+        } catch {
+            // Web runtimes may throw synchronously or return void.
+        }
+    }
+
     private getSoundPolicy(name: SoundName): SoundPolicy {
         return SOUND_POLICIES[name] ?? DEFAULT_SOUND_POLICY;
+    }
+
+    private getSoundGain(name: SoundName): number {
+        return SOUND_MIX_GAINS[name] ?? 1;
     }
 
     private isMajorStingerActive(now: number): boolean {
@@ -258,7 +293,7 @@ class SoundManager {
         }
         await this.ensurePreloaded();
         const settings = SettingsManager.getSettings();
-        if (!settings.isAudioEnabled || settings.bgmVolume <= 0) return;
+        if (!settings.isBgmEnabled || settings.bgmVolume <= 0) return;
         const transitionToken = ++this.musicTransitionToken;
 
         try {
@@ -266,7 +301,7 @@ class SoundManager {
             if (this.currentMusicName === normalizedName && this.currentMusic) {
                 this.baseMusicVolume = volume;
                 if (!this.currentMusic.playing) {
-                    this.currentMusic.play().catch(() => {});
+                    this.safePlayPlayer(this.currentMusic);
                 }
                 this.currentMusic.volume = this.getTargetMusicVolume();
                 return;
@@ -286,7 +321,7 @@ class SoundManager {
                 
                 player.loop = true;
                 player.volume = 0; // Commencer à 0 pour le fade-in
-                player.play().catch(() => {});
+                this.safePlayPlayer(player);
                 
                 this.currentMusic = player;
                 this.currentMusicName = normalizedName;
@@ -364,7 +399,7 @@ class SoundManager {
 
         this.watchdogInterval = setInterval(() => {
             const settings = SettingsManager.getSettings();
-            if (!settings.isAudioEnabled || settings.bgmVolume <= 0) return;
+            if (!settings.isBgmEnabled || settings.bgmVolume <= 0) return;
 
             if (this.currentMusic && !this.currentMusic.playing && this.currentMusicName) {
                 LogService.info('SoundManager', 'Watchdog: Music stalled, restarting...');
@@ -388,7 +423,7 @@ class SoundManager {
         try {
             await this.ensurePreloaded();
             const settings = SettingsManager.getSettings();
-            if (!settings.isAudioEnabled || !settings.isSfxEnabled || settings.sfxVolume <= 0) return;
+            if (!settings.isSfxEnabled || settings.sfxVolume <= 0) return;
 
             // Débridage Safari/Web : s'assurer qu'on a bien l'autorisation
             this.unlockAudio();
@@ -421,7 +456,7 @@ class SoundManager {
                     this.duckMusic(policy.duckFactor, policy.duckDurationMs);
                 }
 
-                player.volume = settings.sfxVolume;
+                player.volume = Math.max(0, Math.min(1, settings.sfxVolume * this.getSoundGain(name)));
                 try {
                     player.seekTo(0);
                     const p = player.play();
@@ -463,15 +498,13 @@ class SoundManager {
     async updateVolumes() {
         const settings = SettingsManager.getSettings();
         if (this.currentMusic) {
-            if (!settings.isAudioEnabled || settings.bgmVolume <= 0) {
+            if (!settings.isBgmEnabled || settings.bgmVolume <= 0) {
                 // Si la BGM est à zéro, on met en pause la musique au lieu de juste baisser le volume
-                if (this.currentMusic.playing) {
-                    this.currentMusic.pause();
-                }
+                this.currentMusic.pause();
             } else {
                 // Si on remonte la BGM, on s'assure que la musique repart
                 if (!this.currentMusic.playing && this.currentMusicName) {
-                    this.currentMusic.play().catch(() => {});
+                    this.safePlayPlayer(this.currentMusic);
                 }
                 this.currentMusic.volume = this.getTargetMusicVolume();
             }
@@ -484,12 +517,25 @@ class SoundManager {
      */
     async toggleMute(): Promise<boolean> {
         const settings = SettingsManager.getSettings();
-        const newState = !settings.isAudioEnabled;
-        
-        await SettingsManager.setAudioEnabled(newState);
+        const nextBgmState = !settings.isBgmEnabled;
+        const nextSfxState = !settings.isSfxEnabled;
+
+        await SettingsManager.setBgmEnabled(nextBgmState);
+        await SettingsManager.setSfxEnabled(nextSfxState);
         await this.updateVolumes();
-        
-        return newState;
+
+        return nextBgmState && nextSfxState;
+    }
+
+    async setBgmEnabled(enabled: boolean): Promise<boolean> {
+        await SettingsManager.setBgmEnabled(enabled);
+        await this.updateVolumes();
+        return enabled;
+    }
+
+    async setSfxEnabled(enabled: boolean): Promise<boolean> {
+        await SettingsManager.setSfxEnabled(enabled);
+        return enabled;
     }
 
     async unloadSounds() {

@@ -3,6 +3,7 @@ import { TableTheme } from './themes/tableThemes';
 
 const SFX_ENABLED_KEY = '@domino_settings_sfx_enabled';
 const AUDIO_ENABLED_KEY = '@domino_settings_audio_enabled';
+const BGM_ENABLED_KEY = '@domino_settings_bgm_enabled';
 const VIBRATION_ENABLED_KEY = '@domino_settings_vibration_enabled';
 const TABLE_THEME_KEY = '@domino_settings_table_theme';
 const GAME_BGM_THEME_KEY = '@domino_settings_game_bgm_theme';
@@ -28,6 +29,7 @@ function normalizeBgmTheme(value: string | null): BgmTheme | null {
 class SettingsManager {
     private static instance: SettingsManager;
     private isAudioEnabled: boolean = true;
+    private isBgmEnabled: boolean = true;
     private isSfxEnabled: boolean = true;
     private isVibrationEnabled: boolean = true;
     private tableTheme: TableTheme = 'classic';
@@ -48,6 +50,7 @@ class SettingsManager {
         try {
             const sfx = await AsyncStorage.getItem(SFX_ENABLED_KEY);
             const audio = await AsyncStorage.getItem(AUDIO_ENABLED_KEY);
+            const bgm = await AsyncStorage.getItem(BGM_ENABLED_KEY);
             const vibro = await AsyncStorage.getItem(VIBRATION_ENABLED_KEY);
             const theme = await AsyncStorage.getItem(TABLE_THEME_KEY);
             const bgmTheme = await AsyncStorage.getItem(GAME_BGM_THEME_KEY);
@@ -56,6 +59,11 @@ class SettingsManager {
 
             if (audio !== null) {
                 this.isAudioEnabled = audio === 'true';
+            }
+            if (bgm !== null) {
+                this.isBgmEnabled = bgm === 'true';
+            } else if (audio !== null) {
+                this.isBgmEnabled = audio === 'true';
             }
 
             // Legacy support pour l'ancienne clé isSoundEnabled
@@ -87,6 +95,7 @@ class SettingsManager {
         return {
             isSfxEnabled: this.isSfxEnabled,
             isAudioEnabled: this.isAudioEnabled,
+            isBgmEnabled: this.isBgmEnabled,
             isVibrationEnabled: this.isVibrationEnabled,
             tableTheme: this.tableTheme,
             gameBgmTheme: this.gameBgmTheme,
@@ -101,6 +110,17 @@ class SettingsManager {
             await AsyncStorage.setItem(AUDIO_ENABLED_KEY, enabled.toString());
         } catch (e) {
             console.error('Failed to save audio enabled setting', e);
+        }
+    }
+
+    async setBgmEnabled(enabled: boolean) {
+        this.isBgmEnabled = enabled;
+        this.isAudioEnabled = enabled;
+        try {
+            await AsyncStorage.setItem(BGM_ENABLED_KEY, enabled.toString());
+            await AsyncStorage.setItem(AUDIO_ENABLED_KEY, enabled.toString());
+        } catch (e) {
+            console.error('Failed to save bgm enabled setting', e);
         }
     }
 

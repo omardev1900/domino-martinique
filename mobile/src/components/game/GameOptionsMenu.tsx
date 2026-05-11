@@ -16,8 +16,10 @@ export interface GameOptionsMenuProps {
     localPlayerId?: string;
     gameId?: string;
     roomData?: any;
-    isSoundEnabled: boolean;
-    onToggleSound: () => void;
+    isBgmEnabled: boolean;
+    onToggleBgm: () => void;
+    isSfxEnabled: boolean;
+    onToggleSfx: () => void;
     isVibrationEnabled: boolean;
     onToggleVibration: () => void;
     onQuitGame: () => void;
@@ -54,8 +56,10 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
     localPlayerId,
     gameId,
     roomData,
-    isSoundEnabled,
-    onToggleSound,
+    isBgmEnabled,
+    onToggleBgm,
+    isSfxEnabled,
+    onToggleSfx,
     isVibrationEnabled,
     onToggleVibration,
     onQuitGame,
@@ -140,10 +144,16 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                         </View>
                                     )}
                                     <ToggleRow
-                                        icon={isSoundEnabled ? 'volume-high' : 'volume-mute'}
-                                        label="Son"
-                                        value={isSoundEnabled}
-                                        onToggle={onToggleSound}
+                                        icon={isBgmEnabled ? 'musical-notes' : 'musical-notes-outline'}
+                                        label="Musique"
+                                        value={isBgmEnabled}
+                                        onToggle={onToggleBgm}
+                                    />
+                                    <ToggleRow
+                                        icon={isSfxEnabled ? 'volume-high' : 'volume-mute'}
+                                        label="Effets"
+                                        value={isSfxEnabled}
+                                        onToggle={onToggleSfx}
                                     />
                                     <ToggleRow
                                         icon={isVibrationEnabled ? 'phone-portrait-outline' : 'phone-portrait-sharp'}

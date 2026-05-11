@@ -258,6 +258,8 @@ jest.mock('../../core/audio/SoundManager', () => ({
         playMusic: jest.fn(),
         playSound: jest.fn(),
         toggleMute: jest.fn().mockResolvedValue(true),
+        setBgmEnabled: jest.fn().mockResolvedValue(true),
+        setSfxEnabled: jest.fn().mockResolvedValue(true),
     },
 }));
 
@@ -271,6 +273,7 @@ jest.mock('../../core/SettingsManager', () => ({
     default: {
         getSettings: jest.fn(() => ({
             tableTheme: 'classic',
+            isBgmEnabled: true,
             isSfxEnabled: true,
             isVibrationEnabled: true,
             gameBgmTheme: 'mainMenu',
