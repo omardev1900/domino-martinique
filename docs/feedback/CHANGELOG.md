@@ -10,6 +10,9 @@
 - **Mode Cochon** - le compteur `🐷` represente maintenant correctement les cochons infliges par le vainqueur uniquement. Les joueurs qui tombent a `0 etoile` ne gagnent plus de cochon par erreur et recoivent seulement le malus `-1 point`.
 - **Partie bloquee / egalite** - en cas de redonne apres egalite, le prochain depart est maintenant reserve aux joueurs ex aequo, avec priorite au plus grand double parmi eux. Correction egalement d'un cas rare de modal de fin de round qui pouvait rester affiche sur un client en multijoueur.
 
+### Modifie
+- **Ligue des Cochons (mobile)** - l'ecran `/ligue-cochons` a ete compacte pour rendre les classements plus lisibles : header reduit, navigation remontee en haut, lignes joueurs plus denses, et filtres de classement deplaces dans une colonne laterale compacte avec `Total / Perf` visible uniquement sur le filtre actif.
+
 ---
 
 ## [2.5.0] — 2026-05-08

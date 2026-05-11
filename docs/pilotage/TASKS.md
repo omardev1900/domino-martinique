@@ -21,6 +21,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 | Ticket | Description | Priorite | Statut |
 |---|---|---|---|
+| **AUDIO-GAMEPLAY-HARDENING** | Audit et stabilisation audio gameplay - chevauchements BGM, doublons SFX, mix et pipeline pro | Haute | Pret |
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Pret |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres | Haute | Pret |
 | **ADS-REWARD** | Doubler les gains apres pub via modal post-match | Moyenne | Pret |
@@ -32,16 +33,45 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 ## Ordre recommande
 
 1. `ECO-REBALANCE`
-2. `OTP-INSCRIPTION`
-3. `ADS-REWARD`
-4. `R4-TECH-LEADERBOARD`
-5. `ANIM-DOMINO`
+2. `AUDIO-GAMEPLAY-HARDENING`
+3. `OTP-INSCRIPTION`
+4. `ADS-REWARD`
+5. `R4-TECH-LEADERBOARD`
+6. `ANIM-DOMINO`
 
 Raison :
-`ECO-REBALANCE` et `OTP-INSCRIPTION` ont le plus d'impact produit/store.
+`ECO-REBALANCE` reste structurant pour le lancement.
+`AUDIO-GAMEPLAY-HARDENING` est critique pour la perception de qualite en partie et touche directement le ressenti gameplay.
+`OTP-INSCRIPTION` a un fort impact produit/store.
 `ADS-REWARD` depend d'une economie deja cadree.
 `R4-TECH-LEADERBOARD` securise la suite.
 `ANIM-DOMINO` reste utile, mais non bloquant fonctionnel.
+
+---
+
+## Detail prioritaire - AUDIO-GAMEPLAY-HARDENING
+
+Objectif :
+fiabiliser et professionnaliser le rendu audio en jeu avant lancement.
+
+Problemes identifies :
+- chevauchement ou relance parasite de musiques de fond
+- doublons possibles sur les sons de fin de round / manche / match
+- couplage incorrect entre activation SFX et lecture BGM
+- mix incoherent entre bruitages, jingles et musique
+- absence de politique audio centralisee par priorite de sons
+
+Livrables attendus :
+- separation propre des controles `BGM` et `SFX`
+- suppression des doublons de declenchement sur les sons terminaux
+- politique de priorite audio claire : BGM, gameplay SFX, UI, stingers majeurs
+- ducking et reprise de musique stabilises
+- audit des assets les plus critiques avec proposition de normalisation
+
+Ordre d'execution recommande :
+1. corriger l'architecture et les declencheurs
+2. stabiliser le mix et les priorites runtime
+3. nettoyer / remplacer les assets audio les moins qualitatifs
 
 ---
 

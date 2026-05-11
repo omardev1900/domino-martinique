@@ -25,6 +25,14 @@
   - Ajout d'un garde-fou UI pour fermer le modal de fin de round si le client a deja recu la phase suivante
   - Tests moteur et test d'integration ajoutes sur la sequence `BOUDE -> redonne -> premier coup force`
 
+- [x] **[LIGUE-MOBILE-UX]** Refonte mobile de `/ligue-cochons`
+  - Header compacte : titre reduit, aligne a gauche, sous-titre supprime
+  - Navigation principale `Ma Ligue / Mois / Global` integree dans la barre du haut
+  - Classements compactes : lignes joueurs moins hautes pour afficher plus d'entrees
+  - Filtres de classement deplaces dans une colonne laterale compacte a gauche
+  - Le switch `Total / Perf` n'apparait plus que sur le filtre actif
+  - Scroll vertical du classement retabli apres la refonte en 2 colonnes
+
 ### 2026-05-08 - Bots adaptatifs + IA METKAYALI niveau 4
 
 - [x] **[BOT-ADAPTIVE]** Bots adaptatifs + IA METKAYALI
