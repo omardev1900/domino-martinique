@@ -47,6 +47,9 @@ class SoundManager {
     private baseMusicVolume = 0.3; // Volume de base cible pour la musique en cours
     private duckingTimeout: ReturnType<typeof setTimeout> | null = null;
     private watchdogInterval: ReturnType<typeof setInterval> | null = null;
+    private preloadPromise: Promise<void> | null = null;
+    private isPreloaded = false;
+    private musicTransitionToken = 0;
 
     // DEBOUNCE: Track last play time per sound to prevent saturation
     private lastPlayTime: Record<string, number> = {};
@@ -100,6 +103,19 @@ class SoundManager {
     }
 
     async preloadSounds() {
+        if (this.isPreloaded) return;
+        if (this.preloadPromise) return this.preloadPromise;
+
+        this.preloadPromise = this.doPreloadSounds();
+        try {
+            await this.preloadPromise;
+            this.isPreloaded = true;
+        } finally {
+            this.preloadPromise = null;
+        }
+    }
+
+    private async doPreloadSounds() {
         try {
             try {
                 await setAudioModeAsync({
@@ -171,6 +187,18 @@ class SoundManager {
         }
     }
 
+    private async ensurePreloaded() {
+        if (!this.isPreloaded) {
+            await this.preloadSounds();
+        }
+    }
+
+    private async pauseAndResetPlayer(player: AudioPlayer | null) {
+        if (!player) return;
+        player.pause();
+        player.seekTo(0);
+    }
+
     // ─── Background Music ─────────────────────────────────────────────────────
 
     async playMusic(name: MusicContext | LegacyMusicContext, volume = 0.3) {
@@ -180,20 +208,28 @@ class SoundManager {
             this.pendingMusicName = normalizedName;
             return;
         }
+        await this.ensurePreloaded();
         const settings = SettingsManager.getSettings();
         if (!settings.isAudioEnabled || settings.bgmVolume <= 0) return;
+        const transitionToken = ++this.musicTransitionToken;
 
         try {
             // Éviter de relancer la même musique si elle joue déjà
-            if (this.currentMusicName === normalizedName && this.currentMusic?.playing) {
+            if (this.currentMusicName === normalizedName && this.currentMusic) {
+                this.baseMusicVolume = volume;
+                if (!this.currentMusic.playing) {
+                    this.currentMusic.play().catch(() => {});
+                }
+                this.currentMusic.volume = this.getTargetMusicVolume();
                 return;
             }
 
             // Arrêt en douceur de la musique précédente
-            if (this.currentMusic) {
+            const previousMusic = this.currentMusic;
+            if (previousMusic) {
                 await this.fadeMusic(0, 500);
-                this.currentMusic.pause();
-                this.currentMusic.seekTo(0);
+                if (transitionToken !== this.musicTransitionToken) return;
+                await this.pauseAndResetPlayer(previousMusic);
             }
 
             const player = this.sounds[normalizedName];
@@ -209,6 +245,7 @@ class SoundManager {
 
                 // Entrée en fondu
                 await this.fadeMusic(this.getTargetMusicVolume(), 1000);
+                if (transitionToken !== this.musicTransitionToken) return;
             }
         } catch (error) {
             LogService.warn('SoundManager', `Music error "${name}"`, error);
@@ -217,10 +254,11 @@ class SoundManager {
 
     async stopMusic(fadeDuration = 800) {
         if (!this.currentMusic) return;
+        const transitionToken = ++this.musicTransitionToken;
         try {
             await this.fadeMusic(0, fadeDuration);
-            this.currentMusic.pause();
-            this.currentMusic.seekTo(0);
+            if (transitionToken !== this.musicTransitionToken) return;
+            await this.pauseAndResetPlayer(this.currentMusic);
             this.currentMusic = null;
             this.currentMusicName = null;
         } catch (error) {
@@ -300,6 +338,7 @@ class SoundManager {
         if (!this.isAudioAllowed) return;
 
         try {
+            await this.ensurePreloaded();
             const settings = SettingsManager.getSettings();
             if (!settings.isAudioEnabled || !settings.isSfxEnabled || settings.sfxVolume <= 0) return;
 
@@ -398,9 +437,12 @@ class SoundManager {
             clearTimeout(this.duckingTimeout);
             this.duckingTimeout = null;
         }
+        this.musicTransitionToken += 1;
         this.currentMusic = null;
         this.currentMusicName = null;
         this.pendingMusicName = null;
+        this.isPreloaded = false;
+        this.preloadPromise = null;
 
         for (const player of Object.values(this.sounds)) {
             player?.remove();

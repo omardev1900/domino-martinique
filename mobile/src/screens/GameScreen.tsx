@@ -764,9 +764,6 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         }
     }, [gameState?.phase, isLocalHost, isSoloMode, gameId, activeTableTier, localPlayerId]);
     useEffect(() => {
-        // Preload sounds
-        SoundManager.preloadSounds();
-
         // Solo mode - wait for profile to load first
         if (isSoloMode) {
             if (!profileLoaded) {
