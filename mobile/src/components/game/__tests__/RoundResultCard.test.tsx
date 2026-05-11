@@ -2,7 +2,6 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { RoundResultCard } from '../RoundResultCard';
 import { createBaseGameState } from '../../../hooks/game/__tests__/testUtils';
-import SoundManager from '../../../core/audio/SoundManager';
 
 jest.mock('../../DominoTile', () => ({
     DominoTile: ({ left, right }: any) => {
@@ -24,6 +23,14 @@ jest.mock('react-native-reanimated', () => {
     };
 });
 
+jest.mock('../../../core/audio/SoundManager', () => ({
+    __esModule: true,
+    default: {
+        playSound: jest.fn(),
+        dispose: jest.fn(),
+    },
+}));
+
 const makeDomino = (left: number, right: number) => ({ id: `${left}-${right}`, left, right, isDouble: left === right });
 
 const makePlayer = (id: string, name: string, hand: { left: number; right: number }[]) => ({
@@ -44,10 +51,6 @@ const makePlayer = (id: string, name: string, hand: { left: number; right: numbe
 });
 
 describe('RoundResultCard', () => {
-    afterAll(async () => {
-        await SoundManager.dispose();
-    });
-
     test('renders nothing when visible is false', () => {
         const state = createBaseGameState({ phase: 'BOUDE' });
         const { queryByText } = render(<RoundResultCard gameState={state} visible={false} />);

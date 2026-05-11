@@ -8,13 +8,48 @@ import { LogService } from '../services/LogService';
 type MusicContext = Exclude<BgmTheme, 'none'>;
 type LegacyMusicContext = 'bgm1' | 'bgm2' | 'bgm3';
 type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | MusicContext | 'end' | 'toktok' | 'startGame' | 'timer' | 'end_time' | 'leagueJingle' | 'roundEnd' | 'mancheEnd' | 'matchEnd';
+type SoundCategory = 'ui' | 'gameplay' | 'stinger_major';
 
 type AudioAssignments = Record<MusicContext, string | null>;
+type SoundPolicy = {
+    category: SoundCategory;
+    cooldownMs: number;
+    ducksMusic?: boolean;
+    duckFactor?: number;
+    duckDurationMs?: number;
+    exclusiveGroup?: string;
+    exclusiveGroupCooldownMs?: number;
+    majorStingerLockMs?: number;
+};
 
 const MUSIC_CONTEXT_FALLBACK: Record<MusicContext, AudioSource> = {
     mainMenu: require('@/assets/sounds/bgm.mp3'),
     gameNormal: require('@/assets/sounds/bgm.mp3'),
     gameIntense: require('@/assets/sounds/bgm.mp3'),
+};
+
+const SOUND_POLICIES: Partial<Record<SoundName, SoundPolicy>> = {
+    clack1: { category: 'gameplay', cooldownMs: 80 },
+    clack2: { category: 'gameplay', cooldownMs: 80 },
+    clack3: { category: 'gameplay', cooldownMs: 80 },
+    toktok: { category: 'gameplay', cooldownMs: 180 },
+    timer: { category: 'gameplay', cooldownMs: 450 },
+    end_time: { category: 'gameplay', cooldownMs: 700, ducksMusic: true, duckFactor: 0.55, duckDurationMs: 900 },
+    notify: { category: 'ui', cooldownMs: 250, ducksMusic: true, duckFactor: 0.55, duckDurationMs: 600 },
+    shuffle: { category: 'gameplay', cooldownMs: 500, ducksMusic: true, duckFactor: 0.45, duckDurationMs: 850 },
+    startGame: { category: 'stinger_major', cooldownMs: 1200, ducksMusic: true, duckFactor: 0.2, duckDurationMs: 1400, exclusiveGroup: 'major_stinger', exclusiveGroupCooldownMs: 1400, majorStingerLockMs: 1400 },
+    win: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.2, duckDurationMs: 1800, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2200, majorStingerLockMs: 2000 },
+    lose: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.2, duckDurationMs: 1800, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2200, majorStingerLockMs: 2000 },
+    end: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.2, duckDurationMs: 1800, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2200, majorStingerLockMs: 2000 },
+    roundEnd: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.22, duckDurationMs: 1800, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2200, majorStingerLockMs: 2000 },
+    mancheEnd: { category: 'stinger_major', cooldownMs: 1600, ducksMusic: true, duckFactor: 0.2, duckDurationMs: 2000, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2400, majorStingerLockMs: 2200 },
+    matchEnd: { category: 'stinger_major', cooldownMs: 1800, ducksMusic: true, duckFactor: 0.18, duckDurationMs: 2200, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2600, majorStingerLockMs: 2400 },
+    leagueJingle: { category: 'stinger_major', cooldownMs: 1800, ducksMusic: true, duckFactor: 0.18, duckDurationMs: 2200, exclusiveGroup: 'major_stinger', exclusiveGroupCooldownMs: 2400, majorStingerLockMs: 2200 },
+};
+
+const DEFAULT_SOUND_POLICY: SoundPolicy = {
+    category: 'gameplay',
+    cooldownMs: 100,
 };
 
 function normalizeMusicContext(value: string): MusicContext | null {
@@ -50,10 +85,10 @@ class SoundManager {
     private preloadPromise: Promise<void> | null = null;
     private isPreloaded = false;
     private musicTransitionToken = 0;
+    private lastGroupPlayTime: Record<string, number> = {};
+    private activeMajorStingerUntil = 0;
 
-    // DEBOUNCE: Track last play time per sound to prevent saturation
     private lastPlayTime: Record<string, number> = {};
-    private readonly DEBOUNCE_MS = 100;
 
     // WEB AUTOPLAY GUARD
     private userInteracted = Platform.OS !== 'web';
@@ -199,6 +234,19 @@ class SoundManager {
         player.seekTo(0);
     }
 
+    private getSoundPolicy(name: SoundName): SoundPolicy {
+        return SOUND_POLICIES[name] ?? DEFAULT_SOUND_POLICY;
+    }
+
+    private isMajorStingerActive(now: number): boolean {
+        return this.activeMajorStingerUntil > now;
+    }
+
+    private shouldSuppressSound(policy: SoundPolicy, now: number): boolean {
+        if (!this.isMajorStingerActive(now)) return false;
+        return policy.category !== 'stinger_major';
+    }
+
     // ─── Background Music ─────────────────────────────────────────────────────
 
     async playMusic(name: MusicContext | LegacyMusicContext, volume = 0.3) {
@@ -269,7 +317,7 @@ class SoundManager {
     /**
      * Baisse temporairement le volume (Ducking) lors d'un effet sonore
      */
-    private duckMusic() {
+    private duckMusic(duckFactor = 0.4, durationMs = 800) {
         if (!this.currentMusic || !this.currentMusic.playing) return;
         
         const targetVol = this.getTargetMusicVolume();
@@ -345,16 +393,32 @@ class SoundManager {
             // Débridage Safari/Web : s'assurer qu'on a bien l'autorisation
             this.unlockAudio();
 
-            // DEBOUNCE
             const now = Date.now();
-            if (now - (this.lastPlayTime[name] || 0) < this.DEBOUNCE_MS) return;
+            const policy = this.getSoundPolicy(name);
+
+            if (this.shouldSuppressSound(policy, now)) return;
+            if (now - (this.lastPlayTime[name] || 0) < policy.cooldownMs) return;
+
+            if (policy.exclusiveGroup) {
+                const lastGroupPlay = this.lastGroupPlayTime[policy.exclusiveGroup] || 0;
+                const groupCooldown = policy.exclusiveGroupCooldownMs ?? policy.cooldownMs;
+                if (now - lastGroupPlay < groupCooldown) return;
+                this.lastGroupPlayTime[policy.exclusiveGroup] = now;
+            }
+
             this.lastPlayTime[name] = now;
 
             const player = this.sounds[name];
             if (player) {
-                // DUCKING : Baisser la musique si c'est un son important
-                if (['win', 'lose', 'notify', 'shuffle', 'startGame', 'end', 'leagueJingle', 'roundEnd', 'mancheEnd', 'matchEnd'].includes(name)) {
-                    this.duckMusic();
+                if (policy.category === 'stinger_major') {
+                    this.activeMajorStingerUntil = Math.max(
+                        this.activeMajorStingerUntil,
+                        now + (policy.majorStingerLockMs ?? policy.cooldownMs),
+                    );
+                }
+
+                if (policy.ducksMusic) {
+                    this.duckMusic(policy.duckFactor, policy.duckDurationMs);
                 }
 
                 player.volume = settings.sfxVolume;
@@ -392,10 +456,7 @@ class SoundManager {
         const sound = map[event];
         if (sound) {
             // Pour les événements majeurs, on peut couper la musique 2 secondes
-            if (event === 'WIN' || event === 'LOSE' || event === 'MATCH_END') {
-                this.stopMusic(500);
-            }
-            this.playSound(sound);
+            await this.playSound(sound);
         }
     }
 
@@ -443,6 +504,9 @@ class SoundManager {
         this.pendingMusicName = null;
         this.isPreloaded = false;
         this.preloadPromise = null;
+        this.lastPlayTime = {};
+        this.lastGroupPlayTime = {};
+        this.activeMajorStingerUntil = 0;
 
         for (const player of Object.values(this.sounds)) {
             player?.remove();

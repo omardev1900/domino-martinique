@@ -82,7 +82,7 @@ Ordre d'execution recommande :
 | **AUDIO-A** | Audit des declencheurs audio - cartographie `playMusic` / `playSound` / `stopMusic` et detection des conflits | Haute | Fait |
 | **AUDIO-B** | Separation propre `BGM` / `SFX` dans `SoundManager` et dans les reglages | Haute | Fait |
 | **AUDIO-C** | Source de verite unique pour les sons terminaux round / manche / match | Haute | Fait |
-| **AUDIO-D** | Politique de priorite audio runtime - BGM, UI, gameplay, stingers majeurs | Moyenne | Pret |
+| **AUDIO-D** | Politique de priorite audio runtime - BGM, UI, gameplay, stingers majeurs | Moyenne | Fait |
 | **AUDIO-E** | Stabilisation de la musique de fond - transitions, watchdog, reprise, sorties de partie | Haute | Fait |
 | **AUDIO-F** | Tuning du mixage et des volumes percus des SFX critiques | Moyenne | Pret |
 | **AUDIO-G** | Audit et shortlist de remplacement / normalisation des assets audio faibles | Moyenne | Pret |
