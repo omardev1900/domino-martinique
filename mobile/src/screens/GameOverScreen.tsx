@@ -5,7 +5,6 @@ import { GameState, Player, PlayerId } from '../core/types';
 import Animated, { FadeIn, ZoomIn, SlideInDown, ZoomInEasyUp } from 'react-native-reanimated';
 import { WINS_TO_WIN_MATCH } from '../core/constants';
 import { determineWinnerOnBoudé } from '../core/LogicEngine';
-import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
 
@@ -53,8 +52,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         if (!isMancheOver && !isBoudé) return;
 
         lastPlayedPhase.current = gameState.phase;
-
-        SoundManager.playSound(isMatchOver ? 'matchEnd' : 'mancheEnd');
         
         if (isBoudé) {
             HapticManager.triggerImpact();

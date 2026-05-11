@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TableTheme } from './themes/tableThemes';
 
 const SFX_ENABLED_KEY = '@domino_settings_sfx_enabled';
+const AUDIO_ENABLED_KEY = '@domino_settings_audio_enabled';
 const VIBRATION_ENABLED_KEY = '@domino_settings_vibration_enabled';
 const TABLE_THEME_KEY = '@domino_settings_table_theme';
 const GAME_BGM_THEME_KEY = '@domino_settings_game_bgm_theme';
@@ -26,6 +27,7 @@ function normalizeBgmTheme(value: string | null): BgmTheme | null {
 
 class SettingsManager {
     private static instance: SettingsManager;
+    private isAudioEnabled: boolean = true;
     private isSfxEnabled: boolean = true;
     private isVibrationEnabled: boolean = true;
     private tableTheme: TableTheme = 'classic';
@@ -45,11 +47,16 @@ class SettingsManager {
     async loadSettings() {
         try {
             const sfx = await AsyncStorage.getItem(SFX_ENABLED_KEY);
+            const audio = await AsyncStorage.getItem(AUDIO_ENABLED_KEY);
             const vibro = await AsyncStorage.getItem(VIBRATION_ENABLED_KEY);
             const theme = await AsyncStorage.getItem(TABLE_THEME_KEY);
             const bgmTheme = await AsyncStorage.getItem(GAME_BGM_THEME_KEY);
             const savedBgmVol = await AsyncStorage.getItem(BGM_VOLUME_KEY);
             const savedSfxVol = await AsyncStorage.getItem(SFX_VOLUME_KEY);
+
+            if (audio !== null) {
+                this.isAudioEnabled = audio === 'true';
+            }
 
             // Legacy support pour l'ancienne clé isSoundEnabled
             const legacySound = await AsyncStorage.getItem('@domino_settings_sound_enabled');
@@ -79,12 +86,22 @@ class SettingsManager {
     getSettings() {
         return {
             isSfxEnabled: this.isSfxEnabled,
+            isAudioEnabled: this.isAudioEnabled,
             isVibrationEnabled: this.isVibrationEnabled,
             tableTheme: this.tableTheme,
             gameBgmTheme: this.gameBgmTheme,
             bgmVolume: this.bgmVolume,
             sfxVolume: this.sfxVolume,
         };
+    }
+
+    async setAudioEnabled(enabled: boolean) {
+        this.isAudioEnabled = enabled;
+        try {
+            await AsyncStorage.setItem(AUDIO_ENABLED_KEY, enabled.toString());
+        } catch (e) {
+            console.error('Failed to save audio enabled setting', e);
+        }
     }
 
     async setSfxEnabled(enabled: boolean) {

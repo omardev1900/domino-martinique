@@ -46,6 +46,7 @@ class SoundManager {
     private currentMusicName: SoundName | null = null;
     private baseMusicVolume = 0.3; // Volume de base cible pour la musique en cours
     private duckingTimeout: ReturnType<typeof setTimeout> | null = null;
+    private watchdogInterval: ReturnType<typeof setInterval> | null = null;
 
     // DEBOUNCE: Track last play time per sound to prevent saturation
     private lastPlayTime: Record<string, number> = {};
@@ -80,6 +81,12 @@ class SoundManager {
             return (navigator as any).userActivation.hasBeenActive;
         }
         return this.userInteracted;
+    }
+
+    private getTargetMusicVolume(): number {
+        const settings = SettingsManager.getSettings();
+        if (!settings.isAudioEnabled) return 0;
+        return Math.max(0, Math.min(1, this.baseMusicVolume * settings.bgmVolume));
     }
 
     unlockAudio() {
@@ -173,6 +180,8 @@ class SoundManager {
             this.pendingMusicName = normalizedName;
             return;
         }
+        const settings = SettingsManager.getSettings();
+        if (!settings.isAudioEnabled || settings.bgmVolume <= 0) return;
 
         try {
             // Éviter de relancer la même musique si elle joue déjà
@@ -190,7 +199,6 @@ class SoundManager {
             const player = this.sounds[normalizedName];
             if (player) {
                 this.baseMusicVolume = volume;
-                const settings = SettingsManager.getSettings();
                 
                 player.loop = true;
                 player.volume = 0; // Commencer à 0 pour le fade-in
@@ -198,11 +206,9 @@ class SoundManager {
                 
                 this.currentMusic = player;
                 this.currentMusicName = normalizedName;
-                
-                const musicMultiplier = settings.isSfxEnabled ? 1 : 0;
-                
+
                 // Entrée en fondu
-                await this.fadeMusic(this.baseMusicVolume * settings.bgmVolume * musicMultiplier, 1000);
+                await this.fadeMusic(this.getTargetMusicVolume(), 1000);
             }
         } catch (error) {
             LogService.warn('SoundManager', `Music error "${name}"`, error);
@@ -228,8 +234,7 @@ class SoundManager {
     private duckMusic() {
         if (!this.currentMusic || !this.currentMusic.playing) return;
         
-        const settings = SettingsManager.getSettings();
-        const targetVol = this.baseMusicVolume * settings.bgmVolume;
+        const targetVol = this.getTargetMusicVolume();
         const duckVol = targetVol * 0.4; // Baisser à 40% du volume normal
 
         // Annuler tout timeout précédent
@@ -240,10 +245,7 @@ class SoundManager {
         // Rétablir le volume après 800ms
         this.duckingTimeout = setTimeout(() => {
             if (this.currentMusic) {
-                // Rétablissement progressif (simple) - vérifie si le son est toujours activé
-                const finalSettings = SettingsManager.getSettings();
-                const multiplier = finalSettings.isSfxEnabled ? 1 : 0;
-                this.currentMusic.volume = targetVol * multiplier;
+                this.currentMusic.volume = this.getTargetMusicVolume();
             }
             this.duckingTimeout = null;
         }, 800);
@@ -262,10 +264,8 @@ class SoundManager {
         for (let i = 1; i <= steps; i++) {
             await new Promise(res => setTimeout(res, stepTime));
             if (this.currentMusic) {
-                const currentSettings = SettingsManager.getSettings();
-                const multiplier = currentSettings.isSfxEnabled ? 1 : 0;
                 const calculatedVol = startVol + (volStep * i);
-                this.currentMusic.volume = Math.max(0, Math.min(1, calculatedVol * multiplier));
+                this.currentMusic.volume = Math.max(0, Math.min(1, calculatedVol));
             }
         }
     }
@@ -274,18 +274,24 @@ class SoundManager {
      * Surveille l'état de la musique et la relance si nécessaire (Watchdog)
      */
     private startWatchdog() {
-        setInterval(() => {
+        if (this.watchdogInterval) return;
+
+        this.watchdogInterval = setInterval(() => {
             const settings = SettingsManager.getSettings();
-            // Ne rien relancer si le son global (SFX) est coupé
-            if (!settings.isSfxEnabled) return;
+            if (!settings.isAudioEnabled || settings.bgmVolume <= 0) return;
 
             if (this.currentMusic && !this.currentMusic.playing && this.currentMusicName) {
-                if (settings.bgmVolume > 0) {
-                    LogService.info('SoundManager', 'Watchdog: Music stalled, restarting...');
-                    this.currentMusic.play().catch(() => {});
-                }
+                LogService.info('SoundManager', 'Watchdog: Music stalled, restarting...');
+                this.currentMusic.play().catch(() => {});
             }
         }, 3000);
+    }
+
+    private stopWatchdog() {
+        if (this.watchdogInterval) {
+            clearInterval(this.watchdogInterval);
+            this.watchdogInterval = null;
+        }
     }
 
     // ─── Sound Effects ───────────────────────────────────────────────────────
@@ -295,7 +301,7 @@ class SoundManager {
 
         try {
             const settings = SettingsManager.getSettings();
-            if (!settings.isSfxEnabled || settings.sfxVolume <= 0) return;
+            if (!settings.isAudioEnabled || !settings.isSfxEnabled || settings.sfxVolume <= 0) return;
 
             // Débridage Safari/Web : s'assurer qu'on a bien l'autorisation
             this.unlockAudio();
@@ -357,39 +363,57 @@ class SoundManager {
     async updateVolumes() {
         const settings = SettingsManager.getSettings();
         if (this.currentMusic) {
-            if (!settings.isSfxEnabled || settings.bgmVolume <= 0) {
-                // Si on coupe le son, on met en pause la musique au lieu de juste baisser le volume
+            if (!settings.isAudioEnabled || settings.bgmVolume <= 0) {
+                // Si la BGM est à zéro, on met en pause la musique au lieu de juste baisser le volume
                 if (this.currentMusic.playing) {
                     this.currentMusic.pause();
                 }
             } else {
-                // Si on réactive le son, on s'assure que la musique repart
+                // Si on remonte la BGM, on s'assure que la musique repart
                 if (!this.currentMusic.playing && this.currentMusicName) {
                     this.currentMusic.play().catch(() => {});
                 }
-                this.currentMusic.volume = this.baseMusicVolume * settings.bgmVolume;
+                this.currentMusic.volume = this.getTargetMusicVolume();
             }
         }
     }
 
     /**
-     * Bascule l'état sonore global (SFX) et met à jour les volumes.
+     * Bascule l'état sonore global et met à jour les volumes.
      * Retourne le nouvel état (true = activé, false = muet).
      */
     async toggleMute(): Promise<boolean> {
         const settings = SettingsManager.getSettings();
-        const newState = !settings.isSfxEnabled;
+        const newState = !settings.isAudioEnabled;
         
-        await SettingsManager.setSfxEnabled(newState);
+        await SettingsManager.setAudioEnabled(newState);
         await this.updateVolumes();
         
         return newState;
     }
 
     async unloadSounds() {
+        this.stopWatchdog();
+        if (this.duckingTimeout) {
+            clearTimeout(this.duckingTimeout);
+            this.duckingTimeout = null;
+        }
+        this.currentMusic = null;
+        this.currentMusicName = null;
+        this.pendingMusicName = null;
+
         for (const player of Object.values(this.sounds)) {
             player?.remove();
         }
+
+        Object.keys(this.sounds).forEach((key) => {
+            this.sounds[key as SoundName] = null;
+        });
+    }
+
+    async dispose() {
+        await this.stopMusic(0);
+        await this.unloadSounds();
     }
 }
 

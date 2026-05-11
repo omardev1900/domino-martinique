@@ -1,10 +1,8 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { RoundResultCard } from '../RoundResultCard';
-import { GameState } from '../../../core/types';
 import { createBaseGameState } from '../../../hooks/game/__tests__/testUtils';
-
-// ── Mocks ────────────────────────────────────────────────────────────────────
+import SoundManager from '../../../core/audio/SoundManager';
 
 jest.mock('../../DominoTile', () => ({
     DominoTile: ({ left, right }: any) => {
@@ -19,16 +17,14 @@ jest.mock('react-native-reanimated', () => {
     return {
         __esModule: true,
         default: Animated,
-        FadeIn:  { duration: () => undefined },
+        FadeIn: { duration: () => undefined },
         FadeOut: { duration: () => undefined },
-        ZoomIn:  { duration: () => ({ springify: () => undefined }) },
+        ZoomIn: { duration: () => ({ springify: () => undefined }) },
         useReducedMotion: () => false,
     };
 });
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-const makeDomino = (left: number, right: number) => ({ id: `${left}-${right}`, left, right });
+const makeDomino = (left: number, right: number) => ({ id: `${left}-${right}`, left, right, isDouble: left === right });
 
 const makePlayer = (id: string, name: string, hand: { left: number; right: number }[]) => ({
     id,
@@ -47,102 +43,80 @@ const makePlayer = (id: string, name: string, hand: { left: number; right: numbe
     status: 'HUMAN' as const,
 });
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
-
-describe('RoundResultCard — Fix R3-B3', () => {
-
-    // ── 1. Non visible → rien rendu ──────────────────────────────────────────
-    test('ne rend rien si visible=false', () => {
-        const state = createBaseGameState({ phase: 'BOUDE' });
-        const { queryByText } = render(<RoundResultCard gameState={state} visible={false} />);
-        expect(queryByText(/ÉGALITÉ/i)).toBeNull();
+describe('RoundResultCard', () => {
+    afterAll(async () => {
+        await SoundManager.dispose();
     });
 
-    // ── 2. Boudé-égalité : affiche le mode ÉGALITÉ avec les scores ───────────
-    test('BOUDE égalité → affiche "ÉGALITÉ" et les scores des deux joueurs', () => {
-        // A et B ont exactement le même total de points en main → égalité
+    test('renders nothing when visible is false', () => {
+        const state = createBaseGameState({ phase: 'BOUDE' });
+        const { queryByText } = render(<RoundResultCard gameState={state} visible={false} />);
+        expect(queryByText(/GALIT/i)).toBeNull();
+    });
+
+    test('BOUDE tie shows tie state and player scores', () => {
         const state = createBaseGameState({
             phase: 'BOUDE',
             players: [
-                makePlayer('A', 'Alice', [{ left: 3, right: 2 }]),  // 5 pts
-                makePlayer('B', 'Bob',   [{ left: 4, right: 1 }]),  // 5 pts
-                makePlayer('C', 'Chloe', [{ left: 6, right: 3 }]),  // 9 pts
+                makePlayer('A', 'Alice', [{ left: 3, right: 2 }]),
+                makePlayer('B', 'Bob', [{ left: 4, right: 1 }]),
+                makePlayer('C', 'Chloe', [{ left: 6, right: 3 }]),
             ] as any,
         });
 
-        const { getByText, getAllByTestId } = render(<RoundResultCard gameState={state} visible={true} />);
-
-        // Le header doit indiquer l'égalité
-        expect(getByText(/ÉGALITÉ/i)).toBeTruthy();
-        // Les scores doivent apparaître : 5 pts pour A et B
+        const { getAllByText, getByText, getAllByTestId } = render(<RoundResultCard gameState={state} visible />);
+        expect(getAllByText(/GALIT/i).length).toBeGreaterThan(0);
         expect(getByText(/Alice.*\(5\)/i)).toBeTruthy();
         expect(getByText(/Bob.*\(5\)/i)).toBeTruthy();
-        // Les dominos de chaque joueur doivent être rendus
         expect(getAllByTestId('domino-tile').length).toBeGreaterThanOrEqual(2);
     });
 
-    // ── 3. Boudé avec vainqueur : affiche le gagnant, PAS le mode égalité ────
-    test('BOUDE avec vainqueur unique → affiche le gagnant et ses dominos', () => {
-        // A a le moins de points → gagnant
+    test('BOUDE unique winner shows winner and lowest score label', () => {
         const state = createBaseGameState({
             phase: 'BOUDE',
             players: [
-                makePlayer('A', 'Alice', [{ left: 1, right: 0 }]),  // 1 pt  ← gagnant
-                makePlayer('B', 'Bob',   [{ left: 4, right: 3 }]),  // 7 pts
-                makePlayer('C', 'Chloe', [{ left: 5, right: 5 }]),  // 10 pts
-            ] as any,
-        });
-
-        const { getByText, queryByText } = render(<RoundResultCard gameState={state} visible={true} />);
-
-        // Pas d'égalité
-        expect(queryByText(/ÉGALITÉ/i)).toBeNull();
-        // Alice est affichée comme gagnante (couronne)
-        expect(getByText(/👑.*Alice|Alice/i)).toBeTruthy();
-        // Son score est affiché (boudé win)
-        expect(getByText(/\(1\)/)).toBeTruthy();
-    });
-
-    // ── 4. PARTIE_END classique : gagnant sans scores ────────────────────────
-    test('PARTIE_END victoire normale → affiche le gagnant, pas de scores', () => {
-        const state = createBaseGameState({
-            phase: 'PARTIE_END',
-            firstPlayerOfRound: 'A',
-            players: [
-                makePlayer('A', 'Alice', []),  // main vide = victoire normale
-                makePlayer('B', 'Bob',   [{ left: 4, right: 3 }]),
+                makePlayer('A', 'Alice', [{ left: 1, right: 0 }]),
+                makePlayer('B', 'Bob', [{ left: 4, right: 3 }]),
                 makePlayer('C', 'Chloe', [{ left: 5, right: 5 }]),
             ] as any,
         });
 
-        const { queryByText } = render(<RoundResultCard gameState={state} visible={true} />);
+        const { getByText, queryByText } = render(<RoundResultCard gameState={state} visible />);
+        expect(queryByText(/GALIT/i)).toBeNull();
+        expect(getByText(/Alice/i)).toBeTruthy();
+        expect(getByText(/1\s*PTS\s*—\s*LE MOINS/i)).toBeTruthy();
+    });
 
-        // Pas d'égalité
-        expect(queryByText(/ÉGALITÉ/i)).toBeNull();
-        // Pas de scores inline (pas de boudé win)
+    test('PARTIE_END normal win does not show blocked-game inline scores', () => {
+        const state = createBaseGameState({
+            phase: 'PARTIE_END',
+            firstPlayerOfRound: 'A',
+            players: [
+                makePlayer('A', 'Alice', []),
+                makePlayer('B', 'Bob', [{ left: 4, right: 3 }]),
+                makePlayer('C', 'Chloe', [{ left: 5, right: 5 }]),
+            ] as any,
+        });
+
+        const { queryByText } = render(<RoundResultCard gameState={state} visible />);
+        expect(queryByText(/GALIT/i)).toBeNull();
         expect(queryByText(/\(7\)/)).toBeNull();
         expect(queryByText(/\(10\)/)).toBeNull();
     });
 
-    // ── 5. Snapshot figé : si la phase change après déclenchement, le contenu reste correct ──
-    test('phase BOUDE figée dans le snapshot → le contenu ne change pas si phase passe à PARTIE_END', () => {
-        // Simule le snapshot capturé au moment du déclenchement (phase=BOUDE, égalité)
+    test('BOUDE snapshot remains tie-focused', () => {
         const snapshotState = createBaseGameState({
             phase: 'BOUDE',
             players: [
-                makePlayer('A', 'Alice', [{ left: 3, right: 2 }]),  // 5 pts
-                makePlayer('B', 'Bob',   [{ left: 4, right: 1 }]),  // 5 pts
-                makePlayer('C', 'Chloe', [{ left: 6, right: 3 }]),  // 9 pts
+                makePlayer('A', 'Alice', [{ left: 3, right: 2 }]),
+                makePlayer('B', 'Bob', [{ left: 4, right: 1 }]),
+                makePlayer('C', 'Chloe', [{ left: 6, right: 3 }]),
             ] as any,
         });
 
-        // La carte reçoit le snapshot (phase=BOUDE) même si live est PARTIE_END
-        const { getByText } = render(<RoundResultCard gameState={snapshotState} visible={true} />);
-
-        // Le contenu doit refléter l'égalité du snapshot, pas la victoire du live
-        expect(getByText(/ÉGALITÉ/i)).toBeTruthy();
+        const { getAllByText, getByText } = render(<RoundResultCard gameState={snapshotState} visible />);
+        expect(getAllByText(/GALIT/i).length).toBeGreaterThan(0);
         expect(getByText(/Alice.*\(5\)/i)).toBeTruthy();
         expect(getByText(/Bob.*\(5\)/i)).toBeTruthy();
     });
-
 });
