@@ -4,6 +4,8 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
@@ -101,6 +103,9 @@ async function applyImmersiveMode() {
 export default Sentry.wrap(function RootLayout() {
   const colorScheme = useColorScheme();
   const [appReady, setAppReady] = useState(false);
+  const [fontsLoaded] = useFonts({
+    ...Ionicons.font,
+  });
   const pathname = usePathname();
   const router = useRouter();
   const previousPathname = useRef<string | undefined>(undefined);
@@ -224,7 +229,7 @@ export default Sentry.wrap(function RootLayout() {
     }
   }, [appReady]);
 
-  if (!appReady) {
+  if (!appReady || !fontsLoaded) {
     return null;
   }
 
