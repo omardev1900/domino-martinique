@@ -94,6 +94,12 @@
         "projectId": "3a9b61d5-b139-49ab-ae3a-752b9ae42898"
       }
     },
-    "owner": "aboumalak"
+    "owner": "aboumalak",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3a9b61d5-b139-49ab-ae3a-752b9ae42898"
+    }
   }
 }
