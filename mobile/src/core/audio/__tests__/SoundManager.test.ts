@@ -124,4 +124,16 @@ describe('SoundManager priority policy', () => {
         SoundManager.sounds.appActive.play = jest.fn(() => undefined);
         await expect(SoundManager.playMusic('appActive')).resolves.toBeUndefined();
     });
+
+    test('uses one bundled app-active variant per session and a dedicated in-game track', async () => {
+        const appActiveSource = SoundManager.sounds.appActive.source;
+        const inGameSource = SoundManager.sounds.inGame.source;
+        const appActiveVariants = [
+            require('../../../assets/sounds/bgm/bgm-app-active-a.mp3'),
+            require('../../../assets/sounds/bgm/bgm-app-active-b.mp3'),
+        ];
+
+        expect(appActiveVariants).toContain(appActiveSource);
+        expect(inGameSource).toBe(require('../../../assets/sounds/bgm/bgm-in-game.mp3'));
+    });
 });

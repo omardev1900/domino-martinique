@@ -1,16 +1,12 @@
 import { createAudioPlayer, AudioPlayer, setAudioModeAsync, AudioSource } from 'expo-audio';
 import { Platform } from 'react-native';
-import { db } from '../services/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import SettingsManager, { BgmTheme } from '../SettingsManager';
+import SettingsManager from '../SettingsManager';
 import { LogService } from '../services/LogService';
 
 type MusicContext = 'appActive' | 'inGame';
 type LegacyMusicContext = 'bgm1' | 'bgm2' | 'bgm3' | 'mainMenu' | 'gameNormal' | 'gameIntense';
 type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | MusicContext | 'end' | 'toktok' | 'timer' | 'end_time' | 'leagueJingle' | 'applause' | 'roundEnd' | 'mancheEnd' | 'matchEnd';
 type SoundCategory = 'ui' | 'gameplay' | 'stinger_major';
-
-type AudioAssignments = Record<MusicContext, string | null>;
 type SoundPolicy = {
     category: SoundCategory;
     cooldownMs: number;
@@ -23,8 +19,12 @@ type SoundPolicy = {
 };
 
 const MUSIC_CONTEXT_FALLBACK: Record<MusicContext, AudioSource> = {
-    appActive: require('@/assets/sounds/bgm/bgm-shared.mp3'),
-    inGame: require('@/assets/sounds/bgm/bgm-shared.mp3'),
+    appActive: require('@/assets/sounds/bgm/bgm-app-active-a.mp3'),
+    inGame: require('@/assets/sounds/bgm/bgm-in-game.mp3'),
+};
+const APP_ACTIVE_VARIANT_SOURCES: Record<'a' | 'b', AudioSource> = {
+    a: require('@/assets/sounds/bgm/bgm-app-active-a.mp3'),
+    b: require('@/assets/sounds/bgm/bgm-app-active-b.mp3'),
 };
 
 const SOUND_POLICIES: Partial<Record<SoundName, SoundPolicy>> = {
@@ -76,13 +76,6 @@ function normalizeMusicContext(value: string): MusicContext | null {
     return null;
 }
 
-function normalizeAssignments(assignments: Record<string, string | null | undefined> | undefined): AudioAssignments {
-    return {
-        appActive: assignments?.appActive ?? assignments?.mainMenu ?? assignments?.bgm3 ?? null,
-        inGame: assignments?.inGame ?? assignments?.gameIntense ?? assignments?.gameNormal ?? assignments?.bgm2 ?? assignments?.bgm1 ?? null,
-    };
-}
-
 class SoundManager {
     private static instance: SoundManager;
     private sounds: Record<SoundName, AudioPlayer | null> = {
@@ -105,6 +98,7 @@ class SoundManager {
     private activeMajorStingerUntil = 0;
 
     private lastPlayTime: Record<string, number> = {};
+    private sessionAppActiveVariant: 'a' | 'b' | null = null;
 
     // WEB AUTOPLAY GUARD
     private userInteracted = Platform.OS !== 'web';
@@ -177,31 +171,6 @@ class SoundManager {
                 LogService.warn('SoundManager', 'setAudioModeAsync issue', e);
             }
 
-            // 1. Fetch Remote Config & Assignments
-            let remoteBGMs: Partial<Record<MusicContext, string>> = {};
-            try {
-                const docRef = doc(db, 'config', 'audio');
-                const snap = await getDoc(docRef);
-                if (snap.exists()) {
-                    const data = snap.data();
-                    const bgmList = data.bgmList || [];
-                    const assignments = normalizeAssignments(data.assignments);
-
-                    // Résoudre chaque slot (bgm1, bgm2, bgm3) en fonction de l'ID assigné
-                    (Object.keys(assignments) as MusicContext[]).forEach(slot => {
-                        const trackId = assignments[slot];
-                        if (trackId) {
-                            const track = bgmList.find((t: any) => t.id === trackId);
-                            if (track && track.url) {
-                                remoteBGMs[slot] = track.url;
-                            }
-                        }
-                    });
-                }
-            } catch (e) {
-                LogService.warn('SoundManager', 'Failed to fetch remote audio config', e);
-            }
-
             const soundMap: Record<SoundName, AudioSource> = {
                 clack1: require('@/assets/sounds/sfx/clack1.mp3'),
                 clack2: require('@/assets/sounds/sfx/clack2.mp3'),
@@ -210,9 +179,8 @@ class SoundManager {
                 win: require('@/assets/sounds/stingers/win.mp3'),
                 lose: require('@/assets/sounds/stingers/lose.mp3'),
                 shuffle: require('@/assets/sounds/sfx/sfx-shuffle.mp3'),
-                // Les deux contextes BGM utilisent le meme fallback local par defaut.
-                appActive: remoteBGMs.appActive || MUSIC_CONTEXT_FALLBACK.appActive,
-                inGame: remoteBGMs.inGame || MUSIC_CONTEXT_FALLBACK.inGame,
+                appActive: this.getSessionAppActiveSource(),
+                inGame: MUSIC_CONTEXT_FALLBACK.inGame,
                 end: require('@/assets/sounds/stingers/end.mp3'),
                 toktok: require('@/assets/sounds/sfx/toktok.mp3'),
                 timer: require('@/assets/sounds/sfx/timer.mp3'),
@@ -235,6 +203,14 @@ class SoundManager {
         } catch (error) {
             LogService.warn('SoundManager', 'Failed to preload sounds', error);
         }
+    }
+
+    private getSessionAppActiveSource(): AudioSource {
+        if (!this.sessionAppActiveVariant) {
+            this.sessionAppActiveVariant = Math.random() < 0.5 ? 'a' : 'b';
+            LogService.info('SoundManager', `Selected appActive BGM variant ${this.sessionAppActiveVariant} for current session`);
+        }
+        return APP_ACTIVE_VARIANT_SOURCES[this.sessionAppActiveVariant];
     }
 
     private async ensurePreloaded() {

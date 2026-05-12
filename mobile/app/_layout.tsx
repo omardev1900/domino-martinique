@@ -170,7 +170,15 @@ export default Sentry.wrap(function RootLayout() {
       return;
     }
 
-    const shouldStaySilent = pathname === '/' || pathname === '/login';
+    const shouldStaySilent =
+      pathname === '/' ||
+      pathname === '/login' ||
+      pathname === '/modal' ||
+      pathname === '/profile' ||
+      pathname === '/stats' ||
+      pathname === '/store' ||
+      pathname === '/collection' ||
+      pathname === '/debug-ligue';
     if (shouldStaySilent) {
       SoundManager.stopMusic();
       return;
