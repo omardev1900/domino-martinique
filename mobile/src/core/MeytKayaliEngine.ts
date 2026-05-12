@@ -1,6 +1,5 @@
 import { Domino, DominoSide, GameState } from './types';
-import { getValidMoves } from './DominoEngine';
-import { ValidMove } from './DominoEngine';
+import { getValidMoves, ValidMove } from './DominoEngine';
 import {
     TileTracker,
     initTileTracker,
@@ -13,12 +12,13 @@ import {
     initOpponentProfiles,
     updateOnPlay,
     updateOnPass,
-    wouldHelpCritical,
+    getExposurePenalty,
 } from './ai/OpponentModeler';
 import {
     calculateBoudeRisk,
     getStrategyMode,
     getMCWeights,
+    StrategyMode,
 } from './ai/EndgameAnalyzer';
 import { simulateCoup } from './ai/MonteCarlo';
 
@@ -28,18 +28,11 @@ export interface MeytKayaliDecision {
     isReversed: boolean;
 }
 
-/**
- * État interne du moteur MÈTKAYALI pour une partie.
- * À conserver entre les tours via useRef dans useBotDecision.
- */
 export interface MeytKayaliState {
     tracker: TileTracker;
     profiles: OpponentProfiles;
 }
 
-/**
- * Initialise le moteur pour une nouvelle partie.
- */
 export function initMeytKayali(myHand: Domino[], opponentIds: string[], initialHandSize = 7): MeytKayaliState {
     return {
         tracker: initTileTracker(myHand, opponentIds, initialHandSize),
@@ -47,9 +40,6 @@ export function initMeytKayali(myHand: Domino[], opponentIds: string[], initialH
     };
 }
 
-/**
- * Met à jour l'état après un coup d'un adversaire.
- */
 export function updateAfterOpponentPlay(
     state: MeytKayaliState,
     playerId: string,
@@ -60,9 +50,6 @@ export function updateAfterOpponentPlay(
     return { tracker, profiles };
 }
 
-/**
- * Met à jour l'état après un passage d'un adversaire.
- */
 export function updateAfterOpponentPass(
     state: MeytKayaliState,
     playerId: string,
@@ -74,21 +61,16 @@ export function updateAfterOpponentPass(
     return { tracker, profiles };
 }
 
-/**
- * Point d'entrée principal : calcule le meilleur coup pour le bot MÈTKAYALI.
- * Retourne null si aucun coup n'est possible (passage).
- */
 export function getMeytKayaliMove(
     engineState: MeytKayaliState,
     gameState: GameState,
     botId: string,
-    simCount = 500
+    simCount = 650
 ): { decision: MeytKayaliDecision | null; updatedState: MeytKayaliState } {
     const botPlayer = gameState.players.find(p => p.id === botId);
     if (!botPlayer) return { decision: null, updatedState: engineState };
 
     const liveState = rebuildStateFromGame(gameState, botId);
-
     const hand = botPlayer.hand;
     const leftValue = gameState.table.leftValue;
     const rightValue = gameState.table.rightValue;
@@ -109,29 +91,14 @@ export function getMeytKayaliMove(
     const boudeRisk = calculateBoudeRisk(gameState, liveState.tracker);
     const mode = getStrategyMode(boudeRisk);
     const weights = getMCWeights(mode);
-
-    // Réduire les simulations en fin de partie pour rester dans le budget temps
-    const avgHandSize = hand.length;
-    const adaptedN = avgHandSize <= 3 ? Math.min(simCount, 200) : simCount;
+    const { simulations, timeBudgetMs, pressureLevel } = getAdaptiveBudget(gameState, botId, validMoves.length, simCount);
 
     let bestMove: ValidMove | null = null;
     let bestScore = -Infinity;
 
     for (const move of validMoves) {
-        // Main du bot après ce coup
         const handAfter = hand.filter(t => t.id !== move.tile.id);
-
-        // Nouvelles extrémités après ce coup
-        let newLeft = leftValue;
-        let newRight = rightValue;
-        if (move.side === 'left') {
-            newLeft = move.isReversed ? move.tile.right : move.tile.left;
-        } else if (move.side === 'right') {
-            newRight = move.isReversed ? move.tile.left : move.tile.right;
-        } else {
-            newLeft = move.tile.left;
-            newRight = move.tile.right;
-        }
+        const { newLeft, newRight } = getNextEnds(move, leftValue, rightValue);
 
         const mc = simulateCoup(
             handAfter,
@@ -141,15 +108,24 @@ export function getMeytKayaliMove(
             newRight,
             liveState.tracker,
             opponentIds,
-            adaptedN
+            simulations,
+            timeBudgetMs
+        );
+
+        const exposurePenalty = getExposurePenalty(liveState.profiles, newLeft ?? 0, newRight ?? 0);
+        const tacticalBonus = evaluateTacticalMove(
+            handAfter,
+            move.tile,
+            newLeft,
+            newRight,
+            liveState.profiles,
+            mode,
+            boudeRisk
         );
 
         let score = weights.winRate * mc.winRate + weights.boudeSafety * mc.boudeSafetyScore;
-
-        // Malus si ce coup donne une sortie à un adversaire CRITICAL
-        if (wouldHelpCritical(liveState.profiles, newLeft ?? 0, newRight ?? 0)) {
-            score -= 0.3;
-        }
+        score += tacticalBonus;
+        score -= exposurePenalty * getExposureWeight(pressureLevel, mode);
 
         if (score > bestScore) {
             bestScore = score;
@@ -159,7 +135,6 @@ export function getMeytKayaliMove(
 
     if (!bestMove) bestMove = validMoves[0];
 
-    // Mettre à jour le tracker avec la tuile jouée par le bot
     const updatedTracker = onTilePlayed(liveState.tracker, bestMove.tile);
 
     return {
@@ -221,4 +196,159 @@ function rebuildStateFromGame(gameState: GameState, botId: string): MeytKayaliSt
     }
 
     return state;
+}
+
+function getNextEnds(
+    move: ValidMove,
+    leftValue: DominoSide | null,
+    rightValue: DominoSide | null
+): { newLeft: DominoSide | null; newRight: DominoSide | null } {
+    let newLeft = leftValue;
+    let newRight = rightValue;
+
+    if (move.side === 'left') {
+        newLeft = move.isReversed ? move.tile.right : move.tile.left;
+    } else if (move.side === 'right') {
+        newRight = move.isReversed ? move.tile.left : move.tile.right;
+    } else {
+        newLeft = move.tile.left;
+        newRight = move.tile.right;
+    }
+
+    return { newLeft, newRight };
+}
+
+function getAdaptiveBudget(
+    gameState: GameState,
+    botId: string,
+    validMoveCount: number,
+    baseSimCount: number
+): { simulations: number; timeBudgetMs: number; pressureLevel: 'normal' | 'high' | 'critical' } {
+    const opponents = gameState.players.filter(p => p.id !== botId && p.status !== 'DISCONNECTED');
+    const minOpponentHand = opponents.reduce((min, player) => Math.min(min, player.hand.length), 7);
+    const avgOpponentHand = opponents.reduce((sum, player) => sum + player.hand.length, 0) / Math.max(opponents.length, 1);
+
+    let pressureLevel: 'normal' | 'high' | 'critical' = 'normal';
+    if (minOpponentHand <= 2 || avgOpponentHand <= 3) pressureLevel = 'critical';
+    else if (minOpponentHand <= 3 || validMoveCount >= 5) pressureLevel = 'high';
+
+    if (pressureLevel === 'critical') {
+        return {
+            simulations: Math.max(baseSimCount, 1100),
+            timeBudgetMs: 150,
+            pressureLevel,
+        };
+    }
+
+    if (pressureLevel === 'high') {
+        return {
+            simulations: Math.max(baseSimCount, 850),
+            timeBudgetMs: 110,
+            pressureLevel,
+        };
+    }
+
+    return {
+        simulations: baseSimCount,
+        timeBudgetMs: 85,
+        pressureLevel,
+    };
+}
+
+function evaluateTacticalMove(
+    handAfter: Domino[],
+    playedTile: Domino,
+    newLeft: DominoSide | null,
+    newRight: DominoSide | null,
+    profiles: OpponentProfiles,
+    mode: StrategyMode,
+    boudeRisk: number
+): number {
+    if (handAfter.length === 0) return 0.5;
+
+    const continuity = getContinuityScore(handAfter, newLeft, newRight);
+    const dominance = getDominanceScore(handAfter, newLeft, newRight);
+    const blockBonus = getBlockBonus(profiles, newLeft, newRight);
+    const heavyBonus = ((playedTile.left + playedTile.right) / 12) * Math.max(0, boudeRisk - 0.25);
+    const selfTrapPenalty = continuity === 0 ? 0.24 : 0;
+
+    if (mode === 'SCORE_MIN') {
+        return (continuity * 0.12) + (dominance * 0.08) + (blockBonus * 0.1) + (heavyBonus * 0.22) - selfTrapPenalty;
+    }
+
+    return (continuity * 0.18) + (dominance * 0.16) + (blockBonus * 0.14) + (heavyBonus * 0.08) - selfTrapPenalty;
+}
+
+function getContinuityScore(
+    handAfter: Domino[],
+    newLeft: DominoSide | null,
+    newRight: DominoSide | null
+): number {
+    if (handAfter.length === 0) return 1;
+
+    let playableFollowUps = 0;
+    for (const tile of handAfter) {
+        if (
+            (newLeft !== null && (tile.left === newLeft || tile.right === newLeft))
+            || (newRight !== null && (tile.left === newRight || tile.right === newRight))
+        ) {
+            playableFollowUps++;
+        }
+    }
+
+    return playableFollowUps / handAfter.length;
+}
+
+function getDominanceScore(
+    handAfter: Domino[],
+    newLeft: DominoSide | null,
+    newRight: DominoSide | null
+): number {
+    const counts = new Map<number, number>();
+    for (const tile of handAfter) {
+        counts.set(tile.left, (counts.get(tile.left) ?? 0) + 1);
+        counts.set(tile.right, (counts.get(tile.right) ?? 0) + 1);
+    }
+
+    const leftCount = newLeft !== null ? counts.get(newLeft) ?? 0 : 0;
+    const rightCount = newRight !== null ? counts.get(newRight) ?? 0 : 0;
+    return Math.min(1, Math.max(leftCount, rightCount) / Math.max(handAfter.length, 1));
+}
+
+function getBlockBonus(
+    profiles: OpponentProfiles,
+    newLeft: DominoSide | null,
+    newRight: DominoSide | null
+): number {
+    if (newLeft === null || newRight === null) return 0;
+
+    let blockedWeight = 0;
+    let totalWeight = 0;
+    for (const profile of profiles.values()) {
+        const risk = getProfilePressureWeight(profile.handSize);
+        totalWeight += risk;
+        const blocksLeft = profile.excludedValues.has(newLeft);
+        const blocksRight = profile.excludedValues.has(newRight);
+        if (blocksLeft && blocksRight) blockedWeight += risk;
+        else if (blocksLeft || blocksRight) blockedWeight += risk * 0.45;
+    }
+
+    if (totalWeight === 0) return 0;
+    return blockedWeight / totalWeight;
+}
+
+function getProfilePressureWeight(handSize: number): number {
+    if (handSize <= 1) return 1.2;
+    if (handSize <= 2) return 1;
+    if (handSize <= 4) return 0.7;
+    return 0.35;
+}
+
+function getExposureWeight(
+    pressureLevel: 'normal' | 'high' | 'critical',
+    mode: StrategyMode
+): number {
+    if (pressureLevel === 'critical') return mode === 'SCORE_MIN' ? 0.55 : 0.75;
+    if (pressureLevel === 'high') return mode === 'SCORE_MIN' ? 0.45 : 0.62;
+    return mode === 'SCORE_MIN' ? 0.35 : 0.5;
 }

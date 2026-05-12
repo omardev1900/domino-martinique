@@ -24,6 +24,7 @@
 
 | Ticket | Description |
 |---|---|
+| **GOD-MODE** | Nouveau mode solo separe "GOD MODE" : 2 bots METKAYALI allies contre le joueur, format `VICTOIRE` v1, acces verrouille par progression joueur |
 | **ANIM-DOMINO-DISTRIB** | Animation de distribution en cascade si `ANIM-DOMINO` ne couvre pas ce besoin |
 | **FIRESTORE-CLIENT-BLOCK** | Documenter et reproduire les `ERR_BLOCKED_BY_CLIENT` sur les channels Firestore Web. Probable cause locale: antivirus / extension navigateur / privacy blocker. Verifier l'impact reel sur les tests multi web avant toute correction produit |
 | **ECO-CHAT-MIGRATED-AT** | Corriger l'ecriture Firestore invalide `economy.chatInventoryMigratedAt = undefined` dans `EconomyService` / fallback Firebase. Firestore refuse `setDoc()` avec valeur `undefined` |
@@ -55,5 +56,6 @@
 ## Specs de reference
 
 - Bots adaptatifs : `docs/specs/features/BOT_ADAPTIVE.md`
+- God Mode : `docs/specs/features/GOD_MODE.md`
 - IA METKAYALI : `docs/specs/BOT_METKAYALI.md`
 - Architecture / tournois : `docs/specs/ARCHITECTURE.md`

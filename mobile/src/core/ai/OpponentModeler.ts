@@ -6,7 +6,7 @@ export type DangerLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export interface OpponentProfile {
     playerId: string;
     excludedValues: Set<number>;
-    likelyTiles: string[];     // IDs des tuiles probablement en main
+    likelyTiles: string[];
     handSize: number;
     playsDoubleFirst: boolean;
     playsHeavyFirst: boolean;
@@ -74,25 +74,33 @@ export function updateOnPass(
     return next;
 }
 
-/**
- * Vérifie si jouer une tuile donnerait une extrémité de table jouable
- * par un adversaire en état CRITICAL.
- * Retourne true si le coup est risqué.
- */
 export function wouldHelpCritical(
     profiles: OpponentProfiles,
     newLeftValue: number,
     newRightValue: number
 ): boolean {
+    return getExposurePenalty(profiles, newLeftValue, newRightValue) >= 0.55;
+}
+
+export function getExposurePenalty(
+    profiles: OpponentProfiles,
+    newLeftValue: number,
+    newRightValue: number
+): number {
+    let highestRisk = 0;
+
     for (const profile of profiles.values()) {
-        if (profile.dangerLevel !== 'CRITICAL') continue;
         const excluded = profile.excludedValues;
-        // Si l'adversaire peut potentiellement jouer sur l'une des nouvelles extrémités
         const canPlayLeft = !excluded.has(newLeftValue);
         const canPlayRight = !excluded.has(newRightValue);
-        if (canPlayLeft || canPlayRight) return true;
+        if (!canPlayLeft && !canPlayRight) continue;
+
+        const likelihood = estimateEndpointLikelihood(profile, newLeftValue, newRightValue, canPlayLeft, canPlayRight);
+        const risk = dangerWeight(profile.dangerLevel) * likelihood;
+        if (risk > highestRisk) highestRisk = risk;
     }
-    return false;
+
+    return highestRisk;
 }
 
 function computeDanger(handSize: number): DangerLevel {
@@ -100,6 +108,40 @@ function computeDanger(handSize: number): DangerLevel {
     if (handSize <= 2) return 'HIGH';
     if (handSize <= 4) return 'MEDIUM';
     return 'LOW';
+}
+
+function estimateEndpointLikelihood(
+    profile: OpponentProfile,
+    newLeftValue: number,
+    newRightValue: number,
+    canPlayLeft: boolean,
+    canPlayRight: boolean
+): number {
+    if (profile.likelyTiles.length === 0) {
+        return canPlayLeft && canPlayRight ? 0.75 : 0.55;
+    }
+
+    const matches = profile.likelyTiles.filter(id => {
+        const [lo, hi] = id.split('-').map(Number);
+        return (canPlayLeft && (lo === newLeftValue || hi === newLeftValue))
+            || (canPlayRight && (lo === newRightValue || hi === newRightValue));
+    }).length;
+
+    const ratio = matches / profile.likelyTiles.length;
+    return Math.max(0.2, Math.min(1, ratio + 0.15));
+}
+
+function dangerWeight(level: DangerLevel): number {
+    switch (level) {
+        case 'CRITICAL':
+            return 1;
+        case 'HIGH':
+            return 0.72;
+        case 'MEDIUM':
+            return 0.38;
+        default:
+            return 0.18;
+    }
 }
 
 function cloneProfiles(profiles: OpponentProfiles): OpponentProfiles {
