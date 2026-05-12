@@ -24,6 +24,14 @@
   - Le declenchement est centralise dans `UnifiedResultOverlay` pour eviter les doublons
   - Validation ciblee ajoutee sur `UnifiedResultOverlay.test.tsx`
 
+- [x] **[AUDIO-BGM-SIMPLIFY]** Simplification finale du modele BGM pre-lancement
+  - Le runtime n'utilise plus que `appActive` et `inGame`
+  - `appActive` choisit une variante locale `A/B` une seule fois par session
+  - `inGame` utilise une piste locale dediee unique
+  - Les ecrans utilitaires (`profil`, `parametres`, `stats`, `boutique`, `collection`) restent silencieux
+  - L'interface admin audio ne peut plus modifier les affectations runtime des BGM
+  - Validation executee sur les tests audio cibles et sur le build `admin`
+
 ### 2026-05-12 - Stabilisation du flow de fin de match
 
 - [x] **[MATCH-END-OVERLAY-FLOW]** Correction de la sequence visuelle et sonore de fin de match

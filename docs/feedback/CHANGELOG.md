@@ -9,6 +9,7 @@
 ### Modifie
 - **Ligue des Cochons** - la celebration de passage de palier est plus marquee : le jingle est maintenant suivi d'un `applause`, la modale reste ouverte jusqu'a une action explicite, et les boutons `Accueil` / `Continuer` encadrent mieux le moment de progression tout en conservant le partage social.
 - **Fin de match** - le modal final du match ajoute maintenant une seconde couche sonore plus chaleureuse : `matchEnd` reste joue en premier, puis `applause` arrive `800 ms` plus tard pour mieux conclure la victoire.
+- **Musique de fond** - la BGM a ete simplifiee a 2 contextes metier : une variante hors partie choisie une seule fois par session, une piste dediee en match, et le silence sur plusieurs ecrans utilitaires comme Profil, Parametres, Stats et Boutique.
 
 ---
 

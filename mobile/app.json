@@ -91,8 +91,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "697f04a4-6ee7-480e-a038-f81c640886f8"
+        "projectId": "3a9b61d5-b139-49ab-ae3a-752b9ae42898"
       }
-    }
+    },
+    "owner": "aboumalak"
   }
 }

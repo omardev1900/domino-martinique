@@ -14,7 +14,7 @@ interface BGMTrack {
   addedAt: number;
 }
 
-type AudioAssignmentKey = 'mainMenu' | 'gameNormal' | 'gameIntense';
+type AudioAssignmentKey = 'appActive' | 'inGame';
 
 interface AudioConfig {
   bgmList: BGMTrack[];
@@ -22,24 +22,21 @@ interface AudioConfig {
 }
 
 const DEFAULT_ASSIGNMENTS: Record<AudioAssignmentKey, string | null> = {
-  mainMenu: null,
-  gameNormal: null,
-  gameIntense: null,
+  appActive: null,
+  inGame: null,
 };
 
 const CONTEXT_LABELS: Record<AudioAssignmentKey, { label: string; icon: string; desc: string }> = {
-  mainMenu: { label: 'Menu Principal', icon: '🏠', desc: 'Musique jouee au lancement et dans les menus.' },
-  gameNormal: { label: 'Partie (Normale)', icon: '🃏', desc: 'Musique d ambiance durant le jeu standard.' },
-  gameIntense: { label: 'Partie (Intense)', icon: '🔥', desc: 'Musique jouee lors des moments critiques.' },
+  appActive: { label: 'Hors partie', icon: 'APP', desc: 'Contexte local package dans le build mobile. Affectation distante desactivee.' },
+  inGame: { label: 'En partie', icon: 'GAME', desc: 'Contexte local package dans le build mobile. Affectation distante desactivee.' },
 };
 
 function normalizeAssignments(
   assignments: Record<string, string | null | undefined> | undefined
 ): Record<AudioAssignmentKey, string | null> {
   return {
-    mainMenu: assignments?.mainMenu ?? assignments?.bgm3 ?? null,
-    gameNormal: assignments?.gameNormal ?? assignments?.bgm1 ?? null,
-    gameIntense: assignments?.gameIntense ?? assignments?.bgm2 ?? null,
+    appActive: assignments?.appActive ?? assignments?.mainMenu ?? assignments?.bgm3 ?? null,
+    inGame: assignments?.inGame ?? assignments?.gameIntense ?? assignments?.gameNormal ?? assignments?.bgm2 ?? assignments?.bgm1 ?? null,
   };
 }
 
@@ -105,7 +102,7 @@ export default function AudioManagementPage() {
 
           const updatedTracks = [...tracks, newTrack];
           await setDoc(doc(db, 'config', 'audio'), { bgmList: updatedTracks }, { merge: true });
-          await logAdminAction('upload_audio', { details: `Nouvelle musique : ${newTrackName}` });
+          await logAdminAction('save_config', { details: `Nouvelle musique audio ajoutee : ${newTrackName}` });
 
           setTracks(updatedTracks);
           setFeedback({ msg: 'Musique ajoutee avec succes !', ok: true });
@@ -126,7 +123,7 @@ export default function AudioManagementPage() {
       const newAssignments = { ...assignments, [slot]: trackId };
       setAssignments(newAssignments);
       await setDoc(doc(db, 'config', 'audio'), { assignments: newAssignments }, { merge: true });
-      await logAdminAction('assign_audio', { details: `Affectation changee pour ${slot}` });
+      await logAdminAction('save_config', { details: `Tentative de mise a jour audio pour ${slot}` });
       setFeedback({ msg: 'Affectation mise a jour.', ok: true });
       setTimeout(() => setFeedback(null), 3000);
     } catch {
@@ -167,7 +164,7 @@ export default function AudioManagementPage() {
       <div className="mb-10">
         <h1 className="text-3xl font-bold tracking-tight text-white">Configuration Audio de "L&apos;Elite"</h1>
         <p className="mt-2 text-gray-400">
-          Gere les musiques par defaut et assigne tes pistes aux differents contextes du jeu.
+          La bibliotheque audio reste consultable ici, mais les BGM runtime sont maintenant verrouillees dans le build mobile.
         </p>
       </div>
 
@@ -190,6 +187,10 @@ export default function AudioManagementPage() {
             <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-white">
               <span className="text-yellow-400">📍</span> Affectation par contexte
             </h2>
+            <div className="mb-5 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 px-4 py-3 text-xs leading-relaxed text-yellow-100">
+              Les contextes BGM `appActive` et `inGame` utilisent maintenant uniquement les fichiers locaux du build mobile.
+              L&apos;interface admin ne peut plus modifier leur selection ni impacter le choix de session.
+            </div>
             <div className="space-y-6">
               {(Object.entries(CONTEXT_LABELS) as [AudioAssignmentKey, (typeof CONTEXT_LABELS)[AudioAssignmentKey]][]).map(
                 ([slot, info]) => (
@@ -201,10 +202,11 @@ export default function AudioManagementPage() {
                     <p className="text-[11px] leading-relaxed text-gray-500">{info.desc}</p>
                     <select
                       value={assignments[slot] || ''}
-                      onChange={(e) => handleAssign(slot, e.target.value || null)}
+                      onChange={() => {}}
+                      disabled
                       className="w-full cursor-pointer rounded-xl border border-gray-700 bg-gray-950 px-3 py-2.5 text-xs text-gray-300 outline-none transition-all focus:ring-1 focus:ring-yellow-400/50"
                     >
-                      <option value="">Musique locale de secours</option>
+                      <option value="">Contexte verrouille au build</option>
                       {tracks.map((track) => (
                         <option key={track.id} value={track.id}>
                           {track.name}

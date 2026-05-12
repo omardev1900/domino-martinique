@@ -25,7 +25,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 | **MATCH-END-OVERLAY-FLOW** | Fin de match - autorite unique sur le modal final et resynchronisation avec les sons terminaux | Haute | Fait |
 | **LEAGUE-GRADEUP-CELEBRATION** | Passage de palier Ligue - celebration plus premium avec applause, modal persistant et partage | Haute | Fait |
 | **MATCH-END-APPLAUSE** | Fin de match - enrichir la celebration sonore avec `applause.mp3` joue 800 ms apres `matchEnd` | Moyenne | Fait |
-| **AUDIO-BGM-SIMPLIFY** | Simplifier la BGM a 2 slots metier (`appActive`, `inGame`) et supprimer l'heritage des anciens contextes | Moyenne | Pret |
+| **AUDIO-BGM-SIMPLIFY** | Simplifier la BGM a 2 slots metier (`appActive`, `inGame`) et supprimer l'heritage des anciens contextes | Moyenne | Fait |
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres | Haute | Differe |
 | **ADS-REWARD** | Doubler les gains apres pub via modal post-match | Moyenne | Differe |
@@ -36,17 +36,16 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 ## Ordre recommande
 
-1. `AUDIO-BGM-SIMPLIFY`
-2. stabilisation / bugs remontes pendant les tests fermes
-3. `ADS-REWARD`
-4. `OTP-INSCRIPTION`
-5. `ECO-REBALANCE`
-6. `R4-TECH-LEADERBOARD`
-7. `ANIM-DOMINO`
+1. stabilisation / bugs remontes pendant les tests fermes
+2. `ADS-REWARD`
+3. `OTP-INSCRIPTION`
+4. `ECO-REBALANCE`
+5. `R4-TECH-LEADERBOARD`
+6. `ANIM-DOMINO`
 
 Raison :
 `MATCH-END-APPLAUSE` est maintenant livre : le modal final de match joue `matchEnd`, puis `applause.mp3` a `+800 ms` depuis la meme source de verite.
-`AUDIO-BGM-SIMPLIFY` devient la prochaine simplification technique utile pour consolider le nouveau modele BGM et reduire le risque de rechute.
+`AUDIO-BGM-SIMPLIFY` est maintenant livre : une variante `appActive` est choisie une fois par session, `inGame` utilise sa piste dediee, et plusieurs ecrans utilitaires restent silencieux.
 `ADS-REWARD` est prevu juste apres validation des tests fermes et avant test ouvert Google Play.
 `OTP-INSCRIPTION` est volontairement reporte apres la phase de test ferme.
 `ECO-REBALANCE` est differe en attendant l'arbitrage produit avec le client et l'associe.
