@@ -7,7 +7,7 @@ import { LogService } from '../services/LogService';
 
 type MusicContext = 'appActive' | 'inGame';
 type LegacyMusicContext = 'bgm1' | 'bgm2' | 'bgm3' | 'mainMenu' | 'gameNormal' | 'gameIntense';
-type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | MusicContext | 'end' | 'toktok' | 'timer' | 'end_time' | 'leagueJingle' | 'roundEnd' | 'mancheEnd' | 'matchEnd';
+type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | MusicContext | 'end' | 'toktok' | 'timer' | 'end_time' | 'leagueJingle' | 'applause' | 'roundEnd' | 'mancheEnd' | 'matchEnd';
 type SoundCategory = 'ui' | 'gameplay' | 'stinger_major';
 
 type AudioAssignments = Record<MusicContext, string | null>;
@@ -43,6 +43,7 @@ const SOUND_POLICIES: Partial<Record<SoundName, SoundPolicy>> = {
     mancheEnd: { category: 'stinger_major', cooldownMs: 1600, ducksMusic: true, duckFactor: 0.2, duckDurationMs: 2000, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2400, majorStingerLockMs: 2200 },
     matchEnd: { category: 'stinger_major', cooldownMs: 1800, ducksMusic: true, duckFactor: 0.18, duckDurationMs: 2200, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2600, majorStingerLockMs: 2400 },
     leagueJingle: { category: 'stinger_major', cooldownMs: 1800, ducksMusic: true, duckFactor: 0.18, duckDurationMs: 2200, exclusiveGroup: 'major_stinger', exclusiveGroupCooldownMs: 2400, majorStingerLockMs: 2200 },
+    applause: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.22, duckDurationMs: 1800, exclusiveGroup: 'celebration_tail', exclusiveGroupCooldownMs: 1800, majorStingerLockMs: 1800 },
 };
 
 const DEFAULT_SOUND_POLICY: SoundPolicy = {
@@ -66,6 +67,7 @@ const SOUND_MIX_GAINS: Partial<Record<SoundName, number>> = {
     mancheEnd: 0.68,
     matchEnd: 0.74,
     leagueJingle: 0.66,
+    applause: 0.56,
 };
 
 function normalizeMusicContext(value: string): MusicContext | null {
@@ -88,7 +90,7 @@ class SoundManager {
         notify: null, win: null, lose: null,
         shuffle: null, appActive: null, inGame: null,
         end: null, toktok: null,
-        timer: null, end_time: null, leagueJingle: null, roundEnd: null, mancheEnd: null, matchEnd: null,
+        timer: null, end_time: null, leagueJingle: null, applause: null, roundEnd: null, mancheEnd: null, matchEnd: null,
     };
 
     private currentMusic: AudioPlayer | null = null;
@@ -216,6 +218,7 @@ class SoundManager {
                 timer: require('@/assets/sounds/sfx/timer.mp3'),
                 end_time: require('@/assets/sounds/sfx/end_time.mp3'),
                 leagueJingle: require('@/assets/sounds/stingers/stinger-league.mp3'),
+                applause: require('@/assets/sounds/stingers/applause.mp3'),
                 roundEnd: require('@/assets/sounds/stingers/stinger-round-end.mp3'),
                 mancheEnd: require('@/assets/sounds/stingers/stinger-manche-end.mp3'),
                 matchEnd: require('@/assets/sounds/stingers/stinger-match-end.mp3'),

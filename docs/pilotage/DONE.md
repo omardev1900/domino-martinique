@@ -9,6 +9,15 @@
 
 ## Mai 2026
 
+### 2026-05-12 - Celebrations Ligue et finitions pre-lancement
+
+- [x] **[LEAGUE-GRADEUP-CELEBRATION]** Passage de palier Ligue rendu plus premium
+  - `applause.mp3` integre au pipeline audio et joue `800 ms` apres `leagueJingle`
+  - La modale de grade-up ne se ferme plus sur simple tap hors CTA
+  - Ajout de CTA explicites `Accueil` et `Continuer`
+  - Le partage social du palier reste disponible dans la modale
+  - Validation ciblee ajoutee sur `RewardOverlay.test.tsx` et `SoundManager.test.ts`
+
 ### 2026-05-12 - Stabilisation du flow de fin de match
 
 - [x] **[MATCH-END-OVERLAY-FLOW]** Correction de la sequence visuelle et sonore de fin de match
@@ -17,6 +26,13 @@
   - `RoundResultCard` et `UnifiedResultOverlay` reinitialisent correctement leur garde-fou audio a la fermeture
   - Le stinger `matchEnd` est joue par l'overlay final du match, sans conflit avec le resume de round
   - Validation ciblee ajoutee sur `GameScreen.gradeUp.test.tsx` et `RoundResultCard.test.tsx`
+
+- [x] **[AUDIO-ASSET-CLEANUP]** Menage et reorganisation du dossier `assets/sounds`
+  - Suppression des fichiers legacy non utilises et retrait complet de `start-game.mp3`
+  - Renommage des fichiers metier pour des noms plus explicites (`stinger-*`, `sfx-shuffle`, `bgm-shared`)
+  - Reorganisation en sous-dossiers `bgm/`, `sfx/`, `stingers/`
+  - `SoundManager.ts` realigne sur les nouveaux chemins
+  - Tests audio cibles relances avec succes
 
 ### 2026-05-11 - Stabilisation audio gameplay avant lancement
 

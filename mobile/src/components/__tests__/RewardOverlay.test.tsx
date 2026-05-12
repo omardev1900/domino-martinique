@@ -2,6 +2,7 @@ import React from 'react';
 import { render, act } from '@testing-library/react-native';
 import { RewardOverlay } from '../RewardOverlay';
 import { MatchReward } from '../../core/economy.types';
+import SoundManager from '../../core/audio/SoundManager';
 
 jest.mock('react-native-reanimated', () => {
     const Reanimated = require('react-native-reanimated/mock');
@@ -75,8 +76,16 @@ describe('RewardOverlay', () => {
             jest.advanceTimersByTime(1300);
         });
 
-        expect(screen.getByText('PALIER MENSUEL')).toBeTruthy();
-        expect(screen.getByText('TU ES PASSÉ AU GRADE')).toBeTruthy();
+        expect(SoundManager.playSound).toHaveBeenCalledWith('leagueJingle');
+
+        await act(async () => {
+            jest.advanceTimersByTime(800);
+        });
+
+        expect(screen.getByText(/FELICITATIONS|FÉLICITATIONS/i)).toBeTruthy();
         expect(screen.getAllByText(/APPRENTI/i).length).toBeGreaterThan(0);
-    });
+        expect(screen.getByLabelText('Fermer celebration')).toBeTruthy();
+        expect(screen.getAllByText(/10.*cochons/i).length).toBeGreaterThan(0);
+        expect(SoundManager.playSound).toHaveBeenCalledWith('applause');
+    }, 20000);
 });

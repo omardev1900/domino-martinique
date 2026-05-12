@@ -114,8 +114,7 @@ export default function DebugLigueScreen() {
                     if (delta > 0) {
                         const newUnlocks = leagueService.computeNewUnlocks(prevCochons, delta);
                         if (newUnlocks.length > 0) {
-                            setLastUnlockedGrade(newUnlocks[newUnlocks.length - 1].grade);
-                            setTimeout(() => setShowUnlockModal(true), 300);
+                            triggerDebugRewardOverlay(newUnlocks[newUnlocks.length - 1].grade);
                         }
                     }
 
@@ -131,6 +130,12 @@ export default function DebugLigueScreen() {
         };
     }, [autoPlay]);
 
+    const triggerDebugRewardOverlay = (gradeToShow: string) => {
+        setShowUnlockModal(false);
+        setLastUnlockedGrade(gradeToShow);
+        setTimeout(() => setShowUnlockModal(true), 60);
+    };
+
     const handleDemoState = (index: number) => {
         const prev = cochons;
         const next = DEMO_STATES[index].cochons;
@@ -144,8 +149,7 @@ export default function DebugLigueScreen() {
             unlockedFrames,
         );
         if (newUnlocks.length > 0) {
-            setLastUnlockedGrade(newUnlocks[newUnlocks.length - 1].grade);
-            setTimeout(() => setShowUnlockModal(true), 400);
+            triggerDebugRewardOverlay(newUnlocks[newUnlocks.length - 1].grade);
         }
     };
 
@@ -155,8 +159,7 @@ export default function DebugLigueScreen() {
         const newUnlocks = leagueService.computeNewUnlocks(prev, Math.abs(n > 0 ? n : 0), unlockedFrames);
         setCochons(next);
         if (newUnlocks.length > 0 && n > 0) {
-            setLastUnlockedGrade(newUnlocks[newUnlocks.length - 1].grade);
-            setTimeout(() => setShowUnlockModal(true), 400);
+            triggerDebugRewardOverlay(newUnlocks[newUnlocks.length - 1].grade);
         }
     };
 
@@ -282,7 +285,7 @@ export default function DebugLigueScreen() {
                             <TouchableOpacity
                                 key={grade}
                                 style={styles.modalTestBtn}
-                                onPress={() => { setLastUnlockedGrade(grade); setShowUnlockModal(true); }}
+                                onPress={() => triggerDebugRewardOverlay(grade)}
                             >
                                 <Text style={styles.modalTestEmoji}>{LEAGUE_ICONS[grade]}</Text>
                                 <Text style={styles.modalTestLabel}>{LEAGUE_LABELS[grade]}</Text>
@@ -303,6 +306,7 @@ export default function DebugLigueScreen() {
             </ScrollView>
             {/* ─── VRAI Modal de récompense de fin de partie ─── */}
             <RewardOverlay
+                key={`debug-reward-${lastUnlockedGrade ?? 'none'}-${showUnlockModal ? 'open' : 'closed'}`}
                 visible={showUnlockModal}
                 isWinner={true}
                 onContinue={() => setShowUnlockModal(false)}

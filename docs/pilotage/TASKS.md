@@ -23,7 +23,8 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 |---|---|---|---|
 | **AUDIO-GAMEPLAY-HARDENING** | Audit et stabilisation audio gameplay - chevauchements BGM, doublons SFX, mix et pipeline pro | Haute | Fait |
 | **MATCH-END-OVERLAY-FLOW** | Fin de match - autorite unique sur le modal final et resynchronisation avec les sons terminaux | Haute | Fait |
-| **LEAGUE-GRADEUP-CELEBRATION** | Passage de palier Ligue - celebration plus premium avec applause, modal persistant et partage | Haute | Pret |
+| **LEAGUE-GRADEUP-CELEBRATION** | Passage de palier Ligue - celebration plus premium avec applause, modal persistant et partage | Haute | Fait |
+| **MATCH-END-APPLAUSE** | Fin de match - enrichir la celebration sonore avec `applause.mp3` joue 800 ms apres `matchEnd` | Moyenne | Pret |
 | **AUDIO-BGM-SIMPLIFY** | Simplifier la BGM a 2 slots metier (`appActive`, `inGame`) et supprimer l'heritage des anciens contextes | Moyenne | Pret |
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres | Haute | Differe |
@@ -35,7 +36,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 ## Ordre recommande
 
-1. `LEAGUE-GRADEUP-CELEBRATION`
+1. `MATCH-END-APPLAUSE`
 2. `AUDIO-BGM-SIMPLIFY`
 3. stabilisation / bugs remontes pendant les tests fermes
 4. `ADS-REWARD`
@@ -45,7 +46,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 8. `ANIM-DOMINO`
 
 Raison :
-`LEAGUE-GRADEUP-CELEBRATION` ameliore un moment de progression tres visible pendant les tests fermes : celebration sonore, modal plus assumee et partage social au passage de palier.
+`MATCH-END-APPLAUSE` est un enrichissement localise et simple a valider : garder `matchEnd`, puis declencher `applause.mp3` a `+800 ms`.
 `MATCH-END-OVERLAY-FLOW` est corrige et archive : le modal final a maintenant une sequence dediee et le stinger `matchEnd` n'entre plus en conflit avec le resume de round.
 `AUDIO-BGM-SIMPLIFY` devient la prochaine simplification technique utile pour consolider le nouveau modele BGM et reduire le risque de rechute.
 `ADS-REWARD` est prevu juste apres validation des tests fermes et avant test ouvert Google Play.
@@ -77,6 +78,51 @@ Ordre d'execution recommande :
 2. rendre le modal persistant jusqu'a action utilisateur
 3. ajouter les CTA et le bouton de partage
 4. verifier le timing avec les overlays de recompense existants
+
+---
+
+## Detail prioritaire - MATCH-END-APPLAUSE
+
+Objectif :
+enrichir la celebration de fin de match avec une seconde couche sonore plus chaleureuse, sans casser le stinger actuel.
+
+Demande validee :
+- garder le son de fin de match actuel (`matchEnd`)
+- jouer ensuite `applause.mp3`
+- delai cible : `+800 ms` apres le declenchement de `matchEnd`
+
+Points d'attention :
+- ne pas superposer brutalement les deux sons a volume fort
+- respecter la politique audio existante pour eviter un chevauchement avec d'autres stingers
+- verifier le rendu reel sur mobile et web
+
+Ordre d'execution recommande :
+1. ajouter `applause.mp3` au pipeline audio
+2. declencher `matchEnd`, puis `applause` avec timer `800 ms`
+3. tester la synchronisation avec l'ouverture du modal final
+
+---
+
+## Detail prioritaire - AUDIO-BGM-SIMPLIFY
+
+Objectif :
+reduire la lassitude creee par la BGM actuelle et finir la simplification du modele musical.
+
+Problemes identifies :
+- une boucle BGM unique finit par fatiguer a l'usage
+- l'ancien heritage multi-contextes complique encore le raisonnement produit
+- certains ecrans devraient rester silencieux ou au moins plus sobres
+
+Pistes deja validees :
+- conserver aucun BGM sur splash/login
+- garder 2 contextes maximum : `appActive` et `inGame`
+- etudier ensuite une variation plus agreable :
+  - 2 BGM possibles hors partie
+  - 2 BGM possibles en partie
+  - ou une BGM plus basse / plus discrete selon les ecrans
+
+Point de reprise :
+commencer par le design produit/audio avant d'ajouter plusieurs nouvelles pistes, pour eviter de complexifier le runtime trop tot.
 
 ---
 

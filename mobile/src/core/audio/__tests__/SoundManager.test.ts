@@ -87,6 +87,18 @@ describe('SoundManager priority policy', () => {
         expect(SoundManager.sounds.matchEnd.volume).toBeCloseTo(0.74, 2);
     });
 
+    test('loads applause as a softer celebration tail than the main league jingle', async () => {
+        await SoundManager.playSound('leagueJingle');
+        expect(SoundManager.sounds.leagueJingle.volume).toBeCloseTo(0.66, 2);
+
+        await SoundManager.dispose();
+        await SoundManager.preloadSounds();
+
+        await SoundManager.playSound('applause');
+        expect(SoundManager.sounds.applause.play).toHaveBeenCalledTimes(1);
+        expect(SoundManager.sounds.applause.volume).toBeCloseTo(0.56, 2);
+    });
+
     test('can mute BGM without muting SFX', async () => {
         const SettingsManager = require('../../SettingsManager').default;
         await SoundManager.playMusic('inGame');

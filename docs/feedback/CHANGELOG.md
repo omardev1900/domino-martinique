@@ -4,6 +4,13 @@
 
 ---
 
+## [2.5.2] - 2026-05-12
+
+### Modifie
+- **Ligue des Cochons** - la celebration de passage de palier est plus marquee : le jingle est maintenant suivi d'un `applause`, la modale reste ouverte jusqu'a une action explicite, et les boutons `Accueil` / `Continuer` encadrent mieux le moment de progression tout en conservant le partage social.
+
+---
+
 ## [2.5.1] - 2026-05-11
 
 ### Corrige

@@ -128,8 +128,8 @@ export function ShareImageButton({ children, text, label = 'Partager' }: ShareIm
     };
 
     return (
-        <View>
-            <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
+        <View style={styles.shareBtnWrapper}>
+            <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }} style={styles.offscreen}>
                 {children}
             </ViewShot>
             <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.8} disabled={sharing}>
@@ -175,11 +175,12 @@ interface GradeShareCardProps {
     gradeIcon: string;
     totalCochons: number;
     accentColor: string;
+    compact?: boolean;
 }
 
-export function GradeShareCard({ playerName, gradeLabel, gradeIcon, totalCochons, accentColor }: GradeShareCardProps) {
+export function GradeShareCard({ playerName, gradeLabel, gradeIcon, totalCochons, accentColor, compact = false }: GradeShareCardProps) {
     return (
-        <View style={[styles.card, { borderColor: accentColor }]}>
+        <View style={[styles.card, compact && styles.cardCompact, { borderColor: accentColor }]}>
             <Text style={styles.cardAppName}>🎲 {APP_NAME}</Text>
             <Text style={styles.cardPlayerName}>{playerName}</Text>
             <Text style={styles.cardGradeIcon}>{gradeIcon}</Text>
@@ -271,6 +272,11 @@ const styles = StyleSheet.create({
         padding: 24,
         alignItems: 'center',
         gap: 8,
+    },
+    cardCompact: {
+        width: 220,
+        padding: 16,
+        gap: 4,
     },
     cardAppName: {
         color: 'rgba(255,255,255,0.5)',

@@ -83,6 +83,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
     const [showFrameModal, setShowFrameModal] = useState(false);
     // Modale grade-up (uniquement si pas de nouveau cadre, pour éviter le double-popup)
     const [showGradeUpModal, setShowGradeUpModal] = useState(false);
+    const [gradeUpApplausePlayed, setGradeUpApplausePlayed] = useState(false);
 
     // Animation flottante pour le cadre (Déplacée au niveau racine absolu, avant tout return conditionnel !)
     const floatingStyle = useAnimatedStyle(() => {
@@ -105,8 +106,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
     useEffect(() => {
         // Modale grade-up uniquement si gradeUp sans nouveau cadre (sinon le cadre affiche déjà les félicitations)
         if (visible && reward?.gradeUp && (!LEAGUE_FRAMES_ENABLED || !reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0)) {
-            const timer = setTimeout(() => setShowGradeUpModal(true), 1200);
-            return () => clearTimeout(timer);
+            setShowGradeUpModal(true);
         } else {
             setShowGradeUpModal(false);
         }
@@ -117,12 +117,28 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
         SoundManager.playSound('leagueJingle');
     }, [showGradeUpModal]);
 
+    useEffect(() => {
+        if (!showGradeUpModal || gradeUpApplausePlayed) return;
+        const timer = setTimeout(() => {
+            SoundManager.playSound('applause');
+            setGradeUpApplausePlayed(true);
+        }, 800);
+        return () => clearTimeout(timer);
+    }, [showGradeUpModal, gradeUpApplausePlayed]);
+
+    useEffect(() => {
+        if (!showGradeUpModal) {
+            setGradeUpApplausePlayed(false);
+        }
+    }, [showGradeUpModal]);
+
     if (!visible || !reward) return null;
 
     const isLevelUp = reward.leveledUp;
     const isGradeUp = reward.gradeUp;
     const gradeTheme = reward.newGrade ? getGradeTheme(reward.newGrade) : null;
     const popupScrollMaxHeight = height * (isLandscape ? 0.9 : 0.82);
+    const isStandaloneGradeUp = isGradeUp && (!LEAGUE_FRAMES_ENABLED || !reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0);
 
     return (
         <Animated.View
@@ -135,7 +151,8 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
                 style={StyleSheet.absoluteFillObject}
             />
 
-
+            {!isStandaloneGradeUp && (
+                <>
             {/* Boutique Bouton CONTINUER (Centre Haut) */}
             <TouchableOpacity
                 style={[styles.continuePill, { top: isLandscape ? 15 : 40 }]}
@@ -260,6 +277,8 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
                     */}
                 </View>
             </Animated.View>
+                </>
+            )}
 
             {/* Modal Détails des Gains */}
             <Modal
@@ -439,7 +458,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
             )}
 
             {/* Modale PASSAGE DE GRADE (sans nouveau cadre) */}
-            {reward.gradeUp && reward.newGrade && (!LEAGUE_FRAMES_ENABLED || !reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0) && (
+            {isStandaloneGradeUp && reward.newGrade && (
                 <Modal
                     visible={showGradeUpModal}
                     animationType="fade"
@@ -447,73 +466,53 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
                     onRequestClose={() => setShowGradeUpModal(false)}
                 >
                     <View style={styles.modalOverlay}>
-                        <TouchableOpacity
-                            activeOpacity={0.9}
-                            onPress={() => setShowGradeUpModal(false)}
-                            style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}
+                        <Animated.View
+                            entering={ZoomIn.duration(700).springify()}
+                            style={[
+                                styles.gradeUpModalContent,
+                                styles.gradeUpModalContentCentered,
+                                gradeTheme && {
+                                    borderColor: gradeTheme.accent,
+                                    shadowColor: gradeTheme.accent,
+                                    backgroundColor: gradeTheme.chip,
+                                },
+                            ]}
                         >
-                            <ScrollView
-                                style={[styles.modalScroll, { maxHeight: popupScrollMaxHeight }]}
-                                contentContainerStyle={styles.modalScrollContent}
-                                showsVerticalScrollIndicator={false}
-                                bounces={false}
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Fermer celebration"
+                                style={styles.gradeUpCloseButton}
+                                onPress={() => setShowGradeUpModal(false)}
+                                activeOpacity={0.8}
                             >
-                            <View style={styles.celebrationHeader}>
-                                <Text style={styles.celebrationTitle}>FÉLICITATIONS !</Text>
-                            </View>
-                            <Animated.View entering={ZoomIn.duration(700).springify()} style={[styles.gradeUpModalContent, gradeTheme && { borderColor: gradeTheme.accent, shadowColor: gradeTheme.accent, backgroundColor: gradeTheme.chip }]}>
-                                <Text style={styles.gradeUpModalIcon}>
-                                    {LEAGUE_ICONS[reward.newGrade]}
-                                </Text>
-                                <View style={[styles.gradeUpAccentPill, gradeTheme && { borderColor: `${gradeTheme.accent}66`, backgroundColor: gradeTheme.chip }]}>
-                                    <Text style={[styles.gradeUpAccentPillText, gradeTheme && { color: gradeTheme.accent }]}>
-                                        PALIER MENSUEL
-                                    </Text>
-                                </View>
-                                <Text style={styles.gradeUpModalTitle}>
-                                    TU ES PASSÉ AU GRADE
-                                </Text>
-                                <Text style={[styles.gradeUpModalGrade, gradeTheme && { color: gradeTheme.accent }]}>
-                                    {LEAGUE_LABELS[reward.newGrade].toUpperCase()}
-                                </Text>
-                                <Text style={[styles.gradeUpModalCochons, gradeTheme && { color: gradeTheme.accent }]}>
-                                    🐷 {reward.newLeaguePoints} COCHONS INFLIGÉS
-                                </Text>
-                                <View style={styles.gradeUpStatsRow}>
-                                    <View style={[styles.gradeUpStatChip, gradeTheme && { borderColor: `${gradeTheme.accent}55`, backgroundColor: gradeTheme.chip }]}>
-                                        <Text style={[styles.gradeUpStatValue, gradeTheme && { color: gradeTheme.accent }]}>
-                                            {reward.previousGrade ? LEAGUE_LABELS[reward.previousGrade] : 'DÃ‰PART'}
-                                        </Text>
-                                        <Text style={styles.gradeUpStatLabel}>grade prÃ©cÃ©dent</Text>
-                                    </View>
-                                    <View style={[styles.gradeUpStatChip, gradeTheme && { borderColor: `${gradeTheme.accent}55`, backgroundColor: gradeTheme.chip }]}>
-                                        <Text style={[styles.gradeUpStatValue, gradeTheme && { color: gradeTheme.accent }]}>
-                                            {reward.nextGradeThreshold ? reward.nextGradeThreshold - reward.newLeaguePoints : 'MAX'}
-                                        </Text>
-                                        <Text style={styles.gradeUpStatLabel}>
-                                            {reward.nextGradeThreshold ? 'avant le suivant' : 'grade max'}
-                                        </Text>
-                                    </View>
-                                </View>
-                                <ShareImageButton
-                                    text={buildGradeShareText({
-                                        gradeLabel: LEAGUE_LABELS[reward.newGrade],
-                                        totalCochons: reward.newLeaguePoints,
-                                    })}
-                                    label="Partager mon palier"
-                                >
-                                    <GradeShareCard
-                                        playerName={playerName}
-                                        gradeLabel={LEAGUE_LABELS[reward.newGrade]}
-                                        gradeIcon={LEAGUE_ICONS[reward.newGrade]}
-                                        totalCochons={reward.newLeaguePoints}
-                                        accentColor={gradeTheme?.accent ?? '#FFD700'}
-                                    />
-                                </ShareImageButton>
-                                <Text style={styles.tapToCloseText}>(Appuyez pour continuer)</Text>
-                            </Animated.View>
-                            </ScrollView>
-                        </TouchableOpacity>
+                                <Ionicons name="close" size={22} color="#FFFFFF" />
+                            </TouchableOpacity>
+                            <Text style={styles.gradeUpSimpleTitle}>FELICITATIONS !</Text>
+                            <Text style={styles.gradeUpModalIcon}>
+                                {LEAGUE_ICONS[reward.newGrade]}
+                            </Text>
+                            <Text style={[styles.gradeUpModalGrade, gradeTheme && { color: gradeTheme.accent }]}>
+                                {LEAGUE_LABELS[reward.newGrade].toUpperCase()}
+                            </Text>
+                            <Text style={[styles.gradeUpModalCochons, gradeTheme && { color: gradeTheme.accent }]}>
+                                {reward.newLeaguePoints} COCHONS INFLIGES
+                            </Text>
+                            <ShareImageButton
+                                text={buildGradeShareText({
+                                    gradeLabel: LEAGUE_LABELS[reward.newGrade],
+                                    totalCochons: reward.newLeaguePoints,
+                                })}
+                                label="Partager mon palier"
+                            >
+                                <GradeShareCard
+                                    playerName={playerName}
+                                    gradeLabel={LEAGUE_LABELS[reward.newGrade]}
+                                    gradeIcon={LEAGUE_ICONS[reward.newGrade]}
+                                    totalCochons={reward.newLeaguePoints}
+                                    accentColor={gradeTheme?.accent ?? '#FFD700'}
+                                />
+                            </ShareImageButton>
+                        </Animated.View>
                     </View>
                 </Modal>
             )}
@@ -673,16 +672,80 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#FF9800',
         borderRadius: 20,
-        paddingHorizontal: 24,
-        paddingVertical: 24,
+        paddingHorizontal: 18,
+        paddingVertical: 18,
         alignItems: 'center',
-        width: '84%',
-        maxWidth: 420,
+        width: '82%',
+        maxWidth: 340,
         shadowColor: '#FF9800',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.8,
         shadowRadius: 20,
         elevation: 20,
+    },
+    gradeUpModalContentCentered: {
+        width: '86%',
+        maxWidth: 360,
+        minWidth: 280,
+        paddingTop: 54,
+        paddingBottom: 20,
+    },
+    gradeUpSimpleTitle: {
+        color: '#FFD700',
+        fontSize: 22,
+        fontWeight: '900',
+        letterSpacing: 1.2,
+        textAlign: 'center',
+        marginBottom: 14,
+        textTransform: 'uppercase',
+    },
+    gradeUpModalContentLandscapePhone: {
+        width: '92%',
+        maxWidth: 720,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+    },
+    gradeUpLandscapeHeader: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+    gradeUpLandscapeTitle: {
+        color: '#FFD700',
+        fontSize: 22,
+        fontWeight: '900',
+        letterSpacing: 1.3,
+    },
+    gradeUpLandscapeBody: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        gap: 14,
+    },
+    gradeUpLandscapeColumnMain: {
+        flex: 1.15,
+        justifyContent: 'space-between',
+    },
+    gradeUpLandscapeColumnSide: {
+        width: 210,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    gradeUpLandscapeHeroRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 8,
+    },
+    gradeUpLandscapeHeroText: {
+        flex: 1,
+    },
+    gradeUpLandscapeSharePreview: {
+        transform: [{ scale: 0.72 }],
+        marginBottom: -28,
+        marginTop: -22,
     },
     gradeUpModalShell: {
         borderRadius: 20,
@@ -698,6 +761,9 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         marginBottom: 10,
     },
+    gradeUpAccentPillCompact: {
+        marginBottom: 0,
+    },
     gradeUpAccentPillText: {
         color: '#FFD700',
         fontSize: 11,
@@ -705,8 +771,12 @@ const styles = StyleSheet.create({
         letterSpacing: 1.2,
     },
     gradeUpModalIcon: {
-        fontSize: 64,
-        marginBottom: 12,
+        fontSize: 52,
+        marginBottom: 8,
+    },
+    gradeUpModalIconLandscape: {
+        fontSize: 42,
+        marginBottom: 0,
     },
     gradeUpModalTitle: {
         color: 'rgba(255,255,255,0.7)',
@@ -718,18 +788,56 @@ const styles = StyleSheet.create({
     },
     gradeUpModalGrade: {
         color: '#FFD700',
-        fontSize: 26,
+        fontSize: 22,
         fontWeight: '900',
         letterSpacing: 2,
         textAlign: 'center',
-        marginBottom: 12,
+        marginBottom: 8,
+    },
+    gradeUpModalGradeLandscape: {
+        fontSize: 24,
+        letterSpacing: 1,
+        textAlign: 'left',
+        marginBottom: 4,
     },
     gradeUpModalCochons: {
         color: '#FF9800',
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '700',
-        marginBottom: 14,
+        marginBottom: 10,
         textAlign: 'center',
+    },
+    gradeUpCloseButton: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        zIndex: 1,
+    },
+    gradeUpModalCochonsLandscape: {
+        fontSize: 14,
+        marginBottom: 0,
+        textAlign: 'left',
+    },
+    gradeUpModalSubtitle: {
+        color: 'rgba(255,255,255,0.78)',
+        fontSize: 13,
+        lineHeight: 19,
+        textAlign: 'center',
+        marginBottom: 16,
+        maxWidth: 320,
+    },
+    gradeUpModalSubtitleLandscape: {
+        maxWidth: '100%',
+        fontSize: 12,
+        lineHeight: 17,
+        textAlign: 'left',
+        marginBottom: 10,
     },
     gradeUpStatsRow: {
         width: '100%',
@@ -738,6 +846,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 10,
         marginBottom: 16,
+    },
+    gradeUpStatsRowLandscape: {
+        gap: 8,
+        marginBottom: 0,
     },
     gradeUpStatChip: {
         flex: 1,
@@ -748,11 +860,19 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         alignItems: 'center',
     },
+    gradeUpStatChipLandscape: {
+        minWidth: 0,
+        paddingVertical: 8,
+        paddingHorizontal: 8,
+    },
     gradeUpStatValue: {
         color: '#FFD700',
         fontSize: 16,
         fontWeight: '900',
         textAlign: 'center',
+    },
+    gradeUpStatValueLandscape: {
+        fontSize: 14,
     },
     gradeUpStatValueMuted: {
         color: '#FFFFFF',
@@ -766,6 +886,52 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         marginTop: 4,
         textAlign: 'center',
+        textTransform: 'uppercase',
+    },
+    gradeUpActions: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 10,
+        marginTop: 12,
+    },
+    gradeUpActionsLandscape: {
+        gap: 8,
+        marginTop: 10,
+    },
+    gradeUpActionButtonLandscape: {
+        minWidth: 116,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+    },
+    gradeUpPrimaryButton: {
+        minWidth: 132,
+        backgroundColor: '#FFD700',
+        borderRadius: 18,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    gradeUpPrimaryButtonText: {
+        color: '#1A0E2E',
+        fontSize: 14,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+    },
+    gradeUpSecondaryButton: {
+        minWidth: 132,
+        borderRadius: 18,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.28)',
+        backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+    gradeUpSecondaryButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '800',
         textTransform: 'uppercase',
     },
     totalsContainer: {
