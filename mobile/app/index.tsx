@@ -160,7 +160,6 @@ export default function PremiumSplashScreen() {
     // ── Navigation ────────────────────────────────────────────────
     const handlePlay = () => {
         SoundManager.unlockAudio();
-        SoundManager.playSound('startGame');
         if (activeRoomIdRef.current) {
             router.replace({ pathname: '/game/[id]', params: { id: activeRoomIdRef.current } });
             return;

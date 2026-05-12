@@ -23,6 +23,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 |---|---|---|---|
 | **AUDIO-GAMEPLAY-HARDENING** | Audit et stabilisation audio gameplay - chevauchements BGM, doublons SFX, mix et pipeline pro | Haute | Fait |
 | **MATCH-END-OVERLAY-FLOW** | Fin de match - autorite unique sur le modal final et resynchronisation avec les sons terminaux | Haute | Fait |
+| **LEAGUE-GRADEUP-CELEBRATION** | Passage de palier Ligue - celebration plus premium avec applause, modal persistant et partage | Haute | Pret |
 | **AUDIO-BGM-SIMPLIFY** | Simplifier la BGM a 2 slots metier (`appActive`, `inGame`) et supprimer l'heritage des anciens contextes | Moyenne | Pret |
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres | Haute | Differe |
@@ -34,21 +35,48 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 ## Ordre recommande
 
-1. `AUDIO-BGM-SIMPLIFY`
-2. stabilisation / bugs remontes pendant les tests fermes
-3. `ADS-REWARD`
-4. `OTP-INSCRIPTION`
-5. `ECO-REBALANCE`
-6. `R4-TECH-LEADERBOARD`
-7. `ANIM-DOMINO`
+1. `LEAGUE-GRADEUP-CELEBRATION`
+2. `AUDIO-BGM-SIMPLIFY`
+3. stabilisation / bugs remontes pendant les tests fermes
+4. `ADS-REWARD`
+5. `OTP-INSCRIPTION`
+6. `ECO-REBALANCE`
+7. `R4-TECH-LEADERBOARD`
+8. `ANIM-DOMINO`
 
 Raison :
+`LEAGUE-GRADEUP-CELEBRATION` ameliore un moment de progression tres visible pendant les tests fermes : celebration sonore, modal plus assumee et partage social au passage de palier.
 `MATCH-END-OVERLAY-FLOW` est corrige et archive : le modal final a maintenant une sequence dediee et le stinger `matchEnd` n'entre plus en conflit avec le resume de round.
 `AUDIO-BGM-SIMPLIFY` devient la prochaine simplification technique utile pour consolider le nouveau modele BGM et reduire le risque de rechute.
 `ADS-REWARD` est prevu juste apres validation des tests fermes et avant test ouvert Google Play.
 `OTP-INSCRIPTION` est volontairement reporte apres la phase de test ferme.
 `ECO-REBALANCE` est differe en attendant l'arbitrage produit avec le client et l'associe.
 `R4-TECH-LEADERBOARD` et `ANIM-DOMINO` restent secondaires tant que les retours de test ferme remontent encore des bugs visibles.
+
+---
+
+## Detail prioritaire - LEAGUE-GRADEUP-CELEBRATION
+
+Objectif :
+rendre le passage de palier Ligue beaucoup plus celebratoire et moins brusque.
+
+Problemes identifies :
+- le modal de passage de palier apparait de facon trop seche
+- aucun son ne vient souligner l'evenement
+- le modal peut se fermer trop vite, ce qui casse le moment
+- absence de partage social alors que c'est un moment fort de progression
+
+Livrables attendus :
+- ajout d'un second son `applause.mp3` pour accompagner le passage de palier
+- modal de grade-up non auto-ferme, avec CTA explicite (`Continuer`, `Accueil` ou equivalent)
+- ajout d'un bouton de partage similaire a la fin de match gagnante
+- verification que la celebration reste propre en solo comme en multi local
+
+Ordre d'execution recommande :
+1. integrer l'asset `applause.mp3` dans le pipeline audio
+2. rendre le modal persistant jusqu'a action utilisateur
+3. ajouter les CTA et le bouton de partage
+4. verifier le timing avec les overlays de recompense existants
 
 ---
 

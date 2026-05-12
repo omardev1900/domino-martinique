@@ -7,7 +7,7 @@ import { LogService } from '../services/LogService';
 
 type MusicContext = 'appActive' | 'inGame';
 type LegacyMusicContext = 'bgm1' | 'bgm2' | 'bgm3' | 'mainMenu' | 'gameNormal' | 'gameIntense';
-type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | MusicContext | 'end' | 'toktok' | 'startGame' | 'timer' | 'end_time' | 'leagueJingle' | 'roundEnd' | 'mancheEnd' | 'matchEnd';
+type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | MusicContext | 'end' | 'toktok' | 'timer' | 'end_time' | 'leagueJingle' | 'roundEnd' | 'mancheEnd' | 'matchEnd';
 type SoundCategory = 'ui' | 'gameplay' | 'stinger_major';
 
 type AudioAssignments = Record<MusicContext, string | null>;
@@ -23,8 +23,8 @@ type SoundPolicy = {
 };
 
 const MUSIC_CONTEXT_FALLBACK: Record<MusicContext, AudioSource> = {
-    appActive: require('@/assets/sounds/bgm.mp3'),
-    inGame: require('@/assets/sounds/bgm.mp3'),
+    appActive: require('@/assets/sounds/bgm/bgm-shared.mp3'),
+    inGame: require('@/assets/sounds/bgm/bgm-shared.mp3'),
 };
 
 const SOUND_POLICIES: Partial<Record<SoundName, SoundPolicy>> = {
@@ -36,7 +36,6 @@ const SOUND_POLICIES: Partial<Record<SoundName, SoundPolicy>> = {
     end_time: { category: 'gameplay', cooldownMs: 700, ducksMusic: true, duckFactor: 0.55, duckDurationMs: 900 },
     notify: { category: 'ui', cooldownMs: 250, ducksMusic: true, duckFactor: 0.55, duckDurationMs: 600 },
     shuffle: { category: 'gameplay', cooldownMs: 500, ducksMusic: true, duckFactor: 0.45, duckDurationMs: 850 },
-    startGame: { category: 'stinger_major', cooldownMs: 1200, ducksMusic: true, duckFactor: 0.2, duckDurationMs: 1400, exclusiveGroup: 'major_stinger', exclusiveGroupCooldownMs: 1400, majorStingerLockMs: 1400 },
     win: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.2, duckDurationMs: 1800, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2200, majorStingerLockMs: 2000 },
     lose: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.2, duckDurationMs: 1800, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2200, majorStingerLockMs: 2000 },
     end: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.2, duckDurationMs: 1800, exclusiveGroup: 'terminal', exclusiveGroupCooldownMs: 2200, majorStingerLockMs: 2000 },
@@ -60,7 +59,6 @@ const SOUND_MIX_GAINS: Partial<Record<SoundName, number>> = {
     toktok: 0.48,
     timer: 0.28,
     end_time: 0.52,
-    startGame: 0.5,
     win: 0.58,
     lose: 0.52,
     end: 0.55,
@@ -90,7 +88,7 @@ class SoundManager {
         notify: null, win: null, lose: null,
         shuffle: null, appActive: null, inGame: null,
         end: null, toktok: null,
-        startGame: null, timer: null, end_time: null, leagueJingle: null, roundEnd: null, mancheEnd: null, matchEnd: null,
+        timer: null, end_time: null, leagueJingle: null, roundEnd: null, mancheEnd: null, matchEnd: null,
     };
 
     private currentMusic: AudioPlayer | null = null;
@@ -203,25 +201,24 @@ class SoundManager {
             }
 
             const soundMap: Record<SoundName, AudioSource> = {
-                clack1: require('@/assets/sounds/clack1.mp3'),
-                clack2: require('@/assets/sounds/clack2.mp3'),
-                clack3: require('@/assets/sounds/clack3.mp3'),
-                notify: require('@/assets/sounds/notify.mp3'),
-                win: require('@/assets/sounds/win.mp3'),
-                lose: require('@/assets/sounds/lose.mp3'),
-                shuffle: require('@/assets/sounds/distribute.mp3'),
-                // TOUTES les musiques utilisent bgm.mp3 par défaut localement (Généralisation)
+                clack1: require('@/assets/sounds/sfx/clack1.mp3'),
+                clack2: require('@/assets/sounds/sfx/clack2.mp3'),
+                clack3: require('@/assets/sounds/sfx/clack3.mp3'),
+                notify: require('@/assets/sounds/sfx/notify.mp3'),
+                win: require('@/assets/sounds/stingers/win.mp3'),
+                lose: require('@/assets/sounds/stingers/lose.mp3'),
+                shuffle: require('@/assets/sounds/sfx/sfx-shuffle.mp3'),
+                // Les deux contextes BGM utilisent le meme fallback local par defaut.
                 appActive: remoteBGMs.appActive || MUSIC_CONTEXT_FALLBACK.appActive,
                 inGame: remoteBGMs.inGame || MUSIC_CONTEXT_FALLBACK.inGame,
-                end: require('@/assets/sounds/end.mp3'),
-                toktok: require('@/assets/sounds/toktok.mp3'),
-                startGame: require('@/assets/sounds/start-game.mp3'),
-                timer: require('@/assets/sounds/timer.mp3'),
-                end_time: require('@/assets/sounds/end_time.mp3'),
-                leagueJingle: require('@/assets/sounds/jingle-ligue.mp3'),
-                roundEnd: require('@/assets/sounds/partie-end.mp3'),
-                mancheEnd: require('@/assets/sounds/manche-end.mp3'),
-                matchEnd: require('@/assets/sounds/match-end.mp3'),
+                end: require('@/assets/sounds/stingers/end.mp3'),
+                toktok: require('@/assets/sounds/sfx/toktok.mp3'),
+                timer: require('@/assets/sounds/sfx/timer.mp3'),
+                end_time: require('@/assets/sounds/sfx/end_time.mp3'),
+                leagueJingle: require('@/assets/sounds/stingers/stinger-league.mp3'),
+                roundEnd: require('@/assets/sounds/stingers/stinger-round-end.mp3'),
+                mancheEnd: require('@/assets/sounds/stingers/stinger-manche-end.mp3'),
+                matchEnd: require('@/assets/sounds/stingers/stinger-match-end.mp3'),
             };
 
             for (const [key, source] of Object.entries(soundMap)) {
@@ -474,14 +471,13 @@ class SoundManager {
     /**
      * Gère un événement de fin de phase proprement
      */
-    async playEvent(event: 'WIN' | 'LOSE' | 'ROUND_END' | 'MANCHE_END' | 'MATCH_END' | 'START') {
+    async playEvent(event: 'WIN' | 'LOSE' | 'ROUND_END' | 'MANCHE_END' | 'MATCH_END') {
         const map: Record<string, SoundName> = {
             WIN: 'win',
             LOSE: 'lose',
             ROUND_END: 'roundEnd',
             MANCHE_END: 'mancheEnd',
-            MATCH_END: 'matchEnd',
-            START: 'startGame'
+            MATCH_END: 'matchEnd'
         };
 
         const sound = map[event];
