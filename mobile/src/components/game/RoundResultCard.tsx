@@ -23,7 +23,10 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
     const lastPlayedPhase = useRef<string | null>(null);
 
     useEffect(() => {
-        if (!visible) return;
+        if (!visible) {
+            lastPlayedPhase.current = null;
+            return;
+        }
         if (lastPlayedPhase.current === gameState.phase) return;
 
         lastPlayedPhase.current = gameState.phase;
@@ -32,8 +35,6 @@ export const RoundResultCard: React.FC<RoundResultCardProps> = ({ gameState, vis
             SoundManager.playSound('roundEnd');
         } else if (gameState.phase === 'MANCHE_END' || gameState.phase === 'BOUDE') {
             SoundManager.playSound('mancheEnd');
-        } else if (gameState.phase === 'MATCH_END') {
-            SoundManager.playSound('matchEnd');
         }
     }, [visible, gameState.phase]);
 

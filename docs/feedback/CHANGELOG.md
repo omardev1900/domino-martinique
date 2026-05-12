@@ -9,9 +9,11 @@
 ### Corrige
 - **Mode Cochon** - le compteur `🐷` represente maintenant correctement les cochons infliges par le vainqueur uniquement. Les joueurs qui tombent a `0 etoile` ne gagnent plus de cochon par erreur et recoivent seulement le malus `-1 point`.
 - **Partie bloquee / egalite** - en cas de redonne apres egalite, le prochain depart est maintenant reserve aux joueurs ex aequo, avec priorite au plus grand double parmi eux. Correction egalement d'un cas rare de modal de fin de round qui pouvait rester affiche sur un client en multijoueur.
+- **Fin de match** - la sequence d'affichage entre resume de round/manche et modal final de match a ete fiabilisee. Le modal final n'apparait plus trop tot avant de disparaitre, et le son `matchEnd` est desormais synchronise avec le vrai modal final.
 
 ### Modifie
 - **Ligue des Cochons (mobile)** - l'ecran `/ligue-cochons` a ete compacte pour rendre les classements plus lisibles : header reduit, navigation remontee en haut, lignes joueurs plus denses, et filtres de classement deplaces dans une colonne laterale compacte avec `Total / Perf` visible uniquement sur le filtre actif.
+- **Audio gameplay** - la musique ne joue plus sur splash/login, les controles `Musique` et `Effets` sont separes en partie, et la lecture des sons de resultat a ete fiabilisee.
 
 ---
 

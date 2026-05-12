@@ -1,12 +1,16 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { act, render, waitFor } from '@testing-library/react-native';
 import GameScreen from '../GameScreen';
 import { MatchReward } from '../../core/economy.types';
 
 jest.setTimeout(15000);
 
+const mockGameOverlays = jest.fn(() => null);
 const mockRewardOverlay = jest.fn(() => null);
 const mockRoundResultCard = jest.fn(() => null);
+
+const getLastOverlayProps = () => mockGameOverlays.mock.calls[mockGameOverlays.mock.calls.length - 1][0];
+const getLastRoundResultProps = () => mockRoundResultCard.mock.calls[mockRoundResultCard.mock.calls.length - 1][0];
 
 jest.mock('react-native-reanimated', () => {
     const Reanimated = require('react-native-reanimated/mock');
@@ -53,7 +57,7 @@ jest.mock('../../components/game/GameOptionsMenu', () => ({
     GameOptionsMenu: () => null,
 }));
 jest.mock('../../components/game/GameOverlays', () => ({
-    GameOverlays: () => null,
+    GameOverlays: (props: any) => mockGameOverlays(props),
 }));
 jest.mock('../../components/game/PlayerArea', () => ({
     PlayerArea: () => null,
@@ -319,6 +323,10 @@ jest.mock('../../core/services/ad.service', () => ({
 }));
 
 describe('GameScreen grade-up flow', () => {
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
         mockCurrentGameState = {
@@ -455,5 +463,74 @@ describe('GameScreen grade-up flow', () => {
             expect(lastCall.gameState.history[0].domino.left).toBe(1);
             expect(lastCall.gameState.history[0].domino.right).toBe(4);
         });
+    });
+
+    it('n affiche pas l overlay final de match avant la fin du RoundResultCard quand on sort d une fin de manche', async () => {
+        jest.useFakeTimers();
+
+        mockCurrentGameState = {
+            ...mockCurrentGameState,
+            phase: 'MANCHE_END',
+            mancheResult: 'COCHON',
+        } as any;
+
+        const view = render(
+            <GameScreen
+                gameId="game-123"
+                userId="p1"
+                mode="solo"
+                gameMode="MANCHE"
+                winningCondition={3}
+                turnDuration={15}
+                startingHandSize={7}
+            />
+        );
+
+        await act(async () => {
+            await Promise.resolve();
+        });
+        expect(getLastOverlayProps().showScoreOverlay).toBe(false);
+
+        await act(async () => {
+            jest.advanceTimersByTime(5000);
+            await Promise.resolve();
+        });
+
+        expect(getLastOverlayProps().showScoreOverlay).toBe(true);
+
+        mockCurrentGameState = {
+            ...mockCurrentGameState,
+            phase: 'MATCH_END',
+            mancheResult: null,
+        } as any;
+
+        view.rerender(
+            <GameScreen
+                gameId="game-123"
+                userId="p1"
+                mode="solo"
+                gameMode="MANCHE"
+                winningCondition={3}
+                turnDuration={15}
+                startingHandSize={7}
+            />
+        );
+
+        await act(async () => {
+            await Promise.resolve();
+        });
+        expect(getLastOverlayProps().showScoreOverlay).toBe(false);
+        expect(getLastRoundResultProps().visible).toBe(true);
+        expect(getLastRoundResultProps().gameState.phase).toBe('MATCH_END');
+
+        await act(async () => {
+            jest.advanceTimersByTime(2500);
+            await Promise.resolve();
+        });
+
+        expect(getLastOverlayProps().showScoreOverlay).toBe(true);
+
+        view.unmount();
+        jest.runOnlyPendingTimers();
     });
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { RoundResultCard } from '../RoundResultCard';
 import { createBaseGameState } from '../../../hooks/game/__tests__/testUtils';
+import SoundManager from '../../../core/audio/SoundManager';
 
 jest.mock('../../DominoTile', () => ({
     DominoTile: ({ left, right }: any) => {
@@ -121,5 +122,25 @@ describe('RoundResultCard', () => {
         expect(getAllByText(/GALIT/i).length).toBeGreaterThan(0);
         expect(getByText(/Alice.*\(5\)/i)).toBeTruthy();
         expect(getByText(/Bob.*\(5\)/i)).toBeTruthy();
+    });
+
+    test('rejoue le stinger quand la meme phase terminale se reouvre plus tard', () => {
+        const state = createBaseGameState({
+            phase: 'PARTIE_END',
+            firstPlayerOfRound: 'A',
+            players: [
+                makePlayer('A', 'Alice', []),
+                makePlayer('B', 'Bob', [{ left: 4, right: 3 }]),
+                makePlayer('C', 'Chloe', [{ left: 5, right: 5 }]),
+            ] as any,
+        });
+
+        const { rerender } = render(<RoundResultCard gameState={state} visible />);
+        const initialCalls = (SoundManager.playSound as jest.Mock).mock.calls.filter(([name]) => name === 'roundEnd').length;
+        rerender(<RoundResultCard gameState={state} visible={false} />);
+        rerender(<RoundResultCard gameState={state} visible />);
+        const finalCalls = (SoundManager.playSound as jest.Mock).mock.calls.filter(([name]) => name === 'roundEnd').length;
+
+        expect(finalCalls).toBe(initialCalls + 1);
     });
 });

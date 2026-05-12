@@ -214,7 +214,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     // -- 5. UI State remaining --
     const [showRoomInfo] = useState(false); // conservé pour GameOverlays, non déclenché depuis le header
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
-    const [showScoreboard, setShowScoreboard] = useState(false);
+    const [scoreOverlayPhase, setScoreOverlayPhase] = useState<'MANCHE_END' | 'MATCH_END' | null>(null);
     const [showRoundResult, setShowRoundResult] = useState(false);
     // Snapshot du gameState au moment où la carte résultat est déclenchée.
     // Évite que le contenu change si la phase évolue pendant l'affichage (ex: égalité boudé).
@@ -345,7 +345,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     // ✅ FIX [R2-B7] : on exclut la période d'affichage du RoundResultCard (zIndex 1500) pour éviter
     // qu'il masque l'UnifiedResultOverlay en fin de match.
     const showScoreOverlay = (gameState?.phase === 'MANCHE_END' || gameState?.phase === 'MATCH_END')
-        && (showScoreboard || gameState?.phase === 'MATCH_END')
+        && scoreOverlayPhase === gameState.phase
         && !showRoundResult;
 
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
@@ -558,6 +558,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             && gameState.phase !== 'MATCH_END'
         ) {
             setShowRoundResult(false);
+            setScoreOverlayPhase(null);
             setRoundResultSnapshot(null);
         }
 
@@ -576,6 +577,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         if (gameState.phase === 'BOUDE' && !showRoundResult) {
             // Partie bloquée : card immédiate 3.5s, host résout BOUDE au bout
             boudeHandledRef.current = true;
+            setScoreOverlayPhase(null);
             setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             if (isLocalHost) {
@@ -594,11 +596,13 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             if (boudeHandledRef.current) {
                 // Vient de BOUDE : card déjà montrée, avancer directement sans re-afficher
                 boudeHandledRef.current = false;
+                setScoreOverlayPhase(null);
                 setShowRoundResult(false);
                 partieEndContinueRef.current(); // computeNextRoundState → PLAYING/MANCHE_END
                 return;
             }
             // PARTIE_END classique (victoire normale)
+            setScoreOverlayPhase(null);
             setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             const timer = setTimeout(() => {
@@ -615,14 +619,15 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
         if (gameState.phase === 'MANCHE_END') {
             // Fin de manche : RoundResultCard 5s, PUIS UnifiedResultOverlay
+            setScoreOverlayPhase(null);
             setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
                 if (isAdVisibleRef.current) {
-                    pendingPhaseTransitionRef.current = () => setShowScoreboard(true);
+                    pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MANCHE_END');
                 } else {
-                    setShowScoreboard(true);
+                    setScoreOverlayPhase('MANCHE_END');
                 }
             }, 5000);
             return () => clearTimeout(timer);
@@ -630,14 +635,15 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
         if (gameState.phase === 'MATCH_END') {
             // Fin de match : affichage temporaire du RoundResultCard (2.5s) PUIS UnifiedResultOverlay
+            setScoreOverlayPhase(null);
             setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
                 if (isAdVisibleRef.current) {
-                    pendingPhaseTransitionRef.current = () => setShowScoreboard(true);
+                    pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MATCH_END');
                 } else {
-                    setShowScoreboard(true);
+                    setScoreOverlayPhase('MATCH_END');
                 }
             }, 2500);
             return () => clearTimeout(timer);
@@ -1079,7 +1085,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
     const interceptOverlayContinue = useCallback(() => {
         // La navigation définitive quand l'overlay (qui gère déjà Scores / Historique / Gains) est fermé.
-        setShowScoreboard(false); 
+        setScoreOverlayPhase(null);
         if (gameState?.phase === 'MATCH_END') {
              handleLeaveRoom(); // Quitte la salle définitivement après la fin du match complet
         } else {

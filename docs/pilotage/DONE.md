@@ -9,6 +9,27 @@
 
 ## Mai 2026
 
+### 2026-05-12 - Stabilisation du flow de fin de match
+
+- [x] **[MATCH-END-OVERLAY-FLOW]** Correction de la sequence visuelle et sonore de fin de match
+  - Le modal final de `MATCH_END` est maintenant arme explicitement apres le `RoundResultCard`, au lieu de dependre d'un etat d'overlay residuel
+  - La transition `MANCHE_END -> MATCH_END` ne peut plus faire apparaitre brievement le modal final avant le bon timing
+  - `RoundResultCard` et `UnifiedResultOverlay` reinitialisent correctement leur garde-fou audio a la fermeture
+  - Le stinger `matchEnd` est joue par l'overlay final du match, sans conflit avec le resume de round
+  - Validation ciblee ajoutee sur `GameScreen.gradeUp.test.tsx` et `RoundResultCard.test.tsx`
+
+### 2026-05-11 - Stabilisation audio gameplay avant lancement
+
+- [x] **[AUDIO-GAMEPLAY-HARDENING]** Audit, stabilisation et validation du pipeline audio en jeu
+  - Separation propre entre `Musique` et `Effets` dans le runtime et dans le menu de jeu
+  - Suppression des doublons majeurs sur les sons terminaux round / manche / match
+  - Politique de priorite audio runtime ajoutee : BGM, SFX gameplay, UI, stingers majeurs
+  - Stabilisation des transitions BGM, du watchdog, du preload et du teardown de tests
+  - Tuning centralise des gains SFX (`clack`, `timer`, `end_time`, `notify`, `toktok`, stingers de fin)
+  - Refactor BGM simplifie : aucune musique sur splash / login, une musique hors partie, une musique en partie
+  - Fallback sonore ajoute sur l'overlay final pour mieux securiser le son de fin de match
+  - Validation manuelle confirmee : BGM sur `/home`, BGM et SFX en jeu, mute fonctionnel, modals sonores OK
+
 ### 2026-05-11 - Fix gameplay Cochon + tie-break Boudé en multijoueur
 
 - [x] **[COCHON-SCORE-FIX]** Correction de l'imputation des cochons

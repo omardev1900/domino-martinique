@@ -61,7 +61,10 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     }, [visible]);
 
     useEffect(() => {
-        if (!visible || !isMatchOver) return;
+        if (!visible || !isMatchOver) {
+            lastPlayedPhaseRef.current = null;
+            return;
+        }
         if (lastPlayedPhaseRef.current === gameState.phase) return;
 
         lastPlayedPhaseRef.current = gameState.phase;

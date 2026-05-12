@@ -5,7 +5,7 @@
 >
 > **Flux obligatoire :** `BACKLOG.md` -> `TASKS.md` -> `DONE.md`
 
-**Derniere mise a jour :** 2026-05-10
+**Derniere mise a jour :** 2026-05-12
 **Sprint actuel :** Pre-Lancement Officiel
 
 ---
@@ -21,10 +21,12 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 | Ticket | Description | Priorite | Statut |
 |---|---|---|---|
-| **AUDIO-GAMEPLAY-HARDENING** | Audit et stabilisation audio gameplay - chevauchements BGM, doublons SFX, mix et pipeline pro | Haute | Pret |
-| **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Pret |
-| **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres | Haute | Pret |
-| **ADS-REWARD** | Doubler les gains apres pub via modal post-match | Moyenne | Pret |
+| **AUDIO-GAMEPLAY-HARDENING** | Audit et stabilisation audio gameplay - chevauchements BGM, doublons SFX, mix et pipeline pro | Haute | Fait |
+| **MATCH-END-OVERLAY-FLOW** | Fin de match - autorite unique sur le modal final et resynchronisation avec les sons terminaux | Haute | Fait |
+| **AUDIO-BGM-SIMPLIFY** | Simplifier la BGM a 2 slots metier (`appActive`, `inGame`) et supprimer l'heritage des anciens contextes | Moyenne | Pret |
+| **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
+| **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres | Haute | Differe |
+| **ADS-REWARD** | Doubler les gains apres pub via modal post-match | Moyenne | Differe |
 | **R4-TECH-LEADERBOARD** | Agregats mensuels persistants pour sortir de la limite `matchHistory` | Moyenne | Pret |
 | **ANIM-DOMINO** | Animation glissee des dominos pendant le jeu | Moyenne | Pret |
 
@@ -32,20 +34,21 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 ## Ordre recommande
 
-1. `ECO-REBALANCE`
-2. `AUDIO-GAMEPLAY-HARDENING`
-3. `OTP-INSCRIPTION`
-4. `ADS-REWARD`
-5. `R4-TECH-LEADERBOARD`
-6. `ANIM-DOMINO`
+1. `AUDIO-BGM-SIMPLIFY`
+2. stabilisation / bugs remontes pendant les tests fermes
+3. `ADS-REWARD`
+4. `OTP-INSCRIPTION`
+5. `ECO-REBALANCE`
+6. `R4-TECH-LEADERBOARD`
+7. `ANIM-DOMINO`
 
 Raison :
-`ECO-REBALANCE` reste structurant pour le lancement.
-`AUDIO-GAMEPLAY-HARDENING` est critique pour la perception de qualite en partie et touche directement le ressenti gameplay.
-`OTP-INSCRIPTION` a un fort impact produit/store.
-`ADS-REWARD` depend d'une economie deja cadree.
-`R4-TECH-LEADERBOARD` securise la suite.
-`ANIM-DOMINO` reste utile, mais non bloquant fonctionnel.
+`MATCH-END-OVERLAY-FLOW` est corrige et archive : le modal final a maintenant une sequence dediee et le stinger `matchEnd` n'entre plus en conflit avec le resume de round.
+`AUDIO-BGM-SIMPLIFY` devient la prochaine simplification technique utile pour consolider le nouveau modele BGM et reduire le risque de rechute.
+`ADS-REWARD` est prevu juste apres validation des tests fermes et avant test ouvert Google Play.
+`OTP-INSCRIPTION` est volontairement reporte apres la phase de test ferme.
+`ECO-REBALANCE` est differe en attendant l'arbitrage produit avec le client et l'associe.
+`R4-TECH-LEADERBOARD` et `ANIM-DOMINO` restent secondaires tant que les retours de test ferme remontent encore des bugs visibles.
 
 ---
 
@@ -84,9 +87,9 @@ Ordre d'execution recommande :
 | **AUDIO-C** | Source de verite unique pour les sons terminaux round / manche / match | Haute | Fait |
 | **AUDIO-D** | Politique de priorite audio runtime - BGM, UI, gameplay, stingers majeurs | Moyenne | Fait |
 | **AUDIO-E** | Stabilisation de la musique de fond - transitions, watchdog, reprise, sorties de partie | Haute | Fait |
-| **AUDIO-F** | Tuning du mixage et des volumes percus des SFX critiques | Moyenne | Pret |
-| **AUDIO-G** | Audit et shortlist de remplacement / normalisation des assets audio faibles | Moyenne | Pret |
-| **AUDIO-H** | Validation audio - tests manuels et couverture technique minimale | Moyenne | Pret |
+| **AUDIO-F** | Tuning du mixage et des volumes percus des SFX critiques | Moyenne | Fait |
+| **AUDIO-G** | Audit et shortlist de remplacement / normalisation des assets audio faibles | Moyenne | Fait |
+| **AUDIO-H** | Validation audio - tests manuels et couverture technique minimale | Moyenne | Fait |
 
 Ordre recommande :
 1. `AUDIO-A`
@@ -97,6 +100,36 @@ Ordre recommande :
 6. `AUDIO-F`
 7. `AUDIO-G`
 8. `AUDIO-H`
+
+Shortlist AUDIO-G :
+- `start-game.mp3` : asset tres lourd (~2.5 MB), probablement trop long / envahissant pour un simple lancement. A recouper ou remplacer en priorite.
+- `bgm.mp3` : unique fallback reutilise dans plusieurs contextes herites. A terme, simplifier a 2 slots metier (`appActive`, `inGame`) avec assets dedies.
+- `partie-end.mp3` : plus long et plus massif que `manche-end.mp3` / `match-end.mp3`, a verifier pour eviter un rendu "interrompt puis repart".
+- `timer.mp3` et `end_time.mp3` : garder sous controle; le mix a ete baisse, mais il faudra verifier que l'attaque n'est pas trop agressive en conditions reelles.
+- `notify.mp3` / `toktok.mp3` : petits assets tres frequents, a valider a l'oreille pour s'assurer qu'ils restent premium et non "cheap" a repetition.
+- `clack1.mp3` / `clack2.mp3` / `clack3.mp3` : bons candidats a une normalisation de timbre / niveau si les impacts paraissent heterogenes entre eux.
+
+Checklist AUDIO-H :
+- Boot web/mobile : aucun BGM sur splash ni login.
+- Arrivee sur `/home` : une seule BGM demarre, sans doublon ni reprise audible parasite.
+- Navigation hors partie : la meme BGM reste stable entre home, ligue, boutique, stats.
+- Entree en partie : transition vers la BGM de jeu sans superposition perceptible.
+- Switch `Musique` : coupe/reprend la BGM immediatement.
+- Switch `Effets` : coupe/reprend uniquement les SFX, sans impact sur la BGM.
+- Pose domino : `clack` audible mais discret, sans saturation a repetition.
+- Pass / auto-pass : `toktok` / `notify` audibles mais non agressifs.
+- Timer <5s : `timer` perceptible mais en retrait.
+- Expiration timer : `end_time` plus fort que `timer`, sans etre strident.
+- Fin de round : un seul stinger terminal joue, sans doublon.
+- Fin de manche : un seul stinger terminal joue, sans double modal ni coupure bizarre.
+- Fin de match : son `matchEnd` bien audible et synchronise avec le modal final visible a l'ecran.
+- Revenir au menu apres une partie : pas de musique fantome, pas de reprise double.
+
+Couverture technique deja en place :
+- `src/core/audio/__tests__/SoundManager.test.ts`
+- `src/components/game/__tests__/RoundResultCard.test.tsx`
+- `src/screens/__tests__/GameScreen.gradeUp.test.tsx`
+- `src/core/__tests__/GameIntegration.test.ts`
 
 ---
 
