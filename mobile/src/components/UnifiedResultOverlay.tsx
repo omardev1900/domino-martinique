@@ -50,6 +50,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState<number | null>(null);
     const confettiRef = useRef<ConfettiCannon>(null);
     const lastPlayedPhaseRef = useRef<string | null>(null);
+    const applauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isMatchOver = gameState.phase === 'MATCH_END';
     const isBoude = gameState.phase === 'BOUDE';
@@ -63,12 +64,27 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     useEffect(() => {
         if (!visible || !isMatchOver) {
             lastPlayedPhaseRef.current = null;
+            if (applauseTimeoutRef.current) {
+                clearTimeout(applauseTimeoutRef.current);
+                applauseTimeoutRef.current = null;
+            }
             return;
         }
         if (lastPlayedPhaseRef.current === gameState.phase) return;
 
         lastPlayedPhaseRef.current = gameState.phase;
         SoundManager.playSound('matchEnd');
+        applauseTimeoutRef.current = setTimeout(() => {
+            SoundManager.playSound('applause');
+            applauseTimeoutRef.current = null;
+        }, 800);
+
+        return () => {
+            if (applauseTimeoutRef.current) {
+                clearTimeout(applauseTimeoutRef.current);
+                applauseTimeoutRef.current = null;
+            }
+        };
     }, [visible, isMatchOver, gameState.phase]);
 
     useEffect(() => {

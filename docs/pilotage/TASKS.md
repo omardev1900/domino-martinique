@@ -24,7 +24,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 | **AUDIO-GAMEPLAY-HARDENING** | Audit et stabilisation audio gameplay - chevauchements BGM, doublons SFX, mix et pipeline pro | Haute | Fait |
 | **MATCH-END-OVERLAY-FLOW** | Fin de match - autorite unique sur le modal final et resynchronisation avec les sons terminaux | Haute | Fait |
 | **LEAGUE-GRADEUP-CELEBRATION** | Passage de palier Ligue - celebration plus premium avec applause, modal persistant et partage | Haute | Fait |
-| **MATCH-END-APPLAUSE** | Fin de match - enrichir la celebration sonore avec `applause.mp3` joue 800 ms apres `matchEnd` | Moyenne | Pret |
+| **MATCH-END-APPLAUSE** | Fin de match - enrichir la celebration sonore avec `applause.mp3` joue 800 ms apres `matchEnd` | Moyenne | Fait |
 | **AUDIO-BGM-SIMPLIFY** | Simplifier la BGM a 2 slots metier (`appActive`, `inGame`) et supprimer l'heritage des anciens contextes | Moyenne | Pret |
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres | Haute | Differe |
@@ -36,18 +36,16 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 ## Ordre recommande
 
-1. `MATCH-END-APPLAUSE`
-2. `AUDIO-BGM-SIMPLIFY`
-3. stabilisation / bugs remontes pendant les tests fermes
-4. `ADS-REWARD`
-5. `OTP-INSCRIPTION`
-6. `ECO-REBALANCE`
-7. `R4-TECH-LEADERBOARD`
-8. `ANIM-DOMINO`
+1. `AUDIO-BGM-SIMPLIFY`
+2. stabilisation / bugs remontes pendant les tests fermes
+3. `ADS-REWARD`
+4. `OTP-INSCRIPTION`
+5. `ECO-REBALANCE`
+6. `R4-TECH-LEADERBOARD`
+7. `ANIM-DOMINO`
 
 Raison :
-`MATCH-END-APPLAUSE` est un enrichissement localise et simple a valider : garder `matchEnd`, puis declencher `applause.mp3` a `+800 ms`.
-`MATCH-END-OVERLAY-FLOW` est corrige et archive : le modal final a maintenant une sequence dediee et le stinger `matchEnd` n'entre plus en conflit avec le resume de round.
+`MATCH-END-APPLAUSE` est maintenant livre : le modal final de match joue `matchEnd`, puis `applause.mp3` a `+800 ms` depuis la meme source de verite.
 `AUDIO-BGM-SIMPLIFY` devient la prochaine simplification technique utile pour consolider le nouveau modele BGM et reduire le risque de rechute.
 `ADS-REWARD` est prevu juste apres validation des tests fermes et avant test ouvert Google Play.
 `OTP-INSCRIPTION` est volontairement reporte apres la phase de test ferme.

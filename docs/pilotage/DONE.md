@@ -18,6 +18,12 @@
   - Le partage social du palier reste disponible dans la modale
   - Validation ciblee ajoutee sur `RewardOverlay.test.tsx` et `SoundManager.test.ts`
 
+- [x] **[MATCH-END-APPLAUSE]** Celebration de fin de match enrichie avec un second tail audio
+  - `matchEnd` reste le stinger principal du modal final
+  - `applause.mp3` est maintenant joue `800 ms` apres `matchEnd`
+  - Le declenchement est centralise dans `UnifiedResultOverlay` pour eviter les doublons
+  - Validation ciblee ajoutee sur `UnifiedResultOverlay.test.tsx`
+
 ### 2026-05-12 - Stabilisation du flow de fin de match
 
 - [x] **[MATCH-END-OVERLAY-FLOW]** Correction de la sequence visuelle et sonore de fin de match
