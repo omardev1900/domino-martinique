@@ -14,7 +14,7 @@ import {
     resolveBoude,
     getForcedOpeningDominoId
 } from '../core/LogicEngine';
-import { getBotMove } from '../core/BotEngine';
+import { computeBotDecision } from '../core/BotEngine';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
 import { Alert } from 'react-native';
@@ -152,11 +152,7 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
 
                 const move = forcedOpeningTile
                     ? { tile: forcedOpeningTile, side: 'start' as const }
-                    : getBotMove(
-                        currentPlayer.hand,
-                        gameState.table.leftValue,
-                        gameState.table.rightValue
-                    );
+                    : computeBotDecision(gameState, currentPlayer.id);
 
                 try {
                     let newState;

@@ -16,6 +16,28 @@ type BotProfile = {
   isLocal?: boolean;
 };
 
+function isDifficulty(value: unknown): value is Difficulty {
+  return value === 'TI_MANMAY'
+    || value === 'MAPIPI'
+    || value === 'GRAN_MOUN'
+    || value === 'METKAYALI';
+}
+
+function normalizeBot(raw: Partial<BotProfile>, index: number): BotProfile {
+  const firestoreId = typeof raw.firestoreId === 'string' ? raw.firestoreId : undefined;
+  const difficulty = isDifficulty(raw.difficulty) ? raw.difficulty : 'TI_MANMAY';
+
+  return {
+    firestoreId,
+    id: typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : firestoreId || `bot-${index}`,
+    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Bot sans nom',
+    avatarId: typeof raw.avatarId === 'string' ? raw.avatarId : '',
+    imageUrl: typeof raw.imageUrl === 'string' ? raw.imageUrl : '',
+    difficulty,
+    isLocal: Boolean(raw.isLocal),
+  };
+}
+
 const LOCAL_BOTS: BotProfile[] = [
   { id: 'bot_ti_1', name: 'Ti-Sonson', avatarId: 'avatar_ti_sonson', difficulty: 'TI_MANMAY', isLocal: true },
   { id: 'bot_ti_2', name: 'Man-Yaya', avatarId: 'avatar_man_yaya', difficulty: 'TI_MANMAY', isLocal: true },
@@ -32,6 +54,8 @@ const LOCAL_BOTS: BotProfile[] = [
   { id: 'bot_gran_3', name: 'Man-Zouzou', avatarId: 'avatar_man_zouzou', difficulty: 'GRAN_MOUN', isLocal: true },
   { id: 'bot_gran_4', name: 'Papi-Jo', avatarId: 'avatar_papi_jo', difficulty: 'GRAN_MOUN', isLocal: true },
   { id: 'bot_gran_5', name: 'Tante-Rose', avatarId: 'avatar_tante_rose', difficulty: 'GRAN_MOUN', isLocal: true },
+  { id: 'bot_mk_1', name: 'Man-Diab', avatarId: 'avatar_bot_07', difficulty: 'METKAYALI', isLocal: true },
+  { id: 'bot_mk_2', name: 'Papa-Zombi', avatarId: 'avatar_bot_08', difficulty: 'METKAYALI', isLocal: true },
 ];
 
 const DIFF_META: Record<Difficulty, { label: string; color: string; icon: string; desc: string }> = {
@@ -108,7 +132,10 @@ export default function BotsPage() {
     try {
       const res = await fetch('/api/bots');
       const data = await res.json();
-      setRemoteBots(data.bots ?? []);
+      const safeBots = Array.isArray(data.bots)
+        ? data.bots.map((bot: Partial<BotProfile>, index: number) => normalizeBot(bot, index))
+        : [];
+      setRemoteBots(safeBots);
     } catch { } finally { setLoading(false); }
   }, []);
 
@@ -118,9 +145,10 @@ export default function BotsPage() {
 
   const handleSave = async () => {
     if (!editing?.name?.trim() || !editing.difficulty) return;
+    const isEditing = Boolean(editing.firestoreId);
 
     // Vérifier l'unicité de l'ID pour un nouveau bot
-    const isNew = !editing.imageUrl && !remoteBots.find(b => b.id === editing.id);
+    const isNew = !isEditing && !editing.imageUrl && !remoteBots.find(b => b.id === editing.id);
     const idAlreadyExists = remoteBots.some(b => b.id === editing.id && b.imageUrl !== editing.imageUrl);
     if (isNew && idAlreadyExists) {
       showFeedback(`L'ID "${editing.id}" est déjà utilisé — choisis un ID différent.`);
@@ -205,7 +233,7 @@ export default function BotsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Gestion des Bots IA</h1>
           <p className="text-gray-400 mt-1 text-sm">
-            {remoteBots.length} bots distants · 15 bots locaux (fallback)
+            {remoteBots.length} bots distants | {LOCAL_BOTS.length} bots locaux (fallback)
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -300,7 +328,7 @@ export default function BotsPage() {
               </thead>
               <tbody>
                 {filtered.map((bot) => {
-                  const meta = DIFF_META[bot.difficulty];
+                  const meta = DIFF_META[isDifficulty(bot.difficulty) ? bot.difficulty : 'TI_MANMAY'];
                   return (
                     <tr key={bot.firestoreId ?? `${tab}_${bot.id}`} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
                       <td className="px-4 py-3.5">
@@ -336,7 +364,7 @@ export default function BotsPage() {
                         <td className="px-4 py-3.5 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button onClick={() => {
-                                setEditing({ id: bot.id, name: bot.name, avatarId: bot.avatarId, imageUrl: bot.imageUrl, difficulty: bot.difficulty });
+                                setEditing({ firestoreId: bot.firestoreId, id: bot.id, name: bot.name, avatarId: bot.avatarId, imageUrl: bot.imageUrl, difficulty: bot.difficulty });
                                 setImagePreview(bot.imageUrl || null);
                                 setImageFile(null);
                               }}

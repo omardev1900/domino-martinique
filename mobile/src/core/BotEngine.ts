@@ -2,6 +2,7 @@ import { Domino, DominoSide, GameState } from './types';
 import { getBotMove as getEngineBotMove, ValidMove } from './DominoEngine';
 import { getForcedOpeningDominoId, getForcedTieBreakDominoId } from './LogicEngine';
 import { LogService } from './services/LogService';
+import { getMeytKayaliMove, initMeytKayali } from './MeytKayaliEngine';
 
 /**
  * Interface pour le retour du Bot
@@ -46,8 +47,11 @@ export const getBotMove = (
 
     // MÈTKAYALI utilise getMeytKayaliMove() via computeBotDecision() avec le gameState complet
     // Ce fallback GRAN_MOUN ne doit pas être atteint pour METKAYALI en conditions normales
-    const safeDifficulty = difficulty === 'METKAYALI' ? 'GRAN_MOUN' : difficulty;
-    const decision = getEngineBotMove(hand, { left: leftValue, right: rightValue }, safeDifficulty, playedTiles, opponentPassedValues);
+    if (difficulty === 'METKAYALI') {
+        LogService.error('BotEngine', 'METKAYALI requires full gameState and must be resolved via computeBotDecision.');
+        return null;
+    }
+    const decision = getEngineBotMove(hand, { left: leftValue, right: rightValue }, difficulty, playedTiles, opponentPassedValues);
 
     if (!decision) return null;
 
@@ -72,6 +76,17 @@ export const computeBotDecision = (gameState: GameState, playerId: string): BotD
         if (forcedTile) {
             return { tile: forcedTile, side: 'start' };
         }
+    }
+
+    if (player.difficulty === 'METKAYALI') {
+        const opponentIds = gameState.players
+            .filter(p => p.id !== playerId)
+            .map(p => p.id);
+        const mkState = initMeytKayali(player.hand, opponentIds, gameState.startingHandSize || 7);
+        const { decision } = getMeytKayaliMove(mkState, gameState, playerId);
+        return decision
+            ? { tile: decision.tile, side: decision.side }
+            : null;
     }
 
     // Extract context from GameState for smarter GRAN_MOUN decisions

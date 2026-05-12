@@ -9,11 +9,11 @@ import {
     resolveBoude,
     getForcedOpeningDominoId
 } from '../core/LogicEngine';
-import { getBotMove } from '../core/BotEngine';
+import { computeBotDecision } from '../core/BotEngine';
 import SoundManager from '../core/audio/SoundManager';
 import HapticManager from '../core/audio/HapticManager';
 
-export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' = 'MAPIPI') => {
+export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' | 'METKAYALI' = 'MAPIPI') => {
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [localPlayerId] = useState<PlayerId>(userId);
 
@@ -99,17 +99,13 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
 
             const move = forcedOpeningTile
                 ? { tile: forcedOpeningTile, side: 'start' as const }
-                : getBotMove(
-                    currentPlayer.hand,
-                    currentState.table.leftValue,
-                    currentState.table.rightValue
-                );
+                : computeBotDecision(currentState, currentPlayer.id);
 
             try {
                 let newState: GameState;
 
                 if (move) {
-                    newState = handleTurn(currentState, currentPlayer.id, move.tile);
+                    newState = handleTurn(currentState, currentPlayer.id, move.tile, move.side === 'start' ? undefined : move.side);
                     SoundManager.playClack();
                 } else {
                     newState = passTurn(currentState, currentPlayer.id);

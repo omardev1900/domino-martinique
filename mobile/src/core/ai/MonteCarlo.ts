@@ -1,6 +1,6 @@
 import { Domino, DominoSide } from '../types';
-import { TileTracker, allTiles, tileId } from './TileTracker';
-import { getValidMoves, calculateHandPoints } from '../DominoEngine';
+import { TileTracker } from './TileTracker';
+import { getValidMoves, calculateHandPoints, getGranMounMove } from '../DominoEngine';
 import { handBoudeSafetyScore } from './EndgameAnalyzer';
 
 export interface MCResult {
@@ -101,17 +101,31 @@ function distributeUnknowns(
     const result = new Map<string, Domino[]>();
     for (const pid of opponentIds) result.set(pid, []);
 
-    const handSizes = tracker.handSizes;
+    const remainingSlots = new Map<string, number>();
+    for (const pid of opponentIds) {
+        remainingSlots.set(pid, tracker.handSizes.get(pid) ?? 7);
+    }
+
     const shuffled = [...unknowns].sort(() => Math.random() - 0.5);
 
-    let idx = 0;
-    for (const pid of opponentIds) {
-        const target = handSizes.get(pid) ?? 7;
-        const tiles: Domino[] = [];
-        for (let i = 0; i < target && idx < shuffled.length; i++, idx++) {
-            tiles.push(shuffled[idx]);
+    for (const tile of shuffled) {
+        const state = tracker.tileStates.get(tile.id);
+        if (!state || state.status !== 'UNKNOWN') continue;
+
+        const candidates: { id: string; weight: number }[] = [];
+        for (const pid of opponentIds) {
+            const slotsLeft = remainingSlots.get(pid) ?? 0;
+            const weight = state.probabilities.get(pid) ?? 0;
+            if (slotsLeft > 0 && weight > 0) {
+                candidates.push({ id: pid, weight });
+            }
         }
-        result.set(pid, tiles);
+
+        const chosen = pickWeightedCandidate(candidates);
+        if (!chosen) continue;
+
+        result.get(chosen)!.push(tile);
+        remainingSlots.set(chosen, (remainingSlots.get(chosen) ?? 1) - 1);
     }
 
     return result;
@@ -157,7 +171,7 @@ function runSimulation(state: SimState, botId: string): SimResult {
         } else {
             s.passCount = 0;
             // Heuristique GRAN_MOUN simplifiée pour les simulations
-            const move = moves[Math.floor(Math.random() * moves.length)];
+            const move = getGranMounMove(player.hand, { left: s.leftValue, right: s.rightValue }) ?? moves[0];
             player.hand = player.hand.filter(t => t.id !== move.tile.id);
 
             if (move.side === 'left') {
@@ -186,4 +200,21 @@ function deepCloneSim(state: SimState): SimState {
         currentIdx: state.currentIdx,
         passCount: state.passCount,
     };
+}
+
+function pickWeightedCandidate(candidates: { id: string; weight: number }[]): string | null {
+    if (candidates.length === 0) return null;
+
+    const total = candidates.reduce((sum, candidate) => sum + candidate.weight, 0);
+    if (total <= 0) {
+        return candidates[Math.floor(Math.random() * candidates.length)].id;
+    }
+
+    let cursor = Math.random() * total;
+    for (const candidate of candidates) {
+        cursor -= candidate.weight;
+        if (cursor <= 0) return candidate.id;
+    }
+
+    return candidates[candidates.length - 1].id;
 }

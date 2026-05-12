@@ -157,7 +157,7 @@ export const dealGame = (playerNames: string[], handSize: number = HAND_SIZE): P
 /**
  * Distribution pour Solo Mode : 3 joueurs (1 humain + 2 bots) x 7 dominos
  */
-export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' = 'MAPIPI', handSize: number = HAND_SIZE): Partial<GameState> => {
+export const dealGameSolo = (playerId: string, playerName: string, avatarId: string | undefined, botDifficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' | 'METKAYALI' = 'MAPIPI', handSize: number = HAND_SIZE): Partial<GameState> => {
     const deck = shuffleDeck();
 
     const getBots = (diff: string) => {
@@ -176,6 +176,11 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
                 return [
                     { name: 'Tonton-Léon', avatarId: 'avatar_bot_05', diff: 'GRAN_MOUN' },
                     { name: 'Eudorge', avatarId: 'avatar_bot_06', diff: 'GRAN_MOUN' }
+                ];
+            case 'METKAYALI':
+                return [
+                    { name: 'Man-Diab', avatarId: 'avatar_bot_07', diff: 'METKAYALI' },
+                    { name: 'Papa-Zombi', avatarId: 'avatar_bot_08', diff: 'METKAYALI' }
                 ];
             default:
                 return [

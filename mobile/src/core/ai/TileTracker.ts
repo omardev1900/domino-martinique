@@ -39,7 +39,7 @@ export function allTiles(): Domino[] {
  * @param myHand    Main du bot MÈTKAYALI
  * @param opponents IDs des adversaires
  */
-export function initTileTracker(myHand: Domino[], opponents: string[]): TileTracker {
+export function initTileTracker(myHand: Domino[], opponents: string[], initialHandSize = 7): TileTracker {
     const tileStates = new Map<string, TileStatus>();
     const myIds = new Set(myHand.map(t => t.id));
 
@@ -61,7 +61,7 @@ export function initTileTracker(myHand: Domino[], opponents: string[]): TileTrac
     const handSizes = new Map<string, number>();
     for (const pid of opponents) {
         excludedValues.set(pid, new Set());
-        handSizes.set(pid, 7);
+        handSizes.set(pid, initialHandSize);
     }
 
     return { tileStates, excludedValues, handSizes };

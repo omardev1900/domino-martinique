@@ -40,10 +40,10 @@ export interface MeytKayaliState {
 /**
  * Initialise le moteur pour une nouvelle partie.
  */
-export function initMeytKayali(myHand: Domino[], opponentIds: string[]): MeytKayaliState {
+export function initMeytKayali(myHand: Domino[], opponentIds: string[], initialHandSize = 7): MeytKayaliState {
     return {
-        tracker: initTileTracker(myHand, opponentIds),
-        profiles: initOpponentProfiles(opponentIds),
+        tracker: initTileTracker(myHand, opponentIds, initialHandSize),
+        profiles: initOpponentProfiles(opponentIds, initialHandSize),
     };
 }
 
@@ -87,16 +87,18 @@ export function getMeytKayaliMove(
     const botPlayer = gameState.players.find(p => p.id === botId);
     if (!botPlayer) return { decision: null, updatedState: engineState };
 
+    const liveState = rebuildStateFromGame(gameState, botId);
+
     const hand = botPlayer.hand;
     const leftValue = gameState.table.leftValue;
     const rightValue = gameState.table.rightValue;
 
     const validMoves = getValidMoves(hand, { left: leftValue, right: rightValue });
-    if (validMoves.length === 0) return { decision: null, updatedState: engineState };
+    if (validMoves.length === 0) return { decision: null, updatedState: liveState };
     if (validMoves.length === 1) {
         return {
             decision: moveToDecision(validMoves[0]),
-            updatedState: engineState,
+            updatedState: liveState,
         };
     }
 
@@ -104,7 +106,7 @@ export function getMeytKayaliMove(
         .filter(p => p.id !== botId && p.status !== 'DISCONNECTED')
         .map(p => p.id);
 
-    const boudeRisk = calculateBoudeRisk(gameState, engineState.tracker);
+    const boudeRisk = calculateBoudeRisk(gameState, liveState.tracker);
     const mode = getStrategyMode(boudeRisk);
     const weights = getMCWeights(mode);
 
@@ -137,7 +139,7 @@ export function getMeytKayaliMove(
             move.side,
             newLeft,
             newRight,
-            engineState.tracker,
+            liveState.tracker,
             opponentIds,
             adaptedN
         );
@@ -145,7 +147,7 @@ export function getMeytKayaliMove(
         let score = weights.winRate * mc.winRate + weights.boudeSafety * mc.boudeSafetyScore;
 
         // Malus si ce coup donne une sortie à un adversaire CRITICAL
-        if (wouldHelpCritical(engineState.profiles, newLeft ?? 0, newRight ?? 0)) {
+        if (wouldHelpCritical(liveState.profiles, newLeft ?? 0, newRight ?? 0)) {
             score -= 0.3;
         }
 
@@ -158,14 +160,65 @@ export function getMeytKayaliMove(
     if (!bestMove) bestMove = validMoves[0];
 
     // Mettre à jour le tracker avec la tuile jouée par le bot
-    const updatedTracker = onTilePlayed(engineState.tracker, bestMove.tile);
+    const updatedTracker = onTilePlayed(liveState.tracker, bestMove.tile);
 
     return {
         decision: moveToDecision(bestMove),
-        updatedState: { ...engineState, tracker: updatedTracker },
+        updatedState: { ...liveState, tracker: updatedTracker },
     };
 }
 
 function moveToDecision(move: ValidMove): MeytKayaliDecision {
     return { tile: move.tile, side: move.side, isReversed: move.isReversed };
+}
+
+function rebuildStateFromGame(gameState: GameState, botId: string): MeytKayaliState {
+    const botPlayer = gameState.players.find(p => p.id === botId);
+    if (!botPlayer) {
+        return initMeytKayali([], []);
+    }
+
+    const opponentIds = gameState.players
+        .filter(p => p.id !== botId)
+        .map(p => p.id);
+
+    let state = initMeytKayali(botPlayer.hand, opponentIds, gameState.startingHandSize || 7);
+
+    const seqByDominoId = new Map<string, { sideAtTable: 'left' | 'right'; isReversed: boolean }>();
+    for (const se of gameState.table.sequence) {
+        seqByDominoId.set(se.domino.id, { sideAtTable: se.sideAtTable, isReversed: se.isReversed });
+    }
+
+    let currentLeft: number | null = null;
+    let currentRight: number | null = null;
+    let isFirstPlay = true;
+
+    for (const entry of gameState.history) {
+        if (entry.action === 'PLAY' && entry.domino) {
+            if (entry.playerId === botId) {
+                state = { ...state, tracker: onTilePlayed(state.tracker, entry.domino) };
+            } else {
+                state = updateAfterOpponentPlay(state, entry.playerId, entry.domino);
+            }
+
+            if (isFirstPlay) {
+                currentLeft = entry.domino.left;
+                currentRight = entry.domino.right;
+                isFirstPlay = false;
+            } else {
+                const se = seqByDominoId.get(entry.domino.id);
+                if (se) {
+                    if (se.sideAtTable === 'left') {
+                        currentLeft = se.isReversed ? entry.domino.right : entry.domino.left;
+                    } else {
+                        currentRight = se.isReversed ? entry.domino.left : entry.domino.right;
+                    }
+                }
+            }
+        } else if (entry.action === 'PASS' && entry.playerId !== botId) {
+            state = updateAfterOpponentPass(state, entry.playerId, currentLeft, currentRight);
+        }
+    }
+
+    return state;
 }
