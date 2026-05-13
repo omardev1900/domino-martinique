@@ -92,6 +92,11 @@ GameScreen → useGameEngine → useActionDispatcher → LogicEngine.ts
 1. Cocher la case dans `TASKS.md`
 2. Déplacer l'entrée vers `DONE.md` sous la date du jour
 3. Si visible côté user → ajouter au `CHANGELOG.md`
+4. Retirer tout ticket ou sous-ticket `Fait` restant de `TASKS.md`
+
+**Règle de clôture documentaire :**
+Une tâche n'est pas terminée tant que `TASKS.md`, `DONE.md` et, si nécessaire, `CHANGELOG.md` ne sont pas tous synchronisés.
+`TASKS.md` ne doit contenir que du réellement ouvert : `Prêt`, `En cours`, `Différé`.
 
 **Jamais modifier** un feedback client archivé dans `docs/feedback/CLIENT.md`.
 

@@ -11,6 +11,17 @@
 
 ### 2026-05-13 - Tri de main et finitions UX solo
 
+- [x] **[BUG-LIGUE-GRADEUP-OVERLAY]** Retour correct au `RewardOverlay` principal apres fermeture du popup de palier
+  - Le `X` de la sous-modale Ligue referme uniquement le popup de grade-up
+  - Le `RewardOverlay` principal redevient visible au lieu de laisser un fond vide
+  - Le comportement a ete valide sur le flow Ligue cible
+
+- [x] **[LIGUE-DEBUTANT-FIRST-COCHON]** Ajout du grade `Debutant` des le 1er cochon
+  - `0 cochon` reste `Sans grade`
+  - `1 cochon` donne maintenant le grade `Debutant`
+  - Aucun cadre n'est debloque a ce premier palier, les seuils suivants restent inchanges
+  - Les ecrans Ligue, badges, overlays et regles derivees ont ete realignes
+
 - [x] **[AMELIORATION-HAND-AUTO-SORT]** Tri local de la main en partie
   - Ajout d'un menu `Trier` au-dessus de l'avatar du joueur local
   - V1 livree avec 3 modes : `Auto`, `Doubles`, `Somme`

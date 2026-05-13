@@ -6,7 +6,11 @@
 
 ## [2.5.3] - 2026-05-13
 
+### Corrige
+- **Ligue des Cochons** - fermer le popup de passage de palier renvoie maintenant correctement vers l'ecran principal de recompenses, au lieu de laisser un fond vide.
+
 ### Modifie
+- **Ligue des Cochons** - un premier grade `Debutant` apparait maintenant des le 1er cochon inflige. Ce palier donne uniquement le grade, sans debloquer de cadre, et tous les seuils suivants restent inchanges.
 - **Main en jeu** - un menu `Trier` apparait maintenant au-dessus de l'avatar du joueur local pour reorganiser la main pendant la partie avec 3 modes : `Auto`, `Doubles`, `Somme`.
 - **Options solo** - l'onglet `Infos` affiche desormais la difficulte des bots au-dessus du mode de jeu.
 - **Bots solo** - les avatars des bots n'affichent plus de grade ni de cadre Ligue en mode solo.

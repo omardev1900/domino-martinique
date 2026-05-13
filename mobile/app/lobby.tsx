@@ -476,16 +476,7 @@ export default function LobbyScreen() {
                             colors={['#FFA000', '#FFD54F']}
                             onPress={() => { setGameMode('MANCHE'); setWinningCondition(3); setUiStep('CONFIG'); }}
                             delay={400}
-                        />
-
-                        {/* Scroll Hint */}
-                        <Animated.View 
-                            entering={FadeIn.delay(1200).duration(800)}
-                            style={styles.scrollHint}
-                        >
-                            <Text style={styles.scrollHintText}>Plus de modes</Text>
-                            <Ionicons name="chevron-down" size={14} color="rgba(255,255,255,0.4)" />
-                        </Animated.View>
+                        />                        
                     </View>
                 </View>
             ) : (

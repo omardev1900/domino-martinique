@@ -7,6 +7,20 @@
 
 ---
 
+## Avant lancement officiel - Phase de test ferme
+
+| Ticket | Description | Estimation |
+|---|---|---|
+| **ADS-POST-MATCH-REWARD-UPSSELL** | Apres la pub obligatoire de fin de match pour les non premium, proposer aux joueurs premium inclus une pub volontaire pour gagner des coins |
+| **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression |
+| **ECO-ADS-COINS-TUNING** | Definir la recompense coins du visionnage pub volontaire post-match |
+| **SOLO-REJOUER-REVANCHE** | Priorite moyenne - En solo, revoir le modal de fin de match : apres une victoire afficher `Rejouer`, `Retour aux modes`, `Quitter` ; apres une defaite afficher `Revanche - X coins`, `Retour aux modes`, `Quitter`. `Rejouer` relance les memes parametres avec de nouveaux bots et le cout solo normal. `Revanche` relance exactement les memes parametres contre les memes bots, avec cout progressif `500`, `1000`, `2000`, etc. La serie s'arrete des que le joueur quitte l'ecran de match. Si le joueur gagne une revanche, il recupere sa mise et gagne `+300` coins. |
+| **AMELIORATION-MULTI-LOBBY-BOT-FILL** | Permettre a l'hote de completer un lobby incomplet avec un bot, avec priorite a un joueur humain si quelqu'un rejoint au meme moment |
+| **GOD-MODE** | Nouveau mode solo separe "GOD MODE" : 2 bots METKAYALI allies contre le joueur, format `VICTOIRE` v1, acces verrouille par progression joueur |
+| **ECO-STAKE-PAYOUT-RULES** | Arbitrer la redistribution des mises en multi et l'eventuelle commission |
+
+---
+
 ## Apres lancement officiel
 
 | Ticket | Description | Estimation |
@@ -24,19 +38,12 @@
 
 | Ticket | Description |
 |---|---|
-| **ADS-POST-MATCH-REWARD-UPSSELL** | Apres la pub obligatoire de fin de match, proposer au joueur non premium une seconde pub volontaire pour gagner des coins |
-| **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression |
-| **ECO-ADS-COINS-TUNING** | Definir la recompense coins du visionnage pub volontaire post-match |
-| **ECO-STAKE-PAYOUT-RULES** | Arbitrer la redistribution des mises en multi et l'eventuelle commission |
 | **ECO-COIN-SINK-PRICING** | Revoir les prix des cosmetiques et autres puits a jetons |
 | **ECO-RETENTION-LOOP** | Verifier l'equilibre de la boucle quotidienne de retention et monetisation |
 | **PREMIUM-NO-ADS-SUBSCRIPTION** | Ajouter un abonnement mensuel 5 EUR sans publicite |
-| **AMELIORATION-MULTI-LOBBY-BOT-FILL** | Permettre a l'hote de completer un lobby incomplet avec un bot, avec priorite a un joueur humain si quelqu'un rejoint au meme moment |
-| **GOD-MODE** | Nouveau mode solo separe "GOD MODE" : 2 bots METKAYALI allies contre le joueur, format `VICTOIRE` v1, acces verrouille par progression joueur |
 | **ANIM-DOMINO-DISTRIB** | Animation de distribution en cascade si `ANIM-DOMINO` ne couvre pas ce besoin |
 | **FIRESTORE-CLIENT-BLOCK** | Documenter et reproduire les `ERR_BLOCKED_BY_CLIENT` sur les channels Firestore Web. Probable cause locale: antivirus / extension navigateur / privacy blocker. Verifier l'impact reel sur les tests multi web avant toute correction produit |
 | **ECO-CHAT-MIGRATED-AT** | Corriger l'ecriture Firestore invalide `economy.chatInventoryMigratedAt = undefined` dans `EconomyService` / fallback Firebase. Firestore refuse `setDoc()` avec valeur `undefined` |
-| **CF-PROCESSMATCHREWARD-CORS** | Corriger le CORS de la Cloud Function `processMatchReward` pour les appels Web locaux (`http://localhost:8081`) et verifier le fallback actuel cote client |
 | **AUDIO-PREMIUM-TRANSITIONS** | Premiumiser les transitions audio : fade-out/fade-in de la BGM entre ecrans, ducking lors des modals evenements, puis remontée progressive du volume apres fermeture ou retour au gameplay |
 
 ---

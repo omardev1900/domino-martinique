@@ -69,6 +69,16 @@ BACKLOG.md  →  TASKS.md  →  DONE.md
 - **Version livrée au user** → entrée dans `feedback/CHANGELOG.md` (format semver).
 - **Bug découvert en cours de dev** → ajouté directement à `TASKS.md` si traité immédiatement, sinon `BACKLOG.md`.
 
+### Discipline de clôture
+
+Une tâche n'est pas considérée comme terminée tant que les fichiers de suivi ne sont pas synchronisés.
+
+Checklist minimale :
+- retirer le ticket de `TASKS.md`
+- archiver le ticket dans `DONE.md` sous la date du jour
+- ajouter `feedback/CHANGELOG.md` si le changement est visible côté utilisateur
+- ne laisser aucun ticket ou sous-ticket `Fait` dans `TASKS.md`
+
 ---
 
 ## 💰 Économie de tokens — lecture à la demande
@@ -120,6 +130,6 @@ Cloner ce template, puis :
 
 - Mettre 3000 lignes dans `CLAUDE.md` → Claude brûle des tokens à chaque session
 - Créer 15 fichiers markdown redondants (CONTEXT, OVERVIEW, ABOUT, README, INTRO…) → un seul `README.md` suffit
-- Laisser des tâches cochées `[x]` dans `TASKS.md` pendant des semaines → les déplacer dans `DONE.md`
+- Laisser des tâches ou sous-tâches `Fait` dans `TASKS.md` → les retirer et les archiver dans `DONE.md`
 - Modifier le contenu d'un feedback client dans `feedback/CLIENT.md` → ce fichier est sacré, append-only
 - Créer un fichier par sprint (`sprint-1.md`, `sprint-2.md`…) → `TASKS.md` unique + archive dans `DONE.md` suffit
