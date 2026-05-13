@@ -73,8 +73,10 @@ const recordLoss = (overrides: {
 beforeEach(() => {
     // Forcer le service à repartir d'un état vierge
     (statsService as any).cachedStats = null;
+    (statsService as any).storageScope = 'guest';
     mockGetItem.mockResolvedValue(null);
     mockSetItem.mockClear();
+    mockGetItem.mockClear();
 });
 
 // ─── Suite 1 : incrément depuis mancheLeaguePointsEarned ─────────────────────
@@ -305,6 +307,27 @@ describe('totalCochonsSubis — syncWithFirebase', () => {
                 stats: expect.objectContaining({ totalCochonsSubis: 6 }),
             }),
             { merge: true }
+        );
+    });
+});
+
+describe('storage scoping per user', () => {
+    it('lit et ecrit dans une cle AsyncStorage namespacee par uid', async () => {
+        await statsService.useStorageScope('uid-a');
+        await statsService.getStats();
+        expect(mockGetItem).toHaveBeenCalledWith('@player_stats:uid-a');
+
+        await statsService.recordMatchResult({
+            result: 'WIN',
+            cochons: 1,
+            points: 4,
+            opponents: BASE_OPPONENTS,
+            mode: 'MANCHE',
+        });
+
+        expect(mockSetItem).toHaveBeenCalledWith(
+            '@player_stats:uid-a',
+            expect.any(String)
         );
     });
 });

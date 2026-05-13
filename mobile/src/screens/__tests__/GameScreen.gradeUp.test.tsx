@@ -215,12 +215,12 @@ const reward: MatchReward = {
     newXP: 150,
     xpToNextLevel: 50,
     previousGrade: null,
-    newGrade: 'APPRENTI_1',
+    newGrade: 'DEBUTANT',
     gradeUp: true,
-    previousLeaguePoints: 9,
-    newLeaguePoints: 10,
-    nextGradeThreshold: 20,
-    newCochonsGiven: 10,
+    previousLeaguePoints: 0,
+    newLeaguePoints: 1,
+    nextGradeThreshold: 10,
+    newCochonsGiven: 1,
     newlyUnlockedFrames: [],
     frameCoinsBonus: 0,
     breakdown: [],
@@ -231,8 +231,8 @@ jest.mock('../../core/services/economy.service', () => ({
         getEconomy: jest.fn().mockResolvedValue({
             level: 1,
             xp: 100,
-            leaguePoints: 9,
-            cochonsGiven: 9,
+            leaguePoints: 0,
+            cochonsGiven: 0,
             unlockedFrames: [],
         }),
         processServerReward: jest.fn().mockResolvedValue(reward),
@@ -404,7 +404,7 @@ describe('GameScreen grade-up flow', () => {
             const lastCall = mockRewardOverlay.mock.calls[mockRewardOverlay.mock.calls.length - 1][0];
             expect(lastCall.visible).toBe(true);
             expect(lastCall.reward.gradeUp).toBe(true);
-            expect(lastCall.reward.newGrade).toBe('APPRENTI_1');
+            expect(lastCall.reward.newGrade).toBe('DEBUTANT');
         });
     });
 

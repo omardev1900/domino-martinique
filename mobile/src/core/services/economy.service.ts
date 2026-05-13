@@ -27,6 +27,7 @@ export interface EconomyProfileInfo {
 }
 
 const STORAGE_KEY_ECONOMY = '@player_economy';
+const GUEST_STORAGE_SCOPE = 'guest';
 
 // ─── Valeur par défaut pour nouveau joueur ───────────────────────────────────
 
@@ -49,6 +50,18 @@ const DEFAULT_ECONOMY: PlayerEconomy = {
 
 class EconomyService {
     private cached: PlayerEconomy | null = null;
+    private storageScope = GUEST_STORAGE_SCOPE;
+
+    private get storageKey(): string {
+        return `${STORAGE_KEY_ECONOMY}:${this.storageScope}`;
+    }
+
+    async useStorageScope(uid?: string | null): Promise<void> {
+        const nextScope = uid && !uid.startsWith('guest_') ? uid : GUEST_STORAGE_SCOPE;
+        if (this.storageScope === nextScope) return;
+        this.storageScope = nextScope;
+        this.cached = null;
+    }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Lecture
@@ -62,7 +75,7 @@ class EconomyService {
         if (this.cached) return { ...this.cached };
 
         try {
-            const json = await AsyncStorage.getItem(STORAGE_KEY_ECONOMY);
+            const json = await AsyncStorage.getItem(this.storageKey);
             if (json) {
                 const parsed = JSON.parse(json);
                 // Migration : s'assurer que tous les champs sont présents
@@ -453,7 +466,7 @@ class EconomyService {
     private async persistLocal(): Promise<void> {
         if (!this.cached) return;
         try {
-            await AsyncStorage.setItem(STORAGE_KEY_ECONOMY, JSON.stringify(this.cached));
+            await AsyncStorage.setItem(this.storageKey, JSON.stringify(this.cached));
         } catch (e) {
             LogService.error('EconomyService', 'persistLocal error:', e);
         }
@@ -489,6 +502,7 @@ class EconomyService {
      */
     private migrateGrade(raw: string | undefined, leaguePoints: number): LeagueGrade {
         const VALID: string[] = [
+            'DEBUTANT',
             'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',
             'MAITRE_1', 'MAITRE_2', 'MAITRE_3',
             'ROI', 'LEGENDE',

@@ -44,6 +44,7 @@ import {
     MAX_LEVEL,
     LEAGUE_THRESHOLDS,
     LEAGUE_GRADE_ORDER,
+    LEAGUE_FRAME_GRADE_ORDER,
     LEAGUE_FRAME_THRESHOLDS,
     LEAGUE_FRAME_REWARDS,
     LEAGUE_FRAMES_ENABLED,
@@ -92,7 +93,7 @@ export function xpToNextLevel(totalXP: number, currentLevel: number): number {
 
 /**
  * Détermine le grade de Ligue des Cochons selon le nombre de cochons.
- * Retourne null si le joueur est en dessous du premier seuil (< 10 cochons).
+ * Retourne null si le joueur n'a encore inflige aucun cochon.
  */
 export function getLeagueGrade(leaguePoints: number): LeagueGrade | null {
     let grade: LeagueGrade | null = null;
@@ -376,7 +377,7 @@ export const RewardEngine = {
         let frameCoinsBonus = 0;
         let unlockedPalierCount = 0;
 
-        for (const grade of LEAGUE_GRADE_ORDER) {
+        for (const grade of LEAGUE_FRAME_GRADE_ORDER) {
             const threshold = LEAGUE_FRAME_THRESHOLDS[grade];
             const frameReward = LEAGUE_FRAME_REWARDS[grade];
             const frameId = frameReward.frameId as LeagueFrameId;
@@ -389,7 +390,7 @@ export const RewardEngine = {
                 unlockedPalierCount += 1;
                 if (LEAGUE_FRAMES_ENABLED) {
                     newlyUnlockedFrames.push({
-                        grade: grade as import('./economy.types').LeagueGrade,
+                        grade,
                         frameId,
                         coinsBonus: frameReward.coinsBonus,
                         cochonsAtUnlock: newCochonsGiven,

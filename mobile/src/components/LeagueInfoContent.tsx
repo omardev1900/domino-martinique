@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInLeft, FadeInRight } from 'react-native-reanimated';
 
 import {
+    LEAGUE_THRESHOLDS,
     LEAGUE_FRAME_THRESHOLDS,
     LEAGUE_FRAME_REWARDS,
 } from '../core/economy.constants';
@@ -30,6 +31,23 @@ export const LeagueInfoContent: React.FC = () => (
 
         <View style={styles.main}>
             <View style={styles.left}>
+                <Animated.View entering={FadeInLeft.duration(350)} style={[styles.groupCard, styles.groupCardDebutant]}>
+                    <View style={styles.groupHeader}>
+                        <Text style={styles.groupIcon}>🌱</Text>
+                        <Text style={[styles.groupTitle, { color: '#9CCC65' }]}>DEBUTANT</Text>
+                    </View>
+                    <View style={styles.debutantBody}>
+                        <Text style={styles.debutantThreshold}>{LEAGUE_THRESHOLDS.DEBUTANT} 🐷</Text>
+                        <Text style={styles.debutantText}>Premier cochon inflige, premier grade obtenu.</Text>
+                    </View>
+                    <View style={styles.groupRewardRow}>
+                        <Ionicons name="ribbon-outline" size={11} color="#9CCC65" />
+                        <Text style={[styles.groupRewardText, { color: '#9CCC65' }]}>
+                            Grade seul, aucun cadre debloque
+                        </Text>
+                    </View>
+                </Animated.View>
+
                 <Animated.View entering={FadeInLeft.duration(450)} style={[styles.groupCard, styles.groupCardApprenti]}>
                     <View style={styles.groupHeader}>
                         <Text style={styles.groupIcon}>🥉</Text>
@@ -129,6 +147,16 @@ const styles = StyleSheet.create({
     left: { flex: 3, flexDirection: 'column', gap: 10 },
     right: { flex: 2, flexDirection: 'column', gap: 10 },
     groupCard: { minHeight: 140, borderRadius: 16, padding: 12, borderWidth: 1.5, justifyContent: 'space-between' },
+    groupCardDebutant: {
+        minHeight: 110,
+        backgroundColor: 'rgba(156,204,101,0.06)',
+        borderColor: 'rgba(156,204,101,0.24)',
+        shadowColor: '#9CCC65',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.18,
+        shadowRadius: 8,
+        elevation: 3,
+    },
     groupCardApprenti: {
         backgroundColor: 'rgba(158,158,158,0.05)',
         borderColor: 'rgba(158,158,158,0.22)',
@@ -150,6 +178,9 @@ const styles = StyleSheet.create({
     groupHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
     groupIcon: { fontSize: 22 },
     groupTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
+    debutantBody: { gap: 6, alignItems: 'flex-start' },
+    debutantThreshold: { fontSize: 22, fontWeight: '900', color: '#9CCC65' },
+    debutantText: { fontSize: 11, color: 'rgba(255,255,255,0.72)', lineHeight: 16 },
     subgradesRow: { flexDirection: 'row', gap: 6, alignItems: 'stretch' },
     subBadge: {
         flex: 1,

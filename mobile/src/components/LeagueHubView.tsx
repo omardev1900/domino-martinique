@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import {
-    LEAGUE_FRAME_THRESHOLDS,
+    LEAGUE_THRESHOLDS,
     LEAGUE_ICONS,
     LEAGUE_LABELS,
     LEAGUE_FRAME_REWARDS,
@@ -156,6 +156,10 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
                         const isUnlocked = index <= currentIndex;
                         const isCurrent = grade === progress.grade;
                         const theme = tierTheme(grade);
+                        const threshold = LEAGUE_THRESHOLDS[grade];
+                        const rewardLabel = grade === 'DEBUTANT'
+                            ? 'Grade seul'
+                            : `+${LEAGUE_FRAME_REWARDS[grade].coinsBonus.toLocaleString()} coins`;
 
                         return (
                             <Animated.View
@@ -182,14 +186,14 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
                                     {isUnlocked ? LEAGUE_ICONS[grade] : '🔒'}
                                 </Text>
                                 <Text style={[styles.tierThreshold, { color: isUnlocked ? theme.tint : 'rgba(255,255,255,0.4)' }]}>
-                                    {LEAGUE_FRAME_THRESHOLDS[grade]} 🐷
+                                    {threshold} 🐷
                                 </Text>
                                 <Text style={[styles.tierLabel, { color: isUnlocked ? '#FFFFFF' : 'rgba(255,255,255,0.5)' }]}>
                                     {LEAGUE_LABELS[grade]}
                                 </Text>
                                 <View style={[styles.rewardBadge, { borderColor: isUnlocked ? theme.border : 'rgba(255,255,255,0.12)' }]}>
                                     <Text style={[styles.rewardBadgeText, { color: isUnlocked ? theme.tint : 'rgba(255,255,255,0.4)' }]}>
-                                        +{LEAGUE_FRAME_REWARDS[grade].coinsBonus.toLocaleString()} 🪙
+                                        {rewardLabel}
                                     </Text>
                                 </View>
                             </Animated.View>

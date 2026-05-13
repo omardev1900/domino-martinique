@@ -4,7 +4,7 @@
  * Tests unitaires pour la logique de déblocage des paliers
  * de la Ligue des Cochons — système 8 paliers (22/04/2026).
  *
- * Grades : APPRENTI_1(10) APPRENTI_2(20) APPRENTI_3(30)
+ * Grades : DEBUTANT(1) APPRENTI_1(10) APPRENTI_2(20) APPRENTI_3(30)
  *          MAITRE_1(60)   MAITRE_2(90)   MAITRE_3(120)
  *          ROI(250)       LEGENDE(500)
  */
@@ -188,8 +188,12 @@ describe('LeagueService — computeNewUnlocks (8 paliers)', () => {
             expect(leagueService.getGradeFromCochons(0)).toBeNull();
         });
 
-        it('retourne null pour 9 cochons (sans grade)', () => {
-            expect(leagueService.getGradeFromCochons(9)).toBeNull();
+        it('retourne DEBUTANT pour 1 cochon', () => {
+            expect(leagueService.getGradeFromCochons(1)).toBe('DEBUTANT');
+        });
+
+        it('retourne DEBUTANT pour 9 cochons', () => {
+            expect(leagueService.getGradeFromCochons(9)).toBe('DEBUTANT');
         });
 
         it('retourne APPRENTI_1 pour 10 cochons', () => {
@@ -243,8 +247,8 @@ describe('LeagueService — computeNewUnlocks (8 paliers)', () => {
         it('retourne null pour 0 cochon (sans grade)', () => {
             expect(leagueService.getGradeFromCochons(0)).toBeNull();
         });
-        it('retourne null pour 9 cochons (sans grade)', () => {
-            expect(leagueService.getGradeFromCochons(9)).toBeNull();
+        it('retourne DEBUTANT pour 9 cochons (premier grade)', () => {
+            expect(leagueService.getGradeFromCochons(9)).toBe('DEBUTANT');
         });
     });
 
@@ -253,6 +257,10 @@ describe('LeagueService — computeNewUnlocks (8 paliers)', () => {
     describe('getNextFrameThreshold', () => {
         it('retourne 10 pour 0 cochons', () => {
             expect(leagueService.getNextFrameThreshold(0)).toBe(10);
+        });
+
+        it('retourne 10 pour 1 cochon (grade sans cadre)', () => {
+            expect(leagueService.getNextFrameThreshold(1)).toBe(10);
         });
 
         it('retourne 20 pour 10 cochons', () => {

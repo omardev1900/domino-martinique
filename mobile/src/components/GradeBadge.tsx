@@ -13,7 +13,7 @@ interface GradeBadgeProps {
  * Utilisé dans le plateau de jeu, le lobby et la modal de résultat.
  */
 export const GradeBadge: React.FC<GradeBadgeProps> = ({ grade, size = 'sm' }) => {
-    // Grade null = joueur sans cochons encore (< 10 cochons donnés)
+    // Grade null = joueur sans cochons encore (0 cochon donné)
     // → afficher un badge "Sans grade" cohérent avec getLeagueGradeLabel()
     const isDefault = !grade;
     const icon  = isDefault ? '🌱' : (LEAGUE_ICONS?.[grade as LeagueGrade]  || '🔰');

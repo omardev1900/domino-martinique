@@ -137,6 +137,7 @@ export const botService = new BotService();
  */
 export const GRADE_FLOOR_BOTS: Record<string, BotDifficulty[]> = {
     'null':      ['TI_MANMAY', 'TI_MANMAY'],
+    'DEBUTANT':  ['TI_MANMAY', 'TI_MANMAY'],
     'APPRENTI_1': ['TI_MANMAY', 'TI_MANMAY'],
     'APPRENTI_2': ['TI_MANMAY', 'MAPIPI'],
     'APPRENTI_3': ['MAPIPI',    'MAPIPI'],

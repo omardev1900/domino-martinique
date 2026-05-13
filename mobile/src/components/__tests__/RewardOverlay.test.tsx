@@ -52,12 +52,12 @@ describe('RewardOverlay', () => {
             newXP: 150,
             xpToNextLevel: 50,
             previousGrade: null,
-            newGrade: 'APPRENTI_1',
+            newGrade: 'DEBUTANT',
             gradeUp: true,
-            previousLeaguePoints: 9,
-            newLeaguePoints: 10,
-            nextGradeThreshold: 20,
-            newCochonsGiven: 10,
+            previousLeaguePoints: 0,
+            newLeaguePoints: 1,
+            nextGradeThreshold: 10,
+            newCochonsGiven: 1,
             newlyUnlockedFrames: [],
             frameCoinsBonus: 0,
             breakdown: [],
@@ -83,9 +83,9 @@ describe('RewardOverlay', () => {
         });
 
         expect(screen.getByText(/FELICITATIONS|FÉLICITATIONS/i)).toBeTruthy();
-        expect(screen.getAllByText(/APPRENTI/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/DEBUTANT/i).length).toBeGreaterThan(0);
         expect(screen.getByLabelText('Fermer celebration')).toBeTruthy();
-        expect(screen.getAllByText(/10.*cochons/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/1.*cochons?/i).length).toBeGreaterThan(0);
         expect(SoundManager.playSound).toHaveBeenCalledWith('applause');
     }, 20000);
 
@@ -103,12 +103,12 @@ describe('RewardOverlay', () => {
             newXP: 150,
             xpToNextLevel: 50,
             previousGrade: null,
-            newGrade: 'APPRENTI_1',
+            newGrade: 'DEBUTANT',
             gradeUp: true,
-            previousLeaguePoints: 9,
-            newLeaguePoints: 10,
-            nextGradeThreshold: 20,
-            newCochonsGiven: 10,
+            previousLeaguePoints: 0,
+            newLeaguePoints: 1,
+            nextGradeThreshold: 10,
+            newCochonsGiven: 1,
             newlyUnlockedFrames: [],
             frameCoinsBonus: 0,
             breakdown: [],

@@ -36,7 +36,10 @@ class AuthService {
             const user = userCredential.user;
             const profile = this.mapFirebaseUserToProfile(user);
             await this.activateSession(profile);
+            await statsService.useStorageScope(profile.uid);
+            await economyService.useStorageScope(profile.uid);
             await statsService.syncWithFirebase(profile.uid);
+            await economyService.syncFromFirebase(profile.uid);
             await economyService.syncProfileMetadata(
                 profile.uid,
                 profile.displayName,
@@ -72,7 +75,10 @@ class AuthService {
 
             const profile = this.mapFirebaseUserToProfile(user);
             await this.activateSession(profile);
+            await statsService.useStorageScope(profile.uid);
+            await economyService.useStorageScope(profile.uid);
             await statsService.syncWithFirebase(profile.uid);
+            await economyService.syncFromFirebase(profile.uid);
             await economyService.syncProfileMetadata(
                 profile.uid,
                 profile.displayName,
@@ -95,7 +101,10 @@ class AuthService {
 
             const profile = this.mapFirebaseUserToProfile(user);
             await this.activateSession(profile);
+            await statsService.useStorageScope(profile.uid);
+            await economyService.useStorageScope(profile.uid);
             await statsService.syncWithFirebase(profile.uid);
+            await economyService.syncFromFirebase(profile.uid);
             await economyService.syncProfileMetadata(
                 profile.uid,
                 profile.displayName,
@@ -158,6 +167,8 @@ class AuthService {
                 // Synchroniser le marqueur local avec la réalité Firebase
                 await AsyncStorage.setItem(STORAGE_KEY_SESSION, 'true');
                 this.currentUser = this.mapFirebaseUserToProfile(firebaseUser);
+                await statsService.useStorageScope(this.currentUser.uid);
+                await economyService.useStorageScope(this.currentUser.uid);
                 return this.currentUser;
             }
 
@@ -165,10 +176,14 @@ class AuthService {
             if (firebaseUser?.isAnonymous || (firebaseUser && !firebaseUser.email)) {
                 LogService.warn('AuthService', 'Ghost/anonymous session detected — forcing sign out');
                 await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
+                await statsService.useStorageScope(null);
+                await economyService.useStorageScope(null);
                 try { await signOut(auth); } catch (_) {}
             } else {
                 // Pas de user Firebase du tout → juste nettoyer le marqueur
                 await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
+                await statsService.useStorageScope(null);
+                await economyService.useStorageScope(null);
             }
         } catch (error) {
             LogService.error('AuthService', 'getCurrentUser error:', error);
@@ -201,6 +216,8 @@ class AuthService {
         } catch (error) {
             LogService.error('AuthService', 'Failed to sign out from Firebase', error);
         }
+        await statsService.useStorageScope(null);
+        await economyService.useStorageScope(null);
     }
 
     /**
@@ -216,6 +233,8 @@ class AuthService {
         this.currentUser = null;
         try { await AsyncStorage.removeItem(STORAGE_KEY_SESSION); } catch (_) {}
         try { await signOut(auth); } catch (_) {}
+        await statsService.useStorageScope(null);
+        await economyService.useStorageScope(null);
     }
 
     /**

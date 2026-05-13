@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import { MatchReward, RewardBreakdown, LeagueFrameId } from '../core/economy.types';
-import { LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_GRADE_COLORS, MAX_LEVEL, LEAGUE_GRADE_ORDER, LEAGUE_FRAME_THRESHOLDS, LEAGUE_FRAMES_ENABLED } from '../core/economy.constants';
+import { LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_GRADE_COLORS, MAX_LEVEL, LEAGUE_FRAME_GRADE_ORDER, LEAGUE_FRAME_THRESHOLDS, LEAGUE_FRAMES_ENABLED } from '../core/economy.constants';
 import { xpRequiredForLevel } from '../core/RewardEngine';
 import SoundManager from '../core/audio/SoundManager';
 import { AvatarFrame } from './AvatarFrame';
@@ -24,6 +24,14 @@ interface RewardOverlayProps {
 
 function getGradeTheme(grade: NonNullable<MatchReward['newGrade']>) {
     const accent = LEAGUE_GRADE_COLORS[grade];
+    if (grade === 'DEBUTANT') {
+        return {
+            accent,
+            glow: 'rgba(124,179,66,0.35)',
+            panel: ['rgba(124,179,66,0.20)', 'rgba(18,24,12,0.98)'] as const,
+            chip: 'rgba(124,179,66,0.16)',
+        };
+    }
     if (grade.startsWith('APPRENTI')) {
         return {
             accent,
@@ -344,7 +352,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
                             // Calcul de la progression
                             let nextGrade: string | null = null;
                             let nextThreshold: number | null = null;
-                            for (const g of LEAGUE_GRADE_ORDER) {
+                            for (const g of LEAGUE_FRAME_GRADE_ORDER) {
                                 if (LEAGUE_FRAME_THRESHOLDS[g] > cochons) {
                                     nextGrade = g;
                                     nextThreshold = LEAGUE_FRAME_THRESHOLDS[g];
@@ -352,8 +360,8 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
                                 }
                             }
 
-                            const prevGradeIndex = LEAGUE_GRADE_ORDER.indexOf(currentGrade) - 1;
-                            const prevThreshold = prevGradeIndex >= 0 ? LEAGUE_FRAME_THRESHOLDS[LEAGUE_GRADE_ORDER[prevGradeIndex]] : 0;
+                            const prevGradeIndex = LEAGUE_FRAME_GRADE_ORDER.indexOf(currentGrade) - 1;
+                            const prevThreshold = prevGradeIndex >= 0 ? LEAGUE_FRAME_THRESHOLDS[LEAGUE_FRAME_GRADE_ORDER[prevGradeIndex]] : 0;
                             
                             const remaining = nextThreshold ? nextThreshold - cochons : 0;
                             const progressPercent = nextThreshold ? Math.min(100, Math.max(0, ((cochons - prevThreshold) / (nextThreshold - prevThreshold)) * 100)) : 100;

@@ -17,7 +17,7 @@ export type LeagueFrameId =
 
 /** Événement de déblocage d'un palier de la Ligue — déclenche la modal de récompense */
 export interface FrameUnlockEvent {
-    grade: LeagueGrade;
+    grade: LeagueFrameGrade;
     frameId: LeagueFrameId;
     coinsBonus: number;       // Coins offerts en récompense du palier
     cochonsAtUnlock: number;  // Nombre de cochons donnés au moment du déblocage
@@ -32,7 +32,7 @@ export interface PlayerEconomy {
     level: number;         // Niveau courant dérivé de l'XP
     diamonds: number;      // 💎 Monnaie premium
     leaguePoints: number;        // 🐷 Total cochons infligés (alias cochonsGiven — source de la ligue)
-    leagueGrade: LeagueGrade | null; // null = joueur sans grade (< 10 cochons)
+    leagueGrade: LeagueGrade | null; // null = joueur sans grade (0 cochon)
     // ─── Ligue des Cochons ───
     cochonsGiven?: number;           // 🐖 Compteur lifetime de cochons DONNÉS (by this player)
     unlockedFrames?: LeagueFrameId[]; // Cadres avatar débloqués (liste des paliers atteints)
@@ -44,10 +44,13 @@ export interface PlayerEconomy {
 }
 
 export type LeagueGrade =
+    | 'DEBUTANT'
     | 'APPRENTI_1' | 'APPRENTI_2' | 'APPRENTI_3'
     | 'MAITRE_1'   | 'MAITRE_2'   | 'MAITRE_3'
     | 'ROI'
     | 'LEGENDE';
+
+export type LeagueFrameGrade = Exclude<LeagueGrade, 'DEBUTANT'>;
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
 

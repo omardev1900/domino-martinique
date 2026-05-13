@@ -6,6 +6,7 @@ import { DEFAULT_INVENTORY } from '../store.constants';
 import { economyService } from './economy.service';
 
 const STORAGE_KEY_PLAYER_STATS = '@player_stats';
+const GUEST_STORAGE_SCOPE = 'guest';
 
 export interface MatchRecord {
     id: string;
@@ -68,6 +69,18 @@ const DEFAULT_STATS: PlayerStats = {
 
 class StatsService {
     private cachedStats: PlayerStats | null = null;
+    private storageScope = GUEST_STORAGE_SCOPE;
+
+    private get storageKey(): string {
+        return `${STORAGE_KEY_PLAYER_STATS}:${this.storageScope}`;
+    }
+
+    async useStorageScope(uid?: string | null): Promise<void> {
+        const nextScope = uid && !uid.startsWith('guest_') ? uid : GUEST_STORAGE_SCOPE;
+        if (this.storageScope === nextScope) return;
+        this.storageScope = nextScope;
+        this.cachedStats = null;
+    }
 
     private getBreakdownFromHistory(history: MatchRecord[] = []) {
         return history.reduce(
@@ -103,7 +116,7 @@ class StatsService {
         if (this.cachedStats) return { ...this.cachedStats };
 
         try {
-            const json = await AsyncStorage.getItem(STORAGE_KEY_PLAYER_STATS);
+            const json = await AsyncStorage.getItem(this.storageKey);
             if (json) {
                 const parsed = JSON.parse(json);
                 const history = parsed.matchHistory ?? [];
@@ -127,7 +140,7 @@ class StatsService {
                     level: parsed.level ?? 1,
                     diamonds: parsed.diamonds ?? 0,
                     leaguePoints: parsed.leaguePoints ?? 0,
-                    leagueGrade: parsed.leagueGrade ?? 'APPRENTI_1',
+                    leagueGrade: parsed.leagueGrade ?? null,
                     inventory: parsed.inventory ?? DEFAULT_INVENTORY,
                 };
             } else {
@@ -147,7 +160,7 @@ class StatsService {
     private async persistStats(): Promise<void> {
         if (!this.cachedStats) return;
         try {
-            await AsyncStorage.setItem(STORAGE_KEY_PLAYER_STATS, JSON.stringify(this.cachedStats));
+            await AsyncStorage.setItem(this.storageKey, JSON.stringify(this.cachedStats));
         } catch (error) {
             console.error('📊 StatsService: Failed to save stats', error);
         }

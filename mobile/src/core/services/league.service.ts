@@ -15,10 +15,12 @@ import { db } from './firebase';
 import { LogService } from './LogService';
 import {
     LeagueGrade,
+    LeagueFrameGrade,
     LeagueFrameId,
     FrameUnlockEvent,
 } from '../economy.types';
 import {
+    LEAGUE_FRAME_GRADE_ORDER,
     LEAGUE_FRAME_THRESHOLDS,
     LEAGUE_FRAME_REWARDS,
     LEAGUE_GRADE_ORDER,
@@ -36,7 +38,7 @@ export interface LeagueCheckResult {
 }
 
 /** Mapping grade → ID de cadre */
-const GRADE_TO_FRAME_ID: Record<LeagueGrade, LeagueFrameId> = {
+const GRADE_TO_FRAME_ID: Record<LeagueFrameGrade, LeagueFrameId> = {
     APPRENTI_1: 'frame_apprenti_1',
     APPRENTI_2: 'frame_apprenti_2',
     APPRENTI_3: 'frame_apprenti_3',
@@ -67,7 +69,7 @@ class LeagueService {
         const cochonsAfter = cochonsGivenBefore + cochonsGivenInMatch;
         const events: FrameUnlockEvent[] = [];
 
-        for (const grade of LEAGUE_GRADE_ORDER) {
+        for (const grade of LEAGUE_FRAME_GRADE_ORDER) {
             const threshold = LEAGUE_FRAME_THRESHOLDS[grade];
             const frameId = GRADE_TO_FRAME_ID[grade];
             const reward = LEAGUE_FRAME_REWARDS[grade];
@@ -92,7 +94,7 @@ class LeagueService {
 
     /**
      * Calcule le grade courant basé sur le total de cochons donnés.
-     * Retourne null si le joueur est en dessous du premier seuil (< 10 cochons).
+     * Retourne null si le joueur n'a encore inflige aucun cochon.
      */
     getGradeFromCochons(cochonsGiven: number): LeagueGrade | null {
         let grade: LeagueGrade | null = null;
@@ -109,7 +111,7 @@ class LeagueService {
      * ou null si le joueur a déjà atteint le grade maximum.
      */
     getNextFrameThreshold(cochonsGiven: number): number | null {
-        for (const grade of LEAGUE_GRADE_ORDER) {
+        for (const grade of LEAGUE_FRAME_GRADE_ORDER) {
             const threshold = LEAGUE_FRAME_THRESHOLDS[grade];
             if (cochonsGiven < threshold) return threshold;
         }
@@ -202,7 +204,7 @@ class LeagueService {
         cochonsGiven: number;
         unlockedFrames: LeagueFrameId[];
         activeFrame: LeagueFrameId | null;
-        leagueGrade: LeagueGrade;
+        leagueGrade: LeagueGrade | null;
         nextThreshold: number | null;
     }> {
         try {

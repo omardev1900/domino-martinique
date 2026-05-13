@@ -32,6 +32,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 | **R4-TECH-LEADERBOARD** | Agregats mensuels persistants pour sortir de la limite `matchHistory` | Moyenne | Pret |
 | **ANIM-DOMINO** | Animation glissee des dominos pendant le jeu | Moyenne | Pret |
 | **BUG-LIGUE-GRADEUP-OVERLAY** | Fermer le popup de palier doit reafficher le `RewardOverlay` principal, pas un ecran vide | Haute | En cours |
+| **LIGUE-DEBUTANT-FIRST-COCHON** | Ajouter le grade `Debutant` au 1er cochon, sans cadre, en laissant le reste de la ligue inchange | Moyenne | En cours |
 
 ---
 
@@ -44,6 +45,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 5. `R4-TECH-LEADERBOARD`
 6. `ANIM-DOMINO`
 7. `BUG-LIGUE-GRADEUP-OVERLAY`
+8. `LIGUE-DEBUTANT-FIRST-COCHON`
 
 Raison :
 `MATCH-END-APPLAUSE` est maintenant livre : le modal final de match joue `matchEnd`, puis `applause.mp3` a `+800 ms` depuis la meme source de verite.
@@ -53,6 +55,7 @@ Raison :
 `ECO-REBALANCE` est differe en attendant l'arbitrage produit avec le client et l'associe.
 `R4-TECH-LEADERBOARD` et `ANIM-DOMINO` restent secondaires tant que les retours de test ferme remontent encore des bugs visibles.
 `BUG-LIGUE-GRADEUP-OVERLAY` est remonte en actif : le `X` du popup de palier doit fermer uniquement la sous-modale de grade et rendre le `RewardOverlay` principal a nouveau visible.
+`LIGUE-DEBUTANT-FIRST-COCHON` est ajoute comme evolution produit ciblee : `0 cochon = Sans grade`, `1 cochon = Debutant`, sans debloquer de cadre et sans toucher aux autres paliers.
 
 ---
 
@@ -70,6 +73,26 @@ Comportement attendu :
 Point de repro connu :
 - visible dans `/debug-ligue`
 - probablement partage avec le vrai flow car la cause est dans `RewardOverlay`
+
+---
+
+## Detail prioritaire - LIGUE-DEBUTANT-FIRST-COCHON
+
+Objectif :
+donner un premier feedback de progression des le 1er cochon inflige, sans refondre toute la Ligue des Cochons.
+
+Regle produit validee :
+- `0 cochon` : `Sans grade`
+- `1 cochon` : `Debutant`
+- `Debutant` donne uniquement le grade
+- aucun cadre debloque a ce palier
+- tous les autres grades et seuils restent inchanges
+
+Impacts attendus :
+- calcul du grade et progression
+- labels / badges / overlays de grade-up
+- ecrans Ligue et profil
+- adaptation mineure des tests et des regles derivees qui supposaient `APPRENTI_1` comme premier grade
 
 ---
 
