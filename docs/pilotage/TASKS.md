@@ -5,7 +5,7 @@
 >
 > **Flux obligatoire :** `BACKLOG.md` -> `TASKS.md` -> `DONE.md`
 
-**Derniere mise a jour :** 2026-05-12
+**Derniere mise a jour :** 2026-05-13
 **Sprint actuel :** Pre-Lancement Officiel
 
 ---
@@ -31,6 +31,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 | **ADS-REWARD** | Doubler les gains apres pub via modal post-match | Moyenne | Differe |
 | **R4-TECH-LEADERBOARD** | Agregats mensuels persistants pour sortir de la limite `matchHistory` | Moyenne | Pret |
 | **ANIM-DOMINO** | Animation glissee des dominos pendant le jeu | Moyenne | Pret |
+| **AMELIORATION-HAND-AUTO-SORT** | Tri local de la main en partie - modes `Auto`, `Doubles`, `Somme` sans drag-and-drop | Moyenne | En cours |
 
 ---
 
@@ -42,6 +43,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 4. `ECO-REBALANCE`
 5. `R4-TECH-LEADERBOARD`
 6. `ANIM-DOMINO`
+7. `AMELIORATION-HAND-AUTO-SORT`
 
 Raison :
 `MATCH-END-APPLAUSE` est maintenant livre : le modal final de match joue `matchEnd`, puis `applause.mp3` a `+800 ms` depuis la meme source de verite.
@@ -50,6 +52,33 @@ Raison :
 `OTP-INSCRIPTION` est volontairement reporte apres la phase de test ferme.
 `ECO-REBALANCE` est differe en attendant l'arbitrage produit avec le client et l'associe.
 `R4-TECH-LEADERBOARD` et `ANIM-DOMINO` restent secondaires tant que les retours de test ferme remontent encore des bugs visibles.
+`AMELIORATION-HAND-AUTO-SORT` a ete demarre comme quick win UX : tri local de la main, sans impact sur la logique de jeu ni sur les autres joueurs.
+
+---
+
+## Detail prioritaire - AMELIORATION-HAND-AUTO-SORT
+
+Objectif :
+permettre au joueur de reordonner automatiquement l'affichage de sa main pendant la partie pour mieux lire ses dominos.
+
+Perimetre valide :
+- ajout d'un controle `Trier` dans la zone de la main du joueur local
+- 3 modes seulement en V1 : `Auto`, `Doubles`, `Somme`
+- effet local immediat, persistant pendant la partie en cours uniquement
+- aucun drag-and-drop manuel
+- aucun impact sur les regles, le score, le moteur ou les autres joueurs
+
+Comportement attendu :
+- `Auto` : doubles d'abord, puis autres dominos par somme decroissante
+- `Doubles` : doubles regroupes avant les autres
+- `Somme` : toute la main triee par somme decroissante
+- apres chaque coup, la main restante conserve le mode de tri choisi
+
+Ordre d'execution recommande :
+1. injecter un etat de tri purement local dans l'UI de la main
+2. ajouter le controle `Trier` et les 3 actions associees
+3. verifier le rendu apres pose de domino et sur les differentes phases de jeu
+4. couvrir le comportement par tests cibles
 
 ---
 

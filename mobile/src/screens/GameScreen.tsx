@@ -16,6 +16,7 @@ import { GameHeader } from '../components/game/GameHeader';
 import { GameOptionsMenu } from '../components/game/GameOptionsMenu';
 import { GameOverlays } from '../components/game/GameOverlays';
 import { PlayerArea } from '../components/game/PlayerArea';
+import { HandSortMode } from '../components/PlayerHand';
 import { ActionFooter } from '../components/game/ActionFooter';
 import { LobbyScreen } from './LobbyScreen';
 import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
@@ -350,6 +351,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
+    const [handSortMode, setHandSortMode] = useState<HandSortMode>('AUTO');
+    const [isHandSortMenuOpen, setIsHandSortMenuOpen] = useState(false);
     const [playerSkinId, setPlayerSkinId] = useState<string | undefined>(undefined);
     const [playerSkinConfig, setPlayerSkinConfig] = useState<SkinConfig | undefined>(undefined);
     const [profileLoaded, setProfileLoaded] = useState(false);
@@ -1244,6 +1247,13 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     avatarRefs={avatarRefs}
                     getPlayerScore={getPlayerScore as any}
                     skinConfig={playerSkinConfig}
+                    handSortMode={handSortMode}
+                    isHandSortMenuOpen={isHandSortMenuOpen}
+                    onToggleHandSortMenu={() => setIsHandSortMenuOpen(prev => !prev)}
+                    onSelectHandSortMode={(mode) => {
+                        setHandSortMode(mode);
+                        setIsHandSortMenuOpen(false);
+                    }}
                 />
 
                 {/* QUICK CHAT UI */}
@@ -1265,6 +1275,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 onPlayDomino={wrappedHandlePlayDomino}
                 isPaused={isPaused || showOptions}
                 skinConfig={playerSkinConfig}
+                handSortMode={handSortMode}
             />
 
             <GameOverlays

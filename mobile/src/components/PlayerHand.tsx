@@ -1,11 +1,13 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Domino, DominoSide } from '../core/types';
 import { DominoTile } from './DominoTile';
 import { checkValidMove } from '../core/LogicEngine';
 import { SkinConfig } from '../core/store.types';
+
+export type HandSortMode = 'AUTO' | 'DOUBLES' | 'SUM';
 
 interface PlayerHandProps {
     hand: Domino[];
@@ -16,6 +18,7 @@ interface PlayerHandProps {
     isLocked?: boolean;
     forcedPlayableDominoId?: string | null;
     skinConfig?: SkinConfig; // Cosmetic skin configuration
+    sortMode?: HandSortMode;
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -27,8 +30,44 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
     isLocked = false,
     forcedPlayableDominoId = null,
     skinConfig,
+    sortMode = 'AUTO',
 }) => {
     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
+
+    const sortedHand = useMemo(() => {
+        const withMeta = hand.map((domino, index) => ({
+            domino,
+            index,
+            sum: domino.left + domino.right,
+        }));
+
+        const byOriginalIndex = (a: typeof withMeta[number], b: typeof withMeta[number]) => a.index - b.index;
+        const bySumDesc = (a: typeof withMeta[number], b: typeof withMeta[number]) => {
+            if (b.sum !== a.sum) return b.sum - a.sum;
+            if (Number(b.domino.isDouble) !== Number(a.domino.isDouble)) {
+                return Number(b.domino.isDouble) - Number(a.domino.isDouble);
+            }
+            return byOriginalIndex(a, b);
+        };
+
+        const sorted = [...withMeta].sort((a, b) => {
+            if (sortMode === 'SUM') {
+                return bySumDesc(a, b);
+            }
+
+            if (a.domino.isDouble !== b.domino.isDouble) {
+                return a.domino.isDouble ? -1 : 1;
+            }
+
+            if (sortMode === 'AUTO') {
+                return bySumDesc(a, b);
+            }
+
+            return byOriginalIndex(a, b);
+        });
+
+        return sorted.map(({ domino }) => domino);
+    }, [hand, sortMode]);
 
     const handleTilePress = (domino: Domino) => {
         if (disabled) return;
@@ -46,15 +85,16 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
     return (
         <View
             style={[styles.container]}
-            pointerEvents={isLocked ? 'none' : 'auto'}
+            pointerEvents="box-none"
         >
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 style={styles.scrollView}
+                pointerEvents={isLocked ? 'none' : 'auto'}
             >
-                {hand.map((domino, index) => {
+                {sortedHand.map((domino, index) => {
                     const canPlayByBoardRule = !disabled && checkValidMove(domino, leftValue, rightValue).canPlay;
                     const canPlay = canPlayByBoardRule && (!forcedPlayableDominoId || domino.id === forcedPlayableDominoId);
                     return (

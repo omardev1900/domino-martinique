@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { View } from 'react-native';
 import { PlayerArea } from '../PlayerArea';
 import { GameState, Player } from '../../../core/types';
@@ -62,5 +62,26 @@ describe('PlayerArea Component', () => {
 
         expect(avatar1.props.isActive).toBe(true);
         expect(avatarLocal.props.isActive).toBe(false);
+    });
+
+    it('renders the hand sort trigger for the local player', () => {
+        const { getByTestId } = render(<PlayerArea {...defaultProps} />);
+
+        expect(getByTestId('hand-sort-trigger')).toBeTruthy();
+    });
+
+    it('shows hand sort options and delegates the selection callback', () => {
+        const onSelectHandSortMode = jest.fn();
+        const { getByTestId } = render(
+            <PlayerArea
+                {...defaultProps}
+                isHandSortMenuOpen={true}
+                handSortMode="AUTO"
+                onSelectHandSortMode={onSelectHandSortMode}
+            />
+        );
+
+        fireEvent.press(getByTestId('hand-sort-option-sum'));
+        expect(onSelectHandSortMode).toHaveBeenCalledWith('SUM');
     });
 });

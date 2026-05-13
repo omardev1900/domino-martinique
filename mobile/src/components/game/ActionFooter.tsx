@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { EdgeInsets } from 'react-native-safe-area-context';
-import { PlayerHand } from '../PlayerHand';
+import { PlayerHand, HandSortMode } from '../PlayerHand';
 import { Player, GameState, Domino } from '../../core/types';
 import { SkinConfig } from '../../core/store.types';
 
@@ -20,6 +20,7 @@ export interface ActionFooterProps {
     onSelectSide?: (side: 'left' | 'right') => void;
     isPaused?: boolean;
     skinConfig?: SkinConfig; // Cosmetic skin configuration
+    handSortMode?: HandSortMode;
 }
 
 export const ActionFooter: React.FC<ActionFooterProps> = ({
@@ -36,6 +37,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
     onSelectSide,
     isPaused = false,
     skinConfig,
+    handSortMode = 'AUTO',
 }) => {
     if (!gameState || !localPlayer) return null;
 
@@ -91,6 +93,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                 rightValue={gameState.table.rightValue as any}
                 forcedPlayableDominoId={forcedOpeningDominoId}
                 skinConfig={skinConfig}
+                sortMode={handSortMode}
             />
         </View>
     );
