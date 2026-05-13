@@ -139,6 +139,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
     const gradeTheme = reward.newGrade ? getGradeTheme(reward.newGrade) : null;
     const popupScrollMaxHeight = height * (isLandscape ? 0.9 : 0.82);
     const isStandaloneGradeUp = isGradeUp && (!LEAGUE_FRAMES_ENABLED || !reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0);
+    const shouldHideMainRewardContent = isStandaloneGradeUp && showGradeUpModal;
 
     return (
         <Animated.View
@@ -151,7 +152,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
                 style={StyleSheet.absoluteFillObject}
             />
 
-            {!isStandaloneGradeUp && (
+            {!shouldHideMainRewardContent && (
                 <>
             {/* Boutique Bouton CONTINUER (Centre Haut) */}
             <TouchableOpacity

@@ -4,6 +4,15 @@
 
 ---
 
+## [2.5.3] - 2026-05-13
+
+### Modifie
+- **Main en jeu** - un menu `Trier` apparait maintenant au-dessus de l'avatar du joueur local pour reorganiser la main pendant la partie avec 3 modes : `Auto`, `Doubles`, `Somme`.
+- **Options solo** - l'onglet `Infos` affiche desormais la difficulte des bots au-dessus du mode de jeu.
+- **Bots solo** - les avatars des bots n'affichent plus de grade ni de cadre Ligue en mode solo.
+
+---
+
 ## [2.5.2] - 2026-05-12
 
 ### Modifie

@@ -9,6 +9,16 @@
 
 ## Mai 2026
 
+### 2026-05-13 - Tri de main et finitions UX solo
+
+- [x] **[AMELIORATION-HAND-AUTO-SORT]** Tri local de la main en partie
+  - Ajout d'un menu `Trier` au-dessus de l'avatar du joueur local
+  - V1 livree avec 3 modes : `Auto`, `Doubles`, `Somme`
+  - Le tri reste purement local a l'affichage et n'impacte ni les regles ni les autres joueurs
+  - En solo, l'onglet `Infos` du menu d'options affiche maintenant la difficulte des bots
+  - En solo, les bots n'affichent plus de grade ni de cadre Ligue sur leurs avatars
+  - Validation ciblee executee sur `PlayerHand.test.tsx`, `PlayerArea.test.tsx` et `ActionFooter.test.tsx`
+
 ### 2026-05-12 - Celebrations Ligue et finitions pre-lancement
 
 - [x] **[LEAGUE-GRADEUP-CELEBRATION]** Passage de palier Ligue rendu plus premium

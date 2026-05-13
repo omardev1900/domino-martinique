@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, act } from '@testing-library/react-native';
+import { render, act, fireEvent } from '@testing-library/react-native';
 import { RewardOverlay } from '../RewardOverlay';
 import { MatchReward } from '../../core/economy.types';
 import SoundManager from '../../core/audio/SoundManager';
@@ -88,4 +88,48 @@ describe('RewardOverlay', () => {
         expect(screen.getAllByText(/10.*cochons/i).length).toBeGreaterThan(0);
         expect(SoundManager.playSound).toHaveBeenCalledWith('applause');
     }, 20000);
+
+    it('reaffiche le contenu principal de recompense apres fermeture du popup de palier', async () => {
+        const reward: MatchReward = {
+            coinsEarned: 200,
+            xpEarned: 50,
+            diamondsEarned: 0,
+            leaguePointsEarned: 1,
+            isWinner: true,
+            previousLevel: 1,
+            newLevel: 1,
+            leveledUp: false,
+            previousXP: 100,
+            newXP: 150,
+            xpToNextLevel: 50,
+            previousGrade: null,
+            newGrade: 'APPRENTI_1',
+            gradeUp: true,
+            previousLeaguePoints: 9,
+            newLeaguePoints: 10,
+            nextGradeThreshold: 20,
+            newCochonsGiven: 10,
+            newlyUnlockedFrames: [],
+            frameCoinsBonus: 0,
+            breakdown: [],
+        };
+
+        const screen = render(
+            <RewardOverlay
+                visible={true}
+                reward={reward}
+                isWinner={true}
+                onContinue={jest.fn()}
+            />
+        );
+
+        await act(async () => {
+            jest.advanceTimersByTime(1300);
+        });
+
+        fireEvent.press(screen.getByLabelText('Fermer celebration'));
+
+        expect(screen.getByText('CONTINUER')).toBeTruthy();
+        expect(screen.queryByLabelText('Fermer celebration')).toBeNull();
+    });
 });

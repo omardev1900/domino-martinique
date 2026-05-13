@@ -31,7 +31,6 @@
 | **ECO-COIN-SINK-PRICING** | Revoir les prix des cosmetiques et autres puits a jetons |
 | **ECO-RETENTION-LOOP** | Verifier l'equilibre de la boucle quotidienne de retention et monetisation |
 | **PREMIUM-NO-ADS-SUBSCRIPTION** | Ajouter un abonnement mensuel 5 EUR sans publicite |
-| **BUG-LIGUE-GRADEUP-OVERLAY** | Corriger l'affichage incorrect du popup de passage de Ligue des Cochons |
 | **AMELIORATION-MULTI-LOBBY-BOT-FILL** | Permettre a l'hote de completer un lobby incomplet avec un bot, avec priorite a un joueur humain si quelqu'un rejoint au meme moment |
 | **GOD-MODE** | Nouveau mode solo separe "GOD MODE" : 2 bots METKAYALI allies contre le joueur, format `VICTOIRE` v1, acces verrouille par progression joueur |
 | **ANIM-DOMINO-DISTRIB** | Animation de distribution en cascade si `ANIM-DOMINO` ne couvre pas ce besoin |
