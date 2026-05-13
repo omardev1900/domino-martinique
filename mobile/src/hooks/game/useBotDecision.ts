@@ -112,25 +112,32 @@ export const useBotDecision = ({
             // Calcul de la décision
             let tileToPlay = null;
             let sideToPlay: 'left' | 'right' | 'start' = 'start';
+            try {
+                if (activePlayer.difficulty === 'METKAYALI') {
+                    // Moteur Monte-Carlo MÈTKAYALI
+                    const mkState = meytKayaliStates.current.get(currentPlayerId)
+                        ?? initMeytKayali(activePlayer.hand, freshState.players.filter(p => p.id !== currentPlayerId).map(p => p.id));
 
-            if (activePlayer.difficulty === 'METKAYALI') {
-                // Moteur Monte-Carlo MÈTKAYALI
-                const mkState = meytKayaliStates.current.get(currentPlayerId)
-                    ?? initMeytKayali(activePlayer.hand, freshState.players.filter(p => p.id !== currentPlayerId).map(p => p.id));
+                    const { decision: mkDecision, updatedState } = getMeytKayaliMove(mkState, freshState, currentPlayerId);
+                    meytKayaliStates.current.set(currentPlayerId, updatedState);
 
-                const { decision: mkDecision, updatedState } = getMeytKayaliMove(mkState, freshState, currentPlayerId);
-                meytKayaliStates.current.set(currentPlayerId, updatedState);
-
-                if (mkDecision) {
-                    tileToPlay = mkDecision.tile;
-                    sideToPlay = mkDecision.side;
+                    if (mkDecision) {
+                        tileToPlay = mkDecision.tile;
+                        sideToPlay = mkDecision.side;
+                    }
+                } else {
+                    // Moteur classique (TI_MANMAY / MAPIPI / GRAN_MOUN)
+                    const decision = computeBotDecision(freshState, currentPlayerId);
+                    if (decision) {
+                        tileToPlay = decision.tile;
+                        sideToPlay = decision.side as 'left' | 'right' | 'start';
+                    }
                 }
-            } else {
-                // Moteur classique (TI_MANMAY / MAPIPI / GRAN_MOUN)
-                const decision = computeBotDecision(freshState, currentPlayerId);
-                if (decision) {
-                    tileToPlay = decision.tile;
-                    sideToPlay = decision.side as 'left' | 'right' | 'start';
+            } catch {
+                const fallbackDecision = computeBotDecision(freshState, currentPlayerId);
+                if (fallbackDecision) {
+                    tileToPlay = fallbackDecision.tile;
+                    sideToPlay = fallbackDecision.side as 'left' | 'right' | 'start';
                 }
             }
 

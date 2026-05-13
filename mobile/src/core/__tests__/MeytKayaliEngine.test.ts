@@ -77,6 +77,28 @@ describe('MeytKayaliEngine', () => {
         }
     });
 
+    it('respecte la règle d ouverture forcée avec le plus gros double', () => {
+        const forcedDouble = makeTile(6, 6);
+        const otherDouble = makeTile(2, 2);
+        const sideTile = makeTile(6, 1);
+        const bot = makePlayer('bot', [otherDouble, forcedDouble, sideTile], 'METKAYALI');
+        const opp1 = makePlayer('opp1', [makeTile(5, 4)]);
+        const opp2 = makePlayer('opp2', [makeTile(3, 1)]);
+
+        const gameState = makeEmptyGameState([bot, opp1, opp2]);
+        gameState.currentPlayerId = 'bot';
+        gameState.roundNumber = 1;
+        gameState.table = { sequence: [], leftValue: null, rightValue: null };
+        gameState.history = [];
+
+        const mkState = initMeytKayali(bot.hand, ['opp1', 'opp2']);
+        const { decision } = getMeytKayaliMove(mkState, gameState, 'bot', 100);
+
+        expect(decision).not.toBeNull();
+        expect(decision?.tile.id).toBe(forcedDouble.id);
+        expect(decision?.side).toBe('start');
+    });
+
     it('getMeytKayaliMove retourne null si aucun coup possible', () => {
         // Main incompatible avec les extrémités de table
         const hand = [makeTile(0, 1), makeTile(0, 2)];

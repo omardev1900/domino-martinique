@@ -1,5 +1,6 @@
 import { Domino, DominoSide, GameState } from './types';
 import { getValidMoves, ValidMove } from './DominoEngine';
+import { getForcedOpeningDominoId, getForcedTieBreakDominoId } from './LogicEngine';
 import {
     TileTracker,
     initTileTracker,
@@ -74,6 +75,36 @@ export function getMeytKayaliMove(
     const hand = botPlayer.hand;
     const leftValue = gameState.table.leftValue;
     const rightValue = gameState.table.rightValue;
+
+    const forcedOpeningId = getForcedOpeningDominoId(gameState, botId);
+    if (forcedOpeningId) {
+        const forcedMove = hand
+            .filter(tile => tile.id === forcedOpeningId)
+            .flatMap(tile => getValidMoves([tile], { left: leftValue, right: rightValue }))
+            [0];
+
+        if (forcedMove) {
+            return {
+                decision: moveToDecision(forcedMove),
+                updatedState: liveState,
+            };
+        }
+    }
+
+    const forcedTieBreakId = getForcedTieBreakDominoId(gameState, botId);
+    if (forcedTieBreakId) {
+        const forcedMove = hand
+            .filter(tile => tile.id === forcedTieBreakId)
+            .flatMap(tile => getValidMoves([tile], { left: leftValue, right: rightValue }))
+            [0];
+
+        if (forcedMove) {
+            return {
+                decision: moveToDecision(forcedMove),
+                updatedState: liveState,
+            };
+        }
+    }
 
     const validMoves = getValidMoves(hand, { left: leftValue, right: rightValue });
     if (validMoves.length === 0) return { decision: null, updatedState: liveState };
