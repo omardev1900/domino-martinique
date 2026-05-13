@@ -37,6 +37,7 @@ interface PlayerAvatarProps {
     showHandDominoes?: boolean; // NEW: Reveal remaining dominoes in hand
     skinConfig?: SkinConfig; // NEW: Skin configuration for dominoes
     dimmed?: boolean; // NEW: Theatrical focus (dimmed if waiting)
+    isSoloMode?: boolean; // Hide bot league visuals in solo only
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -63,7 +64,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     gameMode,
     showHandDominoes = false,
     skinConfig,
-    dimmed = false
+    dimmed = false,
+    isSoloMode = false,
 }) => {
     const strokeWidth = 3; // Reduced from 4
     const radius = (size - strokeWidth) / 2;
@@ -215,6 +217,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const isTopRight = position === 'top-right';
     const isTopOpponent = isTopLeft || isTopRight;
     const isLocalPlayer = position === 'bottom';
+    const hideLeagueVisuals = isSoloMode && player.status === 'BOT';
 
     // L'image de l'avatar est sûrement gérée par getAvatarImage 
     // qui recourt au placeholder 'avatar_default' si non trouvée
@@ -293,7 +296,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                 borderWidth: isActive ? 3 : 2,
                                 borderColor: isActive
                                     ? '#FFD700'
-                                    : (player.leagueGrade && LEAGUE_GRADE_COLORS[player.leagueGrade as LeagueGrade])
+                                    : (!hideLeagueVisuals && player.leagueGrade && LEAGUE_GRADE_COLORS[player.leagueGrade as LeagueGrade])
                                         || '#78909C', // [R3-M2] Gris-bleu visible pour les joueurs sans grade
                                 overflow: 'hidden',
                                 backgroundColor: (showTimerUi && (secondsLeft === 0 || overtime !== null)) ? '#FF0000' : 'rgba(50,50,50,0.9)'
@@ -346,7 +349,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     </View>
 
                     {/* Cadre de Ligue des Cochons (Placé hors du overflow: hidden pour ne pas être rogné) */}
-                    {LEAGUE_FRAMES_ENABLED && player.activeFrame && (
+                    {LEAGUE_FRAMES_ENABLED && !hideLeagueVisuals && player.activeFrame && (
                         <AvatarFrame frameId={player.activeFrame} size={size} />
                     )}
 
@@ -449,7 +452,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             )}
 
                             {/* [R3-M2] Badge de grade Ligue — adversaires uniquement */}
-                            {position?.startsWith('top') && (
+                            {position?.startsWith('top') && !hideLeagueVisuals && (
                                 <GradeBadge grade={player.leagueGrade} size="xs" />
                             )}
                         </View>

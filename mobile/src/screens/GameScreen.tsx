@@ -1254,6 +1254,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                         setHandSortMode(mode);
                         setIsHandSortMenuOpen(false);
                     }}
+                    isSoloMode={isSoloMode}
                 />
 
                 {/* QUICK CHAT UI */}

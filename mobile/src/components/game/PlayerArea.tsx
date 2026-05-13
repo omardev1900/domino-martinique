@@ -24,6 +24,7 @@ export interface PlayerAreaProps {
     isHandSortMenuOpen?: boolean;
     onToggleHandSortMenu?: () => void;
     onSelectHandSortMode?: (mode: HandSortMode) => void;
+    isSoloMode?: boolean;
 }
 
 export const PlayerArea: React.FC<PlayerAreaProps> = ({
@@ -44,6 +45,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
     isHandSortMenuOpen = false,
     onToggleHandSortMenu,
     onSelectHandSortMode,
+    isSoloMode = false,
 }) => {
     if (!gameState) return null;
 
@@ -91,6 +93,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             showHandDominoes={false}
                             skinConfig={skinConfig}
                             dimmed={isPlaying && gameState.currentPlayerId !== opponents[0]?.id}
+                            isSoloMode={isSoloMode}
                         />
                     </Animated.View>
                 </View>
@@ -130,6 +133,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             showHandDominoes={false}
                             skinConfig={skinConfig}
                             dimmed={isPlaying && gameState.currentPlayerId !== opponents[1]?.id}
+                            isSoloMode={isSoloMode}
                         />
                     </Animated.View>
                 </View>
@@ -202,6 +206,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             showHandDominoes={false}
                             skinConfig={skinConfig}
                             dimmed={isPlaying && gameState.currentPlayerId !== localPlayerId}
+                            isSoloMode={isSoloMode}
                         />
                     </Animated.View>
                 </View>

@@ -48,6 +48,16 @@ function objectifLabel(state: GameState): string {
     }
 }
 
+function botDifficultyLabel(difficulty?: string): string {
+    switch (difficulty) {
+        case 'TI_MANMAY': return 'Debutant';
+        case 'MAPIPI': return 'Intermediaire';
+        case 'GRAN_MOUN': return 'Difficile';
+        case 'METKAYALI': return 'Met Kayali';
+        default: return 'Inconnue';
+    }
+}
+
 export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
     visible,
     onClose,
@@ -92,6 +102,9 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
     };
 
     const connectedPlayers: { displayName: string; uid: string }[] = roomData?.players ?? [];
+    const soloBotDifficulty = isSoloMode
+        ? gameState?.players.find((player) => player.status === 'BOT')?.difficulty
+        : undefined;
 
     return (
         <Modal
@@ -167,6 +180,13 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                             {/* Onglet INFOS */}
                             {activeTab === 'INFOS' && gameState && (
                                 <View>
+                                    {isSoloMode && (
+                                        <InfoRow
+                                            icon="school-outline"
+                                            label="Difficulte"
+                                            value={botDifficultyLabel(soloBotDifficulty)}
+                                        />
+                                    )}
                                     <InfoRow icon="game-controller-outline" label="Mode"    value={gameModeLabel(gameState.gameMode)} />
                                     <InfoRow icon="star-outline"            label="Objectif" value={objectifLabel(gameState)} />
                                     <InfoRow icon="layers-outline"          label="Manche"   value={`M${Math.max(1, gameState.mancheNumber ?? 1)} · R${Math.max(1, gameState.roundNumber ?? 1)}`} />
