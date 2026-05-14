@@ -67,7 +67,7 @@ function xpToNextLevel(totalXP, currentLevel) {
 }
 /**
  * Détermine le grade de Ligue des Cochons selon le nombre de cochons.
- * Retourne null si le joueur est en dessous du premier seuil (< 10 cochons).
+ * Retourne null si le joueur n'a encore inflige aucun cochon.
  */
 function getLeagueGrade(leaguePoints) {
     let grade = null;
@@ -322,7 +322,7 @@ exports.RewardEngine = {
         const newlyUnlockedFrames = [];
         let frameCoinsBonus = 0;
         let unlockedPalierCount = 0;
-        for (const grade of economy_constants_1.LEAGUE_GRADE_ORDER) {
+        for (const grade of economy_constants_1.LEAGUE_FRAME_GRADE_ORDER) {
             const threshold = economy_constants_1.LEAGUE_FRAME_THRESHOLDS[grade];
             const frameReward = economy_constants_1.LEAGUE_FRAME_REWARDS[grade];
             const frameId = frameReward.frameId;
@@ -332,7 +332,7 @@ exports.RewardEngine = {
                 unlockedPalierCount += 1;
                 if (economy_constants_1.LEAGUE_FRAMES_ENABLED) {
                     newlyUnlockedFrames.push({
-                        grade: grade,
+                        grade,
                         frameId,
                         coinsBonus: frameReward.coinsBonus,
                         cochonsAtUnlock: newCochonsGiven,
@@ -401,8 +401,17 @@ exports.RewardEngine = {
      */
     buildInputFromGameState(params) {
         const { gameState, localPlayerId, currentLevel, currentXP, currentLeaguePoints, currentCochonsGiven, unlockedFrames, tableTier, isSoloMode } = params;
+        const getCochonRankingValue = (player) => gameState.gameMode === 'COCHON'
+            ? (player.totalCochonsInfliges || 0)
+            : (player.totalCochons || 0);
         // Classement final
         const sortedPlayers = [...gameState.players].sort((a, b) => {
+            if (gameState.gameMode === 'COCHON') {
+                if (getCochonRankingValue(b) !== getCochonRankingValue(a)) {
+                    return getCochonRankingValue(b) - getCochonRankingValue(a);
+                }
+                return b.totalPoints - a.totalPoints;
+            }
             if (b.totalPoints !== a.totalPoints)
                 return b.totalPoints - a.totalPoints;
             if (b.totalCochons !== a.totalCochons)
@@ -412,7 +421,7 @@ exports.RewardEngine = {
         const finalRanking = sortedPlayers.map((p, i) => ({
             playerId: p.id,
             totalPoints: p.totalPoints,
-            totalCochons: p.totalCochons,
+            totalCochons: getCochonRankingValue(p),
             mancheWins: p.mancheWins,
             totalRoundWins: p.totalRoundWins || 0,
             rank: i + 1,

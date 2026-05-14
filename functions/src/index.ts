@@ -1,5 +1,5 @@
-import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import * as functions from 'firebase-functions';
 import { RewardEngine } from './core/RewardEngine';
 import { RewardCalculationInput } from './core/economy.types';
 import { logSystemEvent } from './systemLog';
@@ -7,21 +7,36 @@ import { logSystemEvent } from './systemLog';
 admin.initializeApp();
 const db = admin.firestore();
 
-export const processMatchReward = functions.https.onCall(async (data: { input: Partial<RewardCalculationInput> }, context: functions.https.CallableContext) => {
-    // 1. Vérifier l'authentification
-    if (!context.auth) {
-        throw new functions.https.HttpsError(
-            'unauthenticated',
-            'Il faut être connecté pour traiter une récompense.'
-        );
+const LOCAL_WEB_ALLOWED_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+function applyCorsHeaders(req: functions.https.Request, res: functions.Response<any>) {
+    const origin = req.headers.origin;
+    if (origin && LOCAL_WEB_ALLOWED_ORIGIN.test(origin)) {
+        res.set('Access-Control-Allow-Origin', origin);
+        res.set('Vary', 'Origin');
     }
-    const uid = context.auth.uid;
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+}
+
+function sendCorsPreflight(req: functions.https.Request, res: functions.Response<any>): boolean {
+    applyCorsHeaders(req, res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return true;
+    }
+    return false;
+}
+
+async function processMatchRewardInternal(
+    data: { input: Partial<RewardCalculationInput> },
+    uid: string
+) {
     const clientInput = data.input;
 
-    // 2. Récupérer l'économie serveur (la vraie source de vérité)
     const userRef = db.collection('users').doc(uid);
     const userSnap = await userRef.get();
-    
+
     let currentXP = 0;
     let currentLevel = 1;
     let currentLeaguePoints = 0;
@@ -37,132 +52,173 @@ export const processMatchReward = functions.https.onCall(async (data: { input: P
             currentXP = existingEconomy.xp || 0;
             currentLevel = existingEconomy.level || 1;
             currentLeaguePoints = existingEconomy.leaguePoints || 0;
-            // cochonsGiven doit être synchronisé depuis le serveur pour éviter la dérive
-            // avec leaguePoints. Fallback sur leaguePoints si cochonsGiven absent.
             currentCochonsGiven = existingEconomy.cochonsGiven ?? existingEconomy.leaguePoints ?? 0;
             currentCoins = existingEconomy.coins || 0;
             currentDiamonds = existingEconomy.diamonds || 0;
         }
     }
 
-    // 3. Forcer les valeurs de l'input avec la réalité serveur
-    // Le client ne peut pas tricher sur son niveau de départ
     const secureInput: RewardCalculationInput = {
-        ...clientInput as RewardCalculationInput,
+        ...(clientInput as RewardCalculationInput),
         currentXP,
         currentLevel,
         currentLeaguePoints,
         currentCochonsGiven,
     };
 
-    // 4. Exécuter le moteur purement mathématique sur le serveur
     const reward = RewardEngine.calculate(secureInput);
 
-    // 5. Appliquer les gains à l'économie
-    // On garde l'argent local (currentCoins) + le gain (reward.coinsEarned)
-    const newCoins = currentCoins + reward.coinsEarned;
-    const newDiamonds = currentDiamonds + reward.diamondsEarned;
-
     const newEconomy = {
-        ...existingEconomy, // préserve lastDailyRewardTimestamp, activeFrame, etc.
-        coins: newCoins,
+        ...existingEconomy,
+        coins: currentCoins + reward.coinsEarned,
         xp: reward.newXP,
         level: reward.newLevel,
-        diamonds: newDiamonds,
+        diamonds: currentDiamonds + reward.diamondsEarned,
         leaguePoints: reward.newLeaguePoints,
         leagueGrade: reward.newGrade,
         cochonsGiven: reward.newCochonsGiven,
         unlockedFrames: [...new Set([
             ...(existingEconomy.unlockedFrames || []),
-            ...reward.newlyUnlockedFrames.map((f: any) => f.frameId),
+            ...reward.newlyUnlockedFrames.map((frame: any) => frame.frameId),
         ])],
     };
 
-    // 6. Sauvegarder l'économie du joueur
-    await userRef.set({
-        economy: newEconomy
-    }, { merge: true });
+    await userRef.set({ economy: newEconomy }, { merge: true });
 
-    // 7. Mise à jour des points de Tournoi (le cas échéant)
     if (clientInput.tournamentId) {
         try {
             const tournamentId = clientInput.tournamentId;
-            const tRef = db.collection('tournaments').doc(tournamentId);
-            const partRef = tRef.collection('participants').doc(uid);
-            
-            // On calcule le score à donner:
-            // Exemple : les totalPoints + un bonus si vainqueur, ou bien uniquement l'XP accumulé.
-            // Utilisons la somme des points de la partie (totalPoints) + bonus victoire
-            // Ou plus simplement, on se base sur les events du clientInput s'il y a un totalPoints
+            const tournamentRef = db.collection('tournaments').doc(tournamentId);
+            const participantRef = tournamentRef.collection('participants').doc(uid);
             const pointsToAdd = clientInput.playerFinalStats?.totalPoints || reward.xpEarned;
-            
-            await db.runTransaction(async (t) => {
-                const partSnap = await t.get(partRef);
-                const tourSnap = await t.get(tRef);
-                
-                // Ne mettre à jour que si le tournoi est ACTIVE et le joueur est bien participant
-                if (tourSnap.exists && tourSnap.data()?.status === 'ACTIVE' && partSnap.exists) {
-                    const data = partSnap.data();
-                    const currentScore = data?.score || 0;
-                    const gamesPlayed = data?.gamesPlayed || 0;
-                    t.update(partRef, {
+
+            await db.runTransaction(async (transaction) => {
+                const participantSnap = await transaction.get(participantRef);
+                const tournamentSnap = await transaction.get(tournamentRef);
+
+                if (tournamentSnap.exists && tournamentSnap.data()?.status === 'ACTIVE' && participantSnap.exists) {
+                    const participantData = participantSnap.data();
+                    const currentScore = participantData?.score || 0;
+                    const gamesPlayed = participantData?.gamesPlayed || 0;
+
+                    transaction.update(participantRef, {
                         score: currentScore + pointsToAdd,
                         gamesPlayed: gamesPlayed + 1,
-                        lastPlayedAt: Date.now()
+                        lastPlayedAt: Date.now(),
                     });
                 }
             });
-            console.log(`[processMatchReward] Joueur ${uid} crédité: +${pointsToAdd} pts au tournoi ${tournamentId}.`);
+
+            console.log(`[processMatchReward] Joueur ${uid} credite: +${pointsToAdd} pts au tournoi ${tournamentId}.`);
             await logSystemEvent({
                 event: 'tournament_score_update',
                 level: 'info',
                 functionName: 'processMatchReward',
                 uid,
-                message: `+${pointsToAdd} pts ajoutés au tournoi ${tournamentId}`,
+                message: `+${pointsToAdd} pts ajoutes au tournoi ${tournamentId}`,
                 metadata: { tournamentId, pointsToAdd },
             });
-        } catch (e: any) {
-            console.error(`Erreur maj tournoi ${clientInput.tournamentId} pour user ${uid}:`, e);
+        } catch (error: any) {
+            console.error(`Erreur maj tournoi ${clientInput.tournamentId} pour user ${uid}:`, error);
             await logSystemEvent({
                 event: 'function_error',
                 level: 'error',
                 functionName: 'processMatchReward',
                 uid,
-                message: `Erreur maj tournoi ${clientInput.tournamentId}: ${e?.message ?? e}`,
+                message: `Erreur maj tournoi ${clientInput.tournamentId}: ${error?.message ?? error}`,
                 metadata: { tournamentId: clientInput.tournamentId },
             });
         }
     }
 
-    console.log(`[processMatchReward] Joueur ${uid} crédité: +${reward.coinsEarned} pièces.`);
+    console.log(`[processMatchReward] Joueur ${uid} credite: +${reward.coinsEarned} pieces.`);
     await logSystemEvent({
         event: 'match_reward',
         level: 'info',
         functionName: 'processMatchReward',
         uid,
-        message: `+${reward.coinsEarned} coins crédités après match`,
+        message: `+${reward.coinsEarned} coins credites apres match`,
         metadata: { coinsEarned: reward.coinsEarned, xpEarned: reward.xpEarned },
     });
 
-    // On retourne le résultat au client pour déclencher ses propres animations
     return reward;
+}
+
+export const processMatchReward = functions.https.onCall(
+    async (data: { input: Partial<RewardCalculationInput> }, context: functions.https.CallableContext) => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError(
+                'unauthenticated',
+                'Il faut etre connecte pour traiter une recompense.'
+            );
+        }
+
+        return processMatchRewardInternal(data, context.auth.uid);
+    }
+);
+
+export const processMatchRewardHttp = functions.https.onRequest(async (req, res) => {
+    if (sendCorsPreflight(req, res)) return;
+    applyCorsHeaders(req, res);
+
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'method-not-allowed' });
+        return;
+    }
+
+    try {
+        const authHeader = req.headers.authorization;
+        const idToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        if (!idToken) {
+            res.status(401).json({ error: 'unauthenticated', message: 'Token manquant.' });
+            return;
+        }
+
+        const decoded = await admin.auth().verifyIdToken(idToken);
+        const reward = await processMatchRewardInternal(
+            req.body as { input: Partial<RewardCalculationInput> },
+            decoded.uid
+        );
+
+        res.status(200).json({ result: reward });
+    } catch (error: any) {
+        if (error instanceof functions.https.HttpsError) {
+            const statusByCode: Record<string, number> = {
+                'invalid-argument': 400,
+                unauthenticated: 401,
+                'permission-denied': 403,
+                'not-found': 404,
+                'failed-precondition': 412,
+            };
+
+            res.status(statusByCode[error.code] ?? 500).json({
+                error: error.code,
+                message: error.message,
+            });
+            return;
+        }
+
+        console.error('[processMatchRewardHttp] Unexpected error:', error);
+        res.status(500).json({
+            error: 'internal',
+            message: error?.message ?? 'Erreur interne.',
+        });
+    }
 });
 
 /**
- * Migration one-shot : copie stats.totalCochonsInflicted → economy.cochonsGiven
+ * Migration one-shot : copie stats.totalCochonsInflicted -> economy.cochonsGiven
  * pour tous les utilisateurs dont economy.cochonsGiven < stats.totalCochonsInflicted.
- * À appeler UNE SEULE FOIS depuis l'admin, puis désactiver.
- * Réservé aux admins (vérifié via collection admins/).
+ * A appeler une seule fois depuis l'admin, puis desactiver.
  */
 export const migrateCochonsGiven = functions.https.onCall(async (_data, context) => {
     if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Accès refusé.');
+        throw new functions.https.HttpsError('unauthenticated', 'Acces refuse.');
     }
 
-    // Vérifier que l'appelant est admin
     const adminSnap = await db.collection('admins').doc(context.auth.uid).get();
     if (!adminSnap.exists) {
-        throw new functions.https.HttpsError('permission-denied', 'Réservé aux admins.');
+        throw new functions.https.HttpsError('permission-denied', 'Reserve aux admins.');
     }
 
     const usersSnap = await db.collection('users').get();
@@ -193,68 +249,74 @@ export const migrateCochonsGiven = functions.https.onCall(async (_data, context)
         level: 'info',
         functionName: 'migrateCochonsGiven',
         uid: context.auth.uid,
-        message: `Migration cochons terminée : ${migrated} migrés, ${skipped} ignorés`,
+        message: `Migration cochons terminee : ${migrated} migres, ${skipped} ignores`,
         metadata: { migrated, skipped },
     });
     return { migrated, skipped };
 });
 
 export const closeTournament = functions.https.onCall(async (data: { tournamentId: string }, context) => {
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Accès refusé.');
-    
-    // Vérifier si l'utilisateur est admin serait idéal. On suppose ici que la fonction est appelée de manière sécurisée
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Acces refuse.');
+    }
+
     const { tournamentId } = data;
-    if (!tournamentId) throw new functions.https.HttpsError('invalid-argument', 'id de tournoi manquant.');
+    if (!tournamentId) {
+        throw new functions.https.HttpsError('invalid-argument', 'id de tournoi manquant.');
+    }
 
-    const tRef = db.collection('tournaments').doc(tournamentId);
-    
-    return db.runTransaction(async (t) => {
-        const tSnap = await t.get(tRef);
-        if (!tSnap.exists) throw new functions.https.HttpsError('not-found', 'Tournoi introuvable');
-        const tData = tSnap.data()!;
-        if (tData.status === 'ENDED') throw new functions.https.HttpsError('failed-precondition', 'Tournoi déjà cloturé');
+    const tournamentRef = db.collection('tournaments').doc(tournamentId);
 
-        // Récupérer tous les participants triés par score
-        const participantsSnap = await t.get(tRef.collection('participants').orderBy('score', 'desc').limit(3));
+    return db.runTransaction(async (transaction) => {
+        const tournamentSnap = await transaction.get(tournamentRef);
+        if (!tournamentSnap.exists) {
+            throw new functions.https.HttpsError('not-found', 'Tournoi introuvable');
+        }
+
+        const tournamentData = tournamentSnap.data()!;
+        if (tournamentData.status === 'ENDED') {
+            throw new functions.https.HttpsError('failed-precondition', 'Tournoi deja cloture');
+        }
+
+        const participantsSnap = await transaction.get(
+            tournamentRef.collection('participants').orderBy('score', 'desc').limit(3)
+        );
         const winners = participantsSnap.docs;
 
-        // Distribuer les récompenses
         const rewards = [
-            { coins: tData.reward1st || 0, diamonds: tData.rewardDiamonds1st || 0 }, // 1er
-            { coins: tData.reward2nd || 0, diamonds: 0 }, // 2ème
-            { coins: tData.reward3rd || 0, diamonds: 0 }, // 3ème
+            { coins: tournamentData.reward1st || 0, diamonds: tournamentData.rewardDiamonds1st || 0 },
+            { coins: tournamentData.reward2nd || 0, diamonds: 0 },
+            { coins: tournamentData.reward3rd || 0, diamonds: 0 },
         ];
 
         for (let i = 0; i < winners.length; i++) {
             if (i >= rewards.length) break;
+
             const reward = rewards[i];
             const userId = winners[i].id;
-            
-            // Mise à jour de l'économie
             const userRef = db.collection('users').doc(userId);
-            const userSnap = await t.get(userRef);
+            const userSnap = await transaction.get(userRef);
+
             if (userSnap.exists) {
-                const uData = userSnap.data()!;
-                const currentCoins = uData.economy?.coins || 0;
-                const currentDiamonds = uData.economy?.diamonds || 0;
-                t.update(userRef, {
+                const userData = userSnap.data()!;
+                const currentCoins = userData.economy?.coins || 0;
+                const currentDiamonds = userData.economy?.diamonds || 0;
+                transaction.update(userRef, {
                     'economy.coins': currentCoins + reward.coins,
-                    'economy.diamonds': currentDiamonds + reward.diamonds
+                    'economy.diamonds': currentDiamonds + reward.diamonds,
                 });
             }
         }
 
-        // Marquer le tournoi comme ENDED
-        t.update(tRef, { status: 'ENDED' });
+        transaction.update(tournamentRef, { status: 'ENDED' });
 
-        // Note: log écrit hors transaction pour ne pas bloquer
         setTimeout(() => {
             logSystemEvent({
                 event: 'tournament_closed',
                 level: 'info',
                 functionName: 'closeTournament',
                 uid: context.auth?.uid,
-                message: `Tournoi ${tournamentId} clôturé avec ${winners.length} gagnants`,
+                message: `Tournoi ${tournamentId} cloture avec ${winners.length} gagnants`,
                 metadata: { tournamentId, winnersCount: winners.length },
             });
         }, 0);
@@ -264,43 +326,40 @@ export const closeTournament = functions.https.onCall(async (data: { tournamentI
 });
 
 /**
- * Suppression de compte — exigée par Google Play depuis 2024.
- * Supprime toutes les données Firestore du joueur puis son compte Firebase Auth.
- * Seul l'utilisateur authentifié peut supprimer son propre compte.
+ * Suppression de compte - exigee par Google Play depuis 2024.
+ * Supprime les donnees Firestore du joueur puis son compte Firebase Auth.
  */
 export const deleteUserAccount = functions.https.onCall(async (_data, context) => {
     if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
+        throw new functions.https.HttpsError('unauthenticated', 'Vous devez etre connecte.');
     }
 
     const uid = context.auth.uid;
 
     try {
         const batch = db.batch();
-
-        // Supprimer les collections principales du joueur
         const collectionsToDelete = ['users', 'stats', 'economy'];
-        for (const col of collectionsToDelete) {
-            const ref = db.collection(col).doc(uid);
+
+        for (const collectionName of collectionsToDelete) {
+            const ref = db.collection(collectionName).doc(uid);
             const snap = await ref.get();
-            if (snap.exists) batch.delete(ref);
+            if (snap.exists) {
+                batch.delete(ref);
+            }
         }
 
         await batch.commit();
-
-        // Supprimer le compte Firebase Auth en dernier
         await admin.auth().deleteUser(uid);
 
-        console.log(`[deleteUserAccount] Compte supprimé : ${uid}`);
+        console.log(`[deleteUserAccount] Compte supprime : ${uid}`);
         await logSystemEvent({
             event: 'account_deleted',
             level: 'info',
             functionName: 'deleteUserAccount',
             uid,
-            message: `Compte supprimé`,
+            message: 'Compte supprime',
         });
         return { success: true };
-
     } catch (error: any) {
         console.error(`[deleteUserAccount] Erreur pour ${uid}:`, error);
         await logSystemEvent({

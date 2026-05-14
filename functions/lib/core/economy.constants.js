@@ -7,7 +7,7 @@
  * Aucune constante économique ne doit être hardcodée ailleurs.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LEAGUE_GRADE_COLORS = exports.LEAGUE_ICONS = exports.LEAGUE_LABELS = exports.LEAGUE_GRADE_ORDER = exports.LEAGUE_FRAMES_ENABLED = exports.LEAGUE_FRAME_REWARDS = exports.LEAGUE_FRAME_THRESHOLDS = exports.LEAGUE_THRESHOLDS = exports.DEFAULT_LEVEL_UP_COINS = exports.LEVEL_UP_CHESTS = exports.MAX_LEVEL = exports.COIN_MULTIPLIER_PER_LEVEL = exports.XP_GROWTH_RATE = exports.XP_PER_LEVEL_BASE = exports.DAILY_REWARD_COINS = exports.NEW_PLAYER_COINS = exports.SOLO_WIN_FLAT_REWARD = exports.POT_DISTRIBUTION = exports.RAKE_PERCENT = exports.TABLE_CONFIGS = exports.BASE_REWARDS = void 0;
+exports.LEAGUE_GRADE_COLORS = exports.LEAGUE_ICONS = exports.LEAGUE_LABELS = exports.LEAGUE_FRAME_GRADE_ORDER = exports.LEAGUE_GRADE_ORDER = exports.LEAGUE_FRAMES_ENABLED = exports.LEAGUE_FRAME_REWARDS = exports.LEAGUE_FRAME_THRESHOLDS = exports.LEAGUE_THRESHOLDS = exports.DEFAULT_LEVEL_UP_COINS = exports.LEVEL_UP_CHESTS = exports.MAX_LEVEL = exports.COIN_MULTIPLIER_PER_LEVEL = exports.XP_GROWTH_RATE = exports.XP_PER_LEVEL_BASE = exports.DAILY_REWARD_COINS = exports.NEW_PLAYER_COINS = exports.SOLO_WIN_FLAT_REWARD = exports.POT_DISTRIBUTION = exports.RAKE_PERCENT = exports.TABLE_CONFIGS = exports.BASE_REWARDS = void 0;
 // ─── Matrice des Gains ────────────────────────────────────────────────────────
 /** Gains par événement de jeu (avant multiplicateur de niveau) */
 exports.BASE_REWARDS = {
@@ -111,6 +111,7 @@ exports.DEFAULT_LEVEL_UP_COINS = 100;
  * Le grade est recalculé depuis cochonsGiven à chaque mise à jour.
  */
 exports.LEAGUE_THRESHOLDS = {
+    DEBUTANT: 1,
     APPRENTI_1: 10,
     APPRENTI_2: 20,
     APPRENTI_3: 30,
@@ -149,12 +150,19 @@ exports.LEAGUE_FRAME_REWARDS = {
 exports.LEAGUE_FRAMES_ENABLED = false;
 /** Ordre des grades du plus faible au plus fort */
 exports.LEAGUE_GRADE_ORDER = [
+    'DEBUTANT',
+    'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',
+    'MAITRE_1', 'MAITRE_2', 'MAITRE_3',
+    'ROI', 'LEGENDE',
+];
+exports.LEAGUE_FRAME_GRADE_ORDER = [
     'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',
     'MAITRE_1', 'MAITRE_2', 'MAITRE_3',
     'ROI', 'LEGENDE',
 ];
 /** Labels affichés dans l'UI (R2-M6) */
 exports.LEAGUE_LABELS = {
+    DEBUTANT: 'Debutant',
     APPRENTI_1: 'Apprenti 1',
     APPRENTI_2: 'Apprenti 2',
     APPRENTI_3: 'Apprenti 3',
@@ -166,6 +174,7 @@ exports.LEAGUE_LABELS = {
 };
 /** Emojis des grades */
 exports.LEAGUE_ICONS = {
+    DEBUTANT: '🌱',
     APPRENTI_1: '🥈',
     APPRENTI_2: '🥈',
     APPRENTI_3: '🥈',
@@ -180,6 +189,7 @@ exports.LEAGUE_ICONS = {
  * Utilisé dans PlayerAvatar pour encadrer l'icône joueur.
  */
 exports.LEAGUE_GRADE_COLORS = {
+    DEBUTANT: '#7CB342',
     APPRENTI_1: '#C8C8C8', // Gris clair
     APPRENTI_2: '#909090', // Gris
     APPRENTI_3: '#505050', // Gris foncé

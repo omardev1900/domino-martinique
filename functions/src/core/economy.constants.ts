@@ -6,7 +6,7 @@
  * Aucune constante économique ne doit être hardcodée ailleurs.
  */
 
-import { TableConfig, LeagueGrade, LevelUpChest } from './economy.types';
+import { TableConfig, LeagueFrameGrade, LeagueGrade, LevelUpChest } from './economy.types';
 
 // ─── Matrice des Gains ────────────────────────────────────────────────────────
 
@@ -129,6 +129,7 @@ export const DEFAULT_LEVEL_UP_COINS = 100;
  * Le grade est recalculé depuis cochonsGiven à chaque mise à jour.
  */
 export const LEAGUE_THRESHOLDS: Record<LeagueGrade, number> = {
+    DEBUTANT: 1,
     APPRENTI_1: 10,
     APPRENTI_2: 20,
     APPRENTI_3: 30,
@@ -143,7 +144,7 @@ export const LEAGUE_THRESHOLDS: Record<LeagueGrade, number> = {
  * Seuils de cochons pour le DÉBLOCAGE du cadre associé à chaque grade.
  * Franchir ce seuil = recevoir le cadre en récompense.
  */
-export const LEAGUE_FRAME_THRESHOLDS: Record<LeagueGrade, number> = {
+export const LEAGUE_FRAME_THRESHOLDS: Record<LeagueFrameGrade, number> = {
     APPRENTI_1: 10,
     APPRENTI_2: 20,
     APPRENTI_3: 30,
@@ -155,7 +156,7 @@ export const LEAGUE_FRAME_THRESHOLDS: Record<LeagueGrade, number> = {
 };
 
 /** Récompenses associées à chaque palier (cadre + coins) */
-export const LEAGUE_FRAME_REWARDS: Record<LeagueGrade, { frameId: string; coinsBonus: number }> = {
+export const LEAGUE_FRAME_REWARDS: Record<LeagueFrameGrade, { frameId: string; coinsBonus: number }> = {
     APPRENTI_1: { frameId: 'frame_apprenti_1', coinsBonus: 200 },
     APPRENTI_2: { frameId: 'frame_apprenti_2', coinsBonus: 300 },
     APPRENTI_3: { frameId: 'frame_apprenti_3', coinsBonus: 500 },
@@ -171,6 +172,13 @@ export const LEAGUE_FRAMES_ENABLED = false;
 
 /** Ordre des grades du plus faible au plus fort */
 export const LEAGUE_GRADE_ORDER: LeagueGrade[] = [
+    'DEBUTANT',
+    'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',
+    'MAITRE_1',   'MAITRE_2',   'MAITRE_3',
+    'ROI',        'LEGENDE',
+];
+
+export const LEAGUE_FRAME_GRADE_ORDER: LeagueFrameGrade[] = [
     'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',
     'MAITRE_1',   'MAITRE_2',   'MAITRE_3',
     'ROI',        'LEGENDE',
@@ -178,6 +186,7 @@ export const LEAGUE_GRADE_ORDER: LeagueGrade[] = [
 
 /** Labels affichés dans l'UI (R2-M6) */
 export const LEAGUE_LABELS: Record<LeagueGrade, string> = {
+    DEBUTANT: 'Debutant',
     APPRENTI_1: 'Apprenti 1',
     APPRENTI_2: 'Apprenti 2',
     APPRENTI_3: 'Apprenti 3',
@@ -190,6 +199,7 @@ export const LEAGUE_LABELS: Record<LeagueGrade, string> = {
 
 /** Emojis des grades */
 export const LEAGUE_ICONS: Record<LeagueGrade, string> = {
+    DEBUTANT: '🌱',
     APPRENTI_1: '🥈',
     APPRENTI_2: '🥈',
     APPRENTI_3: '🥈',
@@ -205,6 +215,7 @@ export const LEAGUE_ICONS: Record<LeagueGrade, string> = {
  * Utilisé dans PlayerAvatar pour encadrer l'icône joueur.
  */
 export const LEAGUE_GRADE_COLORS: Record<LeagueGrade, string> = {
+    DEBUTANT: '#7CB342',
     APPRENTI_1: '#C8C8C8', // Gris clair
     APPRENTI_2: '#909090', // Gris
     APPRENTI_3: '#505050', // Gris foncé

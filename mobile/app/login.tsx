@@ -225,6 +225,7 @@ export default function LoginScreen() {
                 >
                     {/* TOP: Short Title */}
                     <Text style={styles.mainTitle}>DEVIENS UNE LÉGENDE !</Text>
+                    <Text style={styles.benefitText}>Ver 1.3.0 !</Text>
 
                     <View style={styles.contentWrapper}>
                         {/* MIDDLE: Free Account Card (Highly Compressed) */}
@@ -368,7 +369,7 @@ export default function LoginScreen() {
                                         {isForgotMode
                                             ? "← Retour à la connexion"
                                             : isLoginMode
-                                                ? "Pas de compte ? S'inscrire"
+                                                ? "Créer un compte"
                                                 : "Déjà un compte ? Connexion"}
                                     </Text>
                                 </TouchableOpacity>

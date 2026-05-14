@@ -101,6 +101,11 @@ jest.mock('firebase/auth', () => ({
   deleteUser: jest.fn(),
 }));
 
+jest.mock('firebase/functions', () => ({
+  getFunctions: jest.fn(() => ({})),
+  httpsCallable: jest.fn(() => jest.fn()),
+}));
+
 jest.mock('firebase/storage', () => ({
   getStorage: jest.fn(),
   ref: jest.fn(),

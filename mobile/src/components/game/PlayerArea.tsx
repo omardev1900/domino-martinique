@@ -180,7 +180,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             style={styles.handSortTrigger}
                             testID="hand-sort-trigger"
                         >
-                            <Text style={styles.handSortTriggerText}>{`Trier${handSortMode ? ` : ${handSortMode === 'AUTO' ? 'Auto' : handSortMode === 'DOUBLES' ? 'Doubles' : 'Somme'}` : ''}`}</Text>
+                            <Text style={styles.handSortTriggerText}>{`${handSortMode ? ` ${handSortMode === 'AUTO' ? 'Auto' : handSortMode === 'DOUBLES' ? 'Doubles' : 'Somme'}` : ''}`}</Text>
                         </TouchableOpacity>
                     </View>
                     <Animated.View

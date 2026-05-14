@@ -12,9 +12,10 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { db } from './firebase';
+import { auth, db } from './firebase';
 import { LogService } from './LogService';
 import { PlayerEconomy, MatchReward, LeagueGrade, RewardCalculationInput, LeagueFrameId } from '../economy.types';
 import { NEW_PLAYER_COINS, DAILY_REWARD_COINS } from '../economy.constants';
@@ -28,6 +29,7 @@ export interface EconomyProfileInfo {
 
 const STORAGE_KEY_ECONOMY = '@player_economy';
 const GUEST_STORAGE_SCOPE = 'guest';
+const LOCAL_WEB_FUNCTIONS_HOSTNAMES = new Set(['localhost', '127.0.0.1']);
 
 // ─── Valeur par défaut pour nouveau joueur ───────────────────────────────────
 
@@ -61,6 +63,43 @@ class EconomyService {
         if (this.storageScope === nextScope) return;
         this.storageScope = nextScope;
         this.cached = null;
+    }
+
+    private shouldUseWebLocalRewardHttpFallback(): boolean {
+        if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+        return LOCAL_WEB_FUNCTIONS_HOSTNAMES.has(window.location.hostname);
+    }
+
+    private async callProcessMatchRewardHttp(input: RewardCalculationInput): Promise<MatchReward> {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            throw new Error('Utilisateur non authentifie pour le fallback HTTP processMatchReward.');
+        }
+
+        const idToken = await currentUser.getIdToken();
+        const projectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
+        if (!projectId) {
+            throw new Error('EXPO_PUBLIC_FIREBASE_PROJECT_ID manquant pour le fallback HTTP processMatchReward.');
+        }
+
+        const response = await fetch(
+            `https://us-central1-${projectId}.cloudfunctions.net/processMatchRewardHttp`,
+            {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${idToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ input }),
+            }
+        );
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+            throw new Error(payload?.message ?? `HTTP ${response.status} processMatchRewardHttp`);
+        }
+
+        return payload?.result as MatchReward;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -258,6 +297,27 @@ class EconomyService {
 
         } catch (e) {
             LogService.error('EconomyService', 'Erreur avec le Banquier Serveur, tentative de fallback :', e);
+
+            if (this.shouldUseWebLocalRewardHttpFallback()) {
+                try {
+                    LogService.warn('EconomyService', 'Retry via processMatchRewardHttp pour Web local...');
+                    const reward = await this.callProcessMatchRewardHttp(input);
+                    if (userId && !userId.startsWith('guest_')) {
+                        await this.syncFromFirebase(userId);
+                        if (profile) {
+                            await this.syncProfileMetadata(userId, profile.displayName, profile.avatarId);
+                        }
+                    }
+                    return reward;
+                } catch (httpFallbackError) {
+                    LogService.error(
+                        'EconomyService',
+                        'Echec du fallback HTTP local processMatchReward, retour au calcul local :',
+                        httpFallbackError
+                    );
+                }
+            }
+
             const { RewardEngine } = require('../RewardEngine');
             const reward = RewardEngine.calculate(input);
             await this.applyReward(reward, userId, profile);
@@ -480,6 +540,9 @@ class EconomyService {
             const cleanEconomy = { ...economy };
             if (cleanEconomy.lastDailyRewardTimestamp === undefined) {
                 delete cleanEconomy.lastDailyRewardTimestamp;
+            }
+            if (cleanEconomy.chatInventoryMigratedAt === undefined) {
+                delete cleanEconomy.chatInventoryMigratedAt;
             }
 
             const payload: Record<string, any> = { economy: cleanEconomy };
