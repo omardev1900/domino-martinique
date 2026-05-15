@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Image } from 'react-native';
 import Animated, { FadeInRight, FadeInLeft } from 'react-native-reanimated';
 import { EdgeInsets } from 'react-native-safe-area-context';
 import { PlayerAvatar } from '../PlayerAvatar';
@@ -149,43 +149,10 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                     }}
                     style={[styles.bottomLeftArea, { bottom: 20 + insets.bottom, left: 20 + insets.left }]}
                 >
-                    <View style={styles.handSortAnchor}>
-                        {isHandSortMenuOpen && (
-                            <View style={styles.handSortMenu} testID="hand-sort-menu">
-                                {[
-                                    { mode: 'AUTO' as const, label: 'Auto' },
-                                    { mode: 'DOUBLES' as const, label: 'Doubles' },
-                                    { mode: 'SUM' as const, label: 'Somme' },
-                                ].map(({ mode, label }) => {
-                                    const isActive = handSortMode === mode;
-                                    return (
-                                        <TouchableOpacity
-                                            key={mode}
-                                            accessibilityRole="button"
-                                            onPress={() => onSelectHandSortMode?.(mode)}
-                                            style={[styles.handSortOption, isActive && styles.handSortOptionActive]}
-                                            testID={`hand-sort-option-${mode.toLowerCase()}`}
-                                        >
-                                            <Text style={[styles.handSortOptionText, isActive && styles.handSortOptionTextActive]}>
-                                                {label}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </View>
-                        )}
-                        <TouchableOpacity
-                            accessibilityRole="button"
-                            onPress={onToggleHandSortMenu}
-                            style={styles.handSortTrigger}
-                            testID="hand-sort-trigger"
-                        >
-                            <Text style={styles.handSortTriggerText}>{`${handSortMode ? ` ${handSortMode === 'AUTO' ? 'Auto' : handSortMode === 'DOUBLES' ? 'Doubles' : 'Somme'}` : ''}`}</Text>
-                        </TouchableOpacity>
-                    </View>
                     <Animated.View
                         entering={FadeInLeft.delay(600).duration(600)}
                         testID={`avatar-wrapper-${localPlayer.id}`}
+                        style={styles.localPlayerRow}
                     >
                         <PlayerAvatar
                             player={localPlayer}
@@ -209,6 +176,54 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             isSoloMode={isSoloMode}
                         />
                     </Animated.View>
+                    {/* Bouton de tri : icône main collée au bloc stats de l'avatar */}
+                    <View style={styles.handSortWrapper}>
+                        {isHandSortMenuOpen && (
+                            <View style={styles.handSortMenu} testID="hand-sort-menu">
+                                {([
+                                    { mode: 'AUTO' as const, label: 'Auto' },
+                                    { mode: 'DOUBLES' as const, label: 'Doubles' },
+                                    { mode: 'SUM' as const, label: 'Somme' },
+                                ] as const).map(({ mode, label }) => {
+                                    const isActive = handSortMode === mode;
+                                    return (
+                                        <TouchableOpacity
+                                            key={mode}
+                                            accessibilityRole="button"
+                                            onPress={() => onSelectHandSortMode?.(mode)}
+                                            style={[styles.handSortOption, isActive && styles.handSortOptionActive]}
+                                            testID={`hand-sort-option-${mode.toLowerCase()}`}
+                                        >
+                                            <Text style={[styles.handSortOptionText, isActive && styles.handSortOptionTextActive]}>
+                                                {label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        )}
+                        {/* Label du mode actif — visible uniquement quand le menu est fermé */}
+                        {!isHandSortMenuOpen && (
+                            <Text style={styles.handSortModeLabel}>
+                                {handSortMode === 'AUTO' ? 'Auto' : handSortMode === 'DOUBLES' ? 'Doubles' : 'Somme'}
+                            </Text>
+                        )}
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            onPress={onToggleHandSortMenu}
+                            style={[
+                                styles.handSortTrigger,
+                                isHandSortMenuOpen && styles.handSortTriggerActive,
+                            ]}
+                            testID="hand-sort-trigger"
+                        >
+                            <Image
+                                source={require('../../assets/images/ui/hand-domino.png')}
+                                style={styles.handSortImage}
+                                resizeMode="contain"
+                            />
+                        </TouchableOpacity>
+                    </View>
                 </View>
             )}
         </View>
@@ -229,34 +244,65 @@ const styles = StyleSheet.create({
     },
     bottomLeftArea: {
         position: 'absolute',
-        zIndex: 10,
+        zIndex: 60, // Au-dessus du ActionFooter (zIndex 50)
+        flexDirection: 'row',
+        alignItems: 'flex-end',
     },
-    handSortAnchor: {
-        alignItems: 'flex-start',
-        marginBottom: 8,
-        zIndex: 20,
+    localPlayerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    // Conteneur du bouton tri — collé à droite du bloc stats de l'avatar
+    handSortWrapper: {
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        marginLeft: 4,
+        zIndex: 60, // Au-dessus du ActionFooter (zIndex 50)
     },
     handSortTrigger: {
-        backgroundColor: 'rgba(17, 9, 4, 0.82)',
-        borderColor: 'rgba(243, 229, 200, 0.35)',
-        borderRadius: 999,
-        borderWidth: 1,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+        // Fond transparent : l'image se suffit visuellement
+        backgroundColor: 'transparent',
+        borderColor: 'transparent',
+        borderRadius: 8,
+        borderWidth: 0,
+        padding: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    handSortTriggerText: {
-        color: '#f3e5c8',
-        fontSize: 12,
+    handSortTriggerActive: {
+        backgroundColor: 'rgba(217, 179, 108, 0.15)',
+        borderColor: '#d9b36c',
+        borderWidth: 1,
+        borderRadius: 8,
+    },
+    handSortImage: {
+        width: 20,
+        height: 33,
+    },
+    handSortModeLabel: {
+        color: '#ffffff',
+        fontSize: 9,
         fontWeight: '700',
+        textAlign: 'center',
+        marginBottom: 2,
+        letterSpacing: 0.3,
+        // Contour noir via textShadow
+        textShadowColor: '#000000',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 3,
     },
     handSortMenu: {
+        position: 'absolute',
+        bottom: 38,
+        left: '50%',
         backgroundColor: 'rgba(12, 6, 3, 0.94)',
         borderColor: 'rgba(243, 229, 200, 0.25)',
         borderRadius: 14,
         borderWidth: 1,
         gap: 6,
-        marginBottom: 6,
         padding: 8,
+        minWidth: 90,
+        transform: [{ translateX: -45 }],
     },
     handSortOption: {
         borderRadius: 10,
@@ -270,6 +316,7 @@ const styles = StyleSheet.create({
         color: '#f3e5c8',
         fontSize: 12,
         fontWeight: '700',
+        textAlign: 'center',
     },
     handSortOptionTextActive: {
         color: '#2f1706',

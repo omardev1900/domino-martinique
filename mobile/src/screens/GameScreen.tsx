@@ -1233,29 +1233,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     onSideSelect={pendingDomino ? confirmSidePlay : undefined}
                     skinConfig={playerSkinConfig}
                 />
-                <PlayerArea
-                    opponents={opponents}
-                    localPlayer={localPlayer as any}
-                    gameState={gameState}
-                    localPlayerId={localPlayerId}
-                    boudedPlayerId={localBoudedPlayerId}
-                    playersChat={playersChat as any}
-                    overtime={overtime}
-                    isBotPlaying={isProcessingMove}
-                    isPaused={isPaused || showOptions}
-                    insets={insets}
-                    avatarRefs={avatarRefs}
-                    getPlayerScore={getPlayerScore as any}
-                    skinConfig={playerSkinConfig}
-                    handSortMode={handSortMode}
-                    isHandSortMenuOpen={isHandSortMenuOpen}
-                    onToggleHandSortMenu={() => setIsHandSortMenuOpen(prev => !prev)}
-                    onSelectHandSortMode={(mode) => {
-                        setHandSortMode(mode);
-                        setIsHandSortMenuOpen(false);
-                    }}
-                    isSoloMode={isSoloMode}
-                />
+
 
                 {/* QUICK CHAT UI */}
                 {!isGameOver && !isSoloMode && (
@@ -1277,6 +1255,31 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 isPaused={isPaused || showOptions}
                 skinConfig={playerSkinConfig}
                 handSortMode={handSortMode}
+            />
+
+            {/* PlayerArea rendu après ActionFooter pour que le bouton tri soit toujours au-dessus */}
+            <PlayerArea
+                opponents={opponents}
+                localPlayer={localPlayer as any}
+                gameState={gameState}
+                localPlayerId={localPlayerId}
+                boudedPlayerId={localBoudedPlayerId}
+                playersChat={playersChat as any}
+                overtime={overtime}
+                isBotPlaying={isProcessingMove}
+                isPaused={isPaused || showOptions}
+                insets={insets}
+                avatarRefs={avatarRefs}
+                getPlayerScore={getPlayerScore as any}
+                skinConfig={playerSkinConfig}
+                handSortMode={handSortMode}
+                isHandSortMenuOpen={isHandSortMenuOpen}
+                onToggleHandSortMenu={() => setIsHandSortMenuOpen(prev => !prev)}
+                onSelectHandSortMode={(mode) => {
+                    setHandSortMode(mode);
+                    setIsHandSortMenuOpen(false);
+                }}
+                isSoloMode={isSoloMode}
             />
 
             <GameOverlays
