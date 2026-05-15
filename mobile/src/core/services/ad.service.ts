@@ -227,6 +227,8 @@ class AdService {
             targetUrl:     (data.targetUrl as string | null) ?? null,
             active:        data.active === true,
             isDailyReward: data.isDailyReward === true,
+            isRewarded:    data.isRewarded === true,
+            rewardAmount:  data.rewardAmount as number | undefined,
             startsAt,
             endsAt,
             placements:    Array.isArray(data.placements) ? (data.placements as Ad['placements']) : [],

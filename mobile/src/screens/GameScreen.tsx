@@ -231,6 +231,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const chatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastChatTimeRef = useRef<number>(0);
     const gameStateRef = useRef<GameState | null>(null);
+    const nextAdRef = useRef<Ad | null>(null);
 
     useEffect(() => {
         gameStateRef.current = gameState;
@@ -617,8 +618,13 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
-                // Si une pub est visible, mémorise la transition — elle sera exécutée à la fermeture
-                if (isAdVisibleRef.current) {
+                if (nextAdRef.current) {
+                    isAdVisibleRef.current = true;
+                    setIsAdVisible(true);
+                    setCurrentAd(nextAdRef.current);
+                    nextAdRef.current = null;
+                    pendingPhaseTransitionRef.current = () => partieEndContinueRef.current();
+                } else if (isAdVisibleRef.current) {
                     pendingPhaseTransitionRef.current = () => partieEndContinueRef.current();
                 } else {
                     partieEndContinueRef.current();
@@ -634,7 +640,13 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
-                if (isAdVisibleRef.current) {
+                if (nextAdRef.current) {
+                    isAdVisibleRef.current = true;
+                    setIsAdVisible(true);
+                    setCurrentAd(nextAdRef.current);
+                    nextAdRef.current = null;
+                    pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MANCHE_END');
+                } else if (isAdVisibleRef.current) {
                     pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MANCHE_END');
                 } else {
                     setScoreOverlayPhase('MANCHE_END');
@@ -650,7 +662,13 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             setShowRoundResult(true);
             const timer = setTimeout(() => {
                 setShowRoundResult(false);
-                if (isAdVisibleRef.current) {
+                if (nextAdRef.current) {
+                    isAdVisibleRef.current = true;
+                    setIsAdVisible(true);
+                    setCurrentAd(nextAdRef.current);
+                    nextAdRef.current = null;
+                    pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MATCH_END');
+                } else if (isAdVisibleRef.current) {
                     pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MATCH_END');
                 } else {
                     setScoreOverlayPhase('MATCH_END');
@@ -690,7 +708,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         }
     }, [gameState?.phase, isLocalHost]);
 
-    // Affichage des pubs en fin de round/manche/match — overlay non-bloquant
+    // Pré-chargement des pubs automatiques en fin de round/manche/match
     useEffect(() => {
         if (!gameState) return;
         let placement: AdPlacement | null = null;
@@ -704,9 +722,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         if (placement) {
             adService.getAdForPlacement(placement).then(ad => {
                 if (ad) {
-                    isAdVisibleRef.current = true;
-                    setIsAdVisible(true);
-                    setCurrentAd(ad);
+                    nextAdRef.current = ad;
                 }
             });
         }
