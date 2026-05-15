@@ -143,7 +143,8 @@ export default function HomeScreen() {
                             setShowWelcomeReward(true);
                         }
                     } else if (dailyAvailable) {
-                        setDailyRewardAmount(DAILY_REWARD_COINS);
+                        const amount = ad?.isDailyReward && ad.rewardAmount ? ad.rewardAmount : DAILY_REWARD_COINS;
+                        setDailyRewardAmount(amount);
                         if (ad) {
                             // Pub admin d'abord → cadeau après fermeture (spec R2-M7)
                             setPendingDailyReward(true);
@@ -224,7 +225,7 @@ export default function HomeScreen() {
     // Appelé par DailyRewardModal après la fin de l'animation compteur
     const handleClaimDailyReward = async () => {
         // [R3-B9] FIX : claimDailyRewardNow() évite la race condition avec le listener Firestore
-        await economyService.claimDailyRewardNow(user?.uid);
+        await economyService.claimDailyRewardNow(user?.uid, undefined, dailyRewardAmount);
         setShowDailyReward(false);
         setDailyAdToShow(null);
         setEconomyRefresh(v => v + 1);

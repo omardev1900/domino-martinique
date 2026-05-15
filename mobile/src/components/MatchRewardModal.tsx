@@ -7,11 +7,12 @@ import { AdRewardButton } from './AdRewardButton';
 
 interface MatchRewardModalProps {
     visible: boolean;
+    amount: number;
     onClose: () => void;
     onClaim: () => void;
 }
 
-export const MatchRewardModal: React.FC<MatchRewardModalProps> = ({ visible, onClose, onClaim }) => {
+export const MatchRewardModal: React.FC<MatchRewardModalProps> = ({ visible, amount, onClose, onClaim }) => {
     const { width, height } = useWindowDimensions();
 
     const scale = useSharedValue(0);
@@ -64,11 +65,11 @@ export const MatchRewardModal: React.FC<MatchRewardModalProps> = ({ visible, onC
                     </View>
                     
                     <Text style={styles.title}>Bonus Fin de Partie</Text>
-                    <Text style={styles.subtitle}>Regarde une courte publicité pour gagner 100 pièces supplémentaires !</Text>
+                    <Text style={styles.subtitle}>Regarde une courte publicité pour gagner {amount} pièces supplémentaires !</Text>
                     
                     <View style={styles.btnWrap}>
                         <AdRewardButton
-                            coinsAmount={100}
+                            coinsAmount={amount}
                             onClaim={async () => {
                                 await onClaim();
                                 setTimeout(onClose, 2000); // Ferme automatiquement après l'animation de succès

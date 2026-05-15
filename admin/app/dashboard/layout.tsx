@@ -26,6 +26,7 @@ export default function DashboardLayout({
   const { user, role, loading } = useAdmin();
   const pathname = usePathname();
   const router = useRouter();
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   useEffect(() => {
     if (!loading && role === 'manager') {
@@ -53,8 +54,13 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-gray-950">
-      <Sidebar user={user} role={role} />
-      <main className="flex-1 overflow-auto">
+      <Sidebar 
+        user={user} 
+        role={role} 
+        isCollapsed={isCollapsed} 
+        onToggle={() => setIsCollapsed(!isCollapsed)} 
+      />
+      <main className="flex-1 overflow-x-hidden overflow-y-auto">
         {children}
       </main>
     </div>

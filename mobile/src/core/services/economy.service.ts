@@ -387,9 +387,9 @@ class EconomyService {
 
     /**
      * Vérifie si le joueur peut réclamer sa récompense quotidienne (200 coins).
-     * @returns Le montant gagné (200) ou null si déjà réclamé dans les 24h.
+     * @returns Le montant gagné ou null si déjà réclamé dans les 24h.
      */
-    async checkAndClaimDailyReward(userId?: string, profile?: EconomyProfileInfo): Promise<number | null> {
+    async checkAndClaimDailyReward(userId?: string, profile?: EconomyProfileInfo, dynamicAmount?: number): Promise<number | null> {
         const current = await this.getEconomy();
         const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
@@ -397,7 +397,7 @@ class EconomyService {
             (Date.now() - current.lastDailyRewardTimestamp) >= TWENTY_FOUR_HOURS_MS;
 
         if (shouldReward) {
-            const rewardAmount = DAILY_REWARD_COINS;
+            const rewardAmount = dynamicAmount ?? DAILY_REWARD_COINS;
 
             const updated: PlayerEconomy = {
                 ...current,
@@ -424,9 +424,9 @@ class EconomyService {
      * À appeler UNIQUEMENT après confirmation que isDailyRewardAvailable() === true.
      * Evite la race condition entre l'affichage du modal et le clic sur "Réclamer".
      */
-    async claimDailyRewardNow(userId?: string, profile?: EconomyProfileInfo): Promise<number> {
+    async claimDailyRewardNow(userId?: string, profile?: EconomyProfileInfo, dynamicAmount?: number): Promise<number> {
         const current = await this.getEconomy();
-        const rewardAmount = DAILY_REWARD_COINS;
+        const rewardAmount = dynamicAmount ?? DAILY_REWARD_COINS;
 
         const updated: PlayerEconomy = {
             ...current,
@@ -451,9 +451,9 @@ class EconomyService {
      * Ne passe PAS par la Cloud Function — montant non critique, non manipulable via le jeu.
      * À appeler UNE seule fois par match (la guard est gérée côté UI via l'état adWatched).
      */
-    async creditAdReward(userId?: string, profile?: EconomyProfileInfo): Promise<number> {
+    async creditAdReward(userId?: string, profile?: EconomyProfileInfo, dynamicAmount?: number): Promise<number> {
         const current = await this.getEconomy();
-        const rewardAmount = AD_REWARD_COINS;
+        const rewardAmount = dynamicAmount ?? AD_REWARD_COINS;
 
         const updated: PlayerEconomy = {
             ...current,

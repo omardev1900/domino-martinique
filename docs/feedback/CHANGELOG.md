@@ -12,6 +12,8 @@
 ### Modifié
 - **Création de compte** — cadeau de bienvenue réduit de `1 000` à `300 coins`. Les joueurs existants ne sont pas affectés.
 - **Cadeau du jour** — récompense quotidienne réduite de `300` à `200 coins`.
+- **Panel Admin** — le menu latéral est désormais rétractable pour offrir plus d'espace sur les petits écrans.
+- **Panel Admin (Publicités)** — ajout du défilement horizontal sur le tableau des publicités pour permettre de voir toutes les colonnes sans chevauchement.
 
 ---
 

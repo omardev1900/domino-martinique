@@ -218,6 +218,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
     const [scoreOverlayPhase, setScoreOverlayPhase] = useState<'MANCHE_END' | 'MATCH_END' | null>(null);
     const [showMatchRewardModal, setShowMatchRewardModal] = useState(false);
+    const [matchRewardAmount, setMatchRewardAmount] = useState(100);
     const [showRoundResult, setShowRoundResult] = useState(false);
     // Snapshot du gameState au moment où la carte résultat est déclenchée.
     // Évite que le contenu change si la phase évolue pendant l'affichage (ex: égalité boudé).
@@ -660,12 +661,20 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     }, [gameState?.phase, isLocalHost]);
 
     // Afficher la popup de pub récompensée 2 secondes après l'apparition du score de fin de match
+    // Uniquement si une pub récompensée est disponible pour ce placement.
     useEffect(() => {
         if (scoreOverlayPhase === 'MATCH_END') {
-            const timer = setTimeout(() => {
-                setShowMatchRewardModal(true);
-            }, 2000);
-            return () => clearTimeout(timer);
+            adService.getAdForPlacement('END_OF_MATCH', 'REWARDED').then(ad => {
+                if (ad) {
+                    setMatchRewardAmount(ad.rewardAmount ?? 100);
+                    const timer = setTimeout(() => {
+                        setShowMatchRewardModal(true);
+                    }, 2000);
+                    return () => clearTimeout(timer);
+                }
+            });
+        } else {
+            setShowMatchRewardModal(false);
         }
     }, [scoreOverlayPhase]);
 
@@ -1373,9 +1382,10 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             {/* Popup cadeau de fin de partie */}
             <MatchRewardModal
                 visible={showMatchRewardModal}
+                amount={matchRewardAmount}
                 onClose={() => setShowMatchRewardModal(false)}
                 onClaim={() => {
-                    economyService.creditAdReward(persistenceUserId).catch(e =>
+                    economyService.creditAdReward(persistenceUserId, undefined, matchRewardAmount).catch(e =>
                         LogService.error('GameScreen', '[ADS-REWARD] creditAdReward failed:', e)
                     );
                 }}

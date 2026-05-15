@@ -114,6 +114,7 @@ export default function AdsPage() {
                     placements: (d.data().placements as AdPlacement[]) ?? [],
                     frequency: (d.data().frequency as AdFrequency) ?? 'EVERY_TIME',
                     isRewarded: d.data().isRewarded === true,
+                    rewardAmount: d.data().rewardAmount,
                     createdAt: resolveMs(d.data().createdAt),
                 }))
             );
@@ -206,7 +207,8 @@ export default function AdsPage() {
                     </div>
                 ) : (
                     <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-                        <table className="w-full text-left text-sm">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm min-w-[1000px]">
                             <thead className="border-b border-gray-800">
                                 <tr className="text-gray-400 text-xs uppercase tracking-wider">
                                     <th className="px-5 py-4 font-semibold">Publicité</th>
@@ -253,7 +255,7 @@ export default function AdsPage() {
                                                         </span>
                                                         {ad.isRewarded && (
                                                             <span className="px-1.5 py-0.5 text-[9px] font-bold rounded uppercase tracking-wider bg-yellow-500/15 text-yellow-500 border border-yellow-500/20">
-                                                                Cadeau
+                                                                {ad.rewardAmount ? `🎁 +${ad.rewardAmount}` : 'Cadeau'}
                                                             </span>
                                                         )}
                                                     </div>
@@ -347,7 +349,8 @@ export default function AdsPage() {
                             </tbody>
                         </table>
                     </div>
-                )}
+                </div>
+            )}
             </div>
         </div>
     );

@@ -12,6 +12,8 @@ import type { AdminRole } from '@/lib/adminAuth';
 type SidebarProps = {
   user: User | null;
   role: AdminRole | null;
+  isCollapsed: boolean;
+  onToggle: () => void;
 };
 
 type NavItem = {
@@ -42,7 +44,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/access', label: 'Accès admins', icon: '🔑', superadminOnly: true },
 ];
 
-export default function Sidebar({ user, role }: SidebarProps) {
+export default function Sidebar({ user, role, isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [unreadFeedbacks, setUnreadFeedbacks] = useState(0);
@@ -65,20 +67,28 @@ export default function Sidebar({ user, role }: SidebarProps) {
   );
 
   return (
-    <aside className="w-64 min-h-screen bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0">
+    <aside className={`${isCollapsed ? 'w-20' : 'w-64'} min-h-screen bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0 transition-all duration-300 relative`}>
+      {/* Toggle button */}
+      <button 
+        onClick={onToggle}
+        className="absolute -right-3 top-20 bg-gray-800 border border-gray-700 text-gray-400 w-6 h-6 rounded-full flex items-center justify-center hover:text-white transition-colors z-50 shadow-lg"
+      >
+        <span className="text-[10px]">{isCollapsed ? '→' : '←'}</span>
+      </button>
+
       {/* Logo */}
-      <div className="px-6 py-6 border-b border-gray-800">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">🎲</span>
+      <div className={`px-4 py-6 border-b border-gray-800 flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-6'}`}>
+        <span className="text-2xl">🎲</span>
+        {!isCollapsed && (
           <div>
             <p className="text-white font-bold text-lg leading-tight">Admin</p>
             <p className="text-yellow-400 font-semibold text-sm leading-tight">Domino</p>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {visibleItems.map((item) => {
           const isActive =
             item.href === '/dashboard'
@@ -91,16 +101,17 @@ export default function Sidebar({ user, role }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              title={isCollapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                 isActive
                   ? 'bg-yellow-400/10 text-yellow-400 border border-yellow-400/20'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
-              }`}
+              } ${isCollapsed ? 'justify-center px-0' : ''}`}
             >
               <span className="text-base">{item.icon}</span>
-              <span className="flex-1">{item.label}</span>
+              {!isCollapsed && <span className="flex-1">{item.label}</span>}
               {badge !== null && (
-                <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+                <span className={`flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center ${isCollapsed ? 'absolute top-1 right-2 scale-75' : ''}`}>
                   {badge > 99 ? '99+' : badge}
                 </span>
               )}
@@ -110,33 +121,45 @@ export default function Sidebar({ user, role }: SidebarProps) {
       </nav>
 
       {/* User info + logout */}
-      <div className="px-4 py-4 border-t border-gray-800">
-        <div className="mb-3 px-2">
-          <p className="text-gray-500 text-xs mb-0.5">Connecté en tant que</p>
-          <p className="text-gray-300 text-sm font-medium truncate">
-            {user?.email ?? '—'}
-          </p>
-          {role && (
-            <p className="text-xs mt-0.5">
-              <span
-                className={
-                  role === 'superadmin'
-                    ? 'text-yellow-400'
-                    : 'text-blue-400'
-                }
-              >
-                {role === 'superadmin' ? 'Superadmin' : 'Manager'}
-              </span>
-            </p>
-          )}
-        </div>
-        <button
-          onClick={handleSignOut}
-          className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all border border-transparent hover:border-red-400/20"
-        >
-          <span>🚪</span>
-          Déconnexion
-        </button>
+      <div className={`px-4 py-4 border-t border-gray-800 ${isCollapsed ? 'items-center flex flex-col' : ''}`}>
+        {!isCollapsed ? (
+          <>
+            <div className="mb-3 px-2">
+              <p className="text-gray-500 text-xs mb-0.5">Connecté en tant que</p>
+              <p className="text-gray-300 text-sm font-medium truncate">
+                {user?.email ?? '—'}
+              </p>
+              {role && (
+                <p className="text-xs mt-0.5">
+                  <span
+                    className={
+                      role === 'superadmin'
+                        ? 'text-yellow-400'
+                        : 'text-blue-400'
+                    }
+                  >
+                    {role === 'superadmin' ? 'Superadmin' : 'Manager'}
+                  </span>
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all border border-transparent hover:border-red-400/20"
+            >
+              <span>🚪</span>
+              Déconnexion
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={handleSignOut}
+            title="Déconnexion"
+            className="p-3 rounded-lg text-red-400 hover:bg-red-400/10 transition-all"
+          >
+            <span>🚪</span>
+          </button>
+        )}
       </div>
     </aside>
   );

@@ -24,7 +24,8 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 | **CF-PROCESSMATCHREWARD-CORS** | Corriger le CORS de `processMatchReward` pour le Web local (`http://localhost:8081`) et verifier le fallback client | Haute | En cours |
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
-| **ADS-REWARD** | Fin de match - bouton `Voir une pub` pour gagner `+100 coins`, visible pour tous les joueurs y compris premium. Composant `AdRewardButton` réutilisable crée (fin de manche, boutique, vestiaire...). | Haute | En cours |
+| **ADS-REWARD** | Fin de match - bouton `Voir une pub` pour gagner `+100 coins`, visible pour tous les joueurs y compris premium. Composant `AdRewardButton` réutilisable crée (fin de manche, boutique, vestiaire...). | Haute | Fait |
+| **UX-ADMIN-SIDEBAR** | Menu latéral rétractable + Défilement horizontal des tableaux (Ads) | Moyenne | Fait |
 | **R4-TECH-LEADERBOARD** | Agregats mensuels persistants pour sortir de la limite `matchHistory` | Moyenne | Pret |
 | **ANIM-DOMINO** | Animation glissee des dominos pendant le jeu | Moyenne | Pret |
 

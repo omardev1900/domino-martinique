@@ -11,6 +11,12 @@
 
 ### 2026-05-15 - Récompense pub post-match + reéquilibrage économie débutant
 
+- [x] **[UX-ADMIN-SIDEBAR]** Menu latéral rétractable + Défilement horizontal des tableaux (Ads)
+  - Sidebar rétractable via un toggle (chevron) pour maximiser l'espace de travail
+  - Transition fluide et état persisté par session (React state)
+  - Ajout du défilement horizontal (`overflow-x-auto`) sur le tableau des publicités
+  - `min-width` garanti pour éviter l'écrasement des colonnes sur petits écrans
+
 - [x] **[ECO-WELCOME-DAILY]** Reéquilibrage des constantes économie bienvenue
   - `NEW_PLAYER_COINS` : `1000` → `300` coins à la création de compte
   - `DAILY_REWARD_COINS` : `300` → `200` coins pour le cadeau du jour
