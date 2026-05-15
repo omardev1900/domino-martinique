@@ -24,6 +24,7 @@
 | Bloc 11 | Tournois - creation admin, lobby mobile, brackets, automation | A venir |
 | Bloc 12 | Pilotage admin - dashboard Next.js, logs, moderation, Sentry | En cours continu |
 | Bloc 13 | Paiements - achats in-app et monetisation avancee | A venir |
+| Bloc 14 | Configuration dynamique - Règles et prix modifiables depuis l'admin | A venir |
 
 ---
 
