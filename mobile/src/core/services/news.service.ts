@@ -14,6 +14,7 @@ export interface NewsItem {
     title: string;
     content: string;
     fullText?: string;
+    imageUrl?: string;
     createdAt: number;
     active: boolean;
     priority: number;

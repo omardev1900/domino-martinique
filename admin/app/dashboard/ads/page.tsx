@@ -23,11 +23,10 @@ type AdFrequency = 'EVERY_TIME' | 'ONCE_PER_SESSION' | 'ONCE_PER_DAY';
 type AdPlacement =
     | 'HOME'
     | 'BEFORE_SOLO'
-    | 'AFTER_ROUND_SOLO'
-    | 'END_OF_MANCHE_SOLO'
-    | 'END_OF_MATCH_SOLO'
+    | 'END_OF_ROUND'
+    | 'END_OF_MANCHE'
+    | 'END_OF_MATCH'
     | 'BEFORE_MULTI'
-    | 'END_OF_MATCH_MULTI'
     | 'STORE'
     | 'COLLECTION'
     | 'STATS'
@@ -46,6 +45,8 @@ type Ad = {
     endsAt: number;
     placements: AdPlacement[];
     frequency: AdFrequency;
+    isRewarded?: boolean;
+    rewardAmount?: number;
     createdAt: number;
 };
 
@@ -60,11 +61,10 @@ const FREQUENCY_LABELS: Record<AdFrequency, string> = {
 const PLACEMENT_LABELS: Record<AdPlacement, string> = {
     HOME: 'Accueil',
     BEFORE_SOLO: 'Avant solo',
-    AFTER_ROUND_SOLO: 'Après round (solo)',
-    END_OF_MANCHE_SOLO: 'Fin manche (solo)',
-    END_OF_MATCH_SOLO: 'Fin match (solo)',
+    END_OF_ROUND: 'Après round (solo)',
+    END_OF_MANCHE: 'Fin manche (solo)',
+    END_OF_MATCH: 'Fin match',
     BEFORE_MULTI: 'Avant multi',
-    END_OF_MATCH_MULTI: 'Fin match (multi)',
     STORE: 'Boutique',
     COLLECTION: 'Vestiaire',
     STATS: 'Mes Stats',
@@ -113,6 +113,7 @@ export default function AdsPage() {
                     endsAt: resolveMs(d.data().endsAt),
                     placements: (d.data().placements as AdPlacement[]) ?? [],
                     frequency: (d.data().frequency as AdFrequency) ?? 'EVERY_TIME',
+                    isRewarded: d.data().isRewarded === true,
                     createdAt: resolveMs(d.data().createdAt),
                 }))
             );
@@ -250,6 +251,11 @@ export default function AdsPage() {
                                                         }`}>
                                                             {ad.mediaType === 'VIDEO' ? 'Vidéo' : 'Image'}
                                                         </span>
+                                                        {ad.isRewarded && (
+                                                            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded uppercase tracking-wider bg-yellow-500/15 text-yellow-500 border border-yellow-500/20">
+                                                                Cadeau
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     {ad.targetUrl && (
                                                         <div className="text-xs text-blue-400 truncate max-w-[180px]">

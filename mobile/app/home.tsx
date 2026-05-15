@@ -8,6 +8,7 @@ import {
     ScrollView,
     useWindowDimensions,
     Modal,
+    Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -20,7 +21,7 @@ import { authService } from '../src/core/services/auth.service';
 import { statsService } from '../src/core/services/stats.service';
 import { economyService } from '../src/core/services/economy.service';
 import { PlayerProfile } from '../src/core/types';
-import { DAILY_REWARD_COINS, LEAGUE_GRADE_COLORS } from '../src/core/economy.constants';
+import { DAILY_REWARD_COINS, LEAGUE_GRADE_COLORS, NEW_PLAYER_COINS } from '../src/core/economy.constants';
 import { LeagueGrade } from '../src/core/economy.types';
 import { getAvatarImage } from '../src/core/avatars';
 import { EconomyHeader } from '../src/components/EconomyHeader';
@@ -47,6 +48,7 @@ export default function HomeScreen() {
     const [cochonsGiven, setCochonsGiven] = useState(0);
     const [myLeagueGrade, setMyLeagueGrade] = useState<LeagueGrade | null>(null);
     const [showDailyReward, setShowDailyReward] = useState(false);
+    const [showWelcomeReward, setShowWelcomeReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
     // Pub à rejouer après le clic "Voir une pub" dans le modal cadeau
     const [dailyAdToShow, setDailyAdToShow] = useState<Ad | null>(null);
@@ -119,14 +121,28 @@ export default function HomeScreen() {
                     await refreshMonthlyLeague();
                     if (cancelled) return;
 
-                    // La pub HOME s'affiche AVANT le cadeau quotidien (spec R2-M7)
+                    // Vérification du bonus de bienvenue (nouveau compte)
+                    const stats = await statsService.getStats();
+                    const welcomeSeen = await AsyncStorage.getItem('welcome_seen');
+                    const isNewAccount = stats.matchHistory.length === 0 && !welcomeSeen;
+
+                    // La pub HOME s'affiche AVANT les cadeaux (spec R2-M7)
                     const [ad, dailyAvailable] = await Promise.all([
                         adService.getAdForPlacement('HOME'),
                         economyService.isDailyRewardAvailable(),
                     ]);
                     if (cancelled) return;
 
-                    if (dailyAvailable) {
+                    if (isNewAccount) {
+                        if (ad) {
+                            setPendingDailyReward(true); // On réutilise le pending pour afficher le cadeau après
+                            homeAdTimeoutRef.current = setTimeout(() => {
+                                setAdToShow(ad);
+                            }, HOME_AD_DELAY_MS);
+                        } else {
+                            setShowWelcomeReward(true);
+                        }
+                    } else if (dailyAvailable) {
                         setDailyRewardAmount(DAILY_REWARD_COINS);
                         if (ad) {
                             // Pub admin d'abord → cadeau après fermeture (spec R2-M7)
@@ -214,6 +230,27 @@ export default function HomeScreen() {
         setEconomyRefresh(v => v + 1);
     };
 
+    // Appelé si le joueur ferme le modal de cadeau quotidien (skip)
+    const handleSkipDailyReward = () => {
+        setShowDailyReward(false);
+    };
+
+    // Appelé pour récupérer le bonus de bienvenue
+    const handleClaimWelcomeReward = async () => {
+        // Le montant est déjà crédité à la création du compte, on marque juste comme vu
+        await AsyncStorage.setItem('welcome_seen', 'true');
+        setShowWelcomeReward(false);
+        
+        // Si le cadeau quotidien est aussi dispo, on l'affiche juste après avec un délai
+        const dailyAvailable = await economyService.isDailyRewardAvailable();
+        if (dailyAvailable) {
+            setDailyRewardAmount(DAILY_REWARD_COINS);
+            setTimeout(() => {
+                setShowDailyReward(true);
+            }, 1000);
+        }
+    };
+
     // Appelé quand le joueur clique "Voir une pub → +300 🪙" dans le modal cadeau
     const handleWatchAdForReward = async () => {
         // Priorité : pub marquée "Cadeau du jour" par l'admin, sinon n'importe quelle pub active
@@ -233,11 +270,17 @@ export default function HomeScreen() {
     };
 
     // Fermeture de la pub admin programmée (non liée au cadeau)
-    const handleAdClose = () => {
+    const handleAdClose = async () => {
         setAdToShow(null);
         if (pendingDailyReward) {
             setPendingDailyReward(false);
-            setShowDailyReward(true);
+            const welcomeSeen = await AsyncStorage.getItem('welcome_seen');
+            const stats = await statsService.getStats();
+            if (stats.matchHistory.length === 0 && !welcomeSeen) {
+                setShowWelcomeReward(true);
+            } else {
+                setShowDailyReward(true);
+            }
         }
     };
 
@@ -493,12 +536,23 @@ export default function HomeScreen() {
             {/* Pub HOME admin — s'affiche avant le cadeau quotidien (spec R2-M7) */}
             <AdBannerModal ad={adToShow} onClose={handleAdClose} />
 
+            {/* Welcome Reward Modal — Nouveau joueur */}
+            <DailyRewardModal
+                visible={showWelcomeReward && !reconnectRoomId}
+                amount={NEW_PLAYER_COINS}
+                isWelcome={true}
+                onClaim={handleClaimWelcomeReward}
+                onWatchAd={handleClaimWelcomeReward} // Même bouton pour récupérer
+                onSkip={handleClaimWelcomeReward} // S'ils skippent, ils récupèrent quand même car c'est un don
+            />
+
             {/* Daily Reward Modal — affiché uniquement si aucun modal de reconnexion */}
             <DailyRewardModal
                 visible={showDailyReward && !reconnectRoomId}
                 amount={dailyRewardAmount}
                 onClaim={handleClaimDailyReward}
                 onWatchAd={handleWatchAdForReward}
+                onSkip={handleSkipDailyReward}
                 claimTriggerRef={dailyClaimTriggerRef}
             />
 

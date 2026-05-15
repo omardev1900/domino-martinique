@@ -23,6 +23,7 @@ import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
 import { QuickChat } from '../components/QuickChat';
 import { RoundResultCard } from '../components/game/RoundResultCard';
 import { RewardOverlay } from '../components/RewardOverlay';
+import { MatchRewardModal } from '../components/MatchRewardModal';
 
 // Core
 import { determineFirstPlayer, dealGameSolo, getForcedOpeningDominoId, getForcedTieBreakDominoId, dealGame } from '../core/LogicEngine';
@@ -216,6 +217,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const [showRoomInfo] = useState(false); // conservé pour GameOverlays, non déclenché depuis le header
     const [tableTheme, setTableTheme] = useState<TableTheme>('classic');
     const [scoreOverlayPhase, setScoreOverlayPhase] = useState<'MANCHE_END' | 'MATCH_END' | null>(null);
+    const [showMatchRewardModal, setShowMatchRewardModal] = useState(false);
     const [showRoundResult, setShowRoundResult] = useState(false);
     // Snapshot du gameState au moment où la carte résultat est déclenchée.
     // Évite que le contenu change si la phase évolue pendant l'affichage (ex: égalité boudé).
@@ -657,6 +659,16 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         }
     }, [gameState?.phase, isLocalHost]);
 
+    // Afficher la popup de pub récompensée 2 secondes après l'apparition du score de fin de match
+    useEffect(() => {
+        if (scoreOverlayPhase === 'MATCH_END') {
+            const timer = setTimeout(() => {
+                setShowMatchRewardModal(true);
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [scoreOverlayPhase]);
+
     // Handle BOUDE phase: fallback automatique 5s si le timer 3.5s n'a pas résolu (Host only)
     // Utilise partieEndContinueRef (stable) plutôt que handleOverlayContinue directement
     // pour éviter de recréer ce useEffect à chaque render.
@@ -674,11 +686,11 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         if (!gameState) return;
         let placement: AdPlacement | null = null;
         if (isSoloMode) {
-            if (gameState.phase === 'PARTIE_END') placement = 'AFTER_ROUND_SOLO';
-            else if (gameState.phase === 'MANCHE_END') placement = 'END_OF_MANCHE_SOLO';
-            else if (gameState.phase === 'MATCH_END') placement = 'END_OF_MATCH_SOLO';
+            if (gameState.phase === 'PARTIE_END') placement = 'END_OF_ROUND';
+            else if (gameState.phase === 'MANCHE_END') placement = 'END_OF_MANCHE';
+            else if (gameState.phase === 'MATCH_END') placement = 'END_OF_MATCH';
         } else if (gameState.phase === 'MATCH_END') {
-            placement = 'END_OF_MATCH_MULTI';
+            placement = 'END_OF_MATCH';
         }
         if (placement) {
             adService.getAdForPlacement(placement).then(ad => {
@@ -1355,6 +1367,17 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                         pendingPhaseTransitionRef.current = null;
                         pending();
                     }
+                }}
+            />
+
+            {/* Popup cadeau de fin de partie */}
+            <MatchRewardModal
+                visible={showMatchRewardModal}
+                onClose={() => setShowMatchRewardModal(false)}
+                onClaim={() => {
+                    economyService.creditAdReward(persistenceUserId).catch(e =>
+                        LogService.error('GameScreen', '[ADS-REWARD] creditAdReward failed:', e)
+                    );
                 }}
             />
         </View>

@@ -18,7 +18,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth, db } from './firebase';
 import { LogService } from './LogService';
 import { PlayerEconomy, MatchReward, LeagueGrade, RewardCalculationInput, LeagueFrameId } from '../economy.types';
-import { NEW_PLAYER_COINS, DAILY_REWARD_COINS } from '../economy.constants';
+import { NEW_PLAYER_COINS, DAILY_REWARD_COINS, AD_REWARD_COINS } from '../economy.constants';
 import { getLevelFromXP, getLeagueGrade } from '../RewardEngine';
 
 /** Infos de profil minimales nécessaires pour les écrire dans Firestore avec l'économie */
@@ -386,8 +386,8 @@ class EconomyService {
     }
 
     /**
-     * Vérifie si le joueur peut réclamer sa récompense quotidienne (300 coins).
-     * @returns Le montant gagné (300) ou null si déjà réclamé dans les 24h.
+     * Vérifie si le joueur peut réclamer sa récompense quotidienne (200 coins).
+     * @returns Le montant gagné (200) ou null si déjà réclamé dans les 24h.
      */
     async checkAndClaimDailyReward(userId?: string, profile?: EconomyProfileInfo): Promise<number | null> {
         const current = await this.getEconomy();
@@ -442,6 +442,32 @@ class EconomyService {
         }
 
         LogService.info('EconomyService', `[R3-B9] Daily reward of ${rewardAmount} coins claimed (force).`);
+        return rewardAmount;
+    }
+
+    /**
+     * [ADS-REWARD] Crédite le gain fixe post-match après visionnage volontaire d'une pub.
+     * Montant fixe : AD_REWARD_COINS (100 coins).
+     * Ne passe PAS par la Cloud Function — montant non critique, non manipulable via le jeu.
+     * À appeler UNE seule fois par match (la guard est gérée côté UI via l'état adWatched).
+     */
+    async creditAdReward(userId?: string, profile?: EconomyProfileInfo): Promise<number> {
+        const current = await this.getEconomy();
+        const rewardAmount = AD_REWARD_COINS;
+
+        const updated: PlayerEconomy = {
+            ...current,
+            coins: current.coins + rewardAmount,
+        };
+
+        this.cached = updated;
+        await this.persistLocal();
+
+        if (userId && !userId.startsWith('guest_')) {
+            await this.pushToFirebase(userId, updated, profile);
+        }
+
+        LogService.info('EconomyService', `[ADS-REWARD] +${rewardAmount} coins credited after ad view.`);
         return rewardAmount;
     }
 

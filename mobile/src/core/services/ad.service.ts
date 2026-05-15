@@ -68,8 +68,13 @@ class AdService {
     /**
      * Retourne la pub à afficher pour ce placement, ou null si aucune n'est éligible.
      * Si une pub est retournée, son cooldown est marqué automatiquement.
+     * @param placement Point d'injection
+     * @param type 'INTERSTITIAL' (auto) ou 'REWARDED' (via bouton). Défaut : 'INTERSTITIAL'.
      */
-    async getAdForPlacement(placement: AdPlacement): Promise<Ad | null> {
+    async getAdForPlacement(
+        placement: AdPlacement, 
+        type: 'INTERSTITIAL' | 'REWARDED' = 'INTERSTITIAL'
+    ): Promise<Ad | null> {
         if (!this.cached) await this.preload();
         if (!this.sessionLoaded) await this.loadSessionCooldowns();
 
@@ -80,6 +85,8 @@ class AdService {
             .filter(ad => ad.active)
             .filter(ad => ad.startsAt <= now && now <= ad.endsAt)
             .filter(ad => ad.placements.includes(placement))
+            // Filtrage par type : REWARDED doit avoir le flag isRewarded, INTERSTITIAL ne doit pas l'avoir
+            .filter(ad => type === 'REWARDED' ? ad.isRewarded === true : !ad.isRewarded)
             .sort((a, b) => b.createdAt - a.createdAt);
 
         // Première pub qui passe le cooldown.

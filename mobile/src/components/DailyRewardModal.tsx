@@ -19,12 +19,15 @@ import Animated, {
     Extrapolate,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 interface DailyRewardModalProps {
     visible: boolean;
     amount: number;
+    isWelcome?: boolean;
     onClaim: () => void;
     onWatchAd: () => void;
+    onSkip?: () => void;
     claimTriggerRef?: React.MutableRefObject<(() => void) | null>;
 }
 
@@ -95,12 +98,16 @@ const CoinParticle = ({ delay, index, screenW }: { delay: number; index: number;
 export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
     visible,
     amount,
+    isWelcome = false,
     onClaim,
     onWatchAd,
+    onSkip,
     claimTriggerRef,
 }) => {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
+
+    const [showSkipBtn, setShowSkipBtn] = useState(false);
 
     // Tailles adaptatives
     const iconSize = Math.min(isLandscape ? height * 0.20 : height * 0.12, 80);
@@ -136,8 +143,25 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
             scale.value = withTiming(0, { duration: 200 });
             glowOpacity.value = 0;
             titleScale.value = 0.8;
+            setShowSkipBtn(false);
         }
     }, [visible]);
+
+    // Animation d'incrémentation du compteur de coins — jouée après la pub
+    const [displayedAmount, setDisplayedAmount] = useState(0);
+    const [isClaiming, setIsClaiming] = useState(false);
+    const counterRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Timer pour afficher le bouton skip après 5s
+    useEffect(() => {
+        let timer: ReturnType<typeof setTimeout>;
+        if (visible && !isClaiming) {
+            timer = setTimeout(() => {
+                setShowSkipBtn(true);
+            }, 5000);
+        }
+        return () => clearTimeout(timer);
+    }, [visible, isClaiming]);
 
     const containerStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
@@ -153,11 +177,6 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
     const titleAnimStyle = useAnimatedStyle(() => ({
         transform: [{ scale: titleScale.value }],
     }));
-
-    // Animation d'incrémentation du compteur de coins — jouée après la pub
-    const [displayedAmount, setDisplayedAmount] = useState(0);
-    const [isClaiming, setIsClaiming] = useState(false);
-    const counterRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Appelé par home.tsx après fermeture de la pub, pour lancer l'animation et créditer les coins
     const playClaimAnimation = () => {
@@ -251,7 +270,7 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                             {/* Textes + bouton */}
                             <View style={isLandscape ? styles.rightColumn : styles.centerColumn}>
                                 <Animated.Text style={[styles.title, titleAnimStyle, { fontSize: titleFontSize }]}>
-                                    CADEAU DU JOUR !
+                                    {isWelcome ? 'CADEAU DE BIENVENUE !' : 'CADEAU DU JOUR !'}
                                 </Animated.Text>
 
                                 <Text style={[styles.amountText, { fontSize: amountFontSize }]}>
@@ -262,7 +281,7 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                                     fontSize: subtitleFontSize,
                                     marginBottom: isLandscape ? 8 : 16,
                                 }]}>
-                                    Revenez demain pour un nouveau cadeau
+                                    {isWelcome ? 'Bienvenue dans Domino Martiniquais' : 'Revenez demain pour un nouveau cadeau'}
                                 </Text>
 
                                 <TouchableOpacity
@@ -280,12 +299,27 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                                         <Text style={[styles.claimButtonText, {
                                             fontSize: isLandscape ? Math.min(height * 0.07, 14) : 16,
                                         }]}>
-                                            {isClaiming ? `🪙 +${displayedAmount}` : '📺 VOIR UNE PUB → +300 🪙'}
+                                            {isClaiming 
+                                                ? `🪙 +${displayedAmount}` 
+                                                : isWelcome 
+                                                    ? `RÉCUPÉRER → +${amount} 🪙` 
+                                                    : `📺 VOIR UNE PUB → +${amount} 🪙`}
                                         </Text>
                                     </LinearGradient>
                                 </TouchableOpacity>
                             </View>
                         </ScrollView>
+
+                        {/* Bouton Fermer (Skip) - Rendu en dernier pour capter le clic par-dessus le ScrollView */}
+                        {showSkipBtn && onSkip && !isClaiming && (
+                            <TouchableOpacity
+                                style={styles.skipButton}
+                                onPress={onSkip}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="close" size={24} color="rgba(255,255,255,0.5)" />
+                            </TouchableOpacity>
+                        )}
                     </LinearGradient>
                 </Animated.View>
             </View>
@@ -400,8 +434,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     claimButtonText: {
-        color: '#1A0B2E',
+        color: '#1A0E2E',
         fontWeight: '900',
         letterSpacing: 1.5,
+    },
+    skipButton: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        width: 32,
+        height: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 20,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 16,
     },
 });

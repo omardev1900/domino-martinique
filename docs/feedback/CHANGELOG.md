@@ -4,7 +4,18 @@
 
 ---
 
-## [2.5.3] - 2026-05-13
+## [2.5.4] - 2026-05-15
+
+### Ajouté
+- **Fin de match** — bouton 📺 `Voir une pub` apparu en bas de l'écran de résultat (solo et multi). Un clic crédite `+100 🪙` instantanément. Disponible une seule fois par match, pour tous les joueurs y compris premium.
+
+### Modifié
+- **Création de compte** — cadeau de bienvenue réduit de `1 000` à `300 coins`. Les joueurs existants ne sont pas affectés.
+- **Cadeau du jour** — récompense quotidienne réduite de `300` à `200 coins`.
+
+---
+
+
 
 ### Corrige
 - **Ligue des Cochons** - fermer le popup de passage de palier renvoie maintenant correctement vers l'ecran principal de recompenses, au lieu de laisser un fond vide.

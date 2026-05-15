@@ -21,38 +21,35 @@ type AdFrequency = 'EVERY_TIME' | 'ONCE_PER_SESSION' | 'ONCE_PER_DAY';
 type AdPlacement =
     | 'HOME'
     | 'BEFORE_SOLO'
-    | 'AFTER_ROUND_SOLO'
-    | 'END_OF_MANCHE_SOLO'
-    | 'END_OF_MATCH_SOLO'
+    | 'END_OF_ROUND'
+    | 'END_OF_MANCHE'
+    | 'END_OF_MATCH'
     | 'BEFORE_MULTI'
-    | 'END_OF_MATCH_MULTI'
     | 'STORE'
     | 'COLLECTION'
     | 'STATS'
     | 'LEADERBOARD'
     | 'LIGUE';
-
 // ─── Config des enums (source de vérité pour les dropdowns/checkboxes) ────────
 
 const ALL_PLACEMENTS: { value: AdPlacement; label: string; desc: string }[] = [
-    { value: 'HOME',               label: 'Accueil',              desc: "Popup à l'ouverture de l'écran d'accueil" },
-    { value: 'BEFORE_SOLO',        label: 'Avant partie solo',    desc: "Quand le joueur accède à l'écran de configuration solo" },
-    { value: 'AFTER_ROUND_SOLO',   label: 'Après round (solo)',   desc: "Après chaque round terminé en solo" },
-    { value: 'END_OF_MANCHE_SOLO', label: 'Fin de manche (solo)', desc: "À la fin d'une manche complète en solo" },
-    { value: 'END_OF_MATCH_SOLO',  label: 'Fin de match (solo)',  desc: "À la fin d'un match complet en solo" },
-    { value: 'BEFORE_MULTI',       label: 'Avant partie multi',   desc: "Lors de l'entrée dans une partie multijoueur" },
-    { value: 'END_OF_MATCH_MULTI', label: 'Fin de match (multi)', desc: "À la fin d'un match multijoueur" },
-    { value: 'STORE',              label: 'Boutique',             desc: "À l'ouverture de l'écran Boutique" },
-    { value: 'COLLECTION',         label: 'Vestiaire',            desc: "À l'ouverture de l'écran Vestiaire" },
-    { value: 'STATS',              label: 'Mes Stats',            desc: "À l'ouverture de l'écran Statistiques" },
-    { value: 'LEADERBOARD',        label: 'Classement',           desc: "À l'ouverture de l'écran Classement" },
-    { value: 'LIGUE',              label: 'Ligue des Cochons',    desc: "À l'ouverture de l'écran Ligue des Cochons" },
+    { value: 'HOME', label: 'Accueil', desc: "Popup à l'ouverture de l'écran d'accueil" },
+    { value: 'BEFORE_SOLO', label: 'Avant partie solo', desc: "Quand le joueur accède à l'écran de configuration solo" },
+    { value: 'END_OF_ROUND', label: 'Après round (solo)', desc: "Après chaque round" },
+    { value: 'END_OF_MANCHE', label: 'Fin de manche (solo)', desc: "À la fin d'une manche complète" },
+    { value: 'END_OF_MATCH', label: 'Fin de match', desc: "À la fin d'un match complet (solo ou multi)" },
+    { value: 'BEFORE_MULTI', label: 'Avant partie multi', desc: "Lors de l'entrée dans une partie multijoueur" },
+    { value: 'STORE', label: 'Boutique', desc: "À l'ouverture de l'écran Boutique" },
+    { value: 'COLLECTION', label: 'Vestiaire', desc: "À l'ouverture de l'écran Vestiaire" },
+    { value: 'STATS', label: 'Mes Stats', desc: "À l'ouverture de l'écran Statistiques" },
+    { value: 'LEADERBOARD', label: 'Classement', desc: "À l'ouverture de l'écran Classement" },
+    { value: 'LIGUE', label: 'Ligue des Cochons', desc: "À l'ouverture de l'écran Ligue des Cochons" },
 ];
 
 const ALL_FREQUENCIES: { value: AdFrequency; label: string; desc: string }[] = [
-    { value: 'EVERY_TIME',       label: 'À chaque fois',        desc: "Affiché à chaque occurrence du placement" },
+    { value: 'EVERY_TIME', label: 'À chaque fois', desc: "Affiché à chaque occurrence du placement" },
     { value: 'ONCE_PER_SESSION', label: 'Une fois par session', desc: "Affiché une seule fois par démarrage de l'app" },
-    { value: 'ONCE_PER_DAY',     label: 'Une fois par jour',    desc: "Affiché au maximum une fois par jour calendaire" },
+    { value: 'ONCE_PER_DAY', label: 'Une fois par jour', desc: "Affiché au maximum une fois par jour calendaire" },
 ];
 
 // ─── Helpers date ─────────────────────────────────────────────────────────────
@@ -97,6 +94,8 @@ export default function AdFormPage() {
     const [endsAt, setEndsAt] = useState('');
     const [placements, setPlacements] = useState<AdPlacement[]>([]);
     const [frequency, setFrequency] = useState<AdFrequency>('EVERY_TIME');
+    const [isRewarded, setIsRewarded] = useState(false);
+    const [rewardAmount, setRewardAmount] = useState<number | ''>('');
 
     // Pré-remplit le formulaire si on est en mode édition
     useEffect(() => {
@@ -115,6 +114,8 @@ export default function AdFormPage() {
                 setEndsAt(msToDatetimeLocal(resolveMs(d.endsAt)));
                 setPlacements((d.placements as AdPlacement[]) ?? []);
                 setFrequency((d.frequency as AdFrequency) ?? 'EVERY_TIME');
+                setIsRewarded(d.isRewarded === true);
+                setRewardAmount(d.rewardAmount ?? '');
             } catch (err) {
                 console.error('Ad load error:', err);
                 setNotFound(true);
@@ -151,6 +152,8 @@ export default function AdFormPage() {
                 endsAt: datetimeLocalToMs(endsAt),
                 placements,
                 frequency,
+                isRewarded,
+                rewardAmount: rewardAmount === '' ? null : Number(rewardAmount),
             };
 
             if (isNew) {
@@ -235,11 +238,10 @@ export default function AdFormPage() {
                                 ] as const).map(opt => (
                                     <label
                                         key={opt.value}
-                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border cursor-pointer transition-colors flex-1 justify-center ${
-                                            mediaType === opt.value
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border cursor-pointer transition-colors flex-1 justify-center ${mediaType === opt.value
                                                 ? 'bg-yellow-400/10 border-yellow-400/40 text-yellow-400'
                                                 : 'bg-gray-950 border-gray-800 text-gray-400 hover:border-gray-700'
-                                        }`}
+                                            }`}
                                     >
                                         <input
                                             type="radio"
@@ -308,7 +310,6 @@ export default function AdFormPage() {
                                 className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-yellow-400 focus:outline-none transition-colors"
                             />
                         </div>
-
                         {/* Toggle active */}
                         <div className="flex items-center gap-3 pt-1">
                             <button
@@ -328,6 +329,45 @@ export default function AdFormPage() {
                                     : <span className="text-red-400">inactive</span>
                                 }
                             </span>
+                        </div>
+
+                        {/* Toggle isRewarded */}
+                        <div className="flex items-center gap-3 border-t border-gray-800 pt-5">
+                            <button
+                                type="button"
+                                onClick={() => setIsRewarded(v => !v)}
+                                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 focus:outline-none ${isRewarded ? 'bg-yellow-500' : 'bg-gray-700'}`}
+                            >
+                                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isRewarded ? 'translate-x-5' : 'translate-x-0'}`} />
+                            </button>
+                            <div>
+                                <span
+                                    className="text-sm font-medium text-gray-300 cursor-pointer select-none"
+                                    onClick={() => setIsRewarded(v => !v)}
+                                >
+                                    Cadeau / Récompense (Bouton optionnel)
+                                </span>
+                                <p className="text-[10px] text-gray-500">
+                                    Si actif, la pub ne s'affichera PAS automatiquement. Elle attendra un clic sur un bouton. Utilisé pour le Cadeau du jour ou Fin de match optionnelle.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Montant de la récompense */}
+                        <div className="pt-5 border-t border-gray-800">
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Montant de la récompense (Coins) <span className="text-gray-500 text-xs font-normal ml-2">Optionnel (Défaut: 100 ou 200)</span>
+                            </label>
+                            <input
+                                type="number"
+                                value={rewardAmount}
+                                onChange={e => setRewardAmount(e.target.value === '' ? '' : parseInt(e.target.value))}
+                                placeholder="ex: 150"
+                                className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-yellow-400 focus:outline-none transition-colors"
+                            />
+                            <p className="text-[10px] text-gray-500 mt-2">
+                                Si rempli, ce montant sera crédité au joueur après le visionnage. Sinon, le montant par défaut s'applique.
+                            </p>
                         </div>
                     </section>
 
@@ -376,11 +416,10 @@ export default function AdFormPage() {
                                 return (
                                     <label
                                         key={value}
-                                        className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                                            checked
+                                        className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${checked
                                                 ? 'bg-yellow-400/5 border-yellow-400/30'
                                                 : 'bg-gray-950 border-gray-800 hover:border-gray-700'
-                                        }`}
+                                            }`}
                                     >
                                         <input
                                             type="checkbox"
@@ -414,11 +453,10 @@ export default function AdFormPage() {
                             {ALL_FREQUENCIES.map(({ value, label, desc }) => (
                                 <label
                                     key={value}
-                                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                                        frequency === value
+                                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${frequency === value
                                             ? 'bg-yellow-400/5 border-yellow-400/30'
                                             : 'bg-gray-950 border-gray-800 hover:border-gray-700'
-                                    }`}
+                                        }`}
                                 >
                                     <input
                                         type="radio"

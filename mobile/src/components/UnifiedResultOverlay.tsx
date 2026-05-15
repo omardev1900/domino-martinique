@@ -6,7 +6,7 @@ import {
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { Image } from 'expo-image';
 import Animated, {
-    FadeIn, FadeInDown, FadeInUp, BounceIn, ZoomIn,
+    FadeInDown, FadeInUp, BounceIn, ZoomIn,
     useSharedValue, useAnimatedStyle,
     withSpring, withTiming,
     useReducedMotion,
@@ -14,7 +14,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { GameState, Player } from '@/core/types';
 import { MatchReward } from '@/core/economy.types';
-import { LEAGUE_LABELS } from '@/core/economy.constants';
+import { LEAGUE_LABELS, AD_REWARD_COINS } from '@/core/economy.constants';
 import { getAvatarImage, AvatarId } from '@/core/avatars';
 import SoundManager from '@/core/audio/SoundManager';
 import { calculateHandPoints } from '@/core/ScoringEngine';
@@ -31,6 +31,8 @@ interface UnifiedResultOverlayProps {
     onAnimationFinished?: () => void;
     isHost?: boolean;
     matchReward?: MatchReward | null;
+    /** Appelé quand le joueur clique sur "Voir une pub" en fin de match. Doit créditer +100 coins. */
+    onAdRewardClaim?: () => void;
 }
 
 export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
@@ -40,6 +42,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     onContinue,
     isHost = true,
     matchReward,
+    onAdRewardClaim,
 }) => {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
@@ -54,6 +57,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
     const isMatchOver = gameState.phase === 'MATCH_END';
     const isBoude = gameState.phase === 'BOUDE';
+    const isMancheEnd = gameState.phase === 'MANCHE_END';
     const mancheResult = gameState.mancheResult;
 
     // Reset history view each time the overlay opens
@@ -477,6 +481,8 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     </Animated.View>
                 );
             })()}
+
+            {/* Bouton "Voir une pub" supprimé car déplacé dans une popup distincte (MatchRewardModal) */}
         </ScrollView>
     );
 

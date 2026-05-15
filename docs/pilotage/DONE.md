@@ -9,7 +9,26 @@
 
 ## Mai 2026
 
-### 2026-05-13 - Tri de main et finitions UX solo
+### 2026-05-15 - Récompense pub post-match + reéquilibrage économie débutant
+
+- [x] **[ECO-WELCOME-DAILY]** Reéquilibrage des constantes économie bienvenue
+  - `NEW_PLAYER_COINS` : `1000` → `300` coins à la création de compte
+  - `DAILY_REWARD_COINS` : `300` → `200` coins pour le cadeau du jour
+  - Constante `AD_REWARD_COINS = 100` ajoutée pour la récompense pub
+  - Fichier `economy.constants.ts` — aucun autre fichier à modifier
+  - Joueurs existants non affectés (cadeau bienvenue = création compte uniquement)
+
+- [x] **[ADS-REWARD]** Bouton "Voir une pub → +100 coins" en fin de match
+  - Composant `AdRewardButton.tsx` créé — **réutilisable partout dans l'app**
+  - Props : `coinsAmount`, `onClaim` (async), `label`, `variant` (`default`/`prominent`), `enterDelay`, `disabled`
+  - Guard interne : un seul clic par montage, état `claimed` local
+  - Variante `prominent` disponible pour les contextes à fort appel à l'action
+  - Branché dans `UnifiedResultOverlay` (fin de match uniquement, solo et multi)
+  - Chaîne de données : `GameScreen.onAdRewardClaim` → `economyService.creditAdReward()` → Firestore
+  - Méthode `creditAdReward()` ajoutée à `EconomyService`
+  - `GameOverlays` et `UnifiedResultOverlay` mis à jour avec la prop `onAdRewardClaim`
+
+
 
 - [x] **[BUG-LIGUE-GRADEUP-OVERLAY]** Retour correct au `RewardOverlay` principal apres fermeture du popup de palier
   - Le `X` de la sous-modale Ligue referme uniquement le popup de grade-up

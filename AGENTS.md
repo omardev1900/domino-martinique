@@ -1,4 +1,4 @@
-# 🎯 Domino Martiniquais — Instructions Codex
+# 🎯 Domino Martiniquais — Instructions IA (Master)
 
 > Fichier chargé automatiquement à chaque session. Max 150 lignes.
 > Détails complets dans `docs/`.
@@ -82,7 +82,7 @@ GameScreen → useGameEngine → useActionDispatcher → LogicEngine.ts
 
 ---
 
-## 📝 Pour Codex
+## 📝 Instructions de Session (Tous Agents)
 
 **En début de session :**
 1. Consulter `docs/pilotage/TASKS.md` pour voir les tâches actives

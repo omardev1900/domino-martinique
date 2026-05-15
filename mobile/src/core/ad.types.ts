@@ -17,11 +17,10 @@ export type AdFrequency =
 export type AdPlacement =
     | 'HOME'                // Focus sur l'écran d'accueil
     | 'BEFORE_SOLO'         // Avant de lancer une partie solo
-    | 'AFTER_ROUND_SOLO'    // Après chaque round (solo)
-    | 'END_OF_MANCHE_SOLO'  // Fin de manche (solo)
-    | 'END_OF_MATCH_SOLO'   // Fin de match complet (solo)
+    | 'END_OF_ROUND'        // Après chaque round (solo principalement)
+    | 'END_OF_MANCHE'       // Fin de manche (solo principalement)
+    | 'END_OF_MATCH'        // Fin de match complet (solo et multi)
     | 'BEFORE_MULTI'        // Avant de rejoindre/créer une table multi
-    | 'END_OF_MATCH_MULTI'  // Fin de match complet (multi)
     | 'STORE'               // Boutique
     | 'COLLECTION'          // Vestiaire
     | 'STATS'               // Mes Stats
@@ -40,6 +39,8 @@ export interface Ad {
     targetUrl:     string | null;     // Lien ouvert au tap (optionnel)
     active:        boolean;           // Toggle ON/OFF global
     isDailyReward: boolean;           // Si true : utilisée pour le cadeau quotidien
+    isRewarded?: boolean;              // Si true : affichée via un bouton (donne des coins)
+    rewardAmount?: number;            // Montant dynamique des coins (pour cadeau/reward)
     startsAt:      number;            // Timestamp de début de diffusion (ms)
     endsAt:        number;            // Timestamp de fin de diffusion (ms)
     placements:    AdPlacement[];     // Points d'injection activés
