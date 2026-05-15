@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Image } from 'expo-image';
 import { View, StyleSheet, Text, Animated as RNAnimated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import Animated, { useSharedValue, useAnimatedProps, useAnimatedStyle, withTiming, Easing, withRepeat, withSequence, FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedProps, useAnimatedStyle, withTiming, Easing, withRepeat, withSequence, FadeIn, FadeOut, ZoomIn, cancelAnimation } from 'react-native-reanimated';
 import { Player } from '../core/types';
 import { getAvatarImage, AvatarId } from '../core/avatars';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,6 +78,21 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     const [secondsLeft, setSecondsLeft] = useState(timerDuration);
     const scaleAnim = useRef(new RNAnimated.Value(1)).current;
     const opacityAnim = useRef(new RNAnimated.Value(1)).current; // NEW: Theatrical focus
+    // FIX: Référence de montage pour éviter setState/animations après unmount
+    const isMountedRef = useRef(true);
+
+    // FIX: Annulation globale de toutes les animations Reanimated à l'unmount
+    // Évite le crash RetryableMountingLayerException sur Android Fabric
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            cancelAnimation(animatedProgress);
+            cancelAnimation(breatheValue);
+            cancelAnimation(pingValue);
+            cancelAnimation(boudeBlink);
+        };
+    }, []);
 
     // Theatrical Focus Transition
     useEffect(() => {
@@ -109,6 +124,11 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
         if (showTimer && isActive && !isPaused && !isBoude) {
             // Start countdown
             const interval = setInterval(() => {
+                // FIX: Ne pas mettre à jour l'état si le composant est démonté
+                if (!isMountedRef.current) {
+                    clearInterval(interval);
+                    return;
+                }
                 setSecondsLeft(prev => {
                     const newValue = prev - 1;
                     if (newValue < 0) return 0;

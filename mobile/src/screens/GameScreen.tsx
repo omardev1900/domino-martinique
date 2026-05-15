@@ -515,6 +515,10 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                             } else {
                                 setPlayerAvatarId('avatar_default');
                             }
+                            // Stocker le leagueGrade pour le propager au player au deal
+                            if (profile.leagueGrade) {
+                                (playerEconomyRef.current as any).leagueGrade = profile.leagueGrade;
+                            }
                         }
                     } catch (error) {
                         console.error('Error loading profile:', error);
@@ -891,6 +895,10 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
             // Configure local player and bots avatars
             fullState.players[0].avatarId = playerAvatarId as AvatarId;
+            // Propager le leagueGrade du joueur local s'il est disponible
+            if ((playerEconomyRef.current as any).leagueGrade) {
+                fullState.players[0].leagueGrade = (playerEconomyRef.current as any).leagueGrade;
+            }
 
             fullState.players[1].name = botProfiles[0].name;
             fullState.players[1].avatarId = (botProfiles[0].imageUrl || botProfiles[0].avatarId) as AvatarId;
@@ -992,10 +1000,13 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             fullState.players = fullState.players.map((p, i) => {
                 if (i < roomData.players.length) {
                     const uid = roomData.players[i].uid;
+                    const roomPlayer = roomData.players[i];
                     return {
                         ...p,
                         id: uid,
-                        avatarId: roomData.players[i].avatarId || 'avatar_default',
+                        avatarId: roomPlayer.avatarId || 'avatar_default',
+                        leagueGrade: roomPlayer.leagueGrade,   // Propagé depuis PlayerProfile
+                        activeFrame: roomPlayer.activeFrame,   // Propagé depuis PlayerProfile
                         status: 'HUMAN'
                     };
                 } else {
@@ -1039,26 +1050,29 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         // Allow beforeRemove to pass through
         isIntentionalLeave.current = true;
 
-        // 1. Navigate FIRST — Force redirect to /home for all players
-        router.replace('/home');
-
         const isActiveMultiplayerSession = !isSoloMode && !!gameId && gameStateRef.current?.phase !== 'MATCH_END';
 
-        // 2. Cleanup AFTER navigation is triggered (fire-and-forget)
+        // Cleanup Firestore AVANT la navigation (fire-and-forget)
         if (isActiveMultiplayerSession && gameId) {
             AsyncStorage.setItem('active_roomId', gameId).catch(console.error);
             signalPlayerOffline().catch(e => console.error("Error marking player offline", e));
-            return;
+        } else {
+            AsyncStorage.removeItem('active_roomId').catch(console.error);
+            if (localPlayerId && localPlayerId !== 'p1') {
+                setUserActiveRoom(localPlayerId, null).catch(console.error);
+            }
+            if (!isSoloMode && gameId) {
+                leaveRoom(gameId, localPlayerId).catch(e => console.error("Error leaving room", e));
+            }
         }
 
-        AsyncStorage.removeItem('active_roomId').catch(console.error);
-        if (localPlayerId && localPlayerId !== 'p1') {
-            setUserActiveRoom(localPlayerId, null).catch(console.error);
-        }
-        if (!isSoloMode && gameId) {
-            leaveRoom(gameId, localPlayerId).catch(e => console.error("Error leaving room", e));
-        }
+        // FIX: Laisser un frame à React pour que les useEffect cleanup (cancelAnimation)
+        // s'exécutent avant la navigation — évite RetryableMountingLayerException sur Android Fabric
+        requestAnimationFrame(() => {
+            router.replace('/home');
+        });
     }, [isSoloMode, gameId, localPlayerId, router, signalPlayerOffline]);
+
 
     const handleDeleteWaitingRoom = useCallback(async () => {
         if (!gameId || !roomData || isSoloMode) return;

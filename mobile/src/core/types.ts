@@ -26,7 +26,8 @@ export interface Player {
     id: PlayerId;
     name: string;
     avatarId?: string;
-    activeFrame?: string; // NEW: Cadre Ligue des Cochons
+    activeFrame?: string; // Cadre de ligue équipé (propagé depuis PlayerProfile)
+    leagueGrade?: string; // Grade de ligue (propagé depuis PlayerProfile au lancement)
     hand: Domino[];
     handSize: number;
     currentMancheStars: number; // ÉTOILES (currentMancheStars) : Victoires dans la manche en cours (0-3)
