@@ -15,3 +15,8 @@ node_modules/
 
 # Si tu as un dossier d'assets très lourd non utilisé par l'app
 # assets/raw-audio/
+# Exclure explicitement le cache et les builds natifs Android
+android/app/build/
+android/build/
+android/.cxx/
+android/app/.cxx/

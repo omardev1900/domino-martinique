@@ -24,8 +24,6 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 | **CF-PROCESSMATCHREWARD-CORS** | Corriger le CORS de `processMatchReward` pour le Web local (`http://localhost:8081`) et verifier le fallback client | Haute | En cours |
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
-| **ADS-REWARD** | Fin de match - bouton `Voir une pub` pour gagner `+100 coins`, visible pour tous les joueurs y compris premium. Composant `AdRewardButton` réutilisable crée (fin de manche, boutique, vestiaire...). | Haute | Fait |
-| **UX-ADMIN-SIDEBAR** | Menu latéral rétractable + Défilement horizontal des tableaux (Ads) | Moyenne | Fait |
 | **R4-TECH-LEADERBOARD** | Agregats mensuels persistants pour sortir de la limite `matchHistory` | Moyenne | Pret |
 | **ANIM-DOMINO** | Animation glissee des dominos pendant le jeu | Moyenne | Pret |
 
@@ -35,16 +33,14 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 1. stabilisation / bugs remontes pendant les tests fermes
 2. `CF-PROCESSMATCHREWARD-CORS`
-3. `ADS-REWARD` ← **en cours**
-4. `ECO-WELCOME-DAILY`
-5. `OTP-INSCRIPTION`
-6. `ECO-REBALANCE`
-7. `R4-TECH-LEADERBOARD`
-8. `ANIM-DOMINO`
+3. `ECO-WELCOME-DAILY`
+4. `OTP-INSCRIPTION`
+5. `ECO-REBALANCE`
+6. `R4-TECH-LEADERBOARD`
+7. `ANIM-DOMINO`
 
 Raison :
 `CF-PROCESSMATCHREWARD-CORS` est demarre pour fiabiliser les tests Web locaux autour des recompenses de fin de match avant d'ajouter de nouvelles variantes pub.
-`ADS-REWARD` est cadre comme une recompense fixe `+100 coins` apres clic sur `Voir une pub`, pour tous les joueurs y compris premium, avec retry si la pub ne se charge pas.
 `ECO-WELCOME-DAILY` est un correctif rapide des constantes d'economie (bienvenue 300, cadeau jour 200) avant que les nouveaux joueurs arrivent post-lancement.
 `OTP-INSCRIPTION` est limite au Web uniquement (mobile non concerne) et reporte apres la phase de test ferme.
 `ECO-REBALANCE` est differe en attendant l'arbitrage produit avec le client et l'associe.
@@ -62,24 +58,6 @@ Attendus :
 - confirmer si le blocage vient bien du CORS ou d'une autre couche Web locale
 - corriger le serveur si necessaire, ou documenter clairement le fallback client si le comportement est volontaire
 - valider que les recompenses post-match restent exploitables en test Web local
-
----
-
-## Detail prioritaire - ADS-REWARD
-
-Objectif :
-ajouter apres chaque match un CTA `Voir une pub` qui credite un gain fixe de `100 coins`, quel que soit le mode de jeu, le niveau ou le statut premium.
-
-Regle produit validee :
-- bouton visible apres chaque match
-- applicable en solo, multi et tous les types de partie
-- applicable aussi aux joueurs premium
-- la recompense est fixe : `+100 coins`
-- on ne double aucun gain existant
-- si la pub ne charge pas ou echoue, proposer de reessayer
-
-Point d'attention :
-ce ticket doit se brancher proprement au systeme pub existant et ne pas contourner les regles serveur de recompense.
 
 ---
 

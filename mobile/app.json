@@ -91,7 +91,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "3a9b61d5-b139-49ab-ae3a-752b9ae42898"
+        "projectId": "932e6ca2-b754-4ea4-a394-68ad16230bc2"
       }
     },
     "owner": "aboumalak",
@@ -99,7 +99,7 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/3a9b61d5-b139-49ab-ae3a-752b9ae42898"
+      "url": "https://u.expo.dev"
     }
   }
 }
