@@ -15,9 +15,11 @@
 | **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression |
 | **ECO-ADS-COINS-TUNING** | Definir la recompense coins du visionnage pub volontaire post-match |
 | **SOLO-REJOUER-REVANCHE** | Priorite moyenne - En solo, revoir le modal de fin de match : apres une victoire afficher `Rejouer`, `Retour aux modes`, `Quitter` ; apres une defaite afficher `Revanche - X coins`, `Retour aux modes`, `Quitter`. `Rejouer` relance les memes parametres avec de nouveaux bots et le cout solo normal. `Revanche` relance exactement les memes parametres contre les memes bots, avec cout progressif `500`, `1000`, `2000`, etc. La serie s'arrete des que le joueur quitte l'ecran de match. Si le joueur gagne une revanche, il recupere sa mise et gagne `+300` coins. |
-| **AMELIORATION-MULTI-LOBBY-BOT-FILL** | Permettre a l'hote de completer un lobby incomplet avec un bot, avec priorite a un joueur humain si quelqu'un rejoint au meme moment |
+| **AMELIORATION-MULTI-LOBBY-BOT-FILL** | Permettre a l'hote d'ajouter un bot pour completer une table multi de 2 joueurs, en choisissant son niveau (Debutant, MAPIPI, etc.). Priorite a l'humain si un vrai joueur rejoint la salle avant le lancement. |
 | **GOD-MODE** | Nouveau mode solo separe "GOD MODE" : 2 bots METKAYALI allies contre le joueur, format `VICTOIRE` v1, acces verrouille par progression joueur |
 | **ECO-STAKE-PAYOUT-RULES** | Arbitrer la redistribution des mises en multi et l'eventuelle commission |
+| **MULTI-PENALITE-ABANDON** | Differencier abandon volontaire et deconnexion (statut SURRENDERED). A la fin, le joueur en abandon volontaire perd tout et finit dernier, meme si son bot gagne. |
+| **FORCE-UPDATE** | Mettre en place un systeme qui verifie la version minimale de l'application (via Firebase Remote Config ou un document Firestore) et affiche un ecran bloquant pour obliger le joueur a telecharger la nouvelle version publiee sur le store. |
 
 ---
 
