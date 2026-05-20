@@ -5,8 +5,6 @@ import {
     createUserWithEmailAndPassword,
     signOut,
     sendPasswordResetEmail,
-    signInWithCredential,
-    GoogleAuthProvider,
     updateProfile as updateFirebaseProfile,
     User
 } from 'firebase/auth';
@@ -23,34 +21,6 @@ const STORAGE_KEY_SESSION = '@user_session_active';
 
 class AuthService {
     private currentUser: PlayerProfile | null = null;
-
-
-
-    /**
-     * Google Sign In with OAuth credential
-     */
-    async signInWithGoogleCredential(idToken: string | null, accessToken: string | null): Promise<PlayerProfile> {
-        try {
-            const credential = GoogleAuthProvider.credential(idToken, accessToken);
-            const userCredential = await signInWithCredential(auth, credential);
-            const user = userCredential.user;
-            const profile = this.mapFirebaseUserToProfile(user);
-            await this.activateSession(profile);
-            await statsService.useStorageScope(profile.uid);
-            await economyService.useStorageScope(profile.uid);
-            await statsService.syncWithFirebase(profile.uid);
-            await economyService.syncFromFirebase(profile.uid);
-            await economyService.syncProfileMetadata(
-                profile.uid,
-                profile.displayName,
-                profile.avatarId || 'avatar_default'
-            );
-            return profile;
-        } catch (error) {
-            LogService.error('AuthService', 'Google Sign In Error:', error);
-            throw error;
-        }
-    }
 
     /**
      * Send password reset email
@@ -245,8 +215,6 @@ class AuthService {
         if (!user) return;
 
         this.currentUser = { ...user, ...stats };
-
-
     }
 
     /**

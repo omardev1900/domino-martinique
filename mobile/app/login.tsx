@@ -17,18 +17,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import Constants from 'expo-constants';
 import { authService } from '../src/core/services/auth.service';
-
-const GOOGLE_ANDROID_CLIENT_ID = '916243245615-m3biip70ga7nlgm1mf8kqaa4tggl7g3g.apps.googleusercontent.com';
-// Masqué jusqu'au passage en test interne Google Play (EAS build requis pour Android)
-const GOOGLE_SIGNIN_ENABLED = false;
-
-const isExpoGo = Constants.appOwnership === 'expo';
-
-WebBrowser.maybeCompleteAuthSession();
 
 const DEV_TEST_ACCOUNTS = [
     { label: 'Adil', email: 'adil@adil.com' },
@@ -51,17 +40,6 @@ export default function LoginScreen() {
     const [isLoginMode, setIsLoginMode] = useState(true);
     const [isForgotMode, setIsForgotMode] = useState(false);
 
-    const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-        webClientId: '916243245615-ft1i2pm4e2s3qv5tshf8ca9h4krddkb0.apps.googleusercontent.com',
-        androidClientId: (!isExpoGo && Platform.OS === 'android') ? GOOGLE_ANDROID_CLIENT_ID : undefined,
-    });
-
-    useEffect(() => {
-        if (googleResponse?.type === 'success') {
-            const { authentication } = googleResponse;
-            handleGoogleSignIn(authentication?.idToken ?? null, authentication?.accessToken ?? null);
-        }
-    }, [googleResponse]);
 
     const getErrorMessage = (error: any) => {
         const code = error.code || '';
@@ -83,22 +61,6 @@ export default function LoginScreen() {
         return "Une erreur est survenue. Veuillez réessayer.";
     };
 
-    const handleGoogleSignIn = async (idToken: string | null, accessToken: string | null) => {
-        setErrorMessage('');
-        setIsLoading(true);
-        try {
-            const user = await authService.signInWithGoogleCredential(idToken, accessToken);
-            if (autoJoinRoomId) {
-                router.replace({ pathname: '/lobby', params: { autoJoinRoomId } });
-            } else {
-                router.replace('/home');
-            }
-        } catch (error: any) {
-            setErrorMessage(getErrorMessage(error));
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleForgotPassword = async () => {
         setErrorMessage('');
@@ -328,24 +290,6 @@ export default function LoginScreen() {
                                     </View>
                                 )}
 
-                                {!isForgotMode && (
-                                    <View style={styles.separatorRow}>
-                                        <View style={styles.separatorLine} />
-                                        <Text style={styles.separatorText}>OU</Text>
-                                        <View style={styles.separatorLine} />
-                                    </View>
-                                )}
-
-                                {GOOGLE_SIGNIN_ENABLED && !isForgotMode && !(isExpoGo && Platform.OS === 'android') && (
-                                    <TouchableOpacity
-                                        style={styles.googleButton}
-                                        onPress={() => promptGoogleAsync()}
-                                        disabled={isLoading}
-                                    >
-                                        <Ionicons name="logo-google" size={16} color="#4285F4" />
-                                        <Text style={styles.googleButtonText}>Continuer avec Google</Text>
-                                    </TouchableOpacity>
-                                )}
 
                                 {!isForgotMode && isLoginMode && (
                                     <TouchableOpacity
@@ -568,23 +512,4 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '600',
     },
-    googleButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        height: 42,
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderRadius: 21,
-    },
-    googleButtonText: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#444444',
-    },
-    guestButtonText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#90CAF9',
-    }
 });
