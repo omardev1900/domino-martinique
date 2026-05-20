@@ -4,6 +4,14 @@
 
 ---
 
+## [2.5.5] - 2026-05-20
+
+### Corrigé
+- **Audio (Android)** — correction d'un crash fatal (`TypeError: Cannot read property 'catch' of undefined`) sur certains appareils Android (ex: Samsung Galaxy S24). Le watchdog de musique appelait `.catch()` directement sur le résultat de `play()`, qui peut retourner `undefined` sur expo-audio. Il utilise désormais `safePlayPlayer()` qui vérifie le type avant d'appeler `.catch()`.
+- **Audio (Web Chrome iOS)** — l'autoplay audio est maintenant désactivé sur Chrome iOS (`CriOS`) en plus de Safari iOS, éliminant les erreurs `NotAllowedError` qui polluaient Sentry (31 events, 16 users).
+
+---
+
 ## [2.5.4] - 2026-05-15
 
 ### Ajouté

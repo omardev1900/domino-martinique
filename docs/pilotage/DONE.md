@@ -9,7 +9,21 @@
 
 ## Mai 2026
 
-### 2026-05-15 - Récompense pub post-match + reéquilibrage économie débutant
+### 2026-05-20 - Fixes Sentry audio
+
+- [x] **[SENTRY-AUDIO-WATCHDOG]** Fix crash fatal TypeError watchdog SoundManager (Android)
+  - Le watchdog appelait `this.currentMusic.play().catch()` directement
+  - Sur certains appareils expo-audio, `play()` retourne `undefined` → `.catch()` explose (FATAL, 5 users, SM-S928B Android 16)
+  - Remplacé par `this.safePlayPlayer()` qui vérifie le type retour avant d'appeler `.catch()`
+  - Fichier : `mobile/src/core/audio/SoundManager.ts`
+
+- [x] **[SENTRY-AUDIO-CHROME-IOS]** Suppression des NotAllowedError autoplay Web Chrome iOS
+  - Guard `isAudioAllowed` ne couvrait que Safari iOS, pas Chrome iOS (`CriOS`)
+  - 31 events / 16 users en cours depuis 2 semaines sur `play.domino-martinique.online`
+  - Chrome iOS ajouté au guard — même comportement que Safari iOS (audio désactivé)
+  - Fichier : `mobile/src/core/audio/SoundManager.ts`
+
+
 
 - [x] **[UX-ADMIN-SIDEBAR]** Menu latéral rétractable + Défilement horizontal des tableaux (Ads)
   - Sidebar rétractable via un toggle (chevron) pour maximiser l'espace de travail

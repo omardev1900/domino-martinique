@@ -123,7 +123,9 @@ class SoundManager {
         if (typeof navigator !== 'undefined') {
             const ua = navigator.userAgent || '';
             const isIOSSafari = /iPad|iPhone|iPod/.test(ua) && /WebKit/.test(ua) && !/CriOS|FxiOS/.test(ua);
-            if (isIOSSafari) return false;
+            // Chrome iOS (CriOS) déclenche aussi NotAllowedError sur autoplay — même traitement que Safari iOS
+            const isIOSChrome = /iPad|iPhone|iPod/.test(ua) && /CriOS/.test(ua);
+            if (isIOSSafari || isIOSChrome) return false;
         }
         if (typeof navigator !== 'undefined' && 'userActivation' in navigator) {
             return (navigator as any).userActivation.hasBeenActive;
@@ -375,7 +377,9 @@ class SoundManager {
 
             if (this.currentMusic && !this.currentMusic.playing && this.currentMusicName) {
                 LogService.info('SoundManager', 'Watchdog: Music stalled, restarting...');
-                this.currentMusic.play().catch(() => {});
+                // safePlayPlayer vérifie si play() retourne une Promise avant d'appeler .catch()
+                // — évite le TypeError "Cannot read property 'catch' of undefined" sur certains appareils
+                this.safePlayPlayer(this.currentMusic);
             }
         }, 3000);
     }
