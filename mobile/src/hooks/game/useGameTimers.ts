@@ -85,9 +85,9 @@ export const useGameTimers = ({
             return;
         }
 
-        // Durée réduite pour les joueurs déconnectés
+        // Durée réduite pour les joueurs déconnectés (3 secondes max au lieu de 5)
         const effectiveDuration = player.status === 'DISCONNECTED'
-            ? Math.min(turnDuration, 5)
+            ? Math.min(turnDuration, 3)
             : turnDuration;
 
         const currentTurnId = gameState.turnId ?? 0;

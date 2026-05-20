@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Image } from 'expo-image';
-import { View, StyleSheet, Text, Animated as RNAnimated } from 'react-native';
+import { View, StyleSheet, Text, Animated as RNAnimated, Image } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedProps, useAnimatedStyle, withTiming, Easing, withRepeat, withSequence, FadeIn, FadeOut, ZoomIn, cancelAnimation } from 'react-native-reanimated';
 import { Player } from '../core/types';
@@ -324,7 +323,19 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             isActive && styles.activeGlow,
                         ]}
                     >
-                        {showTimerUi ? (
+                        <Image
+                            source={avatarImage}
+                            style={{
+                                width: imageSize,
+                                height: imageSize,
+                                position: 'absolute',
+                                top: imageOffset,
+                                left: (size - imageSize) / 2,
+                                opacity: showTimerUi ? 0 : 1,
+                            }}
+                            resizeMode="cover"
+                        />
+                        {showTimerUi && (
                             <Text style={[
                                 styles.countdown,
                                 { fontSize: size / 2.2 },
@@ -336,19 +347,6 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                             ]}>
                                 {overtime !== null ? overtime : secondsLeft}
                             </Text>
-                        ) : (
-                            <Image
-                                source={avatarImage}
-                                style={{
-                                    width: imageSize,
-                                    height: imageSize,
-                                    position: 'absolute',
-                                    top: imageOffset,
-                                    left: (size - imageSize) / 2,
-                                }}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                            />
                         )}
                         
                         {/* L'overlay est supprimé ici pour laisser l'avatar visible */}

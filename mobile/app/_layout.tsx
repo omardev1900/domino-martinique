@@ -12,6 +12,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { Platform, AppState, AppStateStatus, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
+import * as SplashScreen from 'expo-splash-screen';
+import { Platform, AppState, AppStateStatus, View, Text, Button } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as NavigationBar from 'expo-navigation-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import SoundManager from '@/core/audio/SoundManager';
 import SettingsManager from '@/core/SettingsManager';
@@ -19,7 +23,7 @@ import { adService } from '@/core/services/ad.service';
 import { Sidebar } from '@/components/Sidebar';
 import { WebFullscreenButton } from '@/components/WebFullscreenButton';
 import { authService } from '@/core/services/auth.service';
-import { findActiveRoomForUser } from '@/core/services/firebase';
+import { findActiveRoomForUser, signalPlayerOnline } from '@/core/services/firebase';
 import * as Notifications from 'expo-notifications';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/core/services/firebase';
@@ -147,11 +151,26 @@ export default Sentry.wrap(function RootLayout() {
   }, []);
 
   // Re-applique l'immersive mode chaque fois que l'app repasse en foreground.
-  // Android réinitialise la nav bar après un passage en arrière-plan.
+  // Gère aussi le réveil après une alarme (AppState -> active) pour reconnecter le joueur.
   useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'active') applyImmersiveMode();
+    const subscription = AppState.addEventListener('change', async (state: AppStateStatus) => {
+      if (state === 'active') {
+        if (Platform.OS === 'android') applyImmersiveMode();
+        
+        // Anti "Ecran blanc / Bloqué" : Si on sort de veille (alarme, etc.), on signale qu'on est de retour
+        try {
+          const user = await authService.getCurrentUser();
+          if (user && !user.uid.startsWith('guest_')) {
+            let activeRoomId = await AsyncStorage.getItem('active_roomId');
+            if (!activeRoomId) activeRoomId = await findActiveRoomForUser(user.uid);
+            if (activeRoomId) {
+              await signalPlayerOnline(activeRoomId, user.uid);
+            }
+          }
+        } catch (e) {
+          console.warn("Erreur resync AppState", e);
+        }
+      }
     });
     return () => subscription.remove();
   }, []);
@@ -327,3 +346,22 @@ export default Sentry.wrap(function RootLayout() {
     </GestureHandlerRootView>
   );
 });
+
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#1A0E2E', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+      <Text style={{ color: '#FFD700', fontSize: 22, fontWeight: 'bold', marginBottom: 10 }}>Oups !</Text>
+      <Text style={{ color: '#FFF', fontSize: 16, textAlign: 'center', marginBottom: 20 }}>
+        Un petit souci d'affichage est survenu.
+      </Text>
+      <Text style={{ color: '#aaa', fontSize: 10, textAlign: 'center', marginBottom: 30 }} numberOfLines={3}>
+        {error.message}
+      </Text>
+      <Button title="Recharger l'affichage" onPress={retry} color="#E74C3C" />
+    </View>
+  );
+}

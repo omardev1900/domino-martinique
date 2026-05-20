@@ -278,29 +278,27 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                             )}
                         </View>
 
-                        {/* ── Footer Quitter — Solo uniquement ── */}
-                        {isSoloMode && (
-                            <View style={styles.footer}>
-                                {!showQuitConfirm ? (
-                                    <TouchableOpacity style={styles.quitBtn} onPress={() => setShowQuitConfirm(true)} activeOpacity={0.8}>
-                                        <Ionicons name="exit-outline" size={16} color="#fff" />
-                                        <Text style={styles.quitBtnText}>Quitter la partie</Text>
-                                    </TouchableOpacity>
-                                ) : (
-                                    <View style={styles.confirmRow}>
-                                        <Text style={styles.confirmText}>Vraiment quitter ?</Text>
-                                        <View style={styles.confirmBtns}>
-                                            <TouchableOpacity style={styles.confirmBtnNo} onPress={() => setShowQuitConfirm(false)} activeOpacity={0.8}>
-                                                <Text style={styles.confirmBtnNoText}>Rester</Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity style={styles.confirmBtnYes} onPress={handleConfirmQuit} activeOpacity={0.8}>
-                                                <Text style={styles.confirmBtnYesText}>Quitter</Text>
-                                            </TouchableOpacity>
-                                        </View>
+                        {/* ── Footer Quitter ── */}
+                        <View style={styles.footer}>
+                            {!showQuitConfirm ? (
+                                <TouchableOpacity style={styles.quitBtn} onPress={() => setShowQuitConfirm(true)} activeOpacity={0.8}>
+                                    <Ionicons name="exit-outline" size={16} color="#fff" />
+                                    <Text style={styles.quitBtnText}>{isSoloMode ? 'Quitter la partie' : 'Abandonner la table'}</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={styles.confirmRow}>
+                                    <Text style={styles.confirmText}>{isSoloMode ? 'Vraiment quitter ?' : 'Quitter et abandonner ?'}</Text>
+                                    <View style={styles.confirmBtns}>
+                                        <TouchableOpacity style={styles.confirmBtnNo} onPress={() => setShowQuitConfirm(false)} activeOpacity={0.8}>
+                                            <Text style={styles.confirmBtnNoText}>Rester</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={styles.confirmBtnYes} onPress={handleConfirmQuit} activeOpacity={0.8}>
+                                            <Text style={styles.confirmBtnYesText}>{isSoloMode ? 'Quitter' : 'Abandonner'}</Text>
+                                        </TouchableOpacity>
                                     </View>
-                                )}
-                            </View>
-                        )}
+                                </View>
+                            )}
+                        </View>
 
                     </LinearGradient>
                 </Animated.View>
