@@ -11,6 +11,7 @@ import SettingsManager, { BgmTheme } from '../src/core/SettingsManager';
 import SoundManager from '../src/core/audio/SoundManager';
 import { TABLE_THEMES, TableTheme } from '../src/core/themes/tableThemes';
 import { botService } from '../src/core/services/bot.service';
+import Constants from 'expo-constants';
 
 import { getAvatarImage, AvatarId, AVAILABLE_AVATARS } from '../src/core/avatars';
 import { playerNameSchema } from '../src/core/validation/schemas';
@@ -33,6 +34,8 @@ const VOLUMES = [
   { val: 0.75, label: '75%' },
   { val: 1.0, label: '100%' },
 ];
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.3';
 
 export default function ModalScreen() {
   const router = useRouter();
@@ -352,6 +355,8 @@ export default function ModalScreen() {
                 </TouchableOpacity>
               </View>
             )}
+
+            <Text style={styles.versionText}>Version {APP_VERSION}</Text>
           </View>
         </ScrollView>
       </View>

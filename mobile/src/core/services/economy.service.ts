@@ -423,6 +423,16 @@ class EconomyService {
 
         if (userId && !userId.startsWith('guest_')) {
             await this.pushToFirebase(userId, updated);
+
+            // Propagate active frame to monthly leaderboard document
+            try {
+                const { statsService } = require('./stats.service');
+                const { leaderboardService } = require('./leaderboard.service');
+                const stats = await statsService.getStats();
+                await leaderboardService.updateMonthlyStats(userId, stats, { activeFrame: frameId });
+            } catch (err) {
+                LogService.error('EconomyService', 'Failed to propagate frame to monthly stats', err);
+            }
         }
 
         LogService.debug('EconomyService', `Cadre équipé avec succès : ${frameId}`);
@@ -540,6 +550,16 @@ class EconomyService {
             const userRef = doc(db, 'users', uid);
             await setDoc(userRef, { displayName, avatarId }, { merge: true });
             LogService.info('EconomyService', 'Profile metadata synced.', displayName);
+
+            // Propagate profile metadata to monthly leaderboard document
+            try {
+                const { statsService } = require('./stats.service');
+                const { leaderboardService } = require('./leaderboard.service');
+                const stats = await statsService.getStats();
+                await leaderboardService.updateMonthlyStats(uid, stats, { displayName, avatarId });
+            } catch (err) {
+                LogService.error('EconomyService', 'Failed to propagate profile metadata to monthly stats', err);
+            }
         } catch (e) {
             LogService.error('EconomyService', 'syncProfileMetadata error:', e);
         }
@@ -632,7 +652,7 @@ class EconomyService {
      * Fallback Firestore : si leagueGrade est un ancien grade (4 paliers) ou invalide,
      * on le recalcule depuis cochonsGiven.
      */
-    private migrateGrade(raw: string | undefined, leaguePoints: number): LeagueGrade {
+    private migrateGrade(raw: string | undefined, leaguePoints: number): LeagueGrade | null {
         const VALID: string[] = [
             'DEBUTANT',
             'APPRENTI_1', 'APPRENTI_2', 'APPRENTI_3',
@@ -690,7 +710,7 @@ class EconomyService {
             level: partial.level ?? getLevelFromXP(xp),
             diamonds: partial.diamonds ?? DEFAULT_ECONOMY.diamonds,
             leaguePoints,
-            leagueGrade: this.migrateGrade(partial.leagueGrade, leaguePoints),
+            leagueGrade: this.migrateGrade(partial.leagueGrade ?? undefined, leaguePoints),
             // ─── Ligue des Cochons (migration: valeurs par défaut pour les anciens profils) ───
             cochonsGiven: partial.cochonsGiven ?? 0,
             unlockedFrames: (partial.unlockedFrames as LeagueFrameId[]) ?? [],

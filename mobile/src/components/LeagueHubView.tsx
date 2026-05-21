@@ -82,24 +82,39 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
 
     useEffect(() => {
         const isClassementTab = activeTab === 'CLASSEMENT_MOIS' || activeTab === 'CLASSEMENT_GLOBAL';
+        
+        // Unsubscribe the previous listener if any
+        classementUnsubRef.current?.();
+        classementUnsubRef.current = null;
+
         if (!isClassementTab) {
-            classementUnsubRef.current?.();
-            classementUnsubRef.current = null;
             return;
         }
-        if (classementUnsubRef.current) return;
 
         setClassementLoading(true);
-        classementUnsubRef.current = leaderboardService.subscribeLeagueClassement((entries) => {
+
+        const callback = (entries: LeaderboardEntry[]) => {
             setAllEntries(entries);
             setClassementLoading(false);
-        });
+        };
+
+        if (activeTab === 'CLASSEMENT_MOIS') {
+            classementUnsubRef.current = leaderboardService.subscribeLeagueClassementMonthly(
+                classementCategory,
+                callback
+            );
+        } else {
+            classementUnsubRef.current = leaderboardService.subscribeLeagueClassementGlobal(
+                classementCategory,
+                callback
+            );
+        }
 
         return () => {
             classementUnsubRef.current?.();
             classementUnsubRef.current = null;
         };
-    }, [activeTab]);
+    }, [activeTab, classementCategory]);
 
     const progress = useMemo(() => getLeagueProgress(leaguePoints), [leaguePoints]);
 

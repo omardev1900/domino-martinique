@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from './firebase';
+import { auth, db } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { PlayerInventory } from '../store.types';
 import { DEFAULT_INVENTORY } from '../store.constants';
 import { economyService } from './economy.service';
 import { LogService } from './LogService';
+import { leaderboardService } from './leaderboard.service';
 
 const STORAGE_KEY_PLAYER_STATS = '@player_stats';
 const GUEST_STORAGE_SCOPE = 'guest';
@@ -331,6 +332,23 @@ class StatsService {
                 }
             }, { merge: true });
             LogService.info('StatsService', 'Stats synced to Firebase');
+
+            // Propagate to monthly stats
+            const displayName = auth.currentUser?.displayName || undefined;
+            const avatarId = auth.currentUser?.photoURL || undefined;
+            let activeFrame: string | null | undefined = undefined;
+            try {
+                const eco = await economyService.getEconomy();
+                activeFrame = eco.activeFrame;
+            } catch (e) {
+                LogService.error('StatsService', 'Failed to retrieve economy for activeFrame', e);
+            }
+
+            await leaderboardService.updateMonthlyStats(uid, stats, {
+                displayName,
+                avatarId,
+                activeFrame,
+            });
         } catch (error) {
             LogService.error('StatsService', 'Failed to push stats to Firebase', error);
         }

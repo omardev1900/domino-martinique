@@ -11,6 +11,23 @@
 
 ### 2026-05-21 - Jeu en ligne, Fix CORS & Persistance Solo
 
+- [x] **[VERSION-DISPLAY]** Homogénéisation et affichage de la version de l'application
+  - **Objectif** : Afficher la version de l'application de façon homogène sur le splashscreen, les réglages et le formulaire de retour client, en lisant dynamiquement la version configurée dans `expo`.
+  - **Correction** :
+    - Version mise à jour à `"1.0.3"` dans `mobile/package.json` pour correspondre à `mobile/app.json` (source de vérité).
+    - Lecture dynamique de la version via `Constants.expoConfig?.version` dans le Splashscreen (`mobile/app/index.tsx`), l'écran Réglages/Options (`mobile/app/modal.tsx`) et le composant Feedback (`mobile/src/components/MdcFeedbackModal.tsx`).
+    - Rendu visuel soigné du label version (`v1.0.3` / `Version 1.0.3`) respectant les exigences de design de la charte de l'application.
+  - Fichiers modifiés : `mobile/package.json`, `mobile/app/index.tsx`, `mobile/app/modal.tsx`, `mobile/src/components/MdcFeedbackModal.tsx`
+
+- [x] **[R4-TECH-LEADERBOARD]** Agrégats mensuels persistants pour optimiser et fiabiliser les classements
+  - **Objectif** : Éviter de charger/analyser l'intégralité de `matchHistory` de tous les joueurs côté client pour afficher les classements mensuels. Introduire une collection Firestore `users_monthly_stats` qui centralise les métriques mensuelles de chaque joueur.
+  - **Nouveau schéma** : Document `/users_monthly_stats/{userId}_{yearMonth}` créé/mis à jour à chaque fin de match, changement de pseudo ou d'avatar. Champs : `cochonsGiven`, `cochonsSubis`, `pointsAccumulated`, `gamesPlayed`, `displayName`, `avatarId`, `activeFrame`.
+  - **Index composites** : 3 index ajoutés dans `firestore.indexes.json` pour permettre le tri mensuel par `cochonsGiven`, `gamesPlayed` (proxy `-Cochons`) et `pointsAccumulated`.
+  - **Règles Firestore** : Règle d'écriture sécurisée — chaque joueur ne peut modifier que son propre document `users_monthly_stats`.
+  - **UI temps réel** : `LeagueHubView.tsx` recréé ses abonnements `onSnapshot` dynamiquement à chaque changement d'onglet (Mois/Global) ou de catégorie.
+  - **Tests** : 20 tests unitaires ajoutés/adaptés dans `LeaderboardClassement.test.ts` — tous passent.
+  - Fichiers modifiés : `firestore.rules`, `firestore.indexes.json`, `leaderboard.time.ts`, `leaderboard.service.ts`, `stats.service.ts`, `economy.service.ts`, `auth.service.ts`, `LeagueHubView.tsx`, `LeaderboardClassement.test.ts`
+
 - [x] **[SOLO-PERSISTENCE]** Persistance locale de l'état de jeu en Solo (Restauration après F5 / rafraîchissement)
   - **Objectif** : Permettre au joueur solo de conserver sa progression (main exacte, dominos posés sur la table, scores des manches, configuration des bots) lors d'un rechargement de page (F5 sur le Web) ou d'un redémarrage de l'application sans utiliser Firestore.
   - **Correction** : Implémentation d'une sauvegarde automatique et en temps réel de l'état de jeu dans `AsyncStorage` sous la clé `@solo_game_state:${gameId}` lors de chaque mise à jour de l'état dans `useGameSync.ts`.

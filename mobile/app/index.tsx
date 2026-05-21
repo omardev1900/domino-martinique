@@ -12,10 +12,14 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { authService } from '@/core/services/auth.service';
 import SettingsManager from '@/core/SettingsManager';
 import SoundManager from '@/core/audio/SoundManager';
 import { findActiveRoomForUser } from '@/core/services/firebase';
+
+// ─── Timings ─────────────────────────────────────────────────────────────────
+// Delay before bar starts (logo entrance time)
 
 // ─── Timings ─────────────────────────────────────────────────────────────────
 // Delay before bar starts (logo entrance time)
@@ -26,6 +30,8 @@ const PHASE2_MS = 950;   // 70 → 95%
 const PHASE3_MS = 350;   // 95 → 100%
 // Fade-in of the button after bar completes
 const BUTTON_FADEIN_MS = 500;
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.3';
 
 export default function PremiumSplashScreen() {
     const router = useRouter();
@@ -228,6 +234,9 @@ export default function PremiumSplashScreen() {
                     </LinearGradient>
                 </TouchableOpacity>
             </Animated.View>
+
+            {/* Version info */}
+            <Text style={styles.versionText}>v{APP_VERSION}</Text>
         </LinearGradient>
     );
 }
@@ -297,5 +306,13 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         color: '#1a0505',
         letterSpacing: 3,
+    },
+    versionText: {
+        position: 'absolute',
+        bottom: 24,
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.25)',
+        fontWeight: '600',
+        letterSpacing: 1.2,
     },
 });

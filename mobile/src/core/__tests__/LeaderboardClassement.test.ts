@@ -21,11 +21,14 @@ jest.mock('firebase/firestore', () => ({
     where: jest.fn(),
     onSnapshot: jest.fn(),
     getCountFromServer: jest.fn(),
+    doc: jest.fn(),
+    setDoc: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('../services/firebase', () => ({ db: {} }));
 jest.mock('../services/leaderboard.time', () => ({
     getStartOfCurrentMonthUtc: () => 0,
+    getYearMonthUtcString: () => '2026-05',
 }));
 
 // ─── Helper : construire un doc Firestore simulé ──────────────────────────────
@@ -284,5 +287,112 @@ describe('Départage gamesPlayed — cas limites', () => {
             makeEntry('B', { totalCochonsSubis: 0, gamesPlayed: 0 }),
         ];
         expect(() => sortEntries(list, 'MOINS_COCHONS')).not.toThrow();
+    });
+});
+
+describe('LeaderboardService — updateMonthlyStats', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('calcule correctement les statistiques mensuelles et appelle setDoc', async () => {
+        const { doc, setDoc } = require('firebase/firestore');
+        const fakeDocRef = { id: 'fake' };
+        (doc as jest.Mock).mockReturnValue(fakeDocRef);
+
+        const stats = {
+            matchHistory: [
+                {
+                    timestamp: 1000, // >= startOfMonth (0)
+                    cochons: 3,
+                    score: 150,
+                    mancheLeaguePointsEarned: [5, -1, 2] // -1 = cochon subi
+                },
+                {
+                    timestamp: 2000,
+                    cochons: 1,
+                    score: 50,
+                    leaguePointsEarned: -1 // cochon subi
+                },
+                {
+                    timestamp: -500, // < startOfMonth (0), exclu
+                    cochons: 10,
+                    score: 1000,
+                }
+            ]
+        };
+
+        await leaderboardService.updateMonthlyStats('user123', stats as any, {
+            displayName: 'Test User',
+            avatarId: 'avatar_1',
+            activeFrame: 'frame_gold'
+        });
+
+        expect(doc).toHaveBeenCalledWith(expect.anything(), 'users_monthly_stats', 'user123_2026-05');
+        expect(setDoc).toHaveBeenCalledWith(
+            fakeDocRef,
+            expect.objectContaining({
+                userId: 'user123',
+                yearMonth: '2026-05',
+                cochonsGiven: 4, // 3 + 1
+                cochonsSubis: 2, // 1 de mancheLeaguePointsEarned et 1 de leaguePointsEarned
+                pointsAccumulated: 200, // 150 + 50
+                gamesPlayed: 2, // 2 matchs dans le mois
+                displayName: 'Test User',
+                avatarId: 'avatar_1',
+                activeFrame: 'frame_gold'
+            }),
+            { merge: true }
+        );
+    });
+});
+
+describe('LeaderboardService — subscribeLeagueClassementMonthly', () => {
+    it('abonne correctement aux stats mensuelles et mappe les résultats', () => {
+        const { onSnapshot } = require('firebase/firestore');
+        let monthlyEntries: LeaderboardEntry[] = [];
+        
+        (onSnapshot as jest.Mock).mockImplementation((_q, cb) => {
+            cb({
+                forEach: (fn: (d: any) => void) => {
+                    fn({
+                        data: () => ({
+                            userId: 'user1',
+                            displayName: 'Player One',
+                            avatarId: 'avatar_1',
+                            activeFrame: 'frame_gold',
+                            cochonsGiven: 5,
+                            cochonsSubis: 2,
+                            pointsAccumulated: 150,
+                            gamesPlayed: 10
+                        })
+                    });
+                }
+            });
+            return jest.fn(); // unsubscribe
+        });
+
+        const unsub = leaderboardService.subscribeLeagueClassementMonthly('PLUS_COCHONS', (e) => {
+            monthlyEntries = e;
+        });
+
+        expect(monthlyEntries).toHaveLength(1);
+        expect(monthlyEntries[0]).toEqual(expect.objectContaining({
+            uid: 'user1',
+            displayName: 'Player One',
+            avatarId: 'avatar_1',
+            activeFrame: 'frame_gold',
+            cochonsGiven: 5,
+            cochonsGivenThisMonth: 5,
+            totalCochonsSubis: 2,
+            totalCochonsSubisThisMonth: 2,
+            totalPointsAccumulated: 150,
+            totalPointsAccumulatedThisMonth: 150,
+            gamesPlayed: 10,
+            gamesPlayedThisMonth: 10,
+            rank: 1
+        }));
+        
+        unsub();
     });
 });

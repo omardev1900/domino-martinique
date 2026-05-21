@@ -258,6 +258,13 @@ class AuthService {
                     photoURL: updates.photoURL
                 });
                 LogService.info('AuthService', 'Firebase profile updated');
+
+                // Sync profile metadata to Firestore users collection and monthly stats
+                await economyService.syncProfileMetadata(
+                    user.uid,
+                    this.currentUser.displayName,
+                    this.currentUser.avatarId || 'avatar_default'
+                );
             }
         } catch (error) {
             LogService.error('AuthService', 'updateProfile error:', error);

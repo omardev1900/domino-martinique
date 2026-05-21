@@ -4,6 +4,20 @@
 
 ---
 
+## [2.5.8] - 2026-05-21
+
+### Modifié
+- **Affichage et homogénéisation de la version (VERSION-DISPLAY)** — La version de l'application (source de vérité `1.0.3` dans `app.json`) est désormais lue dynamiquement via `expo-constants`. Elle s'affiche de manière élégante sur l'écran d'accueil (splashscreen), en bas des réglages/paramètres, et est rattachée de façon dynamique aux soumissions de retours/feedback.
+
+---
+
+## [2.5.7] - 2026-05-21
+
+### Technique (invisible côté joueur, impact sur la performance)
+- **Classements mensuels fiabilisés (R4-TECH-LEADERBOARD)** — les onglets `Classement du mois` (+Cochons, -Cochons, +Points) ne lisent plus l'intégralité de `matchHistory` de chaque joueur. Les métriques mensuelles sont maintenant précalculées dans une collection dédiée (`users_monthly_stats`) et mises à jour automatiquement après chaque fin de match, changement de pseudo ou d'équipement de cadre. Résultat : chargements plus rapides, classements plus fiables, et évolutivité pour des milliers de joueurs.
+
+---
+
 ## [2.5.6] - 2026-05-21
 
 ### Ajouté

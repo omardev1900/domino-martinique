@@ -7,13 +7,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../core/services/firebase';
 import { authService } from '../core/services/auth.service';
+import Constants from 'expo-constants';
 
 interface MdcFeedbackModalProps {
     visible: boolean;
     onClose: () => void;
 }
 
-const APP_VERSION = '1.0';
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.3';
 
 export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onClose }) => {
     const [text, setText] = useState('');
