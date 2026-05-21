@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GameState, GameRoom } from '../../core/types';
 import { db } from '../../core/services/firebase';
 import { doc, onSnapshot, runTransaction } from 'firebase/firestore';
+import { LogService } from '../../core/services/LogService';
 
 export interface UseGameSyncProps {
     gameId: string | undefined;
@@ -36,7 +38,12 @@ export const useGameSync = ({
 
     useEffect(() => {
         gameStateRef.current = gameState;
-    }, [gameState]);
+        if (isSoloMode && gameId && gameState) {
+            AsyncStorage.setItem(`@solo_game_state:${gameId}`, JSON.stringify(gameState))
+                .catch(err => LogService.error('useGameSync', 'Error saving solo state', err));
+        }
+    }, [gameState, isSoloMode, gameId]);
+
     // Real-time synchronization
     useEffect(() => {
         if (isSoloMode || !gameId) {
@@ -66,7 +73,7 @@ export const useGameSync = ({
                 // Handle room destruction
             }
         }, (error) => {
-            console.error('[useGameSync] onSnapshot Error:', error);
+            LogService.error('useGameSync', 'onSnapshot Error:', error);
             setIsStarting(false);
         });
 
@@ -136,7 +143,7 @@ export const useGameSync = ({
                 await new Promise(r => setTimeout(r, 150));
                 return safeUpdateGameState(targetGameId, newState, retries - 1);
             }
-            console.error('[useGameSync] safeUpdateGameState failed (no retries left):', error);
+            LogService.error('useGameSync', 'safeUpdateGameState failed (no retries left):', error);
             throw error;
         }
     }, [isSoloMode]);

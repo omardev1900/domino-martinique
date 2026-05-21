@@ -92,6 +92,8 @@ class AdService {
         // Première pub qui passe le cooldown.
         for (const ad of candidates) {
             if (await this.canShow(ad)) {
+                await this.markShown(ad);
+                LogService.info('AdService', `Ad ${ad.id} shown at placement ${placement}.`);
                 return ad;
             }
         }

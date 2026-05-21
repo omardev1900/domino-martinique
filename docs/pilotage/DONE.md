@@ -9,13 +9,25 @@
 
 ## Mai 2026
 
-### 2026-05-21 - Jeu en ligne obligatoire & Fix CORS
+### 2026-05-21 - Jeu en ligne, Fix CORS & Persistance Solo
+
+- [x] **[SOLO-PERSISTENCE]** Persistance locale de l'état de jeu en Solo (Restauration après F5 / rafraîchissement)
+  - **Objectif** : Permettre au joueur solo de conserver sa progression (main exacte, dominos posés sur la table, scores des manches, configuration des bots) lors d'un rechargement de page (F5 sur le Web) ou d'un redémarrage de l'application sans utiliser Firestore.
+  - **Correction** : Implémentation d'une sauvegarde automatique et en temps réel de l'état de jeu dans `AsyncStorage` sous la clé `@solo_game_state:${gameId}` lors de chaque mise à jour de l'état dans `useGameSync.ts`.
+  - **Restauration** : Au démarrage d'une partie dans `GameScreen.tsx`, recherche de l'état sauvegardé avant de générer une nouvelle donne de départ.
+  - **Nettoyage** : Purge de la sauvegarde locale dans `handleLeaveRoom` en cas d'abandon volontaire ou à la fin d'un match.
+  - Fichiers modifiés : `mobile/src/hooks/game/useGameSync.ts`, `mobile/src/screens/GameScreen.tsx`
 
 - [x] **[ONLINE-ONLY]** Jeu en ligne obligatoire + Nettoyage AsyncStorage
   - **Connexion requise** : Intégration de `@react-native-community/netinfo`. L'application bloque l'accès et affiche un écran premium "Connexion requise" si l'appareil est hors ligne.
   - **Authentification obligatoire** : Redirection automatique vers `/login` pour tout utilisateur non authentifié (sauf pour l'écran d'accueil splash et l'écran de login).
   - **Nettoyage AsyncStorage** : Suppression de la persistance locale non critique pour les utilisateurs authentifiés. La clé `@player_stats:{uid}` (qui contenait l'historique et les statistiques locales) est supprimée de l'AsyncStorage au moment de l'authentification. Les statistiques et l'historique de jeu sont chargés directement depuis Firestore pour garantir une source de vérité unique et éviter les conflits multi-comptes sur un même appareil.
   - Fichiers modifiés : `mobile/app/_layout.tsx`, `mobile/src/core/services/stats.service.ts`, `mobile/src/core/__tests__/StatsService.test.ts`, `mobile/src/components/NetworkRequiredScreen.tsx`.
+
+- [x] **[FIX-ZOMBIE-RECONNECTION]** Validation de la table active au démarrage (Anti écran de chargement infini)
+  - **Problème** : Lors du démarrage initial de l'application, l'application redirigeait automatiquement le joueur vers la room stockée dans `active_roomId` de l'AsyncStorage sans vérifier sur Firestore si celle-ci était toujours active. Cela causait un écran noir/blanc de chargement infini ou un retour sur une table fermée/supprimée.
+  - **Correction** : Implémentation d'une requête Firestore (`getDoc`) au démarrage dans `forceBackToActiveMatch`. Si la room n'existe plus ou n'a pas le statut `PLAYING`, la clé locale `active_roomId` est purgée de l'AsyncStorage et de Firestore (via `setUserActiveRoom`), et la redirection zombie est bloquée.
+  - Fichier modifié : `mobile/app/_layout.tsx`.
 
 - [x] **[CF-PROCESSMATCHREWARD-CORS]** Correction du CORS Web local sur `processMatchReward`
   - **Cause** : Les CF `onCall` v1 Firebase bloquent les origines `http://localhost` (non-HTTPS), rendant les tests de récompenses post-match impossible sur `localhost:8081`. Firebase ne permet pas la migration directe d'une CF v1 vers v2 pour une fonction existante.

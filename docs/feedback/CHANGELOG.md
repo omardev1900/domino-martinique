@@ -7,14 +7,19 @@
 ## [2.5.6] - 2026-05-21
 
 ### Ajouté
+- **Persistance locale du mode Solo** — l'état d'une partie solo (le plateau, la main exacte du joueur, les scores de manches précédentes, la configuration des bots) est désormais sauvegardé localement en continu. Si le joueur rafraîchit sa page web ou si l'application subit un redémarrage, il reprend sa partie à la seconde près sans aucune perte de progression ni redistribution de main.
 - **Jeu en ligne obligatoire** — l'application requiert désormais une connexion internet active pour jouer ou accéder aux menus (solo compris). Un écran premium "Connexion requise" bloque l'interface lorsque l'appareil est hors ligne.
+
 - **Authentification obligatoire** — accès réservé uniquement aux joueurs connectés. Toute tentative d'accès à l'application sans compte/session active (hors écran d'accueil et écran de connexion) redirige immédiatement vers `/login`.
 
 ### Modifié
 - **Optimisation AsyncStorage (Sécurité multi-compte)** — pour les joueurs authentifiés, les statistiques et l'historique de jeu ne sont plus conservés localement dans l'AsyncStorage de l'appareil. La clé `@player_stats:{uid}` locale est automatiquement supprimée lors de l'authentification et les données sont lues et écrites directement en temps réel depuis Firestore. Cela garantit une source de vérité unique et évite les conflits ou chevauchements de données lorsque plusieurs comptes se connectent successivement sur le même téléphone.
 
+### Corrigé
+- **Écran de chargement infini au démarrage (zombie room)** — correction d'un bug majeur où l'application redirigeait automatiquement le joueur vers sa dernière room stockée localement au démarrage. Si la table n'existait plus ou était terminée sur Firestore, l'utilisateur restait bloqué indéfiniment sur un écran noir ou blanc affichant `Loading...`. La room est désormais validée en temps réel avant toute redirection.
+
 ### Corrigé (technique)
-- **Récompenses post-match sur Web local** — les tests de récompenses sur `http://localhost:8081` fonctionnent désormais sans blocage CORS. Sur Web local, le service économie appelle directement `processMatchRewardHttp` (qui gère CORS) sans passer par l'`onCall` qui est bloqué pour les origines non-HTTPS. Aucun impact sur la production ni sur le mobile.
+- **Récompenses post-match sur Web local** — les tests de récompenses sur `http://localhost:8081` fonctionnent désormais sans blocage CORS. Sur Web local, le service économie appelle directement `processMatchRewardHttp` (qui gère CORS) sans passer par l'onCall qui est bloqué pour les origines non-HTTPS. Aucun impact sur la production ni sur le mobile.
 - **Application immédiate des gains (Web local)** — après un appel CF en mode Web local, les coins/XP gagnés s'affichent maintenant immédiatement dans l'UI (correction d'un bug où l'écran restait sur les valeurs précédentes jusqu'au prochain snapshot Firestore).
 
 ---

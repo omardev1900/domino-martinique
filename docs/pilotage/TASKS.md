@@ -22,6 +22,8 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 | Ticket | Description | Priorite | Statut |
 |---|---|---|---|
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
+
+
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
 | **R4-TECH-LEADERBOARD** | Agregats mensuels persistants pour sortir de la limite `matchHistory` | Moyenne | Pret |
 | **ANIM-DOMINO** | Animation glissee des dominos pendant le jeu | Moyenne | Pret |

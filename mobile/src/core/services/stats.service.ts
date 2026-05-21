@@ -41,7 +41,7 @@ export interface PlayerStats {
     level: number;
     diamonds: number;
     leaguePoints: number;
-    leagueGrade: string;
+    leagueGrade: string | null;
     inventory: PlayerInventory;
 }
 

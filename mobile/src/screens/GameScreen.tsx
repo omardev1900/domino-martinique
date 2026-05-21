@@ -98,9 +98,9 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
     useEffect(() => {
         if (isSoloMode || !gameId) return;
-        AsyncStorage.setItem('active_roomId', gameId).catch(console.error);
+        AsyncStorage.setItem('active_roomId', gameId).catch(err => LogService.error('GameScreen', 'Error setting active_roomId', err));
         if (localPlayerId && localPlayerId !== 'p1') {
-            setUserActiveRoom(localPlayerId, gameId).catch(console.error);
+            setUserActiveRoom(localPlayerId, gameId).catch(err => LogService.error('GameScreen', 'Error setting user active room', err));
         }
     }, [gameId, isSoloMode, localPlayerId]);
 
@@ -256,7 +256,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 setPlayersChat(prev => ({ ...prev, [localPlayerId]: null }));
             }, 5000);
         } catch (e) {
-            console.error("Chat error", e);
+            LogService.error('GameScreen', 'Chat error', e);
         }
     }, [gameId, isSoloMode, localPlayerId]);
 
@@ -376,16 +376,16 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 cochonsGiven: eco.cochonsGiven,
                 unlockedFrames: eco.unlockedFrames,
             };
-        }).catch(console.error);
+        }).catch(err => LogService.error('GameScreen', 'Error loading economy on mount', err));
     }, []);
 
     // -- stats & economy recording effect --
     // Mark room as FINISHED when match ends (Multiplayer only)
     useEffect(() => {
         if (!isSoloMode && gameId && isLocalHost && gameState?.phase === 'MATCH_END') {
-            console.log(`[GameScreen] Match ended, marking room ${gameId} as FINISHED`);
+            LogService.info('GameScreen', `Match ended, marking room ${gameId} as FINISHED`);
             markRoomAsFinished(gameId).catch(err => {
-                console.error("Error marking room as finished", err);
+                LogService.error('GameScreen', 'Error marking room as finished', err);
             });
         }
     }, [gameState?.phase, isSoloMode, gameId, isLocalHost]);
@@ -479,7 +479,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                             userId: persistenceUserId
                         });
                     } catch (err) {
-                        console.error('❌ [GameScreen] Match end processing failed:', err);
+                        LogService.error('GameScreen', 'Match end processing failed:', err);
                     }
                 };
 
@@ -525,7 +525,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                             }
                         }
                     } catch (error) {
-                        console.error('Error loading profile:', error);
+                        LogService.error('GameScreen', 'Error loading profile:', error);
                     }
                 }
 
@@ -544,7 +544,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                         }
                     }
                 } catch (e) {
-                    console.error('Error loading inventory cosmetics', e);
+                    LogService.error('GameScreen', 'Error loading inventory cosmetics', e);
                 }
 
                 setProfileLoaded(true);
@@ -792,12 +792,12 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             // PERSISTENCE CHECK: Check if Firestore already knows we were debited
             const meInRoom = roomData?.players.find(p => p.uid === localPlayerId);
             if (meInRoom?.hasBeenDebited) {
-                console.log("[ECONOMY] Player already debited (found in Firestore), skipping.");
+                LogService.info('GameScreen', "[ECONOMY] Player already debited (found in Firestore), skipping.");
                 hasBeenDebited.current = true;
                 return;
             }
 
-            console.log(`[ECONOMY] Deducting buy-in of ${tableConfig.buyIn} for room ${gameId}`);
+            LogService.info('GameScreen', `[ECONOMY] Deducting buy-in of ${tableConfig.buyIn} for room ${gameId}`);
             const success = await economyService.deductBuyIn(tableConfig.buyIn, localPlayerId);
 
             if (success) {
@@ -806,7 +806,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 setDebitFeedback(`-${tableConfig.buyIn} 🪙`);
                 setTimeout(() => setDebitFeedback(null), 2500);
             } else {
-                console.error("[ECONOMY] Failed to deduct buy-in at game start!");
+                LogService.error('GameScreen', "[ECONOMY] Failed to deduct buy-in at game start!");
             }
         };
 
@@ -892,7 +892,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                                     await AsyncStorage.setItem('active_roomId', gameId);
                                     await signalPlayerOffline();
                                 } catch (err) {
-                                    console.error("Error preserving room on exit", err);
+                                    LogService.error('GameScreen', 'Error preserving room on exit', err);
                                 }
                             }
                             isIntentionalLeave.current = true;
@@ -916,6 +916,23 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         if (isStarting) return;
         setIsStarting(true);
         try {
+            // Tenter de restaurer l'état de jeu solo sauvegardé
+            if (gameId) {
+                const savedStateStr = await AsyncStorage.getItem(`@solo_game_state:${gameId}`);
+                if (savedStateStr) {
+                    try {
+                        const parsedState = JSON.parse(savedStateStr) as GameState;
+                        if (parsedState && parsedState.players && parsedState.players.length > 0) {
+                            LogService.info('GameScreen', `[SOLO] Restored saved solo game state for ${gameId}`);
+                            setGameState(parsedState);
+                            return; // Restauration réussie, quitter startSoloGame
+                        }
+                    } catch (parseErr) {
+                        LogService.error('GameScreen', '[SOLO] Failed to parse saved solo game state:', parseErr);
+                    }
+                }
+            }
+
             const botDifficulty = difficulty || 'MAPIPI';
 
             // Fetch bot profiles from Firestore (or fallback)
@@ -967,7 +984,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
             setGameState(fullState);
         } catch (error) {
-            console.error('Error starting solo game:', error);
+            LogService.error('GameScreen', 'Error starting solo game:', error);
             Alert.alert('Error', 'Failed to start local game');
         } finally {
             setIsStarting(false);
@@ -1064,7 +1081,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             await safeUpdateGameState(gameId, fullState);
 
         } catch (error) {
-            console.error("Failed to start game:", error);
+            LogService.error('GameScreen', "Failed to start game:", error);
             Alert.alert("Error", "Could not start game");
             setIsStarting(false);
         }
@@ -1079,10 +1096,15 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     // -------------------------------------------------------------------------
 
     const handleLeaveRoom = useCallback(() => {
-        console.log("[QUIT] handleLeaveRoom called. isSoloMode:", isSoloMode, "gameId:", gameId);
+        LogService.info('GameScreen', `[QUIT] handleLeaveRoom called. isSoloMode: ${isSoloMode}, gameId: ${gameId}`);
 
         // 0. Arrêter la musique de jeu immédiatement pour éviter la fuite audio
         SoundManager.stopMusic();
+
+        // Purger l'état du jeu solo local de l'AsyncStorage
+        if (isSoloMode && gameId) {
+            AsyncStorage.removeItem(`@solo_game_state:${gameId}`).catch(err => LogService.error('GameScreen', 'Error purging solo game state on leave', err));
+        }
 
         // Allow beforeRemove to pass through
         isIntentionalLeave.current = true;
@@ -1091,15 +1113,15 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
         // Cleanup Firestore AVANT la navigation (fire-and-forget)
         if (isActiveMultiplayerSession && gameId) {
-            AsyncStorage.setItem('active_roomId', gameId).catch(console.error);
-            signalPlayerOffline().catch(e => console.error("Error marking player offline", e));
+            AsyncStorage.setItem('active_roomId', gameId).catch(err => LogService.error('GameScreen', 'Error setting active_roomId', err));
+            signalPlayerOffline().catch(e => LogService.error('GameScreen', 'Error marking player offline', e));
         } else {
-            AsyncStorage.removeItem('active_roomId').catch(console.error);
+            AsyncStorage.removeItem('active_roomId').catch(err => LogService.error('GameScreen', 'Error removing active_roomId', err));
             if (localPlayerId && localPlayerId !== 'p1') {
-                setUserActiveRoom(localPlayerId, null).catch(console.error);
+                setUserActiveRoom(localPlayerId, null).catch(err => LogService.error('GameScreen', 'Error clearing active room', err));
             }
             if (!isSoloMode && gameId) {
-                leaveRoom(gameId, localPlayerId).catch(e => console.error("Error leaving room", e));
+                leaveRoom(gameId, localPlayerId).catch(e => LogService.error('GameScreen', 'Error leaving room', e));
             }
         }
 

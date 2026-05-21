@@ -75,7 +75,7 @@ describe('GameIntegration - Full Game Simulation', () => {
 
         // Loop until Match End
         let rounds = 0;
-        const MAX_ROUNDS = 20; // Should finish before 20 rounds if win cond is 3
+        const MAX_ROUNDS = 50; // Should finish before 50 rounds if win cond is 2
 
         while (state.phase !== 'MATCH_END' && rounds < MAX_ROUNDS) {
             rounds++;

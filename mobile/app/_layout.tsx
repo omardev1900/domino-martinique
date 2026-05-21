@@ -18,12 +18,12 @@ import SettingsManager from '@/core/SettingsManager';
 import NetInfo from '@react-native-community/netinfo';
 import * as Sentry from '@sentry/react-native';
 import * as Notifications from 'expo-notifications';
-import { updateDoc, doc } from 'firebase/firestore';
+import { updateDoc, doc, getDoc } from 'firebase/firestore';
 
 import { NetworkRequiredScreen } from '@/components/NetworkRequiredScreen';
 import { adService } from '@/core/services/ad.service';
 import { authService } from '@/core/services/auth.service';
-import { db, auth, findActiveRoomForUser, signalPlayerOnline } from '@/core/services/firebase';
+import { db, auth, findActiveRoomForUser, signalPlayerOnline, setUserActiveRoom } from '@/core/services/firebase';
 import { Sidebar } from '@/components/Sidebar';
 import { WebFullscreenButton } from '@/components/WebFullscreenButton';
 import { USE_NEW_SIDEBAR, SIDEBAR_HIDDEN_ROUTES, SIDEBAR_HIDDEN_PREFIXES } from '@/core/config/navigation.config';
@@ -262,6 +262,32 @@ export default Sentry.wrap(function RootLayout() {
 
     const forceBackToActiveMatch = async () => {
       let activeRoomId = await AsyncStorage.getItem('active_roomId');
+
+      if (activeRoomId) {
+        try {
+          const roomRef = doc(db, 'rooms', activeRoomId);
+          const roomSnap = await getDoc(roomRef);
+          let isValid = false;
+          if (roomSnap.exists()) {
+            const roomData = roomSnap.data();
+            if (roomData && roomData.status === 'PLAYING') {
+              isValid = true;
+            }
+          }
+          if (!isValid) {
+            LogService.warn('App', `Stale activeRoomId found in AsyncStorage: ${activeRoomId}. Cleaning up.`);
+            await AsyncStorage.removeItem('active_roomId');
+            activeRoomId = null;
+            const currentUser = await authService.getCurrentUser();
+            if (currentUser) {
+              await setUserActiveRoom(currentUser.uid, null);
+            }
+          }
+        } catch (err) {
+          LogService.error('App', 'Error validating activeRoomId from AsyncStorage:', err);
+          activeRoomId = null;
+        }
+      }
 
       if (!activeRoomId) {
         const currentUser = await authService.getCurrentUser();
