@@ -102,6 +102,49 @@ class EconomyService {
         return payload?.result as MatchReward;
     }
 
+    /**
+     * Appelle processMatchRewardHttp et applique le reward localement (cache + persistLocal).
+     * Utilisé à la fois en chemin principal (Web local) et en fallback.
+     */
+    private async callAndApplyHttpReward(
+        input: RewardCalculationInput,
+        userId?: string,
+        profile?: EconomyProfileInfo
+    ): Promise<MatchReward> {
+        LogService.info('EconomyService', '[HTTP] Appel direct processMatchRewardHttp (Web local)...');
+        const reward = await this.callProcessMatchRewardHttp(input);
+
+        // La CF a déjà écrit en Firestore. On aligne le cache local sur le reward
+        // reçu pour que l'UI affiche immédiatement les bonnes valeurs.
+        const current = await this.getEconomy();
+        const updated: PlayerEconomy = {
+            coins: current.coins + reward.coinsEarned,
+            xp: reward.newXP,
+            level: reward.newLevel,
+            diamonds: current.diamonds + reward.diamondsEarned,
+            leaguePoints: reward.newLeaguePoints,
+            leagueGrade: reward.newGrade,
+            cochonsGiven: reward.newCochonsGiven,
+            unlockedFrames: [
+                ...new Set([
+                    ...(current.unlockedFrames ?? []),
+                    ...reward.newlyUnlockedFrames.map(e => e.frameId),
+                ])
+            ] as LeagueFrameId[],
+            activeFrame: current.activeFrame ?? null,
+            lastDailyRewardTimestamp: current.lastDailyRewardTimestamp,
+        };
+        this.cached = updated;
+        await this.persistLocal();
+
+        if (userId && profile) {
+            await this.syncProfileMetadata(userId, profile.displayName, profile.avatarId);
+        }
+
+        LogService.info('EconomyService', '[HTTP] Reward appliqué localement avec succès.');
+        return reward;
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // Lecture
     // ──────────────────────────────────────────────────────────────────────────
@@ -253,6 +296,12 @@ class EconomyService {
             return reward;
         }
 
+        // Court-circuit Web local : l'onCall Firebase bloque les origines http://localhost
+        // On appelle directement processMatchRewardHttp qui gère CORS correctement.
+        if (this.shouldUseWebLocalRewardHttpFallback()) {
+            return this.callAndApplyHttpReward(input, userId, profile);
+        }
+
         try {
             LogService.info('EconomyService', 'Appel du Banquier Serveur pour le calcul de récompense...');
             const functions = getFunctions();
@@ -300,15 +349,8 @@ class EconomyService {
 
             if (this.shouldUseWebLocalRewardHttpFallback()) {
                 try {
-                    LogService.warn('EconomyService', 'Retry via processMatchRewardHttp pour Web local...');
-                    const reward = await this.callProcessMatchRewardHttp(input);
-                    if (userId && !userId.startsWith('guest_')) {
-                        await this.syncFromFirebase(userId);
-                        if (profile) {
-                            await this.syncProfileMetadata(userId, profile.displayName, profile.avatarId);
-                        }
-                    }
-                    return reward;
+                    LogService.warn('EconomyService', '[FALLBACK] Retry via processMatchRewardHttp...');
+                    return await this.callAndApplyHttpReward(input, userId, profile);
                 } catch (httpFallbackError) {
                     LogService.error(
                         'EconomyService',
@@ -317,6 +359,7 @@ class EconomyService {
                     );
                 }
             }
+
 
             const { RewardEngine } = require('../RewardEngine');
             const reward = RewardEngine.calculate(input);

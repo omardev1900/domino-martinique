@@ -84,10 +84,13 @@ export const SOLO_WIN_FLAT_REWARD = 500; // 🪙
 
 // ─── Cadeau de bienvenue ─────────────────────────────────────────────────────
 
-export const NEW_PLAYER_COINS = 1000; // 🪙 donné à la création du compte
+export const NEW_PLAYER_COINS = 300; // 🪙 donné à la création du compte
 
 /** Coins offerts chaque jour à la connexion */
-export const DAILY_REWARD_COINS = 300; // 🎁
+export const DAILY_REWARD_COINS = 200; // 🎁
+
+/** Coins crédités après visionnage volontaire d'une pub post-match */
+export const AD_REWARD_COINS = 100; // 📺
 
 // ─── XP et Niveaux ───────────────────────────────────────────────────────────
 

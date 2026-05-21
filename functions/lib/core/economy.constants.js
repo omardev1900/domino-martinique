@@ -7,7 +7,7 @@
  * Aucune constante économique ne doit être hardcodée ailleurs.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LEAGUE_GRADE_COLORS = exports.LEAGUE_ICONS = exports.LEAGUE_LABELS = exports.LEAGUE_FRAME_GRADE_ORDER = exports.LEAGUE_GRADE_ORDER = exports.LEAGUE_FRAMES_ENABLED = exports.LEAGUE_FRAME_REWARDS = exports.LEAGUE_FRAME_THRESHOLDS = exports.LEAGUE_THRESHOLDS = exports.DEFAULT_LEVEL_UP_COINS = exports.LEVEL_UP_CHESTS = exports.MAX_LEVEL = exports.COIN_MULTIPLIER_PER_LEVEL = exports.XP_GROWTH_RATE = exports.XP_PER_LEVEL_BASE = exports.DAILY_REWARD_COINS = exports.NEW_PLAYER_COINS = exports.SOLO_WIN_FLAT_REWARD = exports.POT_DISTRIBUTION = exports.RAKE_PERCENT = exports.TABLE_CONFIGS = exports.BASE_REWARDS = void 0;
+exports.LEAGUE_GRADE_COLORS = exports.LEAGUE_ICONS = exports.LEAGUE_LABELS = exports.LEAGUE_FRAME_GRADE_ORDER = exports.LEAGUE_GRADE_ORDER = exports.LEAGUE_FRAMES_ENABLED = exports.LEAGUE_FRAME_REWARDS = exports.LEAGUE_FRAME_THRESHOLDS = exports.LEAGUE_THRESHOLDS = exports.DEFAULT_LEVEL_UP_COINS = exports.LEVEL_UP_CHESTS = exports.MAX_LEVEL = exports.COIN_MULTIPLIER_PER_LEVEL = exports.XP_GROWTH_RATE = exports.XP_PER_LEVEL_BASE = exports.AD_REWARD_COINS = exports.DAILY_REWARD_COINS = exports.NEW_PLAYER_COINS = exports.SOLO_WIN_FLAT_REWARD = exports.POT_DISTRIBUTION = exports.RAKE_PERCENT = exports.TABLE_CONFIGS = exports.BASE_REWARDS = void 0;
 // ─── Matrice des Gains ────────────────────────────────────────────────────────
 /** Gains par événement de jeu (avant multiplicateur de niveau) */
 exports.BASE_REWARDS = {
@@ -76,9 +76,11 @@ exports.POT_DISTRIBUTION = {
 /** Gain fixe en Solo (pas de pot car pas de buy-in PvP) */
 exports.SOLO_WIN_FLAT_REWARD = 500; // 🪙
 // ─── Cadeau de bienvenue ─────────────────────────────────────────────────────
-exports.NEW_PLAYER_COINS = 1000; // 🪙 donné à la création du compte
+exports.NEW_PLAYER_COINS = 300; // 🪙 donné à la création du compte
 /** Coins offerts chaque jour à la connexion */
-exports.DAILY_REWARD_COINS = 300; // 🎁
+exports.DAILY_REWARD_COINS = 200; // 🎁
+/** Coins crédités après visionnage volontaire d'une pub post-match */
+exports.AD_REWARD_COINS = 100; // 📺
 // ─── XP et Niveaux ───────────────────────────────────────────────────────────
 /** XP requis pour passer du niveau 1 au niveau 2 */
 exports.XP_PER_LEVEL_BASE = 500;

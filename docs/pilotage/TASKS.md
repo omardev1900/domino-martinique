@@ -5,7 +5,7 @@
 >
 > **Flux obligatoire :** `BACKLOG.md` -> `TASKS.md` -> `DONE.md`
 
-**Derniere mise a jour :** 2026-05-15
+**Derniere mise a jour :** 2026-05-21
 **Sprint actuel :** Pre-Lancement Officiel
 
 ---
@@ -21,7 +21,6 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 | Ticket | Description | Priorite | Statut |
 |---|---|---|---|
-| **CF-PROCESSMATCHREWARD-CORS** | Corriger le CORS de `processMatchReward` pour le Web local (`http://localhost:8081`) et verifier le fallback client | Haute | En cours |
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
 | **R4-TECH-LEADERBOARD** | Agregats mensuels persistants pour sortir de la limite `matchHistory` | Moyenne | Pret |

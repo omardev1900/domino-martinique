@@ -9,7 +9,15 @@
 
 ## Mai 2026
 
-### 2026-05-20 - Fixes Sentry audio
+### 2026-05-21 - Fix CORS processMatchReward + fallback client
+
+- [x] **[CF-PROCESSMATCHREWARD-CORS]** Correction du CORS Web local sur `processMatchReward`
+  - **Cause** : Les CF `onCall` v1 Firebase bloquent les origines `http://localhost` (non-HTTPS), rendant les tests de récompenses post-match impossible sur `localhost:8081`. Firebase ne permet pas la migration directe d'une CF v1 vers v2 pour une fonction existante.
+  - **Solution** : Côté client uniquement — la CF `processMatchRewardHttp` (onRequest) qui gère CORS correctement sert maintenant de **chemin principal sur Web local** (au lieu d'être un fallback). La logique de détection `shouldUseWebLocalRewardHttpFallback()` court-circuite maintenant avant tout appel `httpsCallable`, évitant le blocage CORS sans modifier la CF en production.
+  - **Bonus** : Extraction de la logique d'application du reward HTTP dans `callAndApplyHttpReward()` (méthode privée réutilisable). Fin de la duplication de code entre le court-circuit direct et le fallback dans le `catch`.
+  - **Aucun déploiement CF** requis — `processMatchReward` en production reste inchangé.
+  - Fichier modifié : `mobile/src/core/services/economy.service.ts`
+
 
 - [x] **[SENTRY-AUDIO-WATCHDOG]** Fix crash fatal TypeError watchdog SoundManager (Android)
   - Le watchdog appelait `this.currentMusic.play().catch()` directement

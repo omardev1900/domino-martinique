@@ -4,6 +4,14 @@
 
 ---
 
+## [2.5.6] - 2026-05-21
+
+### Corrigé (technique)
+- **Récompenses post-match sur Web local** — les tests de récompenses sur `http://localhost:8081` fonctionnent désormais sans blocage CORS. Sur Web local, le service économie appelle directement `processMatchRewardHttp` (qui gère CORS) sans passer par l'`onCall` qui est bloqué pour les origines non-HTTPS. Aucun impact sur la production ni sur le mobile.
+- **Application immédiate des gains (Web local)** — après un appel CF en mode Web local, les coins/XP gagnés s'affichent maintenant immédiatement dans l'UI (correction d'un bug où l'écran restait sur les valeurs précédentes jusqu'au prochain snapshot Firestore).
+
+---
+
 ## [2.5.5] - 2026-05-20
 
 ### Corrigé
