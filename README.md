@@ -2,8 +2,8 @@
 
 > Application mobile React Native (Expo) de Domino martiniquais (règles créoles, 3 joueurs). Disponible sur Android + iOS.
 
-**Dernière mise à jour :** 08 mai 2026
-**Version app :** 2.5
+**Dernière mise à jour :** 21 mai 2026
+**Version app :** 2.5.6
 **Lead Dev :** Omatrice
 **github :** omardev1900
 ---
@@ -106,3 +106,18 @@ npm run serve
 - Chat texte libre
 - Saisons / classements périodiques complexes
 - Cash-prize dans les tournois
+- **Mode hors-ligne** — connexion internet obligatoire, même en solo
+- **Mode invité** — supprimé définitivement, ne pas réintroduire
+
+---
+
+## 7. Règles d'accès (décisions produit définitives)
+
+> Détail technique dans `docs/specs/ARCHITECTURE.md` § 7.
+
+| Règle | Comportement |
+|---|---|
+| **Authentification obligatoire** | Seul l'écran login est accessible sans compte. Tout le reste est bloqué. |
+| **Connexion internet obligatoire** | Si pas de réseau : écran bloquant + bouton "Réessayer". Pas d'accès au jeu. |
+| **Mode invité** | Supprimé définitivement (v2.2). Ne pas réintroduire. |
+| **Mode offline** | Supprimé définitivement (ticket ONLINE-ONLY, mai 2026). |

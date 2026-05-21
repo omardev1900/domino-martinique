@@ -16,10 +16,12 @@ import { getDoc, setDoc } from 'firebase/firestore';
 
 const mockSetItem = jest.fn().mockResolvedValue(undefined);
 const mockGetItem = jest.fn().mockResolvedValue(null);
+const mockRemoveItem = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
     setItem: (...args: any[]) => mockSetItem(...args),
     getItem: (...args: any[]) => mockGetItem(...args),
+    removeItem: (...args: any[]) => mockRemoveItem(...args),
 }));
 
 jest.mock('firebase/firestore', () => ({
@@ -77,6 +79,8 @@ beforeEach(() => {
     mockGetItem.mockResolvedValue(null);
     mockSetItem.mockClear();
     mockGetItem.mockClear();
+    mockRemoveItem.mockClear();
+    jest.clearAllMocks();
 });
 
 // ─── Suite 1 : incrément depuis mancheLeaguePointsEarned ─────────────────────
@@ -312,10 +316,37 @@ describe('totalCochonsSubis — syncWithFirebase', () => {
 });
 
 describe('storage scoping per user', () => {
-    it('lit et ecrit dans une cle AsyncStorage namespacee par uid', async () => {
+    it('nettoie la cle AsyncStorage lors de useStorageScope pour un utilisateur authentifie', async () => {
         await statsService.useStorageScope('uid-a');
-        await statsService.getStats();
-        expect(mockGetItem).toHaveBeenCalledWith('@player_stats:uid-a');
+        expect(mockRemoveItem).toHaveBeenCalledWith('@player_stats:uid-a');
+    });
+
+    it('lit depuis Firestore pour un utilisateur authentifie et ne touche pas a AsyncStorage', async () => {
+        (getDoc as jest.Mock).mockResolvedValueOnce({
+            exists: () => true,
+            data: () => ({
+                stats: {
+                    gamesPlayed: 12,
+                    gamesWon: 6,
+                },
+            }),
+        });
+
+        await statsService.useStorageScope('uid-a');
+        const stats = await statsService.getStats();
+
+        expect(stats.gamesPlayed).toBe(12);
+        expect(mockGetItem).not.toHaveBeenCalled();
+    });
+
+    it('ne persiste pas dans AsyncStorage pour un utilisateur authentifie lors de recordMatchResult', async () => {
+        await statsService.useStorageScope('uid-a');
+        
+        // Mock getDoc to return some stats
+        (getDoc as jest.Mock).mockResolvedValue({
+            exists: () => true,
+            data: () => ({ stats: {} }),
+        });
 
         await statsService.recordMatchResult({
             result: 'WIN',
@@ -323,11 +354,9 @@ describe('storage scoping per user', () => {
             points: 4,
             opponents: BASE_OPPONENTS,
             mode: 'MANCHE',
+            userId: 'uid-a',
         });
 
-        expect(mockSetItem).toHaveBeenCalledWith(
-            '@player_stats:uid-a',
-            expect.any(String)
-        );
+        expect(mockSetItem).not.toHaveBeenCalled();
     });
 });

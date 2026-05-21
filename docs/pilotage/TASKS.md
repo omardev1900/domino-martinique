@@ -30,13 +30,10 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 ## Ordre recommande
 
-1. stabilisation / bugs remontes pendant les tests fermes
-2. `CF-PROCESSMATCHREWARD-CORS`
-3. `ECO-WELCOME-DAILY`
-4. `OTP-INSCRIPTION`
-5. `ECO-REBALANCE`
-6. `R4-TECH-LEADERBOARD`
-7. `ANIM-DOMINO`
+1. `R4-TECH-LEADERBOARD`
+2. `ANIM-DOMINO`
+3. `OTP-INSCRIPTION`
+4. `ECO-REBALANCE`
 
 Raison :
 `CF-PROCESSMATCHREWARD-CORS` est demarre pour fiabiliser les tests Web locaux autour des recompenses de fin de match avant d'ajouter de nouvelles variantes pub.

@@ -9,7 +9,13 @@
 
 ## Mai 2026
 
-### 2026-05-21 - Fix CORS processMatchReward + fallback client
+### 2026-05-21 - Jeu en ligne obligatoire & Fix CORS
+
+- [x] **[ONLINE-ONLY]** Jeu en ligne obligatoire + Nettoyage AsyncStorage
+  - **Connexion requise** : Intégration de `@react-native-community/netinfo`. L'application bloque l'accès et affiche un écran premium "Connexion requise" si l'appareil est hors ligne.
+  - **Authentification obligatoire** : Redirection automatique vers `/login` pour tout utilisateur non authentifié (sauf pour l'écran d'accueil splash et l'écran de login).
+  - **Nettoyage AsyncStorage** : Suppression de la persistance locale non critique pour les utilisateurs authentifiés. La clé `@player_stats:{uid}` (qui contenait l'historique et les statistiques locales) est supprimée de l'AsyncStorage au moment de l'authentification. Les statistiques et l'historique de jeu sont chargés directement depuis Firestore pour garantir une source de vérité unique et éviter les conflits multi-comptes sur un même appareil.
+  - Fichiers modifiés : `mobile/app/_layout.tsx`, `mobile/src/core/services/stats.service.ts`, `mobile/src/core/__tests__/StatsService.test.ts`, `mobile/src/components/NetworkRequiredScreen.tsx`.
 
 - [x] **[CF-PROCESSMATCHREWARD-CORS]** Correction du CORS Web local sur `processMatchReward`
   - **Cause** : Les CF `onCall` v1 Firebase bloquent les origines `http://localhost` (non-HTTPS), rendant les tests de récompenses post-match impossible sur `localhost:8081`. Firebase ne permet pas la migration directe d'une CF v1 vers v2 pour une fonction existante.

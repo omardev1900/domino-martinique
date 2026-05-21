@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { PlayerInventory } from '../store.types';
 import { DEFAULT_INVENTORY } from '../store.constants';
 import { economyService } from './economy.service';
+import { LogService } from './LogService';
 
 const STORAGE_KEY_PLAYER_STATS = '@player_stats';
 const GUEST_STORAGE_SCOPE = 'guest';
@@ -77,9 +78,20 @@ class StatsService {
 
     async useStorageScope(uid?: string | null): Promise<void> {
         const nextScope = uid && !uid.startsWith('guest_') ? uid : GUEST_STORAGE_SCOPE;
-        if (this.storageScope === nextScope) return;
-        this.storageScope = nextScope;
-        this.cachedStats = null;
+        if (this.storageScope !== nextScope) {
+            this.storageScope = nextScope;
+            this.cachedStats = null;
+        }
+
+        // Si l'utilisateur est authentifié, on nettoie son AsyncStorage pour cette clé
+        if (uid && !uid.startsWith('guest_')) {
+            const keyToRemove = `${STORAGE_KEY_PLAYER_STATS}:${uid}`;
+            try {
+                await AsyncStorage.removeItem(keyToRemove);
+            } catch (error) {
+                LogService.error('StatsService', 'Failed to remove stats from AsyncStorage', error);
+            }
+        }
     }
 
     private getBreakdownFromHistory(history: MatchRecord[] = []) {
@@ -110,11 +122,54 @@ class StatsService {
     }
 
     /**
-     * Load stats from AsyncStorage (or return cached)
+     * Load stats from Firestore (authenticated) or AsyncStorage (guest)
      */
     async getStats(): Promise<PlayerStats> {
         if (this.cachedStats) return { ...this.cachedStats };
 
+        // For authenticated users, read directly from Firestore instead of AsyncStorage
+        if (this.storageScope !== GUEST_STORAGE_SCOPE) {
+            try {
+                const userRef = doc(db, 'users', this.storageScope);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    const remoteData = userSnap.data().stats;
+                    if (remoteData) {
+                        const history = remoteData.matchHistory ?? [];
+                        const historyBreakdown = this.getBreakdownFromHistory(history);
+                        this.cachedStats = {
+                            gamesPlayed: remoteData.gamesPlayed ?? 0,
+                            gamesWon: remoteData.gamesWon ?? 0,
+                            totalRoundsWon: remoteData.totalRoundsWon ?? 0,
+                            totalCochonsInflicted: remoteData.totalCochonsInflicted ?? 0,
+                            totalCochonsSubis: remoteData.totalCochonsSubis ?? 0,
+                            totalPointsAccumulated: remoteData.totalPointsAccumulated ?? 0,
+                            totalLeague5Pts: remoteData.totalLeague5Pts ?? historyBreakdown.totalLeague5Pts,
+                            totalLeague4Pts: remoteData.totalLeague4Pts ?? historyBreakdown.totalLeague4Pts,
+                            totalLeague2Pts: remoteData.totalLeague2Pts ?? historyBreakdown.totalLeague2Pts,
+                            totalLeague1Pt: remoteData.totalLeague1Pt ?? historyBreakdown.totalLeague1Pt,
+                            totalLeagueMinus1Pt: remoteData.totalLeagueMinus1Pt ?? historyBreakdown.totalLeagueMinus1Pt,
+                            matchHistory: history,
+                            // Economy fields — fallback to 0/defaults for old persisted data
+                            coins: remoteData.coins ?? 0,
+                            xp: remoteData.xp ?? 0,
+                            level: remoteData.level ?? 1,
+                            diamonds: remoteData.diamonds ?? 0,
+                            leaguePoints: remoteData.leaguePoints ?? 0,
+                            leagueGrade: remoteData.leagueGrade ?? null,
+                            inventory: remoteData.inventory ?? DEFAULT_INVENTORY,
+                        };
+                        return { ...this.cachedStats };
+                    }
+                }
+            } catch (error) {
+                LogService.error('StatsService', 'Failed to load stats from Firestore', error);
+            }
+            this.cachedStats = { ...DEFAULT_STATS };
+            return { ...this.cachedStats };
+        }
+
+        // Fallback for guests (read from AsyncStorage)
         try {
             const json = await AsyncStorage.getItem(this.storageKey);
             if (json) {
@@ -147,7 +202,7 @@ class StatsService {
                 this.cachedStats = { ...DEFAULT_STATS };
             }
         } catch (error) {
-            console.error('📊 StatsService: Failed to load stats', error);
+            LogService.error('StatsService', 'Failed to load stats from AsyncStorage', error);
             this.cachedStats = { ...DEFAULT_STATS };
         }
 
@@ -159,10 +214,13 @@ class StatsService {
      */
     private async persistStats(): Promise<void> {
         if (!this.cachedStats) return;
+        // No-op for authenticated users to avoid saving stats locally in AsyncStorage
+        if (this.storageScope !== GUEST_STORAGE_SCOPE) return;
+
         try {
             await AsyncStorage.setItem(this.storageKey, JSON.stringify(this.cachedStats));
         } catch (error) {
-            console.error('📊 StatsService: Failed to save stats', error);
+            LogService.error('StatsService', 'Failed to save stats to AsyncStorage', error);
         }
     }
 
@@ -225,7 +283,7 @@ class StatsService {
         this.cachedStats = stats;
         await this.persistStats();
 
-        console.log('📊 Stats updated with history:', stats);
+        LogService.info('StatsService', 'Stats updated with history', stats);
 
         // ✅ FIX [2026-04-15]: Removed leaguePoints override here.
         // Previously, this was setting leaguePoints = stats.totalCochonsInflicted (local AsyncStorage value),
@@ -272,9 +330,9 @@ class StatsService {
                     lastSync: Date.now()
                 }
             }, { merge: true });
-            console.log('☁️ Stats synced to Firebase');
+            LogService.info('StatsService', 'Stats synced to Firebase');
         } catch (error) {
-            console.error('❌ Failed to push stats to Firebase:', error);
+            LogService.error('StatsService', 'Failed to push stats to Firebase', error);
         }
     }
 
@@ -293,11 +351,6 @@ class StatsService {
             if (userSnap.exists()) {
                 const remoteData = userSnap.data().stats;
                 if (remoteData) {
-                    // MIGRATION LOGIC & BUG FIX [2026-04-15]:
-                    // The old Math.max approach compounded stats generated from the double-recording bug (which recorded every manche as a match).
-                    // We now strictly rebuild gamesPlayed, gamesWon, and totalPointsAccumulated directly from the merged matchHistory, 
-                    // which contains the true canonical record of the matches.
-                    // (Max history is 20, but this cleanly fixes the bloated numbers for testers).
                     const mergedHistory = this.mergeMatchHistories(localStats.matchHistory, remoteData.matchHistory || []);
                     const historyBreakdown = this.getBreakdownFromHistory(mergedHistory);
                     
@@ -315,8 +368,6 @@ class StatsService {
                         gamesPlayed: realGamesPlayed,
                         gamesWon: realGamesWon,
                         totalRoundsWon: Math.max(localStats.totalRoundsWon || 0, remoteData.totalRoundsWon || 0, realRoundsWon),
-                        // Note: We leave totalCochonsInflicted here but UI now reads economy.cochonsGiven 
-                        // because economy is the verified source of truth via Cloud Functions.
                         totalCochonsInflicted: Math.max(localStats.totalCochonsInflicted, remoteData.totalCochonsInflicted || 0),
                         totalCochonsSubis: Math.max(localStats.totalCochonsSubis ?? 0, remoteData.totalCochonsSubis || 0),
                         totalPointsAccumulated: realPoints,
@@ -326,8 +377,6 @@ class StatsService {
                         totalLeague1Pt: Math.max(localStats.totalLeague1Pt ?? 0, remoteData.totalLeague1Pt ?? 0, historyBreakdown.totalLeague1Pt),
                         totalLeagueMinus1Pt: Math.max(localStats.totalLeagueMinus1Pt ?? 0, remoteData.totalLeagueMinus1Pt ?? 0, historyBreakdown.totalLeagueMinus1Pt),
                         matchHistory: mergedHistory,
-                        // Firestore est source de vérité pour les champs économiques.
-                        // Ne jamais utiliser Math.max ici : ça empêcherait l'admin de corriger un solde.
                         coins: remoteData.coins ?? localStats.coins,
                         xp: remoteData.xp ?? localStats.xp,
                         level: remoteData.level ?? localStats.level,
@@ -340,17 +389,17 @@ class StatsService {
                     this.cachedStats = mergedStats;
                     await this.persistStats();
                     await this.pushStatsToFirebase(uid, mergedStats);
-                    console.log('🔄 Stats synchronized and merged with Firebase');
+                    LogService.info('StatsService', 'Stats synchronized and merged with Firebase');
                     return;
                 }
             }
 
             // If no remote data, just push local stats
             await this.pushStatsToFirebase(uid, localStats);
-            console.log('⬆️ Initial stats pushed to Firebase');
+            LogService.info('StatsService', 'Initial stats pushed to Firebase');
 
         } catch (error) {
-            console.error('❌ StatsService: Sync failed', error);
+            LogService.error('StatsService', 'Sync failed', error);
         }
     }
 
@@ -396,9 +445,9 @@ class StatsService {
                 const userRef = doc(db, 'users', uid);
                 // We merge only the stats.inventory field
                 await setDoc(userRef, { stats: { inventory: newInventory } }, { merge: true });
-                console.log('🛍️ [StatsService] Inventory synced to Firebase.');
+                LogService.info('StatsService', 'Inventory synced to Firebase.');
             } catch (error) {
-                console.error('🛍️ [StatsService] Failed to sync inventory to Firebase', error);
+                LogService.error('StatsService', 'Failed to sync inventory to Firebase', error);
             }
         }
     }

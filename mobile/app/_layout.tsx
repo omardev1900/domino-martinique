@@ -15,21 +15,19 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import SoundManager from '@/core/audio/SoundManager';
 import SettingsManager from '@/core/SettingsManager';
+import NetInfo from '@react-native-community/netinfo';
+import * as Sentry from '@sentry/react-native';
+import * as Notifications from 'expo-notifications';
+import { updateDoc, doc } from 'firebase/firestore';
+
+import { NetworkRequiredScreen } from '@/components/NetworkRequiredScreen';
 import { adService } from '@/core/services/ad.service';
+import { authService } from '@/core/services/auth.service';
+import { db, auth, findActiveRoomForUser, signalPlayerOnline } from '@/core/services/firebase';
 import { Sidebar } from '@/components/Sidebar';
 import { WebFullscreenButton } from '@/components/WebFullscreenButton';
-import { authService } from '@/core/services/auth.service';
-import { findActiveRoomForUser, signalPlayerOnline } from '@/core/services/firebase';
-import * as Notifications from 'expo-notifications';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/core/services/firebase';
-import {
-  USE_NEW_SIDEBAR,
-  SIDEBAR_WIDTH,
-  SIDEBAR_HIDDEN_ROUTES,
-  SIDEBAR_HIDDEN_PREFIXES,
-} from '@/core/config/navigation.config';
-import * as Sentry from '@sentry/react-native';
+import { USE_NEW_SIDEBAR, SIDEBAR_HIDDEN_ROUTES, SIDEBAR_HIDDEN_PREFIXES } from '@/core/config/navigation.config';
+import { LogService } from '@/core/services/LogService';
 
 Sentry.init({
   dsn: 'https://b42b9f54cd5334acbc2310a30f9fc5fb@o4511343295987712.ingest.de.sentry.io/4511343301034064',
@@ -110,6 +108,55 @@ export default Sentry.wrap(function RootLayout() {
   const router = useRouter();
   const previousPathname = useRef<string | undefined>(undefined);
 
+  const [isConnected, setIsConnected] = useState<boolean | null>(true);
+  const [isCheckingNetwork, setIsCheckingNetwork] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Network check (NetInfo) listener
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected !== false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleRetryNetwork = async () => {
+    setIsCheckingNetwork(true);
+    try {
+      const state = await NetInfo.fetch();
+      setIsConnected(state.isConnected !== false);
+    } catch (_) {
+      // Ignore errors
+    } finally {
+      setIsCheckingNetwork(false);
+    }
+  };
+
+  // Auth observer subscription
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser && !firebaseUser.isAnonymous && firebaseUser.email) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Auth redirection guard
+  useEffect(() => {
+    if (!appReady || authLoading) return;
+    const isPublicRoute = pathname === '/' || pathname === '/login';
+    if (isAuthenticated === false && !isPublicRoute) {
+      router.replace('/login');
+    } else if (isAuthenticated === true && pathname === '/login') {
+      router.replace('/home');
+    }
+  }, [appReady, authLoading, isAuthenticated, pathname, router]);
+
   useEffect(() => {
     async function prepare() {
       try {
@@ -164,7 +211,7 @@ export default Sentry.wrap(function RootLayout() {
             }
           }
         } catch (e) {
-          console.warn("Erreur resync AppState", e);
+          LogService.warn('RootLayout', "Erreur resync AppState", e);
         }
       }
     });
@@ -244,7 +291,16 @@ export default Sentry.wrap(function RootLayout() {
     }
   }, [appReady]);
 
-  if (!appReady || !fontsLoaded) {
+  if (isConnected === false) {
+    return (
+      <NetworkRequiredScreen
+        onRetry={handleRetryNetwork}
+        isChecking={isCheckingNetwork}
+      />
+    );
+  }
+
+  if (!appReady || !fontsLoaded || authLoading) {
     return null;
   }
 

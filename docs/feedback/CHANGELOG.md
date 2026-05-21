@@ -6,6 +6,13 @@
 
 ## [2.5.6] - 2026-05-21
 
+### Ajouté
+- **Jeu en ligne obligatoire** — l'application requiert désormais une connexion internet active pour jouer ou accéder aux menus (solo compris). Un écran premium "Connexion requise" bloque l'interface lorsque l'appareil est hors ligne.
+- **Authentification obligatoire** — accès réservé uniquement aux joueurs connectés. Toute tentative d'accès à l'application sans compte/session active (hors écran d'accueil et écran de connexion) redirige immédiatement vers `/login`.
+
+### Modifié
+- **Optimisation AsyncStorage (Sécurité multi-compte)** — pour les joueurs authentifiés, les statistiques et l'historique de jeu ne sont plus conservés localement dans l'AsyncStorage de l'appareil. La clé `@player_stats:{uid}` locale est automatiquement supprimée lors de l'authentification et les données sont lues et écrites directement en temps réel depuis Firestore. Cela garantit une source de vérité unique et évite les conflits ou chevauchements de données lorsque plusieurs comptes se connectent successivement sur le même téléphone.
+
 ### Corrigé (technique)
 - **Récompenses post-match sur Web local** — les tests de récompenses sur `http://localhost:8081` fonctionnent désormais sans blocage CORS. Sur Web local, le service économie appelle directement `processMatchRewardHttp` (qui gère CORS) sans passer par l'`onCall` qui est bloqué pour les origines non-HTTPS. Aucun impact sur la production ni sur le mobile.
 - **Application immédiate des gains (Web local)** — après un appel CF en mode Web local, les coins/XP gagnés s'affichent maintenant immédiatement dans l'UI (correction d'un bug où l'écran restait sur les valeurs précédentes jusqu'au prochain snapshot Firestore).
