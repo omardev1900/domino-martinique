@@ -11,6 +11,16 @@
 
 ### 2026-05-22 - Résolution Définitive Bug Reset Stats & Economie
 
+- [x] **[UX-LEADERBOARD]** Amélioration UX et Corrections du Classement
+  - **Objectif** : Rendre le classement plus attractif, lisible et résoudre les problèmes de tri dans la base de données.
+  - **Réalisation** :
+    - Élargissement de la récupération des données de Top 50 à Top 100.
+    - Création d'une "Sticky Banner" dorée en bas de l'écran affichant toujours la position du joueur courant.
+    - Ajout d'un Auto-Scroll intelligent (`scrollToIndex`) qui défile jusqu'au joueur lors d'un clic sur la bannière, s'il est dans le Top 100. S'il n'y est pas, affiche un Toast informatif.
+  - **Corrections (Bugs Découverts)** :
+    - Correction du champ de requête Firestore pour l'onglet "Cochons" (remplacement de `economy.cochonsGiven` par `stats.totalCochonsInflicted`) qui causait un tri aléatoire des joueurs à l'écran.
+    - Correction de la valeur du bandeau (affichait les points de ligue `leaguePoints` au lieu de `totalCochonsInflicted`).
+
 - [x] **[R6-B1-STATS-RESET]** Refonte de la synchronisation (Architecture Pull-Only stricte)
   - **Objectif** : Résoudre définitivement le bug critique où les comptes de jeu voyaient leurs données réinitialisées lors de la reconnexion, particulièrement si l'objet `stats` était manquant ou le réseau instable.
   - **Correction** :

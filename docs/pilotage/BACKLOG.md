@@ -37,6 +37,7 @@
 | **GOOGLE-PAY** | Paiements in-app Android via Google Play Billing | ~2 jours |
 | **NOTIF-WEB** | Notifications push Web PWA | ~1 jour |
 | **R4-B3-SESSION** | Multijoueur - reconnexion apres purge complete de session navigateur | ~1 jour |
+| **UX-LEAGUE-BANNER** | Banniere interactive et auto-scroll (Sticky Banner) dans la vue Ligue des Cochons | ~1 jour |
 | **AUDIO-IOS-FALLBACK** | Fallback WebAudio API Safari iOS pour les SFX | ~0,5 jour |
 
 ---

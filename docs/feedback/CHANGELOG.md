@@ -6,7 +6,11 @@
 
 ## [2.5.9] - 2026-05-22
 
+### Ajouté
+- **Bannière Classement Interactive (UX-LEADERBOARD)** — Le Top 50 a été étendu au Top 100 pour donner plus de visibilité aux joueurs. Ajout d'une bannière dorée fixe ("Sticky Banner") en bas de l'écran du classement permettant au joueur de voir son rang en permanence. Un clic sur cette bannière déclenche un auto-scroll vers la position exacte du joueur.
+
 ### Corrigé
+- **Classement Cochons Erroné (UX-LEADERBOARD)** — Correction d'un bug d'affichage et de tri dans l'onglet "Cochons" du Leaderboard. La base de données triait sur `economy.cochonsGiven` alors que l'interface affichait `stats.totalCochonsInflicted`. Le classement est désormais strictement basé sur le bon compteur de statistiques. Le bandeau inférieur affiche également la bonne valeur au lieu des points de ligue.
 - **Correction définitive bug réinitialisation statistiques & économie (R6-B1-STATS-RESET)** — Résolution d'un bug critique où les comptes de jeu voyaient leurs données réinitialisées lors de la connexion, particulièrement si le document ou le nœud `stats` n'existait pas sur Firebase, ou si la connexion réseau était instable.
   - Implémentation d'une architecture **Pull-Only** stricte : l'application n'essaie plus d'écrire des valeurs par défaut à la connexion, elle ne fait que lire.
   - Séparation complète du flux `signUp` (seul autorisé à créer les compteurs à 0) et du flux `signIn` / `getCurrentUser` (lecture seule, bloque l'accès si les données ne peuvent pas être lues de manière sécurisée).

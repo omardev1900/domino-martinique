@@ -246,7 +246,7 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
             ? (showAllPlayers ? allEntries : allEntries.filter(qualifiesForPerf))
             : allEntries;
 
-        const sorted = [...sourceEntries].sort((a, b) => {
+        const fullSorted = [...sourceEntries].sort((a, b) => {
             const aGames = getGamesPlayed(a);
             const bGames = getGamesPlayed(b);
             const aCochons = getCochonsGiven(a);
@@ -295,7 +295,12 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
             }
             const diff = bPoints - aPoints;
             return diff !== 0 ? diff : bGames - aGames;
-        }).slice(0, 30);
+        });
+
+        const sorted = fullSorted.slice(0, 30);
+        const myIndex = fullSorted.findIndex(e => e.uid === currentUid);
+        const myRank = myIndex !== -1 ? myIndex + 1 : null;
+        const myEntry = myIndex !== -1 ? fullSorted[myIndex] : null;
 
         const rankColor = (rank: number) => {
             if (rank === 1) return '#FFD700';
@@ -396,9 +401,43 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
                             })}
                         </View>
 
-                        <ScrollView style={styles.classementList} showsVerticalScrollIndicator={false} contentContainerStyle={styles.classementListContent}>
-                            {sorted.map((entry, index) => {
-                                const isMe = entry.uid === currentUid;
+                        <View style={{ flex: 1 }}>
+                            {myEntry ? (() => {
+                                const rc = rankColor(myRank!);
+                                const grade = isMonthlyScope ? (getLeagueGrade(myEntry.cochonsGivenThisMonth) ?? null) : null;
+                                return (
+                                    <View style={[styles.clsRow, { borderColor: cfg.color, backgroundColor: `${cfg.color}18`, marginBottom: 12, marginTop: 0 }]}>
+                                        <View style={[styles.clsRankCircle, { borderColor: rc }]}>
+                                            <Text style={[styles.clsRankText, { color: rc }]}>{myRank}</Text>
+                                        </View>
+                                        <View style={styles.clsAvatarWrap}>
+                                            <Image source={getAvatarImage(myEntry.avatarId || 'avatar_default')} style={styles.clsAvatar} contentFit="cover" cachePolicy="memory-disk" />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.clsName, { color: cfg.color }]} numberOfLines={1}>Vous</Text>
+                                            {grade ? (
+                                                <Text style={styles.clsGrade}>
+                                                    {LEAGUE_ICONS[grade]} {LEAGUE_LABELS[grade]}
+                                                </Text>
+                                            ) : null}
+                                            {isPerfMode && !qualifiesForPerf(myEntry) ? (
+                                                <View style={styles.unqualifiedBadge}>
+                                                    <Text style={styles.unqualifiedBadgeText}>-10 matchs</Text>
+                                                </View>
+                                            ) : null}
+                                        </View>
+                                        <View style={styles.clsScore}>
+                                            <Text style={[styles.clsScoreNum, { color: cfg.color }]}>{getEntryScore(myEntry)}</Text>
+                                            <Text style={styles.clsScoreLabel}>{isPerfMode ? '/ match' : cfg.sublabel}</Text>
+                                            <Text style={styles.clsMeta}>{getEntryMeta(myEntry)}</Text>
+                                        </View>
+                                    </View>
+                                );
+                            })() : null}
+
+                            <ScrollView style={styles.classementList} showsVerticalScrollIndicator={false} contentContainerStyle={styles.classementListContent}>
+                                {sorted.map((entry, index) => {
+                                    const isMe = entry.uid === currentUid;
                                 const localRank = index + 1;
                                 const rc = rankColor(localRank);
                                 const avatarSrc = getAvatarImage(entry.avatarId || 'avatar_default');
@@ -440,7 +479,8 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
                                     </Animated.View>
                                 );
                             })}
-                        </ScrollView>
+                            </ScrollView>
+                        </View>
                     </View>
                 )}
             </View>
