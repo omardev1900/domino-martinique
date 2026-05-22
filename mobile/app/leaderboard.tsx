@@ -11,18 +11,21 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { leaderboardService, LeaderboardEntry, LeaderboardCategory } from '../src/core/services/leaderboard.service';
 import { authService } from '../src/core/services/auth.service';
 import { economyService } from '../src/core/services/economy.service';
+import { statsService } from '../src/core/services/stats.service';
 import { getAvatarImage } from '../src/core/avatars';
 import { PlayerProfile } from '../src/core/types';
 import { adService } from '../src/core/services/ad.service';
 import { Ad } from '../src/core/ad.types';
 import { AdBannerModal } from '../src/components/AdBannerModal';
 import { useFocusEffect } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 
 export default function LeaderboardScreen() {
     const router = useRouter();
     const { width } = useWindowDimensions();
     const [activeTab, setActiveTab] = useState<LeaderboardCategory>('COCHONS');
     const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+    const flatListRef = useRef<FlatList>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [currentUser, setCurrentUser] = useState<PlayerProfile | null>(null);
@@ -66,11 +69,13 @@ export default function LeaderboardScreen() {
 
     // Charger le score local (pour les invités et le bandeau hors Top 50)
     useEffect(() => {
-        economyService.getEconomy().then(eco => {
-            if (activeTab === 'XP') setPlayerLocalScore(eco.xp);
-            else if (activeTab === 'COINS') setPlayerLocalScore(eco.coins);
-            else setPlayerLocalScore(eco.leaguePoints);
-        });
+        if (activeTab === 'XP') {
+            economyService.getEconomy().then(eco => setPlayerLocalScore(eco.xp));
+        } else if (activeTab === 'COINS') {
+            economyService.getEconomy().then(eco => setPlayerLocalScore(eco.coins));
+        } else {
+            statsService.getStats().then(stats => setPlayerLocalScore(stats.totalCochonsInflicted));
+        }
     }, [activeTab]);
 
     // S'abonner au classement en temps réel
@@ -86,7 +91,7 @@ export default function LeaderboardScreen() {
 
         const unsub = leaderboardService.subscribeLeaderboard(
             activeTab,
-            50,
+            100,
             (entries) => {
                 setLeaderboardData(entries);
                 setLoading(false);
@@ -194,14 +199,14 @@ export default function LeaderboardScreen() {
         );
     };
 
-    /** Bandeau fixe affiché en bas quand le joueur est hors Top 50 ou invité */
+    /** Bandeau fixe affiché en bas (Sticky Banner) */
     const renderPlayerBanner = () => {
         const isGuest = !currentUser || currentUser.uid.startsWith('guest_');
 
         if (isGuest) {
             return (
-                <View style={styles.playerBanner}>
-                    <Ionicons name="person-outline" size={16} color="rgba(255,255,255,0.7)" />
+                <View style={[styles.playerBanner, styles.stickyBanner]}>
+                    <Ionicons name="person-outline" size={20} color="rgba(255,255,255,0.7)" />
                     <Text style={styles.playerBannerText}>
                         Votre position : Non classé{'\n'}
                         <Text style={styles.playerBannerSub}>Créez un compte pour apparaître dans le classement</Text>
@@ -213,20 +218,53 @@ export default function LeaderboardScreen() {
             );
         }
 
-        const inTopList = leaderboardData.some(e => currentUser && e.uid === currentUser.uid);
-        if (inTopList) return null; // Déjà visible dans la liste
+        const playerIndex = leaderboardData.findIndex(e => e.uid === currentUser.uid);
+        const inTopList = playerIndex !== -1;
+        
+        // S'il est dans la liste, son vrai rang est sa position dans la liste
+        const displayRank = inTopList ? (playerIndex + 1) : (playerOutsideRank != null ? playerOutsideRank : '...');
 
-        const rankText = playerOutsideRank != null ? `#${playerOutsideRank}` : '...';
+        const handleBannerPress = () => {
+            if (inTopList && flatListRef.current) {
+                flatListRef.current.scrollToIndex({ index: playerIndex, animated: true, viewPosition: 0.5 });
+            } else {
+                Toast.show({
+                    type: 'info',
+                    text1: 'Classement',
+                    text2: 'Atteignez le Top 100 pour apparaître dans la liste !',
+                    position: 'bottom',
+                    bottomOffset: 120
+                });
+            }
+        };
+
         return (
-            <View style={[styles.playerBanner, styles.playerBannerAuth]}>
-                <Ionicons name="person" size={16} color="#FFD700" />
-                <Text style={[styles.playerBannerText, { color: '#FFD700' }]}>
-                    Votre position : {rankText}
-                </Text>
+            <TouchableOpacity 
+                activeOpacity={0.8} 
+                onPress={handleBannerPress}
+                style={[styles.playerBanner, styles.playerBannerAuth, styles.stickyBanner]}
+            >
+                <View style={styles.avatarContainerBanner}>
+                    <Image
+                        source={getAvatarImage(currentUser.avatarId || currentUser.avatarUrl || 'avatar_default')}
+                        style={styles.avatarImage}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                    />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Text style={[styles.playerBannerText, { color: '#FFD700' }]}>
+                        Votre position : #{displayRank}
+                    </Text>
+                    <Text style={styles.playerBannerSub}>
+                        {inTopList ? 'Cliquez pour voir votre carte' : 'Hors du Top 100'}
+                    </Text>
+                </View>
                 <Text style={styles.playerBannerScore}>
                     {playerLocalScore.toLocaleString()} {activeTab === 'COINS' ? '🪙' : activeTab === 'COCHONS' ? '🐷' : 'XP'}
                 </Text>
-            </View>
+                <Ionicons name="chevron-up" size={20} color="#FFD700" style={{ marginLeft: 5 }} />
+            </TouchableOpacity>
         );
     };
 
@@ -256,23 +294,43 @@ export default function LeaderboardScreen() {
                     <Text style={styles.loadingText}>Recherche des légendes...</Text>
                 </View>
             ) : (
-                <FlatList
-                    data={leaderboardData}
-                    keyExtractor={(item) => item.uid}
-                    renderItem={renderItem}
-                    contentContainerStyle={styles.listContent}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#FFD700" />
-                    }
-                    ListEmptyComponent={
-                        <View style={styles.centerContainer}>
-                            <Text style={styles.emptyText}>Aucun joueur classé pour le moment.</Text>
-                        </View>
-                    }
-                    ListFooterComponent={renderPlayerBanner}
-                />
+                <View style={{ flex: 1 }}>
+                    <FlatList
+                        ref={flatListRef}
+                        data={leaderboardData}
+                        keyExtractor={(item) => item.uid}
+                        renderItem={renderItem}
+                        getItemLayout={(data, index) => ({
+                            length: 80, // Hauteur exacte d'un élément (70px + 10px margin)
+                            offset: 80 * index,
+                            index,
+                        })}
+                        contentContainerStyle={styles.listContent}
+                        refreshControl={
+                            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#FFD700" />
+                        }
+                        ListEmptyComponent={
+                            <View style={styles.centerContainer}>
+                                <Text style={styles.emptyText}>Aucun joueur classé pour le moment.</Text>
+                            </View>
+                        }
+                        // Important pour pouvoir scroller avec ScrollToIndex sans erreur de calcul
+                        onScrollToIndexFailed={info => {
+                            const wait = new Promise(resolve => setTimeout(resolve, 500));
+                            wait.then(() => {
+                                flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+                            });
+                        }}
+                    />
+                    
+                    {/* Sticky Banner rendue par dessus la liste */}
+                    <View style={styles.stickyBannerContainer}>
+                        {renderPlayerBanner()}
+                    </View>
+                </View>
             )}
             <AdBannerModal ad={adToShow} onClose={() => setAdToShow(null)} />
+            <Toast />
         </LinearGradient>
     );
 }
@@ -312,7 +370,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         padding: 15,
-        paddingBottom: 20,
+        paddingBottom: 100, // Espace supplémentaire pour la Sticky Banner
     },
     playerRow: {
         flexDirection: 'row',
@@ -401,36 +459,56 @@ const styles = StyleSheet.create({
         marginTop: 50,
     },
     // ── Bandeau position joueur ──
+    stickyBannerContainer: {
+        position: 'absolute',
+        bottom: 10,
+        left: 10,
+        right: 10,
+        alignItems: 'center',
+    },
+    stickyBanner: {
+        width: '100%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 8,
+    },
     playerBanner: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
-        marginTop: 10,
-        marginBottom: 10,
         padding: 14,
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(30, 20, 55, 0.95)',
         borderRadius: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.15)',
     },
     playerBannerAuth: {
-        backgroundColor: 'rgba(255,215,0,0.08)',
+        backgroundColor: 'rgba(40, 30, 0, 0.95)',
         borderColor: '#FFD700',
     },
+    avatarContainerBanner: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,215,0,0.2)',
+        overflow: 'hidden',
+    },
     playerBannerText: {
-        flex: 1,
         color: 'rgba(255,255,255,0.8)',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 'bold',
     },
     playerBannerSub: {
         fontSize: 11,
         fontWeight: '400',
-        color: 'rgba(255,255,255,0.5)',
+        color: 'rgba(255,255,255,0.6)',
+        marginTop: 2,
     },
     playerBannerScore: {
         color: '#FFD700',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 'bold',
     },
 });

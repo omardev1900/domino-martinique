@@ -66,7 +66,7 @@ export type LeaderboardCategory = 'XP' | 'COINS' | 'COCHONS';
 const CATEGORY_FIELD: Record<LeaderboardCategory, string> = {
     XP: 'economy.xp',
     COINS: 'economy.coins',
-    COCHONS: 'economy.cochonsGiven',
+    COCHONS: 'stats.totalCochonsInflicted',
 };
 
 class LeaderboardService {
