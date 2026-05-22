@@ -144,7 +144,8 @@ export const useActionDispatcher = ({
                         const stateForRedeal = {
                             ...resolvedState,
                             phase: 'PARTIE_END' as GamePhase,
-                            reDealCount: nextTieCount
+                            reDealCount: nextTieCount,
+                            tiedPlayerIds // FIX: Passer tiedPlayerIds pour que computeNextRoundState le voit !
                         };
                         // R2-B2 : re-injecter tiedPlayerIds après le redeal pour forcer le plus grand double
                         newState = { ...computeNextRoundState(stateForRedeal, startingHandSize), tiedPlayerIds };
