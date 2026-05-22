@@ -12,6 +12,8 @@ import { EconomyHeader } from '../components/EconomyHeader';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { GradeBadge } from '../components/GradeBadge';
 import { LEAGUE_FRAMES_ENABLED, LEAGUE_GRADE_COLORS } from '../core/economy.constants';
+import { addBotToWaitingRoom, leaveRoom } from '../core/services/firebase';
+import { Alert } from 'react-native';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -39,6 +41,33 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
     const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(null);
     const hasAutoStarted = useRef(false);
     const rootRef = useRef<View>(null);
+
+    const handleAddBot = () => {
+        if (Platform.OS === 'web') {
+            const input = window.prompt("Choisissez le niveau du bot :\n1 = Ti-Manmay\n2 = Mapipi\n3 = Gran-moun\n4 = Mètkayali", "2");
+            if (input === '1') addBotToWaitingRoom(roomData.roomId, 'TI_MANMAY');
+            else if (input === '3') addBotToWaitingRoom(roomData.roomId, 'GRAN_MOUN');
+            else if (input === '4') addBotToWaitingRoom(roomData.roomId, 'METKAYALI');
+            else if (input !== null) addBotToWaitingRoom(roomData.roomId, 'MAPIPI');
+            return;
+        }
+
+        Alert.alert(
+            "Ajouter un Bot",
+            "Choisissez le niveau de difficulté",
+            [
+                { text: "Ti-Manmay (Facile)", onPress: () => addBotToWaitingRoom(roomData.roomId, 'TI_MANMAY') },
+                { text: "Mapipi (Moyen)", onPress: () => addBotToWaitingRoom(roomData.roomId, 'MAPIPI') },
+                { text: "Gran-moun (Difficile)", onPress: () => addBotToWaitingRoom(roomData.roomId, 'GRAN_MOUN') },
+                { text: "Mètkayali (IA avancé)", onPress: () => addBotToWaitingRoom(roomData.roomId, 'METKAYALI') },
+                { text: "Annuler", style: "cancel" }
+            ]
+        );
+    };
+
+    const handleRemoveBot = (botUid: string) => {
+        leaveRoom(roomData.roomId, botUid);
+    };
 
     // Give focus to root on mount (useful returning from game overlays)
     useEffect(() => {
@@ -138,6 +167,14 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                 <Text style={styles.silhouetteIcon}>👤</Text>
                             </View>
                             <Text style={styles.emptyText}>Attente...</Text>
+                            {isHost && (
+                                <TouchableOpacity 
+                                    style={styles.addBotButton} 
+                                    onPress={handleAddBot}
+                                >
+                                    <Text style={styles.addBotButtonText}>+ Bot</Text>
+                                </TouchableOpacity>
+                            )}
                         </>
                     ) : (
                         <>
@@ -165,6 +202,14 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                 </View>
                                 {LEAGUE_FRAMES_ENABLED && slot.player?.activeFrame && (
                                     <AvatarFrame frameId={slot.player.activeFrame} size={64} />
+                                )}
+                                {isHost && slot.player?.status === 'BOT' && (
+                                    <TouchableOpacity 
+                                        style={styles.removeBotButton} 
+                                        onPress={() => handleRemoveBot(slot.player!.uid)}
+                                    >
+                                        <Ionicons name="close" size={16} color="#FFF" />
+                                    </TouchableOpacity>
                                 )}
                             </View>
                             <Text style={styles.playerName} numberOfLines={1}>
@@ -472,6 +517,36 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 6,
+    },
+    deleteButtonDisabled: {
+        opacity: 0.5,
+    },
+    addBotButton: {
+        marginTop: 12,
+        paddingVertical: 6,
+        paddingHorizontal: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    addBotButtonText: {
+        color: '#FFF',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    removeBotButton: {
+        position: 'absolute',
+        top: -5,
+        right: -5,
+        backgroundColor: '#E53935',
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#1A0E2E',
     },
     actionButtonDisabled: {
         opacity: 0.6,

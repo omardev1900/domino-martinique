@@ -609,15 +609,21 @@ export const deleteWaitingRoomIfOwner = async (roomId: string, userId: string): 
 
         const roomData = roomSnap.data() as GameRoom;
         const isOwner = roomData.createdBy === userId;
-        const isWaiting = roomData.status === RoomStatus.WAITING;
-        const isEmptyWaitingRoom = roomData.players.length <= 1 && !roomData.gameState;
 
         if (!isOwner) {
             throw new Error("Seul l'hôte peut supprimer cette table.");
         }
 
-        if (!isWaiting || !isEmptyWaitingRoom) {
-            throw new Error("Impossible de supprimer cette table : un autre joueur l'a déjà rejointe ou la partie a commencé.");
+        // Vérifier s'il reste d'autres joueurs humains actifs dans la partie
+        let hasOtherActiveHumans = false;
+        if (roomData.gameState && roomData.gameState.players) {
+            hasOtherActiveHumans = roomData.gameState.players.some(p => p.id !== userId && p.status === 'HUMAN');
+        } else {
+            hasOtherActiveHumans = roomData.players.some(p => p.uid !== userId && p.status === 'HUMAN');
+        }
+
+        if (hasOtherActiveHumans) {
+            throw new Error("Impossible de supprimer cette table : d'autres joueurs actifs sont encore présents.");
         }
 
         await deleteDoc(roomRef);
@@ -840,5 +846,75 @@ export const signalPlayerOnline = async (roomId: string, playerId: string): Prom
         });
     } catch (e) {
         LogService.error('Firebase', `Failed to signal online status transaction for ${playerId}:`, e);
+    }
+};
+
+/**
+ * Adds a bot to the waiting room (called by the host)
+ */
+export const addBotToWaitingRoom = async (roomId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' | 'GRAN_MOUN' | 'METKAYALI'): Promise<void> => {
+    if (!roomId) return;
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    try {
+        await runTransaction(db, async (transaction) => {
+            const roomSnap = await transaction.get(roomRef);
+            if (!roomSnap.exists()) return;
+
+            const roomData = roomSnap.data() as GameRoom;
+            if (roomData.status !== RoomStatus.WAITING) {
+                throw new Error("La partie a déjà commencé.");
+            }
+            if (roomData.players.length >= 3) {
+                throw new Error("La table est complète.");
+            }
+
+            const botNames: Record<string, string[]> = {
+                'TI_MANMAY': ['Ti-Sonson', 'Man-Yaya'],
+                'MAPIPI': ['Dédé', 'Maxime'],
+                'GRAN_MOUN': ['Tonton-Léon', 'Eudorge'],
+                'METKAYALI': ['Man-Diab', 'Papa-Zombi']
+            };
+
+            const difficultyNames = botNames[difficulty] || botNames['MAPIPI'];
+            // Find a name not already used by another bot in the room
+            let botName = difficultyNames[0];
+            const existingBotNames = roomData.players.filter(p => p.status === 'BOT').map(p => p.displayName);
+            if (existingBotNames.includes(botName)) {
+                botName = difficultyNames[1] || `Bot ${roomData.players.length + 1}`;
+            }
+
+            const avatarIdMapping: Record<string, string[]> = {
+                'TI_MANMAY': ['avatar_bot_01', 'avatar_bot_02'],
+                'MAPIPI': ['avatar_bot_03', 'avatar_bot_04'],
+                'GRAN_MOUN': ['avatar_bot_05', 'avatar_bot_06'],
+                'METKAYALI': ['avatar_bot_07', 'avatar_bot_08']
+            };
+
+            let avatarId = avatarIdMapping[difficulty]?.[0] || 'avatar_bot_03';
+            if (existingBotNames.includes(difficultyNames[0])) {
+                avatarId = avatarIdMapping[difficulty]?.[1] || avatarId;
+            }
+
+            const newBotProfile: PlayerProfile = {
+                uid: `bot_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                displayName: botName,
+                avatarId: avatarId,
+                status: 'BOT',
+                difficulty: difficulty,
+                isHost: false,
+                gamesPlayed: 0,
+                gamesWon: 0,
+                hasBeenDebited: true // Bots don't pay buy-in
+            };
+
+            transaction.update(roomRef, {
+                players: arrayUnion(newBotProfile),
+                lastActivity: Date.now()
+            });
+        });
+        LogService.info('Firebase', `Bot (${difficulty}) added to room ${roomId}`);
+    } catch (e) {
+        LogService.error('Firebase', 'Error adding bot to room:', e);
+        throw e;
     }
 };

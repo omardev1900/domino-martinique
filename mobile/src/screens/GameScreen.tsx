@@ -1061,7 +1061,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                         avatarId: roomPlayer.avatarId || 'avatar_default',
                         leagueGrade: roomPlayer.leagueGrade,   // Propagé depuis PlayerProfile
                         activeFrame: roomPlayer.activeFrame,   // Propagé depuis PlayerProfile
-                        status: 'HUMAN'
+                        status: roomPlayer.status === 'BOT' ? 'BOT' : 'HUMAN',
+                        difficulty: roomPlayer.status === 'BOT' ? roomPlayer.difficulty : undefined
                     };
                 } else {
                     const relativeBotIdx = i - roomData.players.length;

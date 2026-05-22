@@ -9,6 +9,17 @@
 
 ## Mai 2026
 
+### 2026-05-22 - Ajout de bots dans les salles multijoueurs
+
+- [x] **[AMELIORATION-MULTI-LOBBY-BOT-FILL]** : Permettre à l'hôte d'ajouter un bot pour compléter une table multi de 2 joueurs.
+  - **Objectif** : Rendre possible le lancement d'une table avec seulement 2 humains en comblant le joueur manquant avec un bot, avec possibilité de kick pour faire de la place.
+  - **Réalisation** :
+    - Ajout d'une fonctionnalité de `addBotToWaitingRoom` dans Firebase pour insérer un profil `status: 'BOT'`.
+    - Mise à jour du composant `LobbyScreen` pour afficher un bouton "Ajouter Bot" pour l'hôte sur les slots vides.
+    - Ajout d'une interface (Alert) permettant de choisir le niveau du bot.
+    - Ajout de la logique "Retirer" pour permettre d'éjecter un bot de la salle si on veut faire de la place.
+    - Préservation du statut `BOT` et de la `difficulty` dans la routine `handleStartGame` de `GameScreen`.
+
 ### 2026-05-22 - Résolution Définitive Bug Reset Stats & Economie
 
 - [x] **[UX-LEADERBOARD]** Amélioration UX et Corrections du Classement

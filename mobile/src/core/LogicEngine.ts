@@ -541,11 +541,18 @@ export const handleTimeout = (gameState: GameState, playerId: PlayerId): GameSta
         throw new Error("Not your turn");
     }
 
-    const player = gameState.players.find(p => p.id === playerId);
-    if (!player) throw new Error("Player not found");
+    const playerIndex = gameState.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) throw new Error("Player not found");
+    const player = gameState.players[playerIndex];
+
+    // ✅ FIX: Un timeout marque le joueur comme déconnecté. L'IA jouera ses prochains
+    // tours presque instantanément (useBotDecision) plutôt que d'attendre 15s + 5s à chaque fois.
+    const newPlayers = [...gameState.players];
+    newPlayers[playerIndex] = { ...player, status: 'DISCONNECTED' };
+    const tempState = { ...gameState, players: newPlayers };
 
     let validMove = null;
-    const forcedOpeningId = getForcedOpeningDominoId(gameState, playerId);
+    const forcedOpeningId = getForcedOpeningDominoId(tempState, playerId);
 
     if (forcedOpeningId) {
         const forcedDomino = player.hand.find(tile => tile.id === forcedOpeningId);
@@ -554,8 +561,8 @@ export const handleTimeout = (gameState: GameState, playerId: PlayerId): GameSta
         }
     } else {
         const validMoves = getValidMoves(player.hand, {
-            left: gameState.table.leftValue,
-            right: gameState.table.rightValue
+            left: tempState.table.leftValue,
+            right: tempState.table.rightValue
         });
         if (validMoves.length > 0) {
             // Trier pour jouer le domino avec la plus grande valeur (sum)
@@ -565,9 +572,9 @@ export const handleTimeout = (gameState: GameState, playerId: PlayerId): GameSta
     }
 
     if (validMove) {
-        return handleTurn(gameState, playerId, validMove.tile, validMove.side === 'start' ? undefined : validMove.side);
+        return handleTurn(tempState, playerId, validMove.tile, validMove.side === 'start' ? undefined : validMove.side);
     } else {
-        return passTurn(gameState, playerId);
+        return passTurn(tempState, playerId);
     }
 };
 

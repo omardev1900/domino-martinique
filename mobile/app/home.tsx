@@ -9,6 +9,7 @@ import {
     useWindowDimensions,
     Modal,
     Alert,
+    Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -313,9 +314,19 @@ export default function HomeScreen() {
             const deleted = await deleteWaitingRoomIfOwner(hostedWaitingRoomId, user.uid);
             if (deleted) {
                 setHostedWaitingRoomId(null);
+                if (Platform.OS === 'web') {
+                    window.alert("La table a été supprimée avec succès.");
+                } else {
+                    Alert.alert("Succès", "La table a été supprimée avec succès.");
+                }
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error deleting hosted room', e);
+            if (Platform.OS === 'web') {
+                window.alert(e.message || "Impossible de supprimer la table.");
+            } else {
+                Alert.alert('Suppression impossible', e.message || 'Impossible de supprimer cette table.');
+            }
         }
     };
 
