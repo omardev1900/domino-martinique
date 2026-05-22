@@ -213,7 +213,8 @@ class EconomyService {
             }
 
             if (!remoteEconomy) {
-                 throw new Error("L'objet 'economy' est introuvable dans le document utilisateur.");
+                 LogService.info('EconomyService', 'No economy or stats found, initializing with defaults.');
+                 remoteEconomy = {};
             }
 
             // On télécharge et écrase le local, AUCUN MERGE HASARDEUX avec le guest
