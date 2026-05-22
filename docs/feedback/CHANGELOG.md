@@ -4,6 +4,16 @@
 
 ---
 
+## [2.5.9] - 2026-05-22
+
+### Corrigé
+- **Correction définitive bug réinitialisation statistiques & économie (R6-B1-STATS-RESET)** — Résolution d'un bug critique où les comptes de jeu voyaient leurs données réinitialisées lors de la connexion, particulièrement si le document ou le nœud `stats` n'existait pas sur Firebase, ou si la connexion réseau était instable.
+  - Implémentation d'une architecture **Pull-Only** stricte : l'application n'essaie plus d'écrire des valeurs par défaut à la connexion, elle ne fait que lire.
+  - Séparation complète du flux `signUp` (seul autorisé à créer les compteurs à 0) et du flux `signIn` / `getCurrentUser` (lecture seule, bloque l'accès si les données ne peuvent pas être lues de manière sécurisée).
+  - Gestion asynchrone sécurisée pour les anciens comptes qui n'ont pas encore de nœud `stats` : ils démarrent avec 0 stat en mémoire mais ne forcent plus d'écrasement sur la base de données.
+
+---
+
 ## [2.5.8] - 2026-05-21
 
 ### Modifié

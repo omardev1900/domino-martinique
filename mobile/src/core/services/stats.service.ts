@@ -133,41 +133,43 @@ class StatsService {
             try {
                 const userRef = doc(db, 'users', this.storageScope);
                 const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
-                    const remoteData = userSnap.data().stats;
-                    if (remoteData) {
-                        const history = remoteData.matchHistory ?? [];
-                        const historyBreakdown = this.getBreakdownFromHistory(history);
-                        this.cachedStats = {
-                            gamesPlayed: remoteData.gamesPlayed ?? 0,
-                            gamesWon: remoteData.gamesWon ?? 0,
-                            totalRoundsWon: remoteData.totalRoundsWon ?? 0,
-                            totalCochonsInflicted: remoteData.totalCochonsInflicted ?? 0,
-                            totalCochonsSubis: remoteData.totalCochonsSubis ?? 0,
-                            totalPointsAccumulated: remoteData.totalPointsAccumulated ?? 0,
-                            totalLeague5Pts: remoteData.totalLeague5Pts ?? historyBreakdown.totalLeague5Pts,
-                            totalLeague4Pts: remoteData.totalLeague4Pts ?? historyBreakdown.totalLeague4Pts,
-                            totalLeague2Pts: remoteData.totalLeague2Pts ?? historyBreakdown.totalLeague2Pts,
-                            totalLeague1Pt: remoteData.totalLeague1Pt ?? historyBreakdown.totalLeague1Pt,
-                            totalLeagueMinus1Pt: remoteData.totalLeagueMinus1Pt ?? historyBreakdown.totalLeagueMinus1Pt,
-                            matchHistory: history,
-                            // Economy fields — fallback to 0/defaults for old persisted data
-                            coins: remoteData.coins ?? 0,
-                            xp: remoteData.xp ?? 0,
-                            level: remoteData.level ?? 1,
-                            diamonds: remoteData.diamonds ?? 0,
-                            leaguePoints: remoteData.leaguePoints ?? 0,
-                            leagueGrade: remoteData.leagueGrade ?? null,
-                            inventory: remoteData.inventory ?? DEFAULT_INVENTORY,
-                        };
-                        return { ...this.cachedStats };
-                    }
+                
+                if (!userSnap.exists() || !userSnap.data().stats) {
+                    this.cachedStats = { ...DEFAULT_STATS };
+                    return { ...this.cachedStats };
                 }
+                
+                const remoteData = userSnap.data().stats;
+                const history = remoteData.matchHistory ?? [];
+                const historyBreakdown = this.getBreakdownFromHistory(history);
+                this.cachedStats = {
+                    gamesPlayed: remoteData.gamesPlayed ?? 0,
+                    gamesWon: remoteData.gamesWon ?? 0,
+                    totalRoundsWon: remoteData.totalRoundsWon ?? 0,
+                    totalCochonsInflicted: remoteData.totalCochonsInflicted ?? 0,
+                    totalCochonsSubis: remoteData.totalCochonsSubis ?? 0,
+                    totalPointsAccumulated: remoteData.totalPointsAccumulated ?? 0,
+                    totalLeague5Pts: remoteData.totalLeague5Pts ?? historyBreakdown.totalLeague5Pts,
+                    totalLeague4Pts: remoteData.totalLeague4Pts ?? historyBreakdown.totalLeague4Pts,
+                    totalLeague2Pts: remoteData.totalLeague2Pts ?? historyBreakdown.totalLeague2Pts,
+                    totalLeague1Pt: remoteData.totalLeague1Pt ?? historyBreakdown.totalLeague1Pt,
+                    totalLeagueMinus1Pt: remoteData.totalLeagueMinus1Pt ?? historyBreakdown.totalLeagueMinus1Pt,
+                    matchHistory: history,
+                    coins: remoteData.coins ?? 0,
+                    xp: remoteData.xp ?? 0,
+                    level: remoteData.level ?? 1,
+                    diamonds: remoteData.diamonds ?? 0,
+                    leaguePoints: remoteData.leaguePoints ?? 0,
+                    leagueGrade: remoteData.leagueGrade || null,
+                    inventory: remoteData.inventory || DEFAULT_INVENTORY,
+                };
+                
+                return { ...this.cachedStats };
+
             } catch (error) {
-                LogService.error('StatsService', 'Failed to load stats from Firestore', error);
+                LogService.error('StatsService', 'Failed to get secure stats from Firebase', error);
+                throw error; // On bloque au lieu d'utiliser des zéros par défaut uniquement si c'est une vraie erreur (ex: réseau)
             }
-            this.cachedStats = { ...DEFAULT_STATS };
-            return { ...this.cachedStats };
         }
 
         // Fallback for guests (read from AsyncStorage)
@@ -355,8 +357,8 @@ class StatsService {
     }
 
     /**
-     * Syncs local stats with Firebase. 
-     * Typically called after login/signup.
+     * TÉLÉCHARGE les statistiques depuis Firebase (Pull-only).
+     * Le serveur est la source de vérité absolue.
      */
     async syncWithFirebase(uid: string): Promise<void> {
         if (uid.startsWith('guest_')) return;
@@ -364,60 +366,49 @@ class StatsService {
         try {
             const userRef = doc(db, 'users', uid);
             const userSnap = await getDoc(userRef);
-            const localStats = await this.getStats();
 
-            if (userSnap.exists()) {
-                const remoteData = userSnap.data().stats;
-                if (remoteData) {
-                    const mergedHistory = this.mergeMatchHistories(localStats.matchHistory, remoteData.matchHistory || []);
-                    const historyBreakdown = this.getBreakdownFromHistory(mergedHistory);
-                    
-                    let realGamesPlayed = mergedHistory.length;
-                    let realGamesWon = 0;
-                    let realPoints = 0;
-                    let realRoundsWon = 0;
-                    mergedHistory.forEach(record => {
-                        if (record.result === 'WIN') realGamesWon++;
-                        realPoints += (record.score || 0);
-                        realRoundsWon += (record.roundsWon || 0);
-                    });
-
-                    const mergedStats: PlayerStats = {
-                        gamesPlayed: realGamesPlayed,
-                        gamesWon: realGamesWon,
-                        totalRoundsWon: Math.max(localStats.totalRoundsWon || 0, remoteData.totalRoundsWon || 0, realRoundsWon),
-                        totalCochonsInflicted: Math.max(localStats.totalCochonsInflicted, remoteData.totalCochonsInflicted || 0),
-                        totalCochonsSubis: Math.max(localStats.totalCochonsSubis ?? 0, remoteData.totalCochonsSubis || 0),
-                        totalPointsAccumulated: realPoints,
-                        totalLeague5Pts: Math.max(localStats.totalLeague5Pts ?? 0, remoteData.totalLeague5Pts ?? 0, historyBreakdown.totalLeague5Pts),
-                        totalLeague4Pts: Math.max(localStats.totalLeague4Pts ?? 0, remoteData.totalLeague4Pts ?? 0, historyBreakdown.totalLeague4Pts),
-                        totalLeague2Pts: Math.max(localStats.totalLeague2Pts ?? 0, remoteData.totalLeague2Pts ?? 0, historyBreakdown.totalLeague2Pts),
-                        totalLeague1Pt: Math.max(localStats.totalLeague1Pt ?? 0, remoteData.totalLeague1Pt ?? 0, historyBreakdown.totalLeague1Pt),
-                        totalLeagueMinus1Pt: Math.max(localStats.totalLeagueMinus1Pt ?? 0, remoteData.totalLeagueMinus1Pt ?? 0, historyBreakdown.totalLeagueMinus1Pt),
-                        matchHistory: mergedHistory,
-                        coins: remoteData.coins ?? localStats.coins,
-                        xp: remoteData.xp ?? localStats.xp,
-                        level: remoteData.level ?? localStats.level,
-                        diamonds: remoteData.diamonds ?? localStats.diamonds,
-                        leaguePoints: remoteData.leaguePoints ?? localStats.leaguePoints,
-                        leagueGrade: remoteData.leagueGrade || localStats.leagueGrade,
-                        inventory: remoteData.inventory || localStats.inventory,
-                    };
-
-                    this.cachedStats = mergedStats;
-                    await this.persistStats();
-                    await this.pushStatsToFirebase(uid, mergedStats);
-                    LogService.info('StatsService', 'Stats synchronized and merged with Firebase');
-                    return;
-                }
+            if (!userSnap.exists() || !userSnap.data().stats) {
+                // Le compte existe mais l'objet stats est vide (ou le doc n'existe pas encore).
+                // On charge les valeurs par défaut EN MÉMOIRE uniquement. On ne push RIEN.
+                this.cachedStats = { ...DEFAULT_STATS };
+                await this.persistStats();
+                LogService.info('StatsService', 'Stats introuvables sur le serveur, utilisation des valeurs par défaut en mémoire.');
+                return;
             }
 
-            // If no remote data, just push local stats
-            await this.pushStatsToFirebase(uid, localStats);
-            LogService.info('StatsService', 'Initial stats pushed to Firebase');
+            const remoteData = userSnap.data().stats;
+            const history = remoteData.matchHistory || [];
+            const historyBreakdown = this.getBreakdownFromHistory(history);
+
+            const downloadedStats: PlayerStats = {
+                gamesPlayed: remoteData.gamesPlayed ?? 0,
+                gamesWon: remoteData.gamesWon ?? 0,
+                totalRoundsWon: remoteData.totalRoundsWon ?? 0,
+                totalCochonsInflicted: remoteData.totalCochonsInflicted ?? 0,
+                totalCochonsSubis: remoteData.totalCochonsSubis ?? 0,
+                totalPointsAccumulated: remoteData.totalPointsAccumulated ?? 0,
+                totalLeague5Pts: remoteData.totalLeague5Pts ?? historyBreakdown.totalLeague5Pts,
+                totalLeague4Pts: remoteData.totalLeague4Pts ?? historyBreakdown.totalLeague4Pts,
+                totalLeague2Pts: remoteData.totalLeague2Pts ?? historyBreakdown.totalLeague2Pts,
+                totalLeague1Pt: remoteData.totalLeague1Pt ?? historyBreakdown.totalLeague1Pt,
+                totalLeagueMinus1Pt: remoteData.totalLeagueMinus1Pt ?? historyBreakdown.totalLeagueMinus1Pt,
+                matchHistory: history,
+                coins: remoteData.coins ?? 0,
+                xp: remoteData.xp ?? 0,
+                level: remoteData.level ?? 1,
+                diamonds: remoteData.diamonds ?? 0,
+                leaguePoints: remoteData.leaguePoints ?? 0,
+                leagueGrade: remoteData.leagueGrade || null,
+                inventory: remoteData.inventory || DEFAULT_INVENTORY,
+            };
+
+            this.cachedStats = downloadedStats;
+            await this.persistStats();
+            LogService.info('StatsService', 'Stats téléchargées avec succès depuis Firebase (Pull-only).');
 
         } catch (error) {
-            LogService.error('StatsService', 'Sync failed', error);
+            LogService.error('StatsService', 'Échec de syncWithFirebase (Pull-only)', error);
+            throw error; // On propage l'erreur pour bloquer la connexion uniquement si c'est une vraie erreur réseau
         }
     }
 

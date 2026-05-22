@@ -25,6 +25,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
 | **ANIM-DOMINO** | Animation glissee des dominos pendant le jeu | Moyenne | Pret |
 
+
 ---
 
 ## Ordre recommande

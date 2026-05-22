@@ -9,7 +9,18 @@
 
 ## Mai 2026
 
+### 2026-05-22 - Résolution Définitive Bug Reset Stats & Economie
+
+- [x] **[R6-B1-STATS-RESET]** Refonte de la synchronisation (Architecture Pull-Only stricte)
+  - **Objectif** : Résoudre définitivement le bug critique où les comptes de jeu voyaient leurs données réinitialisées lors de la reconnexion, particulièrement si l'objet `stats` était manquant ou le réseau instable.
+  - **Correction** :
+    - **`auth.service.ts`** : Architecture séparée. Initialisation avec des zéros par défaut UNIQUEMENT au `signUp`. Pour `signIn` et `getCurrentUser`, téléchargement forcé des données avec blocage de session si le réseau échoue (Fail-Safe).
+    - **`stats.service.ts`** : Suppression du "fallback destructeur" qui réinitialisait la base Firebase. Si un compte légitime ne possède pas d'objet `stats` (ex: ancien compte avec juste une `economy`), le service utilise des zéros en mémoire UNIQUEMENT et ne push plus rien dans la DB au démarrage.
+    - **`economy.service.ts`** : Suppression équivalente des fallbacks de création.
+    - **Tests unitaires** : `StatsService.test.ts` mis à jour et passé avec succès pour valider le comportement "Pull-Only".
+
 ### 2026-05-21 - Jeu en ligne, Fix CORS & Persistance Solo
+  - Fichiers modifiés : `mobile/src/core/services/stats.service.ts`, `mobile/src/core/services/economy.service.ts`, `mobile/app/home.tsx`, `mobile/src/core/__tests__/StatsService.test.ts`
 
 - [x] **[VERSION-DISPLAY]** Homogénéisation et affichage de la version de l'application
   - **Objectif** : Afficher la version de l'application de façon homogène sur le splashscreen, les réglages et le formulaire de retour client, en lisant dynamiquement la version configurée dans `expo`.

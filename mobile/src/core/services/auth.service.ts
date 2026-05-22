@@ -73,8 +73,14 @@ class AuthService {
             await this.activateSession(profile);
             await statsService.useStorageScope(profile.uid);
             await economyService.useStorageScope(profile.uid);
-            await statsService.syncWithFirebase(profile.uid);
-            await economyService.syncFromFirebase(profile.uid);
+            
+            // Pour un nouveau compte, on initialise explicitement la base de données avec des valeurs par défaut
+            const defaultStats = await statsService.getStats();
+            await statsService.pushStatsToFirebase(profile.uid, defaultStats);
+            
+            const defaultEconomy = await economyService.getEconomy();
+            await economyService.pushToFirebase(profile.uid, defaultEconomy);
+            
             await economyService.syncProfileMetadata(
                 profile.uid,
                 profile.displayName,
@@ -117,7 +123,11 @@ class AuthService {
      * Priority: 1. Memory, 2. Firebase (authenticated non-anonymous only)
      */
     async getCurrentUser(): Promise<PlayerProfile | null> {
-        if (this.currentUser) return this.currentUser;
+        if (this.currentUser) {
+            await statsService.useStorageScope(this.currentUser.uid);
+            await economyService.useStorageScope(this.currentUser.uid);
+            return this.currentUser;
+        }
 
         try {
             const firebaseUser = await new Promise<User | null>((resolve) => {
@@ -139,6 +149,21 @@ class AuthService {
                 this.currentUser = this.mapFirebaseUserToProfile(firebaseUser);
                 await statsService.useStorageScope(this.currentUser.uid);
                 await economyService.useStorageScope(this.currentUser.uid);
+                
+                try {
+                    // VERIFICATION STRICTE : on force la récupération des données sécurisées.
+                    // Si cela échoue (ex: réseau instable), on bloque la connexion.
+                    await statsService.syncWithFirebase(this.currentUser.uid);
+                    await economyService.syncFromFirebase(this.currentUser.uid);
+                } catch (syncError) {
+                    LogService.error('AuthService', 'Échec de synchronisation au démarrage, blocage de la connexion par sécurité.', syncError);
+                    this.currentUser = null;
+                    await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
+                    await statsService.useStorageScope(null);
+                    await economyService.useStorageScope(null);
+                    return null;
+                }
+                
                 return this.currentUser;
             }
 

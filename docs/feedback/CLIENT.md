@@ -210,4 +210,13 @@
 | S-1 | `LEAGUE_GRADE_COLORS is not defined` (ReferenceError) | entry | 🔴 Critique |
 | S-2 | `NotAllowedError` — permission audio refusée (5 events, 3 users) | /game/VVVWRW | 🟠 |
 | S-3 | `AbortError: The operation was aborted` (4 events) | /game/VVVWRW | 🟠 |
-| S-4 | `AbortError: play() interrupted by pause` | /game/VVVWRW | 🟡 |
+| S-4 | AbortError: play() interrupted by pause | /game/VVVWRW | 🟡 |
+
+---
+
+## 📋 RETOUR #6 — 21 mai 2026
+
+> Retour reçu le 21 mai 2026.
+
+### 🔴 BUGS MAJEURS STATS
+- Alerte bug majeur : y a un gros probleme des stats joueurs. Le joueur cmm.saghir@gmail.com avec l'id : l7zzKn7mW3frsFXCNYAaQGVxNCO2 dispose de ces Statistiques dans l'interface admin : Coins 8127, Diamants 22, Ligue APPRENTI_1, Parties jouées 33, Victoires 15, Taux de victoire 45%, Cochons infligés 12. Mais dans son espace à lui il voit que 500 coins, 0 diamants, 0 cochons du mois, niveau ligue débutant, même si j'ai fait un reset du localstorage et même en navigation privée.

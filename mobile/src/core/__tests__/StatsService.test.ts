@@ -30,10 +30,13 @@ jest.mock('firebase/firestore', () => ({
     setDoc: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('../services/firebase', () => ({ db: {} }));
+jest.mock('../services/firebase', () => ({ 
+    db: {},
+    auth: { currentUser: { displayName: 'TestUser', photoURL: 'test.jpg' } } 
+}));
 
 jest.mock('../services/economy.service', () => ({
-    economyService: { getEconomy: jest.fn(), setEconomy: jest.fn() },
+    economyService: { getEconomy: jest.fn().mockResolvedValue({ activeFrame: null }), setEconomy: jest.fn() },
 }));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -175,59 +178,15 @@ describe('totalCochonsSubis — fallback leaguePointsEarned (legacy)', () => {
     });
 });
 
-// ─── Suite 3 : syncWithFirebase — Math.max local vs remote ───────────────────
+// ─── Suite 3 : syncWithFirebase — Pull-only ──────────────────────────────────
 
-describe('totalCochonsSubis — syncWithFirebase', () => {
+describe('syncWithFirebase — Pull-only', () => {
 
-    it('garde le max entre local et remote', async () => {
-        // Local : 3 cochons subis
-        (statsService as any).cachedStats = {
-            gamesPlayed: 5,
-            gamesWon: 2,
-            totalRoundsWon: 0,
-            totalCochonsInflicted: 0,
-            totalCochonsSubis: 3,
-            totalPointsAccumulated: 10,
-            matchHistory: [],
-            coins: 0, xp: 0, level: 1, diamonds: 0,
-            leaguePoints: 0, leagueGrade: 'APPRENTI_1', inventory: {} as any,
-        };
-
-        // Remote : 7 cochons subis (plus élevé)
-        (getDoc as jest.Mock).mockResolvedValueOnce({
-            exists: () => true,
-            data: () => ({
-                stats: {
-                    gamesPlayed: 8,
-                    gamesWon: 3,
-                    totalRoundsWon: 0,
-                    totalCochonsInflicted: 0,
-                    totalCochonsSubis: 7,
-                    totalPointsAccumulated: 20,
-                    matchHistory: [],
-                    coins: 0, xp: 100, level: 1, diamonds: 0,
-                    leaguePoints: 0, leagueGrade: 'APPRENTI_1',
-                },
-            }),
-        });
-
-        await statsService.syncWithFirebase('uid-test');
-
-        const stats = await statsService.getStats();
-        expect(stats.totalCochonsSubis).toBe(7);
-    });
-
-    it('garde la valeur locale si elle est plus haute que remote', async () => {
+    it('télécharge la valeur remote même si elle est inférieure', async () => {
         (statsService as any).cachedStats = {
             gamesPlayed: 10,
             gamesWon: 5,
-            totalRoundsWon: 0,
-            totalCochonsInflicted: 0,
             totalCochonsSubis: 12,
-            totalPointsAccumulated: 30,
-            matchHistory: [],
-            coins: 0, xp: 0, level: 1, diamonds: 0,
-            leaguePoints: 0, leagueGrade: 'APPRENTI_1', inventory: {} as any,
         };
 
         (getDoc as jest.Mock).mockResolvedValueOnce({
@@ -236,13 +195,7 @@ describe('totalCochonsSubis — syncWithFirebase', () => {
                 stats: {
                     gamesPlayed: 8,
                     gamesWon: 3,
-                    totalRoundsWon: 0,
-                    totalCochonsInflicted: 0,
-                    totalCochonsSubis: 4,
-                    totalPointsAccumulated: 20,
-                    matchHistory: [],
-                    coins: 0, xp: 0, level: 1, diamonds: 0,
-                    leaguePoints: 0, leagueGrade: 'APPRENTI_1',
+                    totalCochonsSubis: 4, // Remote est plus bas
                 },
             }),
         });
@@ -250,20 +203,12 @@ describe('totalCochonsSubis — syncWithFirebase', () => {
         await statsService.syncWithFirebase('uid-test');
 
         const stats = await statsService.getStats();
-        expect(stats.totalCochonsSubis).toBe(12);
+        expect(stats.totalCochonsSubis).toBe(4);
     });
 
-    it('totalCochonsSubis remote absent → utilise la valeur locale', async () => {
+    it('totalCochonsSubis remote absent → utilise 0 (Pull-only strict)', async () => {
         (statsService as any).cachedStats = {
-            gamesPlayed: 3,
-            gamesWon: 1,
-            totalRoundsWon: 0,
-            totalCochonsInflicted: 0,
             totalCochonsSubis: 5,
-            totalPointsAccumulated: 10,
-            matchHistory: [],
-            coins: 0, xp: 0, level: 1, diamonds: 0,
-            leaguePoints: 0, leagueGrade: 'APPRENTI_1', inventory: {} as any,
         };
 
         (getDoc as jest.Mock).mockResolvedValueOnce({
@@ -271,14 +216,7 @@ describe('totalCochonsSubis — syncWithFirebase', () => {
             data: () => ({
                 stats: {
                     gamesPlayed: 3,
-                    gamesWon: 1,
-                    totalRoundsWon: 0,
-                    totalCochonsInflicted: 0,
-                    // totalCochonsSubis absent (ancien compte)
-                    totalPointsAccumulated: 10,
-                    matchHistory: [],
-                    coins: 0, xp: 0, level: 1, diamonds: 0,
-                    leaguePoints: 0, leagueGrade: 'APPRENTI_1',
+                    // totalCochonsSubis absent
                 },
             }),
         });
@@ -286,7 +224,7 @@ describe('totalCochonsSubis — syncWithFirebase', () => {
         await statsService.syncWithFirebase('uid-test');
 
         const stats = await statsService.getStats();
-        expect(stats.totalCochonsSubis).toBe(5);
+        expect(stats.totalCochonsSubis).toBe(0);
     });
 
     it('pushStatsToFirebase écrit totalCochonsSubis dans Firestore', async () => {

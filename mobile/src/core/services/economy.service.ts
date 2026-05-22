@@ -177,8 +177,9 @@ class EconomyService {
     }
 
     /**
-     * Charge l'économie depuis Firebase et fusionne avec le local.
-     * À appeler après un login. Ignoré pour les invités.
+     * TÉLÉCHARGE l'économie depuis Firebase (Pull-only).
+     * Lève une erreur si le profil n'est pas accessible.
+     * Le serveur est la source de vérité absolue.
      */
     async syncFromFirebase(uid: string): Promise<void> {
         if (uid.startsWith('guest_')) return;
@@ -187,52 +188,57 @@ class EconomyService {
             const userRef = doc(db, 'users', uid);
             const snap = await getDoc(userRef);
 
-            if (snap.exists()) {
-                const data = snap.data();
-                const remoteEconomy = data.economy as Partial<PlayerEconomy> | undefined;
-                const remoteStats = data.stats as any; 
+            if (!snap.exists()) {
+                throw new Error("Document utilisateur introuvable dans Firestore (Economy).");
+            }
 
-                if (remoteEconomy) {
-                    const local = await this.getEconomy();
+            const data = snap.data();
+            let remoteEconomy = data.economy as Partial<PlayerEconomy> | undefined;
+            const remoteStats = data.stats as any; 
 
-                    // 🛡️ MIGRATION / RESTAURATION COCHONS [2026-04-15]
-                    // Si economy.cochonsGiven est désynchronisé par rapport à stats.totalCochonsInflicted,
-                    // on aligne sur la valeur stats (toujours correcte) et on repousse vers Firestore.
-                    let cochonsMigrated = false;
-                    if (remoteStats && typeof remoteStats.totalCochonsInflicted === 'number') {
-                        const statsCochons = remoteStats.totalCochonsInflicted;
-                        const economyCochons = remoteEconomy.cochonsGiven ?? 0;
-                        if (statsCochons > economyCochons) {
-                            LogService.info('EconomyService',
-                                `[R3-B10] Migration cochons: ${economyCochons} → ${statsCochons} (depuis stats.totalCochonsInflicted)`
-                            );
-                            remoteEconomy.cochonsGiven = statsCochons;
-                            cochonsMigrated = true;
-                        }
-                    }
+            // MIGRATION EN MÉMOIRE POUR LES COMPTES LEGACY
+            if (!remoteEconomy && remoteStats) {
+                LogService.info('EconomyService', 'Legacy account detected. Migrating economy from stats in memory.');
+                remoteEconomy = {
+                    coins: typeof remoteStats.coins === 'number' ? remoteStats.coins : DEFAULT_ECONOMY.coins,
+                    xp: typeof remoteStats.xp === 'number' ? remoteStats.xp : DEFAULT_ECONOMY.xp,
+                    level: typeof remoteStats.level === 'number' ? remoteStats.level : DEFAULT_ECONOMY.level,
+                    diamonds: typeof remoteStats.diamonds === 'number' ? remoteStats.diamonds : DEFAULT_ECONOMY.diamonds,
+                    leaguePoints: typeof remoteStats.leaguePoints === 'number' ? remoteStats.leaguePoints : DEFAULT_ECONOMY.leaguePoints,
+                    leagueGrade: remoteStats.leagueGrade !== undefined ? remoteStats.leagueGrade : DEFAULT_ECONOMY.leagueGrade,
+                    cochonsGiven: typeof remoteStats.totalCochonsInflicted === 'number' ? remoteStats.totalCochonsInflicted : DEFAULT_ECONOMY.cochonsGiven,
+                    unlockedFrames: remoteStats.unlockedFrames || DEFAULT_ECONOMY.unlockedFrames,
+                    activeFrame: remoteStats.activeFrame !== undefined ? remoteStats.activeFrame : DEFAULT_ECONOMY.activeFrame,
+                };
+            }
 
-                    const merged = this.mergeEconomies(local, remoteEconomy);
-                    this.cached = merged;
-                    await this.persistLocal();
+            if (!remoteEconomy) {
+                 throw new Error("L'objet 'economy' est introuvable dans le document utilisateur.");
+            }
 
-                    // [R3-B10] Si la migration a corrigé cochonsGiven, pousser vers Firestore
-                    // pour que /ligue-cochons et /leaderboard soient synchronisés.
-                    if (cochonsMigrated) {
-                        await this.pushToFirebase(uid, merged);
-                        LogService.info('EconomyService', '[R3-B10] economy.cochonsGiven corrigé et repoussé vers Firestore.');
-                    }
+            // On télécharge et écrase le local, AUCUN MERGE HASARDEUX avec le guest
+            const downloadedEconomy = this.mergeWithDefaults(remoteEconomy);
 
-                    LogService.info('EconomyService', 'Economy hydrated from Firebase.');
-                    return;
+            // 🛡️ MIGRATION / RESTAURATION COCHONS [2026-04-15]
+            if (remoteStats && typeof remoteStats.totalCochonsInflicted === 'number') {
+                const statsCochons = remoteStats.totalCochonsInflicted;
+                const economyCochons = downloadedEconomy.cochonsGiven ?? 0;
+                if (statsCochons > economyCochons) {
+                    LogService.info('EconomyService',
+                        `[R3-B10] Migration cochons en mémoire: ${economyCochons} → ${statsCochons}`
+                    );
+                    downloadedEconomy.cochonsGiven = statsCochons;
                 }
             }
 
-            // Aucune donnée remote = nouveau compte → initialiser Firestore avec les valeurs par défaut
-            const local = await this.getEconomy();
-            await this.pushToFirebase(uid, local);
-            LogService.info('EconomyService', 'New account: default economy pushed to Firebase.');
+            this.cached = downloadedEconomy;
+            await this.persistLocal();
+            // PLUS AUCUN PUSH. La DB est reine, on met à jour le client uniquement.
+            LogService.info('EconomyService', 'Economy downloaded from Firebase (Pull-only).');
+
         } catch (e) {
             LogService.error('EconomyService', 'syncFromFirebase error:', e);
+            throw e; // Lève l'erreur pour que l'AuthService puisse bloquer la connexion
         }
     }
 
@@ -621,7 +627,7 @@ class EconomyService {
         }
     }
 
-    private async pushToFirebase(uid: string, economy: PlayerEconomy, profile?: EconomyProfileInfo): Promise<void> {
+    async pushToFirebase(uid: string, economy: PlayerEconomy, profile?: EconomyProfileInfo): Promise<void> {
         try {
             const userRef = doc(db, 'users', uid);
 

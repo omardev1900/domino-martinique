@@ -20,6 +20,8 @@
 | **ECO-STAKE-PAYOUT-RULES** | Arbitrer la redistribution des mises en multi et l'eventuelle commission |
 | **MULTI-PENALITE-ABANDON** | Differencier abandon volontaire et deconnexion (statut SURRENDERED). A la fin, le joueur en abandon volontaire perd tout et finit dernier, meme si son bot gagne. |
 | **FORCE-UPDATE** | Mettre en place un systeme qui verifie la version minimale de l'application (via Firebase Remote Config ou un document Firestore) et affiche un ecran bloquant pour obliger le joueur a telecharger la nouvelle version publiee sur le store. |
+| **R6-B1-STATS-RESET** | Bug majeur: statistiques et economie (coins, diamants, ligue) remises a zero lors de la connexion. |
+
 
 
 
