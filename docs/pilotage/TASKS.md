@@ -22,6 +22,7 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 | Ticket | Description | Priorite | Statut |
 |---|---|---|---|
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
+| **ANIM-DOMINO-POLISH** | Ameliorer l'animation des dominos poses : trajectoire plus naturelle, timing plus fluide, positionnement fiable depuis la main ou l'avatar, sans jamais recoupler l'animation au moteur de jeu. | Haute | En cours |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
 
 

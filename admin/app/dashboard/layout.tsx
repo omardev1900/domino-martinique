@@ -10,13 +10,13 @@ const SUPERADMIN_ONLY = [
   '/dashboard/bans',
   '/dashboard/config',
   '/dashboard/logs',
-  '/dashboard/leaderboard',
   '/dashboard/notifications',
   '/dashboard/news',
   '/dashboard/feedbacks',
-  '/dashboard/tables',
   '/dashboard/access',
+  '/dashboard/audio',
 ];
+
 
 export default function DashboardLayout({
   children,

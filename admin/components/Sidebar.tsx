@@ -27,10 +27,10 @@ const navItems: NavItem[] = [
   { href: '/dashboard/analytics', label: 'Dashboard', icon: '📈' },
   { href: '/dashboard/overview', label: 'Vue d\'ensemble', icon: '📊' },
   { href: '/dashboard/players', label: 'Joueurs', icon: '👥', superadminOnly: true },
-  { href: '/dashboard/tables', label: 'Tables en cours', icon: '🎲', superadminOnly: true },
+  { href: '/dashboard/tables', label: 'Tables en cours', icon: '🎲' },
   { href: '/dashboard/bans', label: 'Bans', icon: '🚫', superadminOnly: true },
   { href: '/dashboard/config', label: 'Configuration', icon: '⚙️', superadminOnly: true },
-  { href: '/dashboard/leaderboard', label: 'Classement', icon: '🏆', superadminOnly: true },
+  { href: '/dashboard/leaderboard', label: 'Classement', icon: '🏆' },
   { href: '/dashboard/bots', label: 'Bots IA', icon: '🤖' },
   { href: '/dashboard/store', label: 'Boutique', icon: '🏪' },
   { href: '/dashboard/chat', label: 'Tchat en jeu', icon: '💬' },
@@ -40,7 +40,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/notifications', label: 'Notifications', icon: '📣', superadminOnly: true },
   { href: '/dashboard/news', label: 'Actualités', icon: '📰', superadminOnly: true },
   { href: '/dashboard/ads', label: 'Publicités', icon: '📢' },
-  { href: '/dashboard/audio', label: 'Musiques', icon: '🎵' },
+  { href: '/dashboard/audio', label: 'Musiques', icon: '🎵', superadminOnly: true },
   { href: '/dashboard/access', label: 'Accès admins', icon: '🔑', superadminOnly: true },
 ];
 

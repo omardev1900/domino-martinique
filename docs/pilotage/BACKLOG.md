@@ -15,13 +15,11 @@
 | **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression |
 | **ECO-ADS-COINS-TUNING** | Definir la recompense coins du visionnage pub volontaire post-match |
 | **SOLO-REJOUER-REVANCHE** | Priorite moyenne - En solo, revoir le modal de fin de match : apres une victoire afficher `Rejouer`, `Retour aux modes`, `Quitter` ; apres une defaite afficher `Revanche - X coins`, `Retour aux modes`, `Quitter`. `Rejouer` relance les memes parametres avec de nouveaux bots et le cout solo normal. `Revanche` relance exactement les memes parametres contre les memes bots, avec cout progressif `500`, `1000`, `2000`, etc. La serie s'arrete des que le joueur quitte l'ecran de match. Si le joueur gagne une revanche, il recupere sa mise et gagne `+300` coins. |
-| **ANIM-DOMINO-POLISH** | Ameliorer l'animation des dominos poses : trajectoire plus naturelle, timing plus fluide, positionnement fiable depuis la main ou l'avatar, sans jamais recoupler l'animation au moteur de jeu. |
 | **UX-ADS-MODAL-CLOSE** | Corriger le modal de pub apres fin de match difficile a fermer : le bouton `X` doit fermer au premier appui, sans zone morte ni conflit avec l'overlay. |
 | **UX-MODAL-ANIM-SFX** | Harmoniser les modals/popups du jeu : apparition/fermeture animees, transitions coherentes, sons associes quand l'evenement le justifie. |
 | **UX-BUTTON-FEEDBACK-SFX** | Ajouter un feedback sonore et/ou haptique coherent aux boutons principaux de l'accueil, des ecrans et du gameplay, sans surcharger l'experience. |
 | **UX-SCREEN-PREMIUM-MOTION** | Ameliorer les ecrans trop statiques : rendre certains blocs et sections plus vivants avec micro-animations, profondeur visuelle et effets 3D sobres. |
 | **UX-ENDMATCH-NAV-FLASH** | Corriger le flash visuel du plateau apres le modal de fin de match : au clic sur `Continuer`, le plateau ne doit plus reapparaitre brievement avant le retour a l'accueil. |
-| **BUG-BLOCKED-ROUND-DUPLICATE** | Corriger le bug de fin de round quand la partie est bloquee : le message/modal de partie bloquee ne doit pas s'afficher deux fois. |
 
 | **GOD-MODE** | Nouveau mode solo separe "GOD MODE" : 2 bots METKAYALI allies contre le joueur, format `VICTOIRE` v1, acces verrouille par progression joueur |
 | **ECO-STAKE-PAYOUT-RULES** | Arbitrer la redistribution des mises en multi et l'eventuelle commission |
