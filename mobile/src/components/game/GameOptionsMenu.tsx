@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
     View, Text, TouchableOpacity, StyleSheet, Modal,
-    Pressable, Switch, Clipboard, Platform, ScrollView,
+    Pressable, Switch, Clipboard, Platform, ScrollView, useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -77,6 +77,9 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
     const [activeTab, setActiveTab] = useState<Tab>('JEU');
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [codeCopied, setCodeCopied] = useState(false);
+    const closeHandledRef = useRef(false);
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+    const isCompactWidth = screenWidth < 380;
 
     const handleCopyCode = () => {
         if (!gameId) return;
@@ -89,11 +92,16 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
         setTimeout(() => setCodeCopied(false), 2000);
     };
 
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
+        if (closeHandledRef.current) return;
+        closeHandledRef.current = true;
         setShowQuitConfirm(false);
         setActiveTab('JEU');
         onClose();
-    };
+        setTimeout(() => {
+            closeHandledRef.current = false;
+        }, 0);
+    }, [onClose]);
 
     const handleConfirmQuit = () => {
         setShowQuitConfirm(false);
@@ -116,10 +124,21 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
         >
             {/* Backdrop — centré */}
             <Animated.View entering={FadeIn.duration(160)} style={styles.backdrop}>
-                <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+                <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} testID="options-backdrop" />
 
                 {/* Card centrée */}
-                <Animated.View entering={ZoomIn.duration(220).springify()} style={styles.card}>
+                <Animated.View
+                    entering={ZoomIn.duration(220).springify()}
+                    style={[
+                        styles.card,
+                        {
+                            width: isCompactWidth ? '94%' : '88%',
+                            maxWidth: 460,
+                            height: screenHeight * 0.9,
+                        },
+                    ]}
+                    onStartShouldSetResponder={() => true}
+                >
                     <LinearGradient colors={['#2D1B4E', '#1A0E2E']} style={styles.cardInner}>
 
                         {/* ── Ligne unique : onglets + X ── */}
@@ -132,16 +151,28 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                         onPress={() => setActiveTab(tab)}
                                         activeOpacity={0.8}
                                     >
-                                        <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>
+                                        <Text
+                                            style={[styles.tabLabel, isCompactWidth && styles.tabLabelCompact, activeTab === tab && styles.tabLabelActive]}
+                                            numberOfLines={1}
+                                            adjustsFontSizeToFit
+                                            minimumFontScale={0.82}
+                                        >
                                             {tab === 'JEU' ? '🎮 Jeu' : tab === 'INFOS' ? 'ℹ️ Infos' : '📜 Historique'}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
 
-                            <TouchableOpacity onPress={handleClose} style={styles.closeBtn} activeOpacity={0.7}>
+                            <Pressable
+                                onPress={handleClose}
+                                style={styles.closeBtn}
+                                hitSlop={{ top: 16, right: 16, bottom: 16, left: 16 }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Fermer les options"
+                                testID="options-close-button"
+                            >
                                 <Ionicons name="close" size={18} color="#FFD700" />
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
 
                         {/* ── Contenu ── */}
@@ -341,8 +372,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',       // centré horizontalement
     },
     card: {
-        width: '70%',
-        maxWidth: 320,
         borderRadius: 16,
         overflow: 'hidden',
         borderWidth: 1,
@@ -354,6 +383,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
     },
     cardInner: {
+        flex: 1,
         paddingBottom: 14,
     },
     // ── Ligne tabs + X ──
@@ -377,6 +407,7 @@ const styles = StyleSheet.create({
     tabBtn: {
         flex: 1,
         paddingVertical: 6,
+        paddingHorizontal: 2,
         borderRadius: 6,
         alignItems: 'center',
     },
@@ -388,29 +419,39 @@ const styles = StyleSheet.create({
     tabLabel: {
         color: 'rgba(255,255,255,0.45)',
         fontWeight: '600',
-        fontSize: 12,
+        fontSize: 11,
+        includeFontPadding: false,
+    },
+    tabLabelCompact: {
+        fontSize: 10,
     },
     tabLabelActive: {
         color: '#FFD700',
     },
     closeBtn: {
-        padding: 5,
+        width: 36,
+        height: 36,
         borderRadius: 14,
         backgroundColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+        elevation: 12,
     },
     // ── Contenu ──
     content: {
-        paddingHorizontal: 14,
-        paddingTop: 10,
+        flex: 1,
+        paddingHorizontal: 12,
+        paddingTop: 8,
         paddingBottom: 4,
     },
     pauseNotice: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 5,
-        marginBottom: 8,
+        marginBottom: 5,
         paddingHorizontal: 8,
-        paddingVertical: 5,
+        paddingVertical: 4,
         backgroundColor: 'rgba(255,255,255,0.05)',
         borderRadius: 6,
     },
@@ -421,7 +462,7 @@ const styles = StyleSheet.create({
     toggleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 9,
+        paddingVertical: 6,
         borderBottomWidth: 1,
         borderColor: 'rgba(255,255,255,0.07)',
         gap: 10,
@@ -574,6 +615,7 @@ const styles = StyleSheet.create({
     footer: {
         marginTop: 6,
         paddingHorizontal: 14,
+        paddingBottom: 2,
     },
     quitBtn: {
         flexDirection: 'row',

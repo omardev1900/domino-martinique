@@ -10,12 +10,13 @@
  * Spec : docs/specs/ADS_SYSTEM.md
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Modal,
     View,
     Text,
     TouchableOpacity,
+    Pressable,
     StyleSheet,
     Linking,
 } from 'react-native';
@@ -36,6 +37,7 @@ interface AdBannerModalProps {
 export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => {
     const videoRef = useRef<Video>(null);
     const markedAdIdRef = useRef<string | null>(null);
+    const closeHandledRef = useRef(false);
     const [videoFailed, setVideoFailed] = useState(false);
     const [secondsLeft, setSecondsLeft] = useState(AD_SKIP_DELAY_SEC);
 
@@ -43,6 +45,7 @@ export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => 
     useEffect(() => {
         if (!ad) {
             markedAdIdRef.current = null;
+            closeHandledRef.current = false;
             return;
         }
         if (markedAdIdRef.current === ad.id) return;
@@ -73,13 +76,18 @@ export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => 
     if (!ad) return null;
 
     const canClose = secondsLeft === 0;
+    const closeOnce = useCallback(() => {
+        if (closeHandledRef.current) return;
+        closeHandledRef.current = true;
+        onClose();
+    }, [onClose]);
 
     const handleTap = () => {
         if (!ad.targetUrl) return;
         Linking.openURL(ad.targetUrl).catch(e =>
             LogService.error('AdBannerModal', 'openURL failed:', e)
         );
-        onClose();
+        closeOnce();
     };
 
     const isVideo = ad.mediaType === 'VIDEO' && !videoFailed;
@@ -91,7 +99,7 @@ export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => 
             animationType="fade"
             statusBarTranslucent
             // Bloquer la fermeture via le bouton back Android tant que le countdown n'est pas fini
-            onRequestClose={() => { if (canClose) onClose(); }}
+            onRequestClose={() => { if (canClose) closeOnce(); }}
         >
             <View style={styles.overlay}>
                 <TouchableOpacity
@@ -131,13 +139,16 @@ export const AdBannerModal: React.FC<AdBannerModalProps> = ({ ad, onClose }) => 
 
                 {/* Countdown ou bouton de fermeture */}
                 {canClose ? (
-                    <TouchableOpacity
+                    <Pressable
                         style={styles.closeButton}
-                        onPress={onClose}
-                        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                        onPress={closeOnce}
+                        hitSlop={{ top: 18, right: 18, bottom: 18, left: 18 }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Fermer la publicite"
+                        testID="ad-close-button"
                     >
                         <Ionicons name="close" size={22} color="#FFFFFF" />
-                    </TouchableOpacity>
+                    </Pressable>
                 ) : (
                     <View style={styles.countdownBubble} pointerEvents="none">
                         <Text style={styles.countdownText}>{secondsLeft}</Text>
@@ -154,6 +165,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.92)',
         justifyContent: 'center',
         alignItems: 'center',
+        zIndex: 20,
+        elevation: 30,
     },
     mediaWrapper: {
         width: '90%',
