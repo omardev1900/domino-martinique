@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
@@ -53,7 +53,6 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
     onActiveTabChange,
     hidePrimaryTabs = false,
 }) => {
-    const { width } = useWindowDimensions();
     const [internalActiveTab, setInternalActiveTab] = useState<TabType>('MA_LIGUE');
     const [leaguePoints, setLeaguePoints] = useState(0);
     const [classementCategory, setClassementCategory] = useState<ClassementCategory>('PLUS_COCHONS');
@@ -120,7 +119,7 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
 
     const renderMaLigue = () => {
         const currentIndex = progress.grade ? LEAGUE_GRADE_ORDER.indexOf(progress.grade) : -1;
-        const tierCardWidth = width >= 900 ? '22.5%' : '47%';
+        const tierCardWidth = '31%';
 
         return (
             <ScrollView style={styles.maLigueScroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.maLigueContent}>
@@ -207,7 +206,12 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
                                     {LEAGUE_LABELS[grade]}
                                 </Text>
                                 <View style={[styles.rewardBadge, { borderColor: isUnlocked ? theme.border : 'rgba(255,255,255,0.12)' }]}>
-                                    <Text style={[styles.rewardBadgeText, { color: isUnlocked ? theme.tint : 'rgba(255,255,255,0.4)' }]}>
+                                    <Text
+                                        style={[styles.rewardBadgeText, { color: isUnlocked ? theme.tint : 'rgba(255,255,255,0.4)' }]}
+                                        numberOfLines={1}
+                                        adjustsFontSizeToFit
+                                        minimumFontScale={0.75}
+                                    >
                                         {rewardLabel}
                                     </Text>
                                 </View>
@@ -547,34 +551,40 @@ const styles = StyleSheet.create({
     tabTextActive: { color: '#FFD700' },
     body: { flex: 1 },
     maLigueScroll: { flex: 1 },
-    maLigueContent: { paddingBottom: 24 },
+    maLigueContent: {
+        paddingBottom: 24,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        justifyContent: 'space-between',
+    },
     leagueIntroCard: {
+        width: '48.5%',
         backgroundColor: 'rgba(255,215,0,0.08)',
-        borderRadius: 16,
-        padding: 20,
+        borderRadius: 12,
+        padding: 10,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.2)',
-        marginBottom: 18,
     },
-    leagueIntroEmoji: { fontSize: 40, marginBottom: 8 },
+    leagueIntroEmoji: { fontSize: 24, marginBottom: 4 },
     leagueIntroTitle: {
         color: '#FFD700',
-        fontSize: 22,
+        fontSize: 15,
         fontWeight: '900',
         textAlign: 'center',
-        marginBottom: 6,
+        marginBottom: 3,
     },
     leagueIntroSubtitle: {
         color: 'rgba(255,255,255,0.7)',
-        fontSize: 14,
+        fontSize: 11,
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 14,
     },
     leagueProgressPill: {
-        marginTop: 12,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        marginTop: 7,
+        paddingHorizontal: 7,
+        paddingVertical: 5,
         borderRadius: 999,
         backgroundColor: 'rgba(255,255,255,0.08)',
         borderWidth: 1,
@@ -582,72 +592,76 @@ const styles = StyleSheet.create({
     },
     leagueProgressPillText: {
         color: '#FFD700',
-        fontSize: 13,
+        fontSize: 10,
         fontWeight: '700',
         textAlign: 'center',
     },
     monthlyGradeCard: {
+        width: '48.5%',
         backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 16,
-        padding: 18,
+        borderRadius: 12,
+        padding: 10,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
-        marginBottom: 18,
+        justifyContent: 'center',
     },
-    monthlyGradeHeader: { alignItems: 'center', marginBottom: 8 },
+    monthlyGradeHeader: { alignItems: 'center', marginBottom: 6 },
     monthlyGradeHeaderValue: {
         color: '#FFD700',
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: '900',
-        marginTop: 6,
         textAlign: 'center',
     },
     progressLabels: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 7,
+        marginBottom: 6,
     },
-    progressBound: { fontSize: 11, color: 'rgba(255,255,255,0.3)', width: 32 },
+    progressBound: { fontSize: 10, color: 'rgba(255,255,255,0.3)', width: 24 },
     progressCenter: {
         flex: 1,
         textAlign: 'center',
-        fontSize: 11,
+        fontSize: 10,
         color: 'rgba(255,255,255,0.55)',
         fontWeight: 'bold',
     },
     monthlyProgressTrack: {
-        height: 20,
-        borderRadius: 10,
+        height: 14,
+        borderRadius: 7,
         backgroundColor: 'rgba(255,255,255,0.07)',
         overflow: 'hidden',
     },
     monthlyProgressFill: {
         height: '100%',
-        borderRadius: 10,
+        borderRadius: 7,
         backgroundColor: '#FFD700',
     },
     paliersTitle: {
+        width: '100%',
         fontSize: 11,
         fontWeight: '900',
         color: 'rgba(255,215,0,0.5)',
         letterSpacing: 2,
         textTransform: 'uppercase',
-        marginBottom: 12,
+        marginTop: 6,
+        marginBottom: 4,
         textAlign: 'center',
     },
     tiersGrid: {
+        width: '100%',
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
-        justifyContent: 'center',
+        columnGap: 8,
+        rowGap: 8,
+        justifyContent: 'space-between',
     },
     tierCard: {
-        minWidth: 145,
-        borderRadius: 16,
-        padding: 16,
+        minWidth: 0,
+        borderRadius: 12,
+        padding: 8,
         alignItems: 'center',
-        gap: 8,
+        gap: 4,
         position: 'relative',
     },
     tierCardUnlocked: {
@@ -674,35 +688,34 @@ const styles = StyleSheet.create({
     },
     activeBadge: {
         position: 'absolute',
-        top: -10,
+        top: -8,
         backgroundColor: '#FFD700',
-        paddingHorizontal: 10,
-        paddingVertical: 3,
+        paddingHorizontal: 7,
+        paddingVertical: 2,
         borderRadius: 12,
     },
     activeBadgeText: {
         color: '#1A0535',
-        fontSize: 10,
+        fontSize: 8,
         fontWeight: '900',
         letterSpacing: 1,
     },
-    tierGradeIcon: { fontSize: 28 },
+    tierGradeIcon: { fontSize: 20 },
     tierGradeIconLocked: { opacity: 0.5 },
-    tierThreshold: { fontSize: 16, fontWeight: '900' },
+    tierThreshold: { fontSize: 12, fontWeight: '900' },
     tierLabel: {
-        fontSize: 11,
+        fontSize: 9,
         fontWeight: '700',
         textAlign: 'center',
-        letterSpacing: 0.3,
     },
     rewardBadge: {
         backgroundColor: 'rgba(0,0,0,0.2)',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+        paddingHorizontal: 5,
+        paddingVertical: 3,
         borderRadius: 20,
         borderWidth: 1,
     },
-    rewardBadgeText: { fontWeight: '900', fontSize: 12 },
+    rewardBadgeText: { fontWeight: '900', fontSize: 9 },
     classementLayout: {
         flex: 1,
         flexDirection: 'row',
