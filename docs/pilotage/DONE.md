@@ -309,3 +309,10 @@
 ## Avril 2026
 
 L'historique detaille d'avril reste archive dans `history.md` et dans les versions precedentes de ce fichier.
+### 2026-05-23
+
+- [x] **[ADMIN-MANAGER-ROLE]** Modification des autorisations du rôle manager
+  - Accès autorisé à /dashboard/tables pour voir et fermer les tables
+  - Accès autorisé à /dashboard/leaderboard pour voir le classement
+  - Accès retiré pour /dashboard/audio
+  - Correction du crash (client-side exception) sur la page /dashboard/bots due au rendu et aux propriétés optionnelles

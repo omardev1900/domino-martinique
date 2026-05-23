@@ -23,18 +23,19 @@ function isDifficulty(value: unknown): value is Difficulty {
     || value === 'METKAYALI';
 }
 
-function normalizeBot(raw: Partial<BotProfile>, index: number): BotProfile {
-  const firestoreId = typeof raw.firestoreId === 'string' ? raw.firestoreId : undefined;
-  const difficulty = isDifficulty(raw.difficulty) ? raw.difficulty : 'TI_MANMAY';
+function normalizeBot(raw: Partial<BotProfile> | null | undefined, index: number): BotProfile {
+  const safeRaw = raw || {};
+  const firestoreId = typeof safeRaw.firestoreId === 'string' ? safeRaw.firestoreId : undefined;
+  const difficulty = isDifficulty(safeRaw.difficulty) ? safeRaw.difficulty : 'TI_MANMAY';
 
   return {
     firestoreId,
-    id: typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : firestoreId || `bot-${index}`,
-    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Bot sans nom',
-    avatarId: typeof raw.avatarId === 'string' ? raw.avatarId : '',
-    imageUrl: typeof raw.imageUrl === 'string' ? raw.imageUrl : '',
+    id: typeof safeRaw.id === 'string' && safeRaw.id.trim() ? safeRaw.id.trim() : firestoreId || `bot-${index}`,
+    name: typeof safeRaw.name === 'string' && safeRaw.name.trim() ? safeRaw.name.trim() : 'Bot sans nom',
+    avatarId: typeof safeRaw.avatarId === 'string' ? safeRaw.avatarId : '',
+    imageUrl: typeof safeRaw.imageUrl === 'string' ? safeRaw.imageUrl : '',
     difficulty,
-    isLocal: Boolean(raw.isLocal),
+    isLocal: Boolean(safeRaw.isLocal),
   };
 }
 
@@ -59,15 +60,16 @@ const LOCAL_BOTS: BotProfile[] = [
 ];
 
 const DIFF_META: Record<Difficulty, { label: string; color: string; icon: string; desc: string }> = {
-  TI_MANMAY:  { label: 'Ti Manmay',   icon: '🌱', color: 'text-green-400 bg-green-500/10 border-green-500/20',    desc: 'Débutant' },
-  MAPIPI:     { label: 'Mapipi',      icon: '⚔️', color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20', desc: 'Intermédiaire' },
-  GRAN_MOUN:  { label: 'Gran Moun',   icon: '👑', color: 'text-red-400 bg-red-500/10 border-red-500/20',          desc: 'Expert' },
-  METKAYALI:  { label: 'Mèt Kayali',  icon: '🧠', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20', desc: 'Maître Absolu' },
+  TI_MANMAY: { label: 'Ti-Manmay', color: 'border-green-500/30 text-green-400', icon: '👶', desc: 'Joue de façon basique' },
+  MAPIPI: { label: 'Mapipi', color: 'border-blue-500/30 text-blue-400', icon: '🤠', desc: 'Joue de façon intelligente' },
+  GRAN_MOUN: { label: 'Gran-Moun', color: 'border-purple-500/30 text-purple-400', icon: '🧙‍♂️', desc: 'Compte les cartes et anticipe' },
+  METKAYALI: { label: 'Mètkayali', color: 'border-red-500/30 text-red-400', icon: '🔥', desc: 'Analyse probabiliste complète' },
 };
 
 const EMPTY: Partial<BotProfile> = { name: '', avatarId: '', difficulty: 'TI_MANMAY' };
 
 export default function BotsPage() {
+  const [mounted, setMounted] = useState(false);
   const [remoteBots, setRemoteBots] = useState<BotProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
