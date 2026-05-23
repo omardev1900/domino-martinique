@@ -48,6 +48,7 @@ interface GameTableProps {
     pendingDomino?: Domino | null;
     onSideSelect?: (side: 'left' | 'right') => void;
     skinConfig?: SkinConfig; // Cosmetic skin configuration
+    hiddenDominoId?: string | null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -240,7 +241,7 @@ function computeBidirectionalLayout(
 //  COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
-    { gameState, pendingDomino, onSideSelect, skinConfig },
+    { gameState, pendingDomino, onSideSelect, skinConfig, hiddenDominoId },
     ref
 ) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -358,6 +359,7 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
                                         top: item.y + offsetY,
                                         width: item.width,
                                         height: item.height,
+                                        opacity: hiddenDominoId === item.domino.id ? 0 : 1,
                                     },
                                 ]}
                             >

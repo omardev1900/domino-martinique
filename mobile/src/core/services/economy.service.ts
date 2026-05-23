@@ -352,7 +352,7 @@ class EconomyService {
             return reward;
 
         } catch (e) {
-            LogService.error('EconomyService', 'Erreur avec le Banquier Serveur, tentative de fallback :', e);
+            LogService.warn('EconomyService', 'Erreur avec le Banquier Serveur, tentative de fallback :', e);
 
             if (this.shouldUseWebLocalRewardHttpFallback()) {
                 try {

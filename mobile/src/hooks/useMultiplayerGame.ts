@@ -111,7 +111,6 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
 
         try {
             const newState = handleTurn(gameState, localPlayerId, domino);
-            SoundManager.playClack();
             HapticManager.triggerImpact();
             await updateGameState(gameId, newState);
         } catch (e) {
@@ -159,7 +158,6 @@ export const useMultiplayerGame = (gameId: string | undefined, userId: string | 
                     if (move) {
                         // Fix: getBotMove returns { tile, side }, but handleTurn expects a Domino
                         newState = handleTurn(gameState, currentPlayer.id, move.tile, move.side === 'start' ? undefined : move.side);
-                        SoundManager.playClack();
                     } else {
                         newState = passTurn(gameState, currentPlayer.id);
                         SoundManager.playSound('notify');

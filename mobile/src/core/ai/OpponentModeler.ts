@@ -1,5 +1,6 @@
 import { TileTracker, likelyTilesFor } from './TileTracker';
 import { DominoSide } from '../types';
+import { ALL_DOMINOS } from '../constants';
 
 export type DangerLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -15,6 +16,31 @@ export interface OpponentProfile {
 }
 
 export type OpponentProfiles = Map<string, OpponentProfile>;
+
+function updateOpponentProfile(tracker: TileTracker, profiles: Map<string, OpponentProfile>) {
+    for (const [pid, profile] of profiles.entries()) {
+        const remaining = tracker.handSizes.get(pid) ?? 7;
+        
+        const possibleTiles: any[] = [];
+        for (const [id, state] of tracker.tileStates.entries()) {
+            if (state.status !== 'UNKNOWN') continue;
+            const idx = parseInt(id.replace('d-', ''), 10);
+            if (isNaN(idx)) continue;
+            const { left: lo, right: hi } = ALL_DOMINOS[idx];
+            
+            const prob = state.probabilities.get(pid) ?? 0;
+            if (prob > 0.05) {
+                possibleTiles.push({
+                    id,
+                    left: lo as DominoSide,
+                    right: hi as DominoSide,
+                    isDouble: lo === hi
+                });
+            }
+        }
+    }
+    return profiles;
+}
 
 export function initOpponentProfiles(opponentIds: string[], initialHandSize = 7): OpponentProfiles {
     const profiles = new Map<string, OpponentProfile>();
@@ -122,7 +148,9 @@ function estimateEndpointLikelihood(
     }
 
     const matches = profile.likelyTiles.filter(id => {
-        const [lo, hi] = id.split('-').map(Number);
+        const idx = parseInt(id.replace('d-', ''), 10);
+        if (isNaN(idx)) return false;
+        const { left: lo, right: hi } = ALL_DOMINOS[idx];
         return (canPlayLeft && (lo === newLeftValue || hi === newLeftValue))
             || (canPlayRight && (lo === newRightValue || hi === newRightValue));
     }).length;

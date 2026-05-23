@@ -69,6 +69,15 @@ export const useActionDispatcher = ({
             const minAgeMs = command.type === 'TIMEOUT' ? 5000 : 1000;
 
             if (!canAction(command.playerId, { isAuto, minAgeMs })) {
+                LogService.info('ActionDispatcher', 'Action rejected by canAction.', {
+                    type: command.type,
+                    playerId: command.playerId,
+                    currentPlayerId: gameState.currentPlayerId,
+                    turnId: gameState.turnId,
+                    phase: gameState.phase,
+                    isAuto,
+                    minAgeMs,
+                });
                 return;
             }
         }
@@ -83,6 +92,13 @@ export const useActionDispatcher = ({
 
         // Tente d'acquérir le verrou
         if (!acquireLock()) {
+            LogService.info('ActionDispatcher', 'Action rejected because lock is already held.', {
+                type: command.type,
+                playerId: 'playerId' in command ? command.playerId : undefined,
+                currentPlayerId: gameState.currentPlayerId,
+                turnId: gameState.turnId,
+                phase: gameState.phase,
+            });
             return;
         }
 
@@ -171,7 +187,6 @@ export const useActionDispatcher = ({
                     if (command.type === 'NEXT_ROUND') {
                         if ((SoundManager as any).playSound) (SoundManager as any).playSound('shuffle');
                     } else if (tilePlayed) {
-                        if ((SoundManager as any).playClack) (SoundManager as any).playClack();
                         if (onTilePlayed) onTilePlayed(tilePlayed);
                     } else if (command.type === 'PASS_TURN' || (command.type === 'TIMEOUT' && !tilePlayed)) {
                         if ((SoundManager as any).playSound) (SoundManager as any).playSound('toktok');

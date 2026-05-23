@@ -77,11 +77,15 @@ export function simulateCoup(
 
 // ─── Internals ────────────────────────────────────────────────────────────────
 
+import { ALL_DOMINOS } from '../constants';
+
 function getUnknownTiles(tracker: TileTracker): Domino[] {
     const result: Domino[] = [];
     for (const [id, state] of tracker.tileStates.entries()) {
         if (state.status === 'UNKNOWN') {
-            const [lo, hi] = id.split('-').map(Number);
+            const idx = parseInt(id.replace('d-', ''), 10);
+            if (isNaN(idx)) continue;
+            const { left: lo, right: hi } = ALL_DOMINOS[idx];
             result.push({
                 id,
                 left: lo as DominoSide,

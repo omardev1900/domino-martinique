@@ -23,23 +23,20 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 |---|---|---|---|
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
-| **ANIM-DOMINO** | Animation glissee des dominos pendant le jeu | Moyenne | Pret |
 
 
 ---
 
 ## Ordre recommande
 
-1. `ANIM-DOMINO`
-2. `OTP-INSCRIPTION`
-3. `ECO-REBALANCE`
+1. `OTP-INSCRIPTION`
+2. `ECO-REBALANCE`
 
 Raison :
 `CF-PROCESSMATCHREWARD-CORS` est demarre pour fiabiliser les tests Web locaux autour des recompenses de fin de match avant d'ajouter de nouvelles variantes pub.
 `ECO-WELCOME-DAILY` est un correctif rapide des constantes d'economie (bienvenue 300, cadeau jour 200) avant que les nouveaux joueurs arrivent post-lancement.
 `OTP-INSCRIPTION` est limite au Web uniquement (mobile non concerne) et reporte apres la phase de test ferme.
 `ECO-REBALANCE` est differe en attendant l'arbitrage produit avec le client et l'associe.
-`ANIM-DOMINO` restent secondaires tant que les retours de test ferme remontent encore des bugs visibles.
 
 ---
 

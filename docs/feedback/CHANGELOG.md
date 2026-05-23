@@ -4,9 +4,18 @@
 
 ---
 
+## [2.5.10] - 2026-05-23
+
+### Corrige
+- **Mode Solo - bots METKAYALI** - correction d'un gel de partie ou le tour d'un bot pouvait rester bloque a 15 secondes en manche 2 si le moteur IA rencontrait une exception ou si l'action etait refusee au mauvais instant. Le bot retente maintenant son action, puis utilise un coup de secours legal ou passe son tour au lieu de bloquer la partie.
+- **Animation des dominos** - l'animation est maintenant separee du moteur de jeu : si elle echoue ou tarde a se terminer, elle ne peut plus figer le timer, bloquer le tour courant ou laisser l'interface en pause.
+
+---
+
 ## [2.5.9] - 2026-05-22
 
 ### Ajouté
+- **Animation des dominos (ANIM-DOMINO)** — Le jeu s'enrichit visuellement ! Désormais, lorsqu'un joueur (vous ou un adversaire) joue un domino, une animation fluide montre le domino glisser de la main (ou de l'avatar) jusqu'à sa place sur la table. Le jeu se met intelligemment en pause pendant l'animation pour éviter tout chevauchement et offrir un confort visuel optimal.
 - **Bannière Classement Interactive (UX-LEADERBOARD)** — Le Top 50 a été étendu au Top 100 pour donner plus de visibilité aux joueurs. Ajout d'une bannière dorée fixe ("Sticky Banner") en bas de l'écran du classement permettant au joueur de voir son rang en permanence. Un clic sur cette bannière déclenche un auto-scroll vers la position exacte du joueur.
 
 ### Corrigé

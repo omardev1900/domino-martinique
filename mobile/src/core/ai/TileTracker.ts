@@ -1,3 +1,4 @@
+import { ALL_DOMINOS } from '../constants';
 import { Domino, DominoSide } from '../types';
 
 export type TileStatus =
@@ -11,11 +12,12 @@ export interface TileTracker {
     handSizes: Map<string, number>;           // playerId → nb de tuiles restantes
 }
 
-/** Génère l'ID canonique d'une tuile (ex: "3-5") */
+/** Génère l'ID canonique d'une tuile pour le jeu (ex: "d-12") */
 export function tileId(left: number, right: number): string {
     const lo = Math.min(left, right);
     const hi = Math.max(left, right);
-    return `${lo}-${hi}`;
+    const index = ALL_DOMINOS.findIndex(d => d.left === lo && d.right === hi);
+    return `d-${index}`;
 }
 
 /** Génère les 28 tuiles du jeu double-six */
@@ -99,7 +101,9 @@ export function onOpponentPassed(
     // Les tuiles contenant ces valeurs ne peuvent pas être chez cet adversaire
     for (const [id, state] of next.tileStates.entries()) {
         if (state.status !== 'UNKNOWN') continue;
-        const [lo, hi] = id.split('-').map(Number);
+        const idx = parseInt(id.replace('d-', ''), 10);
+        if (isNaN(idx)) continue;
+        const { left: lo, right: hi } = ALL_DOMINOS[idx];
         if (excluded.has(lo) || excluded.has(hi)) {
             const probs = new Map(state.probabilities);
             probs.set(playerId, 0);

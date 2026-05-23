@@ -11,4 +11,6 @@ export interface FlyingDominoData {
     endPoint?: Point;
     orientation: 'vertical' | 'horizontal';
     isReversed: boolean;
+    width?: number;
+    height?: number;
 }

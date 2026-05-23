@@ -7,6 +7,8 @@ export type StrategyMode = 'CONTROL' | 'SCORE_MIN';
 /**
  * Calcule le risque de partie bloquée (Boudé) entre 0 et 1.
  */
+import { ALL_DOMINOS } from '../constants';
+
 export function calculateBoudeRisk(gameState: GameState, tracker: TileTracker): number {
     let risk = 0;
 
@@ -15,7 +17,9 @@ export function calculateBoudeRisk(gameState: GameState, tracker: TileTracker): 
         let knownCount = 0;
         for (const [id, state] of tracker.tileStates.entries()) {
             if (state.status === 'PLAYED' || state.status === 'MINE') {
-                const [lo, hi] = id.split('-').map(Number);
+                const idx = parseInt(id.replace('d-', ''), 10);
+                if (isNaN(idx)) continue;
+                const { left: lo, right: hi } = ALL_DOMINOS[idx];
                 if (lo === v || hi === v) knownCount++;
             }
         }

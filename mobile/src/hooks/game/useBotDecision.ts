@@ -1,14 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { GameState, GameRoom } from '../../core/types';
-import { computeBotDecision } from '../../core/BotEngine';
+import { computeBotDecision, computeEmergencyBotDecision } from '../../core/BotEngine';
 import { ActionCommand } from './useActionDispatcher';
-import {
-    MeytKayaliState,
-    initMeytKayali,
-    getMeytKayaliMove,
-    updateAfterOpponentPlay,
-    updateAfterOpponentPass,
-} from '../../core/MeytKayaliEngine';
+import { LogService } from '../../core/services/LogService';
+import { getMeytKayaliMove } from '../../core/MeytKayaliEngine';
 
 export interface UseBotDecisionProps {
     gameState: GameState | null;
@@ -40,8 +35,9 @@ export const useBotDecision = ({
     const gameStateRef = useRef(gameState);
     useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
-    // État interne du moteur MÈTKAYALI par bot (clé = playerId)
-    const meytKayaliStates = useRef<Map<string, MeytKayaliState>>(new Map());
+    const logBotTurn = (message: string, data?: Record<string, unknown>) => {
+        LogService.info('useBotDecision', message, data);
+    };
 
     // Initialiser / réinitialiser le moteur MÈTKAYALI quand une nouvelle partie commence
     const lastGameIdRef = useRef<string | null>(null);
@@ -49,20 +45,6 @@ export const useBotDecision = ({
         if (!gameState || gameState.phase === 'LOBBY') return;
         if (gameState.gameId === lastGameIdRef.current) return;
         lastGameIdRef.current = gameState.gameId;
-
-        // Pour chaque bot METKAYALI, initialiser son état
-        meytKayaliStates.current.clear();
-        for (const player of gameState.players) {
-            if (player.difficulty === 'METKAYALI' && player.status === 'BOT') {
-                const opponentIds = gameState.players
-                    .filter(p => p.id !== player.id)
-                    .map(p => p.id);
-                meytKayaliStates.current.set(
-                    player.id,
-                    initMeytKayali(player.hand, opponentIds)
-                );
-            }
-        }
     }, [gameState?.gameId]);
 
     useEffect(() => {
@@ -92,20 +74,71 @@ export const useBotDecision = ({
             ? 100
             : Math.floor(Math.random() * 500) + 1000;
 
-        const timerId = setTimeout(() => {
+        let isCancelled = false;
+        const timers = new Set<ReturnType<typeof setTimeout>>();
+        const maxAttempts = activePlayer.status === 'DISCONNECTED' ? 12 : 18;
+
+        const schedule = (delay: number, callback: () => void) => {
+            const id = setTimeout(() => {
+                timers.delete(id);
+                callback();
+            }, delay);
+            timers.add(id);
+        };
+
+        const retryLater = (attempt: number, reason: string, data?: Record<string, unknown>) => {
+            if (attempt >= maxAttempts) {
+                LogService.error('useBotDecision', `Bot turn retry limit reached: ${reason}`, {
+                    playerId: currentPlayerId,
+                    turnId: capturedTurnId,
+                    attempt,
+                    ...data,
+                });
+                return;
+            }
+
+            logBotTurn(`Bot turn retry: ${reason}`, {
+                playerId: currentPlayerId,
+                turnId: capturedTurnId,
+                nextAttempt: attempt + 1,
+                ...data,
+            });
+            schedule(250, () => {
+                void runAttempt(attempt + 1);
+            });
+        };
+
+        const runAttempt = async (attempt: number) => {
+            if (isCancelled) return;
+
             const freshState = gameStateRef.current;
             if (!freshState) return;
 
             // 1. A-t-on changé de tour pendant le délai ?
             if (freshState.turnId !== capturedTurnId) {
+                logBotTurn('Bot turn cancelled: stale turn.', {
+                    playerId: currentPlayerId,
+                    capturedTurnId,
+                    freshTurnId: freshState.turnId,
+                    attempt,
+                });
+                return;
+            }
 
+            if (freshState.phase !== 'PLAYING' || freshState.currentPlayerId !== currentPlayerId) {
+                logBotTurn('Bot turn cancelled: state moved on.', {
+                    playerId: currentPlayerId,
+                    phase: freshState.phase,
+                    currentPlayerId: freshState.currentPlayerId,
+                    attempt,
+                });
                 return;
             }
 
             // 2. Le Dispatcher autorise-t-il l'action ?
             // Les bots ne subissent pas l'immunité timeout car c'est une action organique
             if (!canActionRef.current(currentPlayerId, { isAuto: false })) {
-
+                retryLater(attempt, 'canAction=false before decision');
                 return;
             }
 
@@ -115,11 +148,8 @@ export const useBotDecision = ({
             try {
                 if (activePlayer.difficulty === 'METKAYALI') {
                     // Moteur Monte-Carlo MÈTKAYALI
-                    const mkState = meytKayaliStates.current.get(currentPlayerId)
-                        ?? initMeytKayali(activePlayer.hand, freshState.players.filter(p => p.id !== currentPlayerId).map(p => p.id));
-
-                    const { decision: mkDecision, updatedState } = getMeytKayaliMove(mkState, freshState, currentPlayerId);
-                    meytKayaliStates.current.set(currentPlayerId, updatedState);
+                    const dummyState = { tracker: { tileStates: new Map(), excludedValues: new Map(), handSizes: new Map() }, probabilities: new Map(), confidence: 0 };
+                    const { decision: mkDecision } = getMeytKayaliMove(dummyState as any, freshState, currentPlayerId);
 
                     if (mkDecision) {
                         tileToPlay = mkDecision.tile;
@@ -133,31 +163,78 @@ export const useBotDecision = ({
                         sideToPlay = decision.side as 'left' | 'right' | 'start';
                     }
                 }
-            } catch {
-                const fallbackDecision = computeBotDecision(freshState, currentPlayerId);
+            } catch (error) {
+                LogService.error('useBotDecision', 'Bot decision failed; using emergency fallback.', error);
+                const fallbackDecision = computeEmergencyBotDecision(freshState, currentPlayerId);
                 if (fallbackDecision) {
                     tileToPlay = fallbackDecision.tile;
                     sideToPlay = fallbackDecision.side as 'left' | 'right' | 'start';
                 }
             }
 
-            if (tileToPlay) {
-                dispatchRef.current({
+            const command: ActionCommand = tileToPlay
+                ? {
                     type: 'PLAY_TILE',
                     playerId: currentPlayerId,
                     tile: tileToPlay,
                     side: sideToPlay
-                });
-            } else {
-                dispatchRef.current({
+                }
+                : {
                     type: 'PASS_TURN',
                     playerId: currentPlayerId
+                };
+
+            logBotTurn('Bot dispatch attempt.', {
+                playerId: currentPlayerId,
+                turnId: capturedTurnId,
+                attempt,
+                commandType: command.type,
+                tileId: tileToPlay?.id,
+                side: tileToPlay ? sideToPlay : undefined,
+            });
+
+            if (tileToPlay) {
+                await dispatchRef.current(command).catch(error => {
+                    LogService.error('useBotDecision', 'Bot PLAY_TILE dispatch failed.', error);
+                });
+            } else {
+                await dispatchRef.current(command).catch(error => {
+                    LogService.error('useBotDecision', 'Bot PASS_TURN dispatch failed.', error);
                 });
             }
 
-        }, delayMs);
+            schedule(500, () => {
+                if (isCancelled) return;
+                const stateAfterDispatch = gameStateRef.current;
+                if (
+                    stateAfterDispatch?.phase === 'PLAYING'
+                    && stateAfterDispatch.currentPlayerId === currentPlayerId
+                    && stateAfterDispatch.turnId === capturedTurnId
+                ) {
+                    retryLater(attempt, 'dispatch did not advance turn', {
+                        commandType: command.type,
+                    });
+                }
+            });
+        };
 
-        return () => clearTimeout(timerId);
+        logBotTurn('Bot turn scheduled.', {
+            playerId: currentPlayerId,
+            turnId: capturedTurnId,
+            delayMs,
+            difficulty: activePlayer.difficulty,
+            status: activePlayer.status,
+            isSoloMode,
+        });
+        schedule(delayMs, () => {
+            void runAttempt(1);
+        });
+
+        return () => {
+            isCancelled = true;
+            timers.forEach(clearTimeout);
+            timers.clear();
+        };
 
     }, [
         gameState?.turnId,

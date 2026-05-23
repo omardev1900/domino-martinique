@@ -16,6 +16,7 @@ import { GameHeader } from '../components/game/GameHeader';
 import { GameOptionsMenu } from '../components/game/GameOptionsMenu';
 import { GameOverlays } from '../components/game/GameOverlays';
 import { PlayerArea } from '../components/game/PlayerArea';
+import { NetworkRequiredScreen } from '../components/NetworkRequiredScreen';
 import { HandSortMode } from '../components/PlayerHand';
 import { ActionFooter } from '../components/game/ActionFooter';
 import { LobbyScreen } from './LobbyScreen';
@@ -134,6 +135,36 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     // Pub in-game : pause moteur + mémorisation de la transition en attente
     const [isAdVisible, setIsAdVisible] = useState(false);
     const isAdVisibleRef = useRef(false);
+
+    const [flyingDomino, setFlyingDomino] = useState<FlyingDominoData | null>(null);
+    const [hiddenDominoId, setHiddenDominoId] = useState<string | null>(null);
+    const tableRef = useRef<GameTableRef>(null);
+    const lastPlayStartPos = useRef<{ x: number, y: number } | null>(null);
+    const avatarRefs = useRef<{ [key: string]: any }>({});
+    const animatedHistoryLengthRef = useRef(gameState?.history?.length || 0);
+
+    const historyLengthDiff = (gameState?.history?.length || 0) - animatedHistoryLengthRef.current;
+    const lastMoveSync = historyLengthDiff > 0 ? gameState?.history?.[gameState.history.length - 1] : null;
+    const effectiveHiddenDominoId = (lastMoveSync?.action === 'PLAY' && lastMoveSync.domino) ? lastMoveSync.domino.id : hiddenDominoId;
+
+    const currentDisplayState = gameState;
+
+    const isGamePaused = isPaused || showOptions || isAdVisible;
+    const finishFlyingDomino = useCallback((reason: 'finished' | 'watchdog' = 'finished') => {
+        if (reason === 'watchdog') {
+            LogService.warn('GameScreen', '[ANIM-DOMINO] Animation watchdog cleared a stuck flying domino.');
+        }
+        setFlyingDomino(null);
+        setHiddenDominoId(null);
+        lastPlayStartPos.current = null;
+    }, []);
+
+    useEffect(() => {
+        if (!flyingDomino) return;
+        const watchdog = setTimeout(() => finishFlyingDomino('watchdog'), 1400);
+        return () => clearTimeout(watchdog);
+    }, [flyingDomino, finishFlyingDomino]);
+
     const pendingPhaseTransitionRef = useRef<(() => void) | null>(null);
 
     // -- 4. Timer Hook --
@@ -145,15 +176,98 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         clearAllTurnTimers
     } = useGameTimers({
         gameState,
-        isPaused: isPaused || showOptions || isAdVisible,
+        isPaused: isGamePaused,
         localPlayerId,
         onTimeout: (pId, turnId) => handleTimeoutCb(pId, turnId)
     });
 
     // -- 5. The Façade Game Engine --
-    const onTilePlayedEffect = (tile: Domino) => {
-        // RADICAL: Animation de vol supprimée
-    };
+    useEffect(() => {
+        if (!gameState?.history) return;
+        
+        const currentLength = gameState.history.length;
+        if (currentLength > animatedHistoryLengthRef.current) {
+            const newActions = gameState.history.slice(animatedHistoryLengthRef.current);
+            animatedHistoryLengthRef.current = currentLength;
+            
+            const lastMove = newActions[newActions.length - 1];
+            if (lastMove.action === 'PLAY' && lastMove.domino) {
+                setHiddenDominoId(lastMove.domino.id);
+
+                const isLocal = lastMove.playerId === localPlayerId;
+                let startPoint = { x: width / 2, y: height / 2 };
+
+                if (isLocal && lastPlayStartPos.current) {
+                    startPoint = lastPlayStartPos.current;
+                }
+
+                const triggerAnimation = (start: { x: number, y: number }) => {
+                    // Small delay to ensure the board has re-rendered the drop zones
+                    setTimeout(() => {
+                        let measured = false;
+                        const fallbackTimeout = setTimeout(() => {
+                            if (measured) return;
+                            measured = true;
+                            // Fallback if table measure fails
+                            setFlyingDomino({
+                                domino: lastMove.domino!,
+                                startPoint: start,
+                                orientation: 'vertical',
+                                isReversed: false
+                            });
+                        }, 200);
+
+                        tableRef.current?.measureTile(lastMove.domino!.id, (endX: number, endY: number, w: number, h: number) => {
+                            if (measured) return;
+                            measured = true;
+                            clearTimeout(fallbackTimeout);
+                            if (w > 0) {
+                                setFlyingDomino({
+                                    domino: lastMove.domino!,
+                                    startPoint: start,
+                                    endPoint: { x: endX, y: endY },
+                                    width: w,
+                                    height: h,
+                                    orientation: h > w ? 'horizontal' : 'vertical',
+                                    isReversed: (lastMove as any).isReversed || false
+                                });
+                            } else {
+                                setFlyingDomino({
+                                    domino: lastMove.domino!,
+                                    startPoint: start,
+                                    orientation: 'vertical',
+                                    isReversed: false
+                                });
+                            }
+                        });
+                    }, 50);
+                };
+
+                if (!isLocal && avatarRefs.current[lastMove.playerId]) {
+                    let avatarMeasured = false;
+                    const avatarFallback = setTimeout(() => {
+                        if (avatarMeasured) return;
+                        avatarMeasured = true;
+                        triggerAnimation(startPoint);
+                    }, 200);
+
+                    avatarRefs.current[lastMove.playerId]?.measure((x: number, y: number, w: number, h: number, px: number, py: number) => {
+                        if (avatarMeasured) return;
+                        avatarMeasured = true;
+                        clearTimeout(avatarFallback);
+                        triggerAnimation({ x: px + w / 2 - 20, y: py + h / 2 - 40 });
+                    });
+                } else {
+                    triggerAnimation(startPoint);
+                }
+            } else {
+                // If it was a PASS or other action, no animation, just update visual state immediately
+                setHiddenDominoId(null);
+            }
+        } else if (currentLength < animatedHistoryLengthRef.current || currentLength === 0) {
+            animatedHistoryLengthRef.current = currentLength;
+        }
+    }, [gameState?.history, localPlayerId, width, height]);
 
     const handleReplay = async () => {
         if (isSoloMode) {
@@ -201,7 +315,6 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         clearAllTurnTimers,
         setOvertime,
         setTimeLeft,
-        onTilePlayed: onTilePlayedEffect,
         onReplay: handleReplay
     });
 
@@ -296,9 +409,6 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         });
     }, [roomData?.quickChats]);
 
-    const [hiddenDominoId, setHiddenDominoId] = useState<string | null>(null);
-    const [flyingDomino, setFlyingDomino] = useState<FlyingDominoData | null>(null);
-
     // Badge Boudé local : se reset dès que turnId change pour éviter la persistance
     // en multi quand Firestore tarde à propager boudePlayerId = null.
     const [localBoudedPlayerId, setLocalBoudedPlayerId] = useState<string | null>(null);
@@ -314,10 +424,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         }
     }, [gameState?.boudePlayerId, gameState?.turnId]);
 
-    const tableRef = useRef<GameTableRef>(null);
     const rootRef = useRef<View>(null);
-    const lastPlayStartPos = useRef<{ x: number, y: number } | null>(null);
-    const avatarRefs = useRef<{ [key: string]: View | null }>({});
     const processedBotTurnRef = useRef<string | null>(null);
     const lastSeenChatNonces = useRef<{ [playerId: string]: string }>({});
     const isFirstChatLoad = useRef<boolean>(true);
@@ -1154,7 +1261,10 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     // These are already extracted into useGameEngine and useGameSync
 
     const wrappedHandlePlayDomino = useCallback(
-        (domino: Domino) => {
+        (domino: Domino, position?: { x: number, y: number }) => {
+            if (position) {
+                lastPlayStartPos.current = position;
+            }
             handlePlayDomino(domino);
         },
         [handlePlayDomino]
@@ -1212,8 +1322,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     }
 
     const getPlayerScore = (player: Player) => {
-        if (!gameState) return "";
-        switch (gameState.gameMode) {
+        if (!currentDisplayState) return "";
+        switch (currentDisplayState.gameMode) {
             case 'VICTOIRE': return `${player.totalRoundWins} 🏆`;
             case 'MANCHE': return `${player.mancheWins} ${player.mancheWins > 1 ? 'Manches' : 'Manche'}`;
             case 'SCORE': {
@@ -1268,7 +1378,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 )}
 
                 <GameHeader
-                    gameState={gameState}
+                    gameState={currentDisplayState}
                     insets={insets}
                     onOpenOptions={() => setShowOptions(true)}
                 />
@@ -1277,7 +1387,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     visible={showOptions}
                     onClose={() => setShowOptions(false)}
                     isSoloMode={isSoloMode}
-                    gameState={gameState}
+                    gameState={currentDisplayState}
                     gameId={gameId}
                     roomData={roomData}
                     isBgmEnabled={isBgmEnabled}
@@ -1306,6 +1416,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     pendingDomino={pendingDomino}
                     onSideSelect={pendingDomino ? confirmSidePlay : undefined}
                     skinConfig={playerSkinConfig}
+                    hiddenDominoId={effectiveHiddenDominoId}
                 />
 
 
@@ -1320,13 +1431,13 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
             <ActionFooter
                 localPlayer={localPlayer as any}
-                gameState={gameState}
+                gameState={currentDisplayState}
                 localPlayerId={localPlayerId}
                 bannerState={bannerState}
                 forcedOpeningDominoId={forcedOpeningDominoId}
                 insets={insets}
                 onPlayDomino={wrappedHandlePlayDomino}
-                isPaused={isPaused || showOptions}
+                isPaused={isGamePaused}
                 skinConfig={playerSkinConfig}
                 handSortMode={handSortMode}
             />
@@ -1335,13 +1446,13 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             <PlayerArea
                 opponents={opponents}
                 localPlayer={localPlayer as any}
-                gameState={gameState}
+                gameState={currentDisplayState}
                 localPlayerId={localPlayerId}
                 boudedPlayerId={localBoudedPlayerId}
                 playersChat={playersChat as any}
                 overtime={overtime}
                 isBotPlaying={isProcessingMove}
-                isPaused={isPaused || showOptions}
+                isPaused={isGamePaused}
                 insets={insets}
                 avatarRefs={avatarRefs}
                 getPlayerScore={getPlayerScore as any}
@@ -1357,7 +1468,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             />
 
             <GameOverlays
-                gameState={gameState}
+                gameState={currentDisplayState}
                 pendingDomino={pendingDomino}
                 isLandscape={isLandscape}
                 insets={insets}
@@ -1429,6 +1540,17 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     );
                 }}
             />
+            {flyingDomino && (
+                <FlyingDomino
+                    key={`${flyingDomino.domino.id}-${gameState?.history?.length ?? 0}`}
+                    data={flyingDomino}
+                    skinConfig={playerSkinConfig}
+                    onFinished={() => {
+                        SoundManager.playClack();
+                        finishFlyingDomino('finished');
+                    }}
+                />
+            )}
         </View>
     );
 }
@@ -1445,6 +1567,3 @@ const styles = StyleSheet.create({
     },
     text: { color: 'white' }
 });
-
-
-

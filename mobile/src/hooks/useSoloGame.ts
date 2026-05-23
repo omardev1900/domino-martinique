@@ -106,7 +106,6 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
 
                 if (move) {
                     newState = handleTurn(currentState, currentPlayer.id, move.tile, move.side === 'start' ? undefined : move.side);
-                    SoundManager.playClack();
                 } else {
                     newState = passTurn(currentState, currentPlayer.id);
                     SoundManager.playSound('notify');
@@ -176,7 +175,6 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
 
         try {
             const newState = handleTurn(currentState, localPlayerId, domino);
-            SoundManager.playClack();
             HapticManager.triggerImpact();
             updateGameState(newState);
 

@@ -12,6 +12,26 @@ export interface BotDecision {
     side: 'left' | 'right' | 'start';
 }
 
+export const computeEmergencyBotDecision = (gameState: GameState, playerId: string): BotDecision | null => {
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) return null;
+
+    const forcedOpeningId = getForcedOpeningDominoId(gameState, playerId) ?? getForcedTieBreakDominoId(gameState, playerId);
+    if (forcedOpeningId) {
+        const forcedTile = player.hand.find(t => t.id === forcedOpeningId);
+        if (forcedTile) {
+            return { tile: forcedTile, side: 'start' };
+        }
+    }
+
+    return getBotMove(
+        player.hand,
+        gameState.table.leftValue,
+        gameState.table.rightValue,
+        'GRAN_MOUN'
+    );
+};
+
 /**
  * Point d'entrée pour obtenir le coup d'un bot.
  * Utilise le nouveau DominoEngine pour calculer la meilleure stratégie.

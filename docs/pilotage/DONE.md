@@ -9,6 +9,24 @@
 
 ## Mai 2026
 
+### 2026-05-23 - Correctif freeze bot solo manche 2
+
+- [x] **[FIX-SOLO-BOT-FREEZE-MK]** Correction du gel de tour des bots METKAYALI en solo.
+  - **Probleme** : en cas d'exception dans le moteur METKAYALI, le fallback rappelait `computeBotDecision`, qui pouvait relancer METKAYALI et laisser le bot sans `PLAY_TILE` ni `PASS_TURN`.
+  - **Correction** :
+    - Ajout d'une decision d'urgence dans `BotEngine` qui ne rappelle jamais METKAYALI et choisit un coup legal simple, ou laisse passer le bot.
+    - `useBotDecision` journalise l'erreur via `LogService`, utilise ce fallback d'urgence, capture les echecs de dispatch asynchrones et retente le tour si `canAction` ou le dispatcher n'ont pas fait avancer le `turnId`.
+    - Ajout de tests hook reproduisant un crash METKAYALI et un refus temporaire de `canAction`.
+  - Fichiers modifies : `mobile/src/core/BotEngine.ts`, `mobile/src/hooks/game/useBotDecision.ts`, `mobile/src/hooks/game/useActionDispatcher.ts`, `mobile/src/hooks/game/__tests__/useBotDecision.test.tsx`
+
+- [x] **[FIX-ANIM-DOMINO-DECOUPLING]** Decouplage de l'animation domino du moteur de jeu.
+  - **Probleme** : l'animation entrait dans `isGamePaused` et pouvait figer le timer / l'affichage si `FlyingDomino` ne terminait pas correctement.
+  - **Correction** :
+    - L'animation ne pause plus le moteur ni le timer : elle reste une couche UI decorative.
+    - Suppression du gel `visualGameState` / `freezeUI` autour de l'historique.
+    - Ajout d'un watchdog cote `GameScreen` et cote `FlyingDomino` pour nettoyer toute animation bloquee.
+  - Fichiers modifies : `mobile/src/screens/GameScreen.tsx`, `mobile/src/components/FlyingDomino.tsx`
+
 ### 2026-05-22 - Ajout de bots dans les salles multijoueurs
 
 - [x] **[AMELIORATION-MULTI-LOBBY-BOT-FILL]** : Permettre à l'hôte d'ajouter un bot pour compléter une table multi de 2 joueurs.
@@ -19,6 +37,16 @@
     - Ajout d'une interface (Alert) permettant de choisir le niveau du bot.
     - Ajout de la logique "Retirer" pour permettre d'éjecter un bot de la salle si on veut faire de la place.
     - Préservation du statut `BOT` et de la `difficulty` dans la routine `handleStartGame` de `GameScreen`.
+
+### 2026-05-22 - Animation fluide des dominos
+
+- [x] **[ANIM-DOMINO]** Animation glissée des dominos pendant le jeu
+  - **Objectif** : Ajouter une animation fluide lorsqu'un joueur (local, bot ou distant) pose un domino sur la table, en respectant un mouvement réaliste et sans artifice.
+  - **Réalisation** :
+    - Le point de départ pour le joueur local est la position de la tuile dans la main. Pour les adversaires, l'animation part de leur avatar.
+    - Ajout d'une mécanique de blocage transparente avec `isGamePaused` pour empêcher de jouer par-dessus l'animation sans altérer l'état du réseau (Firestore).
+    - Modification pure de l'historique de jeu (surveillance de `gameState.history`) pour attraper les coups locaux ET distants sans redondance.
+  - Fichiers modifiés : `mobile/src/screens/GameScreen.tsx`, `mobile/src/components/FlyingDomino.tsx`, `mobile/src/components/GameTable.tsx`
 
 ### 2026-05-22 - Résolution Définitive Bug Reset Stats & Economie
 
