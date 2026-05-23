@@ -8,6 +8,7 @@ jest.setTimeout(15000);
 const mockGameOverlays = jest.fn(() => null);
 const mockRewardOverlay = jest.fn(() => null);
 const mockRoundResultCard = jest.fn(() => null);
+const mockHandleOverlayContinue = jest.fn();
 
 const getLastOverlayProps = () => mockGameOverlays.mock.calls[mockGameOverlays.mock.calls.length - 1][0];
 const getLastRoundResultProps = () => mockRoundResultCard.mock.calls[mockRoundResultCard.mock.calls.length - 1][0];
@@ -177,7 +178,7 @@ jest.mock('../../hooks/game/useGameEngine', () => ({
         confirmSidePlay: jest.fn(),
         handlePassTurn: jest.fn(),
         handleTimeout: jest.fn(),
-        handleOverlayContinue: jest.fn(),
+        handleOverlayContinue: mockHandleOverlayContinue,
         pendingDomino: null,
         isProcessingMove: false,
     }),
@@ -529,6 +530,88 @@ describe('GameScreen grade-up flow', () => {
         });
 
         expect(getLastOverlayProps().showScoreOverlay).toBe(true);
+
+        view.unmount();
+        jest.runOnlyPendingTimers();
+    });
+
+    it('n initialise le RoundResultCard BOUDE qu une seule fois pour le meme etat bloque', async () => {
+        jest.useFakeTimers();
+
+        mockCurrentGameState = {
+            ...mockCurrentGameState,
+            phase: 'BOUDE',
+            gameId: 'game-123',
+            mancheNumber: 1,
+            roundNumber: 2,
+            turnId: 22,
+            players: [
+                {
+                    ...mockCurrentGameState.players[0],
+                    id: 'p1',
+                    hand: [{ id: 'd00', left: 0, right: 0, isDouble: true }],
+                    handSize: 1,
+                },
+                {
+                    ...mockCurrentGameState.players[1],
+                    id: 'bot-1',
+                    hand: [{ id: 'd11', left: 1, right: 1, isDouble: true }],
+                    handSize: 1,
+                },
+            ],
+        } as any;
+
+        const view = render(
+            <GameScreen
+                gameId="game-123"
+                userId="p1"
+                mode="solo"
+                gameMode="MANCHE"
+                winningCondition={3}
+                turnDuration={15}
+                startingHandSize={7}
+            />
+        );
+
+        await act(async () => {
+            await Promise.resolve();
+        });
+
+        const firstVisibleCount = mockRoundResultCard.mock.calls
+            .filter(call => call[0].visible && call[0].gameState.phase === 'BOUDE')
+            .length;
+
+        view.rerender(
+            <GameScreen
+                gameId="game-123"
+                userId="p1"
+                mode="solo"
+                gameMode="MANCHE"
+                winningCondition={3}
+                turnDuration={15}
+                startingHandSize={7}
+            />
+        );
+
+        await act(async () => {
+            await Promise.resolve();
+        });
+
+        const secondVisibleCount = mockRoundResultCard.mock.calls
+            .filter(call => call[0].visible && call[0].gameState.phase === 'BOUDE')
+            .length;
+
+        expect(firstVisibleCount).toBe(1);
+        expect(secondVisibleCount).toBe(2);
+        expect(getLastRoundResultProps().gameState.phase).toBe('BOUDE');
+        expect(getLastRoundResultProps().visible).toBe(true);
+
+        await act(async () => {
+            jest.advanceTimersByTime(6000);
+            await Promise.resolve();
+        });
+
+        expect(mockHandleOverlayContinue).toHaveBeenCalledTimes(1);
 
         view.unmount();
         jest.runOnlyPendingTimers();

@@ -25,6 +25,7 @@ export const FlyingDomino: React.FC<FlyingDominoProps> = ({ data, onFinished, sk
     const progress = useSharedValue(0);
     const finishedRef = useRef(false);
     const onFinishedRef = useRef(onFinished);
+    const baseSize = data.baseSize ?? 34;
 
     useEffect(() => {
         onFinishedRef.current = onFinished;
@@ -37,10 +38,17 @@ export const FlyingDomino: React.FC<FlyingDominoProps> = ({ data, onFinished, sk
             onFinishedRef.current();
         };
 
+        finishedRef.current = false;
+        progress.value = 0;
+
+        if (data.holdAtStart) {
+            return;
+        }
+
         const watchdog = setTimeout(finishOnce, ANIMATION_DURATION + 450);
 
         // If endPoint is not available (layout measurement failed, common on Web),
-        // run a quick scale-in "pop" at the origin and finish immediately.
+        // keep the fallback neutral and finish without a visual pop.
         if (!data.endPoint) {
             progress.value = withTiming(1, {
                 duration: ANIMATION_DURATION,
@@ -62,8 +70,21 @@ export const FlyingDomino: React.FC<FlyingDominoProps> = ({ data, onFinished, sk
     }, [data, progress]);
 
     const animatedStyle = useAnimatedStyle(() => {
+        if (data.holdAtStart) {
+            return {
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                transform: [
+                    { translateX: data.startPoint.x },
+                    { translateY: data.startPoint.y },
+                ],
+                opacity: 1,
+                zIndex: 1000,
+            };
+        }
+
         if (!data.endPoint || !data.width || !data.height) {
-            const scale = interpolate(progress.value, [0, 0.6, 1], [0, 1.2, 1]);
             const opacity = interpolate(progress.value, [0, 0.1, 0.9, 1], [0, 1, 1, 0]);
             return {
                 position: 'absolute',
@@ -72,15 +93,14 @@ export const FlyingDomino: React.FC<FlyingDominoProps> = ({ data, onFinished, sk
                 transform: [
                     { translateX: data.startPoint.x },
                     { translateY: data.startPoint.y },
-                    { scale },
                 ],
                 opacity,
                 zIndex: 1000,
             };
         }
 
-        const startCenterX = data.startPoint.x + 17;
-        const startCenterY = data.startPoint.y + 34;
+        const startCenterX = data.startPoint.x + baseSize / 2;
+        const startCenterY = data.startPoint.y + baseSize;
         
         const endCenterX = data.endPoint.x + data.width / 2;
         const endCenterY = data.endPoint.y + data.height / 2;
@@ -90,8 +110,8 @@ export const FlyingDomino: React.FC<FlyingDominoProps> = ({ data, onFinished, sk
 
         const isTargetHorizontal = data.orientation === 'horizontal';
         
-        const naturalW = isTargetHorizontal ? 68 : 34;
-        const naturalH = isTargetHorizontal ? 34 : 68;
+        const naturalW = isTargetHorizontal ? baseSize * 2 : baseSize;
+        const naturalH = isTargetHorizontal ? baseSize : baseSize * 2;
 
         const endScaleX = data.width / naturalW;
         const endScaleY = data.height / naturalH;
@@ -118,12 +138,13 @@ export const FlyingDomino: React.FC<FlyingDominoProps> = ({ data, onFinished, sk
     return (
         <Animated.View style={animatedStyle} pointerEvents="none">
             <DominoTile
-                left={data.domino.left}
-                right={data.domino.right}
+                left={data.visualLeft ?? data.domino.left}
+                right={data.visualRight ?? data.domino.right}
                 orientation={data.orientation}
-                size={34}
+                size={baseSize}
                 noMargin
                 skinConfig={skinConfig}
+                animateOnMount={false}
             />
         </Animated.View>
     );

@@ -19,6 +19,9 @@ interface PlayerHandProps {
     forcedPlayableDominoId?: string | null;
     skinConfig?: SkinConfig; // Cosmetic skin configuration
     sortMode?: HandSortMode;
+    hiddenDominoId?: string | null;
+    preservePlayableHighlights?: boolean;
+    preservedPlayableDominoIds?: string[];
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -31,8 +34,16 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
     forcedPlayableDominoId = null,
     skinConfig,
     sortMode = 'AUTO',
+    hiddenDominoId = null,
+    preservePlayableHighlights = false,
+    preservedPlayableDominoIds = [],
 }) => {
     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
+    const pressedDominoIdRef = React.useRef<string | null>(null);
+
+    React.useEffect(() => {
+        pressedDominoIdRef.current = null;
+    }, [hand]);
 
     const sortedHand = useMemo(() => {
         const withMeta = hand.map((domino, index) => ({
@@ -71,6 +82,8 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
 
     const handleTilePress = (domino: Domino) => {
         if (disabled) return;
+        if (pressedDominoIdRef.current) return;
+        pressedDominoIdRef.current = domino.id;
 
         const ref = tileRefs.current[domino.id];
         if (ref) {
@@ -95,8 +108,12 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                 pointerEvents={isLocked ? 'none' : 'auto'}
             >
                 {sortedHand.map((domino, index) => {
-                    const canPlayByBoardRule = !disabled && checkValidMove(domino, leftValue, rightValue).canPlay;
+                    const isVisuallyDisabled = disabled && !preservePlayableHighlights;
+                    const canPlayByBoardRule = preservePlayableHighlights
+                        ? preservedPlayableDominoIds.includes(domino.id)
+                        : !isVisuallyDisabled && checkValidMove(domino, leftValue, rightValue).canPlay;
                     const canPlay = canPlayByBoardRule && (!forcedPlayableDominoId || domino.id === forcedPlayableDominoId);
+                    const isHiddenDomino = hiddenDominoId === domino.id;
                     return (
                         // ✅ FIX B1: Le style d'élévation (translateY) est sur un plain View PARENT.
                         // L'Animated.View enfant gère uniquement l'animation d'entrée (FadeInDown).
@@ -105,7 +122,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                         <View
                             key={domino.id}
                             ref={(el) => (tileRefs.current[domino.id] = el as any)}
-                            style={
+                            style={[
                                 canPlay
                                     ? styles.tileElevated
                                     : disabled
@@ -113,8 +130,9 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                                         // ✅ FIX B2: Pas de transform scale sur les tuiles non-jouables.
                                         // L'ancien scale(0.92) + translateY(-25) sur les tuiles voisines
                                         // créait le visuel "dominos qui se bousculent". Opacity seule = propre.
-                                        : styles.tileNotPlayable
-                            }
+                                        : styles.tileNotPlayable,
+                                isHiddenDomino && styles.tileHidden,
+                            ]}
                         >
                             <Animated.View
                                 entering={FadeInDown.springify().damping(12).stiffness(100).delay(index * 120)}
@@ -126,10 +144,11 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                                     right={domino.right}
                                     size={38}
                                     orientation="vertical"
-                                    onPress={() => handleTilePress(domino)}
+                                    onPressInAction={() => handleTilePress(domino)}
                                     disabled={!canPlay || disabled}
                                     skinConfig={skinConfig}
                                     isPlayable={canPlay}
+                                    disablePressScale
                                 />
                             </Animated.View>
                         </View>
@@ -190,5 +209,8 @@ const styles = StyleSheet.create({
         // Le grisage gênait le joueur dans le choix de son domino (feedback client A3)
         zIndex: 1,
         elevation: 3,
+    },
+    tileHidden: {
+        opacity: 0,
     },
 });

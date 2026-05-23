@@ -4,7 +4,7 @@ import Animated, {
     useAnimatedStyle, useSharedValue,
     ZoomIn, withRepeat, withTiming, withSequence
 } from 'react-native-reanimated';
-import { GameState, Domino } from '../core/types';
+import { GameState, Domino, DominoSide } from '../core/types';
 import { DominoTile } from './DominoTile';
 import { Ionicons } from '@expo/vector-icons';
 import { TableTheme } from '../core/themes/tableThemes';
@@ -39,7 +39,12 @@ interface PlacedTile {
 }
 
 export interface GameTableRef {
-    measureTile: (id: string, cb: (x: number, y: number, w: number, h: number) => void) => void;
+    measureTile: (id: string, cb: (x: number, y: number, w: number, h: number, meta?: {
+        orientation: 'horizontal' | 'vertical';
+        isReversed: boolean;
+        visualLeft: DominoSide;
+        visualRight: DominoSide;
+    }) => void) => void;
 }
 
 interface GameTableProps {
@@ -249,12 +254,6 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
     const pulse = useSharedValue(1);
     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
 
-    React.useImperativeHandle(ref, () => ({
-        measureTile: (id, cb) => {
-            tileRefs.current[id]?.measure((x, y, w, h, pageX, pageY) => cb(pageX, pageY, w, h));
-        },
-    }));
-
     // Valid-move arrows
     const showLeftArrow = useMemo(() => {
         if (!pendingDomino || !onSideSelect) return false;
@@ -305,6 +304,27 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
 
     // ── Scale constraints to fit safe zone ─────────────────────────
     // Augmentation MAJEURE des marges : exclure complètement les avatars du bord gauche/droit
+    React.useImperativeHandle(ref, () => ({
+        measureTile: (id, cb) => {
+            tileRefs.current[id]?.measure((x, y, w, h, pageX, pageY) => {
+                const tile = placedTiles.find(item => item.domino.id === id);
+                if (!tile) {
+                    cb(pageX, pageY, w, h);
+                    return;
+                }
+
+                const logicalLeft = tile.isReversed ? tile.domino.right : tile.domino.left;
+                const logicalRight = tile.isReversed ? tile.domino.left : tile.domino.right;
+                cb(pageX, pageY, w, h, {
+                    orientation: tile.orientation,
+                    isReversed: tile.isReversed,
+                    visualLeft: tile.visualFlip ? logicalRight : logicalLeft,
+                    visualRight: tile.visualFlip ? logicalLeft : logicalRight,
+                });
+            });
+        },
+    }), [placedTiles]);
+
     const safeXPadd = isLandscape ? 100 : 100; // Zone moins restrictive pour laisser respirer la largeur
     const safeYPadd = isLandscape ? 80 : 140; // Espace supplémentaire en haut pour les avatars du haut
 
@@ -375,6 +395,7 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
                                         disabled
                                         noMargin
                                         skinConfig={skinConfig}
+                                        animateOnMount={false}
                                     />
                                 </View>
                             </View>

@@ -52,6 +52,18 @@ describe('ActionFooter Component', () => {
         expect(hand.props.disabled).toBe(true);
     });
 
+    it('passes disabled=true to PlayerHand while a move animation is pausing interactions', () => {
+        const { getByTestId } = render(
+            <ActionFooter
+                {...defaultProps}
+                isPaused={true}
+            />
+        );
+
+        const hand = getByTestId('mock-player-hand');
+        expect(hand.props.disabled).toBe(true);
+    });
+
     it('renders pass turn button when canPassTurn is true', () => {
         const onPassTurn = jest.fn();
         const { getByTestId } = render(

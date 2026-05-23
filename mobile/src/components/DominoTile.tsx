@@ -13,11 +13,14 @@ interface DominoTileProps {
     size?: number; // Width of the tile (height will be 2x)
     orientation?: 'vertical' | 'horizontal';
     onPress?: () => void;
+    onPressInAction?: () => void;
     disabled?: boolean;
     entering?: any; // Reanimated entering prop
     noMargin?: boolean; // Remove margin for board tiles
     isPlayable?: boolean; // Should the tile glow?
     skinConfig?: SkinConfig; // Cosmetic skin configuration
+    animateOnMount?: boolean;
+    disablePressScale?: boolean;
 }
 
 // Logic for pip positions
@@ -39,11 +42,14 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     size = 40,
     orientation = 'vertical',
     onPress,
+    onPressInAction,
     disabled = false,
     entering,
     noMargin = false,
     isPlayable = false,
-    skinConfig
+    skinConfig,
+    animateOnMount = true,
+    disablePressScale = false
 }) => {
     const isVertical = orientation === 'vertical';
     const width = isVertical ? size : size * 2;
@@ -99,22 +105,24 @@ export const DominoTile: React.FC<DominoTileProps> = ({
                 ['transparent', '#FFD700']
             ),
             borderWidth: isPlayable ? 3 : 0,
-            transform: [
-                { scale: withTiming(isPlayable ? 1.15 + glowValue.value * 0.05 : 1) },
-                { scale: pressScale.value }
-            ]
+            transform: [{ scale: pressScale.value }]
         };
     });
 
     const handlePressIn = () => {
-        if (!disabled && onPress) {
-            pressScale.value = withTiming(0.92, { duration: 100 });
+        if (!disabled && (onPress || onPressInAction)) {
+            if (!disablePressScale) {
+                pressScale.value = withTiming(0.92, { duration: 100 });
+            }
             HapticManager.triggerLightSelection();
+            onPressInAction?.();
         }
     };
 
     const handlePressOut = () => {
-        pressScale.value = withTiming(1, { duration: 100 });
+        if (!disablePressScale) {
+            pressScale.value = withTiming(1, { duration: 100 });
+        }
     };
 
     const renderHalfSVG = (value: DominoSide, isSideHorizontal: boolean) => {
@@ -145,13 +153,13 @@ export const DominoTile: React.FC<DominoTileProps> = ({
     };
 
     return (
-        <Animated.View entering={entering || ZoomIn.duration(400)} style={{ opacity: 1 }}>
+        <Animated.View entering={animateOnMount ? (entering || ZoomIn.duration(400)) : undefined} style={{ opacity: 1 }}>
             <AnimatedTouchableOpacity
                 activeOpacity={0.9}
                 onPress={onPress}
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
-                disabled={disabled || !onPress}
+                disabled={disabled || (!onPress && !onPressInAction)}
                 style={[
                     styles.baseContainer,
                     noMargin ? { margin: 0 } : { margin: 4 },

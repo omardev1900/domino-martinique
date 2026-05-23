@@ -138,24 +138,44 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
     const [flyingDomino, setFlyingDomino] = useState<FlyingDominoData | null>(null);
     const [hiddenDominoId, setHiddenDominoId] = useState<string | null>(null);
+    const [isMoveAnimationPending, setIsMoveAnimationPending] = useState(false);
     const tableRef = useRef<GameTableRef>(null);
     const lastPlayStartPos = useRef<{ x: number, y: number } | null>(null);
     const avatarRefs = useRef<{ [key: string]: any }>({});
     const animatedHistoryLengthRef = useRef(gameState?.history?.length || 0);
+    const animatedPlayKeysRef = useRef<Set<string>>(new Set());
+    const pendingLocalPlayAnimationRef = useRef<{
+        dominoId: string;
+        animationId: string;
+        startPoint: { x: number, y: number };
+    } | null>(null);
+    const [localHandAnimationSnapshot, setLocalHandAnimationSnapshot] = useState<Domino[] | null>(null);
+    const [hiddenHandDominoId, setHiddenHandDominoId] = useState<string | null>(null);
+    const [preserveLocalHandHighlights, setPreserveLocalHandHighlights] = useState(false);
+    const [preservedPlayableDominoIds, setPreservedPlayableDominoIds] = useState<string[]>([]);
 
-    const historyLengthDiff = (gameState?.history?.length || 0) - animatedHistoryLengthRef.current;
-    const lastMoveSync = historyLengthDiff > 0 ? gameState?.history?.[gameState.history.length - 1] : null;
-    const effectiveHiddenDominoId = (lastMoveSync?.action === 'PLAY' && lastMoveSync.domino) ? lastMoveSync.domino.id : hiddenDominoId;
+    const pendingHistoryLengthDiff = (gameState?.history?.length || 0) - animatedHistoryLengthRef.current;
+    const pendingHistoryMove = pendingHistoryLengthDiff > 0 ? gameState?.history?.[gameState.history.length - 1] : null;
+    const pendingHistoryDominoId = pendingHistoryMove?.action === 'PLAY' && pendingHistoryMove.domino
+        ? pendingHistoryMove.domino.id
+        : null;
+    const effectiveHiddenDominoId = hiddenDominoId ?? pendingHistoryDominoId;
 
     const currentDisplayState = gameState;
 
     const isGamePaused = isPaused || showOptions || isAdVisible;
+    const isMoveAnimationActive = isMoveAnimationPending || !!flyingDomino || !!hiddenDominoId || !!pendingHistoryDominoId;
     const finishFlyingDomino = useCallback((reason: 'finished' | 'watchdog' = 'finished') => {
         if (reason === 'watchdog') {
             LogService.warn('GameScreen', '[ANIM-DOMINO] Animation watchdog cleared a stuck flying domino.');
         }
         setFlyingDomino(null);
         setHiddenDominoId(null);
+        setIsMoveAnimationPending(false);
+        setLocalHandAnimationSnapshot(null);
+        setHiddenHandDominoId(null);
+        setPreserveLocalHandHighlights(false);
+        setPreservedPlayableDominoIds([]);
         lastPlayStartPos.current = null;
     }, []);
 
@@ -176,7 +196,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         clearAllTurnTimers
     } = useGameTimers({
         gameState,
-        isPaused: isGamePaused,
+        isPaused: isGamePaused || isMoveAnimationActive,
         localPlayerId,
         onTimeout: (pId, turnId) => handleTimeoutCb(pId, turnId)
     });
@@ -188,59 +208,97 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         const currentLength = gameState.history.length;
         if (currentLength > animatedHistoryLengthRef.current) {
             const newActions = gameState.history.slice(animatedHistoryLengthRef.current);
+            const lastMoveIndex = currentLength - 1;
             animatedHistoryLengthRef.current = currentLength;
             
             const lastMove = newActions[newActions.length - 1];
             if (lastMove.action === 'PLAY' && lastMove.domino) {
-                setHiddenDominoId(lastMove.domino.id);
+                const playKey = [
+                    gameState.gameId,
+                    gameState.mancheNumber,
+                    gameState.roundNumber,
+                    lastMoveIndex,
+                    lastMove.playerId,
+                    lastMove.domino.id,
+                    lastMove.timestamp ?? 'no-ts'
+                ].join(':');
+
+                if (animatedPlayKeysRef.current.has(playKey)) {
+                    setHiddenDominoId(null);
+                    setIsMoveAnimationPending(false);
+                    return;
+                }
+                animatedPlayKeysRef.current.add(playKey);
 
                 const isLocal = lastMove.playerId === localPlayerId;
-                let startPoint = { x: width / 2, y: height / 2 };
+                const pendingLocalAnimation = isLocal
+                    && pendingLocalPlayAnimationRef.current?.dominoId === lastMove.domino.id
+                    ? pendingLocalPlayAnimationRef.current
+                    : null;
+                const animationId = pendingLocalAnimation?.animationId ?? playKey;
 
-                if (isLocal && lastPlayStartPos.current) {
+                setIsMoveAnimationPending(true);
+                setHiddenDominoId(lastMove.domino.id);
+                let startPoint = pendingLocalAnimation?.startPoint ?? { x: width / 2, y: height / 2 };
+
+                if (!pendingLocalAnimation && isLocal && lastPlayStartPos.current) {
                     startPoint = lastPlayStartPos.current;
                 }
 
                 const triggerAnimation = (start: { x: number, y: number }) => {
-                    // Small delay to ensure the board has re-rendered the drop zones
+                    const showFlight = (data: FlyingDominoData) => {
+                        setHiddenDominoId(data.domino.id);
+                        if (!data.holdAtStart) {
+                            setPreserveLocalHandHighlights(false);
+                        }
+                        setFlyingDomino(data);
+                    };
+
                     setTimeout(() => {
                         let measured = false;
                         const fallbackTimeout = setTimeout(() => {
                             if (measured) return;
                             measured = true;
-                            // Fallback if table measure fails
-                            setFlyingDomino({
+                            showFlight({
+                                animationId,
                                 domino: lastMove.domino!,
                                 startPoint: start,
+                                baseSize: pendingLocalAnimation ? 38 : 34,
                                 orientation: 'vertical',
                                 isReversed: false
                             });
-                        }, 200);
+                        }, 90);
 
-                        tableRef.current?.measureTile(lastMove.domino!.id, (endX: number, endY: number, w: number, h: number) => {
+                        tableRef.current?.measureTile(lastMove.domino!.id, (endX: number, endY: number, w: number, h: number, meta) => {
                             if (measured) return;
                             measured = true;
                             clearTimeout(fallbackTimeout);
                             if (w > 0) {
-                                setFlyingDomino({
+                                showFlight({
+                                    animationId,
                                     domino: lastMove.domino!,
                                     startPoint: start,
                                     endPoint: { x: endX, y: endY },
+                                    baseSize: pendingLocalAnimation ? 38 : 34,
                                     width: w,
                                     height: h,
-                                    orientation: h > w ? 'horizontal' : 'vertical',
-                                    isReversed: (lastMove as any).isReversed || false
+                                    orientation: meta?.orientation ?? (w > h ? 'horizontal' : 'vertical'),
+                                    isReversed: meta?.isReversed ?? false,
+                                    visualLeft: meta?.visualLeft,
+                                    visualRight: meta?.visualRight,
                                 });
                             } else {
-                                setFlyingDomino({
+                                showFlight({
+                                    animationId,
                                     domino: lastMove.domino!,
                                     startPoint: start,
+                                    baseSize: pendingLocalAnimation ? 38 : 34,
                                     orientation: 'vertical',
                                     isReversed: false
                                 });
                             }
                         });
-                    }, 50);
+                    }, 16);
                 };
 
                 if (!isLocal && avatarRefs.current[lastMove.playerId]) {
@@ -260,14 +318,22 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 } else {
                     triggerAnimation(startPoint);
                 }
+                if (pendingLocalAnimation) {
+                    pendingLocalPlayAnimationRef.current = null;
+                }
             } else {
                 // If it was a PASS or other action, no animation, just update visual state immediately
                 setHiddenDominoId(null);
+                setIsMoveAnimationPending(false);
             }
         } else if (currentLength < animatedHistoryLengthRef.current || currentLength === 0) {
             animatedHistoryLengthRef.current = currentLength;
+            if (currentLength === 0) {
+                animatedPlayKeysRef.current.clear();
+            }
+            setIsMoveAnimationPending(false);
         }
-    }, [gameState?.history, localPlayerId, width, height]);
+    }, [gameState?.history, gameState?.gameId, gameState?.mancheNumber, gameState?.roundNumber, localPlayerId, width, height]);
 
     const handleReplay = async () => {
         if (isSoloMode) {
@@ -431,6 +497,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const prevMancheRef = useRef<number>(1);
     // Tracks whether current PARTIE_END came from a BOUDE (to skip re-showing the card)
     const boudeHandledRef = useRef(false);
+    const activeBoudeResultKeyRef = useRef<string | null>(null);
+    const resolvedBoudeResultKeysRef = useRef<Set<string>>(new Set());
 
     // -- 6. Derived State & Layout --
     const localPlayer = gameState?.players.find(p => p.id === localPlayerId);
@@ -666,8 +734,21 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const partieEndContinueRef = useRef(handleOverlayContinue);
     useEffect(() => { partieEndContinueRef.current = handleOverlayContinue; }, [handleOverlayContinue]);
 
+    const resolveBoudeOnce = useCallback((resultKey: string) => {
+        if (resolvedBoudeResultKeysRef.current.has(resultKey)) return;
+        resolvedBoudeResultKeysRef.current.add(resultKey);
+        setShowRoundResult(false);
+        partieEndContinueRef.current();
+    }, []);
+
+    const isCurrentBoudeResultVisible = gameState?.phase === 'BOUDE'
+        && activeBoudeResultKeyRef.current === `${gameState.gameId}:${gameState.mancheNumber}:${gameState.roundNumber}:${gameState.turnId}`;
+
     useEffect(() => {
         if (!gameState) return;
+        const boudeResultKey = `${gameState.gameId}:${gameState.mancheNumber}:${gameState.roundNumber}:${gameState.turnId}`;
+
+        if (isMoveAnimationActive) return;
 
         if (
             gameState.phase !== 'BOUDE'
@@ -686,23 +767,24 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         // leurs handlers ci-dessous s'exécuter (BOUDE peut résoudre directement en MANCHE_END).
         if (boudeHandledRef.current && gameState.phase !== 'BOUDE' && gameState.phase !== 'PARTIE_END') {
             boudeHandledRef.current = false;
+            activeBoudeResultKeyRef.current = null;
             setShowRoundResult(false);
             if (gameState.phase !== 'MANCHE_END' && gameState.phase !== 'MATCH_END') {
                 return;
             }
         }
 
-        if (gameState.phase === 'BOUDE' && !showRoundResult) {
+        if (gameState.phase === 'BOUDE' && activeBoudeResultKeyRef.current !== boudeResultKey) {
             // Partie bloquée : card immédiate 3.5s, host résout BOUDE au bout
             boudeHandledRef.current = true;
+            activeBoudeResultKeyRef.current = boudeResultKey;
             setScoreOverlayPhase(null);
             setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             if (isLocalHost) {
                 // Host : on résout soi-même après 5s (annule le timer 6s séparé)
                 const timer = setTimeout(() => {
-                    setShowRoundResult(false);
-                    partieEndContinueRef.current(); // resolveBoude → PARTIE_END
+                    resolveBoudeOnce(boudeResultKey);
                 }, 5000);
                 return () => clearTimeout(timer);
             }
@@ -714,6 +796,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             if (boudeHandledRef.current) {
                 // Vient de BOUDE : card déjà montrée, avancer directement sans re-afficher
                 boudeHandledRef.current = false;
+                activeBoudeResultKeyRef.current = null;
                 setScoreOverlayPhase(null);
                 setShowRoundResult(false);
                 partieEndContinueRef.current(); // computeNextRoundState → PLAYING/MANCHE_END
@@ -783,7 +866,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             }, 2500);
             return () => clearTimeout(timer);
         }
-    }, [gameState?.phase, isLocalHost]);
+    }, [gameState?.phase, gameState?.gameId, gameState?.mancheNumber, gameState?.roundNumber, gameState?.turnId, isLocalHost, resolveBoudeOnce, isMoveAnimationActive]);
 
     // Afficher la popup de pub récompensée 2 secondes après l'apparition du score de fin de match
     // Uniquement si une pub récompensée est disponible pour ce placement.
@@ -802,18 +885,6 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             setShowMatchRewardModal(false);
         }
     }, [scoreOverlayPhase]);
-
-    // Handle BOUDE phase: fallback automatique 5s si le timer 3.5s n'a pas résolu (Host only)
-    // Utilise partieEndContinueRef (stable) plutôt que handleOverlayContinue directement
-    // pour éviter de recréer ce useEffect à chaque render.
-    useEffect(() => {
-        if (gameState?.phase === 'BOUDE' && isLocalHost) {
-            const timer = setTimeout(() => {
-                partieEndContinueRef.current();
-            }, 6000);
-            return () => clearTimeout(timer);
-        }
-    }, [gameState?.phase, isLocalHost]);
 
     // Pré-chargement des pubs automatiques en fin de round/manche/match
     useEffect(() => {
@@ -1260,14 +1331,96 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     // -- 7. Action Handlers (Delegated) --
     // These are already extracted into useGameEngine and useGameSync
 
+    const localPlayerForActionFooter = useMemo(() => {
+        if (!localPlayer || !localHandAnimationSnapshot || !hiddenHandDominoId) return localPlayer;
+        return {
+            ...localPlayer,
+            hand: localHandAnimationSnapshot,
+        };
+    }, [hiddenHandDominoId, localHandAnimationSnapshot, localPlayer]);
+
+    const primeLocalDominoFlight = useCallback((domino: Domino, position?: { x: number, y: number }, handSnapshot?: Domino[], playableDominoIds: string[] = []) => {
+        if (!position) return;
+
+        const animationId = `local-${domino.id}-${Date.now()}`;
+        pendingLocalPlayAnimationRef.current = {
+            dominoId: domino.id,
+            animationId,
+            startPoint: position,
+        };
+        lastPlayStartPos.current = position;
+        setLocalHandAnimationSnapshot(handSnapshot ?? null);
+        setHiddenHandDominoId(domino.id);
+        setPreserveLocalHandHighlights(true);
+        setPreservedPlayableDominoIds(playableDominoIds);
+        setFlyingDomino({
+            animationId,
+            domino,
+            startPoint: position,
+            baseSize: 38,
+            orientation: 'vertical',
+            isReversed: false,
+            holdAtStart: true,
+        });
+    }, []);
+
     const wrappedHandlePlayDomino = useCallback(
         (domino: Domino, position?: { x: number, y: number }) => {
             if (position) {
                 lastPlayStartPos.current = position;
             }
+            if (gameState) {
+                const isBoardEmpty = gameState.table.leftValue === null && gameState.table.rightValue === null;
+                const validMoves = isBoardEmpty
+                    ? [{ side: 'start' }]
+                    : getValidMoves([domino], {
+                        left: gameState.table.leftValue,
+                        right: gameState.table.rightValue
+                    });
+                const bothEndsEqual = gameState.table.leftValue === gameState.table.rightValue;
+                const willPlayImmediately = isBoardEmpty || validMoves.length === 1 || bothEndsEqual;
+
+                if (willPlayImmediately) {
+                    const handSnapshot = localPlayer?.hand ?? [];
+                    const playableIds = handSnapshot
+                        .filter(tile => (
+                            isBoardEmpty
+                                ? true
+                                : getValidMoves([tile], {
+                                    left: gameState.table.leftValue,
+                                    right: gameState.table.rightValue
+                                }).length > 0
+                        ))
+                        .filter(tile => !forcedOpeningDominoId || tile.id === forcedOpeningDominoId)
+                        .map(tile => tile.id);
+                    primeLocalDominoFlight(domino, position, handSnapshot, playableIds);
+                }
+            }
             handlePlayDomino(domino);
         },
-        [handlePlayDomino]
+        [forcedOpeningDominoId, gameState, handlePlayDomino, localPlayer?.hand, primeLocalDominoFlight]
+    );
+
+    const wrappedConfirmSidePlay = useCallback(
+        (side: 'left' | 'right') => {
+            if (pendingDomino) {
+                const handSnapshot = localPlayer?.hand ?? [];
+                const playableIds = handSnapshot
+                    .filter(tile => (
+                        gameState
+                            ? getValidMoves([tile], {
+                                left: gameState.table.leftValue,
+                                right: gameState.table.rightValue
+                            }).length > 0
+                            : true
+                    ))
+                    .filter(tile => !forcedOpeningDominoId || tile.id === forcedOpeningDominoId)
+                    .map(tile => tile.id);
+                primeLocalDominoFlight(pendingDomino, lastPlayStartPos.current ?? undefined, handSnapshot, playableIds);
+            }
+            confirmSidePlay(side);
+        },
+        [confirmSidePlay, forcedOpeningDominoId, gameState, localPlayer?.hand, pendingDomino, primeLocalDominoFlight]
     );
 
     const interceptOverlayContinue = useCallback(() => {
@@ -1414,7 +1567,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     gameState={gameState}
                     theme={tableTheme}
                     pendingDomino={pendingDomino}
-                    onSideSelect={pendingDomino ? confirmSidePlay : undefined}
+                    onSideSelect={pendingDomino ? wrappedConfirmSidePlay : undefined}
                     skinConfig={playerSkinConfig}
                     hiddenDominoId={effectiveHiddenDominoId}
                 />
@@ -1430,16 +1583,19 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             </View>
 
             <ActionFooter
-                localPlayer={localPlayer as any}
+                localPlayer={localPlayerForActionFooter as any}
                 gameState={currentDisplayState}
                 localPlayerId={localPlayerId}
                 bannerState={bannerState}
                 forcedOpeningDominoId={forcedOpeningDominoId}
                 insets={insets}
                 onPlayDomino={wrappedHandlePlayDomino}
-                isPaused={isGamePaused}
+                isPaused={isGamePaused || isMoveAnimationActive}
                 skinConfig={playerSkinConfig}
                 handSortMode={handSortMode}
+                hiddenDominoId={hiddenHandDominoId}
+                preservePlayableHighlights={preserveLocalHandHighlights}
+                preservedPlayableDominoIds={preservedPlayableDominoIds}
             />
 
             {/* PlayerArea rendu après ActionFooter pour que le bouton tri soit toujours au-dessus */}
@@ -1452,7 +1608,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 playersChat={playersChat as any}
                 overtime={overtime}
                 isBotPlaying={isProcessingMove}
-                isPaused={isGamePaused}
+                isPaused={isGamePaused || isMoveAnimationActive}
                 insets={insets}
                 avatarRefs={avatarRefs}
                 getPlayerScore={getPlayerScore as any}
@@ -1510,7 +1666,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             {(roundResultSnapshot ?? gameState) && (
                 <RoundResultCard
                     gameState={roundResultSnapshot ?? gameState!}
-                    visible={showRoundResult}
+                    visible={showRoundResult || !!isCurrentBoudeResultVisible}
                 />
             )}
 
@@ -1542,7 +1698,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             />
             {flyingDomino && (
                 <FlyingDomino
-                    key={`${flyingDomino.domino.id}-${gameState?.history?.length ?? 0}`}
+                    key={flyingDomino.animationId}
                     data={flyingDomino}
                     skinConfig={playerSkinConfig}
                     onFinished={() => {
