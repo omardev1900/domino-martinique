@@ -45,6 +45,13 @@
     - Invariants a chaque etape : phase valide, joueur courant existant, statut humain preserve, fin de match sous limite anti-boucle.
   - Fichier ajoute : `mobile/src/core/__tests__/GameScenarioRunner.test.ts`
 
+- [x] **[TEST-RESOLVE-BOUDE-TIEBREAK]** Securisation automatisee de la redonne apres egalite BOUDE.
+  - **Objectif** : verrouiller la regle qui exclut les joueurs non ex aequo du choix du starter apres une partie bloquee a egalite.
+  - **Correction / clarification** :
+    - Le test hook `RESOLVE_BOUDE` verifie maintenant la regle metier stable : le starter de redonne doit etre parmi les joueurs ex aequo, sans imposer un joueur precis alors que les mains sont redistribuees.
+    - Ajout d'un test moteur repete confirmant qu'un perdant non ex aequo n'est jamais choisi apres redonne BOUDE.
+  - Fichiers modifies : `mobile/src/hooks/game/__tests__/useActionDispatcher.test.ts`, `mobile/src/core/__tests__/LogicEngine.test.ts`
+
 ### 2026-05-22 - Ajout de bots dans les salles multijoueurs
 
 - [x] **[AMELIORATION-MULTI-LOBBY-BOT-FILL]** : Permettre à l'hôte d'ajouter un bot pour compléter une table multi de 2 joueurs.

@@ -313,6 +313,25 @@ describe('getForcedTieBreakDominoId — R2-B2', () => {
         const nextState = computeNextRoundState(tieRedealState);
         expect(['p1', 'p2']).toContain(nextState.currentPlayerId);
     });
+
+    it('computeNextRoundState exclut toujours le perdant non ex aequo apres une redonne BOUDE', () => {
+        const tieRedealState: GameState = {
+            ...tiedState,
+            phase: 'PARTIE_END',
+            firstPlayerOfRound: null,
+            currentPlayerId: 'p3',
+            roundNumber: 3,
+            mancheNumber: 1,
+            startingHandSize: 7,
+            tiedPlayerIds: ['p1', 'p2'],
+        };
+
+        for (let i = 0; i < 25; i++) {
+            const nextState = computeNextRoundState(tieRedealState);
+            expect(nextState.currentPlayerId).not.toBe('p3');
+            expect(['p1', 'p2']).toContain(nextState.currentPlayerId);
+        }
+    });
 });
 
 describe('resolveBoude + redonne tie-break integration', () => {

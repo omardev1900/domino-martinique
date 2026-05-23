@@ -10,6 +10,7 @@
 - **Mode Solo - bots METKAYALI** - correction d'un gel de partie ou le tour d'un bot pouvait rester bloque a 15 secondes en manche 2 si le moteur IA rencontrait une exception ou si l'action etait refusee au mauvais instant. Le bot retente maintenant son action, puis utilise un coup de secours legal ou passe son tour au lieu de bloquer la partie.
 - **Animation des dominos** - l'animation est maintenant separee du moteur de jeu : si elle echoue ou tarde a se terminer, elle ne peut plus figer le timer, bloquer le tour courant ou laisser l'interface en pause.
 - **Multijoueur avec bots - partie bloquee** - correction d'un blocage apres la modal "partie bloquee" : le passage au round suivant n'est plus bloque par un verrou de tour en retard, le timer s'arrete pendant BOUDE, et un simple timeout ne marque plus le joueur humain comme deconnecte.
+- **Partie bloquee avec egalite** - la redonne BOUDE est securisee par tests : le joueur qui demarre le round suivant est toujours choisi parmi les joueurs ex aequo, jamais parmi les perdants non concernes.
 
 ---
 
