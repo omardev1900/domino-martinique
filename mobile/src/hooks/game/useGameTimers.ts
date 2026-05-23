@@ -62,9 +62,9 @@ export const useGameTimers = ({
 
         if (!gameState || isPaused) return;
 
-        // Arrêter le timer pour toute phase non-active (y compris PARTIE_END/BOUDE
-        // qui peuvent arriver avec du délai Firestore en multi).
-        if (gameState.phase !== 'PLAYING' && gameState.phase !== 'BOUDE') {
+        // Arreter le timer des que le tour n'est plus jouable. BOUDE est une
+        // phase de resolution UI/host, pas un tour chronometre.
+        if (gameState.phase !== 'PLAYING') {
             setTimeLeft(null);
             return;
         }

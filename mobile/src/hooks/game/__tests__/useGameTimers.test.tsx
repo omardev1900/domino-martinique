@@ -63,6 +63,14 @@ describe('useGameTimers Hook (Component Wrapper)', () => {
         expect(getByTestId('overtime').props.children).toBe('null');
     });
 
+    it('does not run the turn timer during BOUDE resolution', () => {
+        const gameState = createMockState({ phase: 'BOUDE' });
+        const { getByTestId } = render(<TestComponent gameState={gameState} onTimeout={mockOnTimeout} />);
+
+        expect(getByTestId('timeLeft').props.children).toBe('null');
+        expect(getByTestId('overtime').props.children).toBe('null');
+    });
+
     it('does not start timer for bot players', () => {
         const gameState = createMockState({ currentPlayerId: 'p2' }); // p2 est un bot
         const { getByTestId } = render(<TestComponent gameState={gameState} onTimeout={mockOnTimeout} />);

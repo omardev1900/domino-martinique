@@ -27,6 +27,24 @@
     - Ajout d'un watchdog cote `GameScreen` et cote `FlyingDomino` pour nettoyer toute animation bloquee.
   - Fichiers modifies : `mobile/src/screens/GameScreen.tsx`, `mobile/src/components/FlyingDomino.tsx`
 
+- [x] **[FIX-MULTI-BOT-BOUDE-LOCK]** Correction du blocage en multi avec bots apres une partie bloquee.
+  - **Probleme** : en mode multijoueur avec bots, une sequence `BOUDE -> PARTIE_END -> NEXT_ROUND` pouvait etre rejetee par le verrou de tour si Firestore livrait la phase de fin pendant qu'un `PASS_TURN` etait encore en cours. Un timeout pouvait aussi marquer le joueur humain comme `DISCONNECTED`, affichant a tort l'icone hors ligne.
+  - **Correction** :
+    - Les transitions host `RESOLVE_BOUDE` et `NEXT_ROUND` ne dependent plus du verrou des actions de tour.
+    - Le verrou local se libere aussi au changement de phase, pas seulement au changement de `turnId`.
+    - Le timer ne tourne plus pendant la phase `BOUDE`.
+    - `handleTimeout` ne modifie plus le statut reseau d'un joueur humain.
+  - Fichiers modifies : `mobile/src/core/LogicEngine.ts`, `mobile/src/hooks/game/useGameTimers.ts`, `mobile/src/hooks/game/useTurnManager.ts`, `mobile/src/hooks/game/useActionDispatcher.ts`
+
+- [x] **[TEST-GAME-SCENARIO-RUNNER]** Ajout d'un runner de tests automatises anti-freeze.
+  - **Objectif** : simuler des matchs complets reproductibles pour detecter les blocages moteur avant test manuel.
+  - **Couverture** :
+    - Matchs seedes en solo et en multijoueur avec bots.
+    - Modes `MANCHE`, `SCORE`, `VICTOIRE` et `COCHON`.
+    - Scenarios forces pour partie bloquee (`BOUDE`) et timeout humain sans fausse deconnexion.
+    - Invariants a chaque etape : phase valide, joueur courant existant, statut humain preserve, fin de match sous limite anti-boucle.
+  - Fichier ajoute : `mobile/src/core/__tests__/GameScenarioRunner.test.ts`
+
 ### 2026-05-22 - Ajout de bots dans les salles multijoueurs
 
 - [x] **[AMELIORATION-MULTI-LOBBY-BOT-FILL]** : Permettre à l'hôte d'ajouter un bot pour compléter une table multi de 2 joueurs.

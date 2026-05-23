@@ -91,7 +91,9 @@ export const useActionDispatcher = ({
         }
 
         // Tente d'acquérir le verrou
-        if (!acquireLock()) {
+        const usesTurnLock = command.type !== 'NEXT_ROUND' && command.type !== 'RESOLVE_BOUDE';
+
+        if (usesTurnLock && !acquireLock()) {
             LogService.info('ActionDispatcher', 'Action rejected because lock is already held.', {
                 type: command.type,
                 playerId: 'playerId' in command ? command.playerId : undefined,
@@ -223,7 +225,9 @@ export const useActionDispatcher = ({
             console.error('[ActionDispatcher] Erreur durant l\'action:', e);
         } finally {
             // Toujours libérer le verrou à la fin de l'action, qu'elle réussisse ou échoue !
-            releaseLock();
+            if (usesTurnLock) {
+                releaseLock();
+            }
         }
 
     }, [

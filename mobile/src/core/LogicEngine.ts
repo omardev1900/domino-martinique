@@ -545,11 +545,9 @@ export const handleTimeout = (gameState: GameState, playerId: PlayerId): GameSta
     if (playerIndex === -1) throw new Error("Player not found");
     const player = gameState.players[playerIndex];
 
-    // ✅ FIX: Un timeout marque le joueur comme déconnecté. L'IA jouera ses prochains
-    // tours presque instantanément (useBotDecision) plutôt que d'attendre 15s + 5s à chaque fois.
-    const newPlayers = [...gameState.players];
-    newPlayers[playerIndex] = { ...player, status: 'DISCONNECTED' };
-    const tempState = { ...gameState, players: newPlayers };
+    // Un timeout joue/passe automatiquement le tour courant, sans changer le
+    // statut reseau. Les vraies deconnexions passent par signalPlayerOffline.
+    const tempState = gameState;
 
     let validMove = null;
     const forcedOpeningId = getForcedOpeningDominoId(tempState, playerId);

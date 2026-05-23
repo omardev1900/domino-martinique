@@ -220,3 +220,12 @@
 
 ### 🔴 BUGS MAJEURS STATS
 - Alerte bug majeur : y a un gros probleme des stats joueurs. Le joueur cmm.saghir@gmail.com avec l'id : l7zzKn7mW3frsFXCNYAaQGVxNCO2 dispose de ces Statistiques dans l'interface admin : Coins 8127, Diamants 22, Ligue APPRENTI_1, Parties jouées 33, Victoires 15, Taux de victoire 45%, Cochons infligés 12. Mais dans son espace à lui il voit que 500 coins, 0 diamants, 0 cochons du mois, niveau ligue débutant, même si j'ai fait un reset du localstorage et même en navigation privée.
+
+---
+
+## RETOUR #7 - 23 mai 2026
+
+> Retour recu le 23 mai 2026 pendant une session multijoueur avec bots.
+
+### BUGS MULTIJOUEUR
+- Mode multi avec bots a la place d'adversaires humains : apres quelques rounds, la modal "partie bloquee" apparait puis disparait, ensuite plus personne ne peut jouer. L'avatar du joueur local affiche aussi l'icone de deconnexion / pas de reseau, et le header disparait.

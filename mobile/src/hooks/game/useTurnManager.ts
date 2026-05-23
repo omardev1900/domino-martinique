@@ -20,13 +20,14 @@ export const useTurnManager = ({ gameState }: UseTurnManagerProps): UseTurnManag
     // ✅ NOUVEAU : Référence de temps locale pour l'immunité du tour (C4/P1)
     const turnMountedAtRef = useRef<number>(Date.now());
 
-    // Auto-Release du verrou quand le tour change
+    // Auto-release du verrou quand le tour ou la phase change. En multi,
+    // Firestore peut livrer PARTIE_END avant la fin de l'await d'un PASS_TURN.
     useEffect(() => {
         if (gameState?.turnId !== undefined) {
             isProcessingMove.current = false;
             turnMountedAtRef.current = Date.now(); // On resette l'horloge locale au changement de tour
         }
-    }, [gameState?.turnId]);
+    }, [gameState?.turnId, gameState?.phase]);
 
     const acquireLock = useCallback((): boolean => {
         if (isProcessingMove.current) {

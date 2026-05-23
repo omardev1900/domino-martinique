@@ -8,6 +8,56 @@ jest.mock('../../../core/audio/SoundManager', () => ({
 }));
 
 describe('useActionDispatcher - RESOLVE_BOUDE Tie-Break', () => {
+  it('allows host phase transitions even when the turn lock is busy', async () => {
+    const mockGameState: GameState = {
+      gameId: 'test-game',
+      phase: 'PARTIE_END' as GamePhase,
+      startingHandSize: 7,
+      players: [
+        { id: 'p1', name: 'Player 1', hand: [], status: 'HUMAN', totalPoints: 0, mancheWins: 0, totalCochons: 0, isReady: true },
+        { id: 'p2', name: 'Player 2', hand: [], status: 'BOT', totalPoints: 0, mancheWins: 0, totalCochons: 0, isReady: true }
+      ] as any,
+      table: { sequence: [], leftValue: null, rightValue: null },
+      currentPlayerId: 'p1',
+      firstPlayerOfRound: 'p1',
+      roundNumber: 1,
+      mancheNumber: 1,
+      winningCondition: 3,
+      gameMode: 'MANCHE',
+      turnId: 18,
+      lastActionTimestamp: Date.now(),
+      history: [],
+      mancheHistory: [],
+      turnDuration: 30
+    } as any;
+
+    let updatedState: GameState | null = null;
+
+    const { result } = renderHook(() => useActionDispatcher({
+      gameState: mockGameState,
+      localPlayerId: 'p1',
+      isSoloMode: true,
+      gameId: 'test-game',
+      isLocalHost: true,
+      roomData: null,
+      startingHandSize: 7,
+      acquireLock: () => false,
+      releaseLock: () => {},
+      canAction: () => true,
+      safeUpdateGameState: async () => {},
+      setGameState: (state) => { updatedState = state; },
+      clearAllTurnTimers: () => {},
+      setOvertime: () => {},
+    }));
+
+    await act(async () => {
+      await result.current.dispatch({ type: 'NEXT_ROUND' });
+    });
+
+    expect(updatedState).not.toBeNull();
+    expect(updatedState!.phase).toBe('PLAYING');
+  });
+
   it('should pick the starter with the highest double ONLY among tied players', async () => {
     // 1. Initialiser un mock de gameState en phase BOUDE
     const mockGameState: GameState = {
