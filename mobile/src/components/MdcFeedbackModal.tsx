@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, StyleSheet, Modal, TouchableOpacity,
-    TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
+    TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, useWindowDimensions, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -14,9 +14,10 @@ interface MdcFeedbackModalProps {
     onClose: () => void;
 }
 
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.3';
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.4';
 
 export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onClose }) => {
+    const { height } = useWindowDimensions();
     const [text, setText] = useState('');
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
@@ -55,6 +56,14 @@ export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onC
         onClose();
     };
 
+    const openUrl = (url: string) => {
+        Linking.openURL(url).catch(() => undefined);
+    };
+
+    const openEmail = (email: string) => {
+        Linking.openURL(`mailto:${email}`).catch(() => undefined);
+    };
+
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
             <KeyboardAvoidingView
@@ -63,28 +72,54 @@ export const MdcFeedbackModal: React.FC<MdcFeedbackModalProps> = ({ visible, onC
             >
                 <TouchableOpacity style={StyleSheet.absoluteFill} onPress={handleClose} activeOpacity={1} />
 
-                <View style={styles.card}>
+                <View style={[styles.card, { maxHeight: height * 0.9 }]}>
                     {/* Bouton fermer */}
                     <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
                         <Ionicons name="close" size={20} color="rgba(255,255,255,0.5)" />
                     </TouchableOpacity>
 
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
                         {/* ── Haut — Identité app ── */}
+                        <View style={styles.infoColumn}>
                         <View style={styles.header}>
                             <View style={styles.mdcBadge}>
                                 <Text style={styles.mdcText}>🐷</Text>
                             </View>
                             <Text style={styles.appName}>Domino Martiniquais</Text>
                             <Text style={styles.version}>Version {APP_VERSION}</Text>
-                            <View style={styles.divider} />
-                            <Text style={styles.credits}>Design & Code par</Text>
-                            <Text style={styles.agency}>Omar@happyagency.ma</Text>
+                        </View>
+
+                        <View style={styles.contactBox}>
+                            <Text style={styles.contactTitle}>Infos & contact</Text>
+                            <View style={styles.contactRow}>
+                                <Ionicons name="code-slash-outline" size={15} color="#FFD700" />
+                                <View style={styles.contactTextBlock}>
+                                    <Text style={styles.credits}>Développeur :</Text>
+                                    <TouchableOpacity onPress={() => openEmail('Omar@happyagency.ma')} activeOpacity={0.7}>
+                                        <Text style={styles.linkText}>Omar@happyagency.ma</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                            <View style={styles.contactRow}>
+                                <Ionicons name="globe-outline" size={15} color="#FFD700" />
+                                <View style={styles.contactTextBlock}>
+                                    <Text style={styles.credits}>Sites Web :</Text>
+                                    <TouchableOpacity onPress={() => openUrl('https://happyagency.ma')} activeOpacity={0.7}>
+                                        <Text style={styles.linkText}>https://happyagency.ma</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => openUrl('https://omatrice.com')} activeOpacity={0.7}>
+                                        <Text style={styles.linkText}>https://omatrice.com</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                            
+                        </View>
                         </View>
 
                         {/* ── Bas — Formulaire feedback ── */}
                         <View style={styles.feedbackSection}>
                             <Text style={styles.feedbackTitle}>Un bug ? Une suggestion ?</Text>
+                            <Text style={styles.feedbackSub}>Vos retours et vos idées nous sont importants</Text>
 
 
                             {sent ? (
@@ -150,12 +185,12 @@ const styles = StyleSheet.create({
     },
     card: {
         width: '100%',
-        maxWidth: 360,
+        maxWidth: 760,
         backgroundColor: '#0D1B3E',
         borderRadius: 20,
         borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.2)',
-        padding: 24,
+        padding: 20,
     },
     closeBtn: {
         position: 'absolute',
@@ -164,13 +199,24 @@ const styles = StyleSheet.create({
         zIndex: 10,
         padding: 4,
     },
+    content: {
+        flexDirection: 'row',
+        gap: 18,
+        paddingBottom: 4,
+    },
+    infoColumn: {
+        flex: 0.86,
+        minWidth: 220,
+        gap: 12,
+    },
     // ── Header ──
     header: {
         alignItems: 'center',
-        paddingBottom: 20,
-        marginBottom: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,215,0,0.12)',
+        padding: 14,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,215,0,0.06)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.14)',
     },
     mdcBadge: {
         width: 52,
@@ -215,9 +261,48 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
     },
+    linkText: {
+        color: '#FFD700',
+        fontSize: 12,
+        fontWeight: 'bold',
+        textDecorationLine: 'underline',
+        marginTop: 2,
+    },
+    contactBox: {
+        padding: 14,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.045)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        gap: 12,
+    },
+    contactTitle: {
+        color: '#FFD700',
+        fontSize: 14,
+        fontWeight: '900',
+    },
+    contactRow: {
+        flexDirection: 'row',
+        gap: 9,
+        alignItems: 'flex-start',
+    },
+    contactTextBlock: {
+        flex: 1,
+    },
+    contactHint: {
+        flex: 1,
+        color: 'rgba(255,255,255,0.58)',
+        fontSize: 12,
+        lineHeight: 16,
+    },
     // ── Feedback ──
     feedbackSection: {
+        flex: 1.14,
+        minWidth: 280,
         gap: 10,
+        paddingLeft: 18,
+        borderLeftWidth: 1,
+        borderLeftColor: 'rgba(255,215,0,0.12)',
     },
     feedbackTitle: {
         color: '#FFF',
@@ -237,7 +322,7 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 13,
         padding: 12,
-        minHeight: 90,
+        minHeight: 122,
         textAlignVertical: 'top',
     },
     charCount: {
