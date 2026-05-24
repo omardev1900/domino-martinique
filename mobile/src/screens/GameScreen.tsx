@@ -153,6 +153,12 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const [hiddenHandDominoId, setHiddenHandDominoId] = useState<string | null>(null);
     const [preserveLocalHandHighlights, setPreserveLocalHandHighlights] = useState(false);
     const [preservedPlayableDominoIds, setPreservedPlayableDominoIds] = useState<string[]>([]);
+    const [turnDisplayHold, setTurnDisplayHold] = useState<{
+        currentPlayerId: PlayerId;
+        phase: GamePhase;
+        turnId: number;
+        lastActionTimestamp: number;
+    } | null>(null);
 
     const pendingHistoryLengthDiff = (gameState?.history?.length || 0) - animatedHistoryLengthRef.current;
     const pendingHistoryMove = pendingHistoryLengthDiff > 0 ? gameState?.history?.[gameState.history.length - 1] : null;
@@ -161,10 +167,31 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         : null;
     const effectiveHiddenDominoId = hiddenDominoId ?? pendingHistoryDominoId;
 
-    const currentDisplayState = gameState;
-
     const isGamePaused = isPaused || showOptions || isAdVisible;
     const isMoveAnimationActive = isMoveAnimationPending || !!flyingDomino || !!hiddenDominoId || !!pendingHistoryDominoId;
+    const pendingTurnDisplayHold = pendingHistoryMove?.action === 'PLAY'
+        ? {
+            currentPlayerId: pendingHistoryMove.playerId,
+            phase: 'PLAYING' as GamePhase,
+            turnId: Math.max(0, (gameState?.turnId ?? 0) - 1),
+            lastActionTimestamp: pendingHistoryMove.timestamp ?? gameState?.lastActionTimestamp ?? 0,
+        }
+        : null;
+    const activeTurnDisplayHold = turnDisplayHold ?? pendingTurnDisplayHold;
+    const currentDisplayState = useMemo(() => {
+        if (!gameState || !isMoveAnimationActive || !activeTurnDisplayHold) {
+            return gameState;
+        }
+
+        return {
+            ...gameState,
+            currentPlayerId: activeTurnDisplayHold.currentPlayerId,
+            phase: activeTurnDisplayHold.phase,
+            turnId: activeTurnDisplayHold.turnId,
+            lastActionTimestamp: activeTurnDisplayHold.lastActionTimestamp,
+        };
+    }, [activeTurnDisplayHold, gameState, isMoveAnimationActive]);
+
     const finishFlyingDomino = useCallback((reason: 'finished' | 'watchdog' = 'finished') => {
         if (reason === 'watchdog') {
             LogService.warn('GameScreen', '[ANIM-DOMINO] Animation watchdog cleared a stuck flying domino.');
@@ -176,6 +203,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         setHiddenHandDominoId(null);
         setPreserveLocalHandHighlights(false);
         setPreservedPlayableDominoIds([]);
+        setTurnDisplayHold(null);
         lastPlayStartPos.current = null;
     }, []);
 
@@ -195,7 +223,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         setOvertime,
         clearAllTurnTimers
     } = useGameTimers({
-        gameState,
+        gameState: currentDisplayState,
         isPaused: isGamePaused || isMoveAnimationActive,
         localPlayerId,
         onTimeout: (pId, turnId) => handleTimeoutCb(pId, turnId)
@@ -237,6 +265,12 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     : null;
                 const animationId = pendingLocalAnimation?.animationId ?? playKey;
 
+                setTurnDisplayHold({
+                    currentPlayerId: lastMove.playerId,
+                    phase: 'PLAYING',
+                    turnId: Math.max(0, (gameState.turnId ?? 0) - 1),
+                    lastActionTimestamp: lastMove.timestamp ?? gameState.lastActionTimestamp ?? 0,
+                });
                 setIsMoveAnimationPending(true);
                 setHiddenDominoId(lastMove.domino.id);
                 let startPoint = pendingLocalAnimation?.startPoint ?? { x: width / 2, y: height / 2 };
@@ -325,6 +359,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 // If it was a PASS or other action, no animation, just update visual state immediately
                 setHiddenDominoId(null);
                 setIsMoveAnimationPending(false);
+                setTurnDisplayHold(null);
             }
         } else if (currentLength < animatedHistoryLengthRef.current || currentLength === 0) {
             animatedHistoryLengthRef.current = currentLength;
@@ -332,8 +367,9 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 animatedPlayKeysRef.current.clear();
             }
             setIsMoveAnimationPending(false);
+            setTurnDisplayHold(null);
         }
-    }, [gameState?.history, gameState?.gameId, gameState?.mancheNumber, gameState?.roundNumber, localPlayerId, width, height]);
+    }, [gameState?.history, gameState?.gameId, gameState?.mancheNumber, gameState?.roundNumber, gameState?.turnId, localPlayerId, width, height]);
 
     const handleReplay = async () => {
         if (isSoloMode) {

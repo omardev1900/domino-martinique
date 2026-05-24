@@ -8,6 +8,8 @@ jest.setTimeout(15000);
 const mockGameOverlays = jest.fn(() => null);
 const mockRewardOverlay = jest.fn(() => null);
 const mockRoundResultCard = jest.fn(() => null);
+const mockPlayerArea = jest.fn(() => null);
+const mockActionFooter = jest.fn(() => null);
 const mockHandleOverlayContinue = jest.fn();
 
 const getLastOverlayProps = () => mockGameOverlays.mock.calls[mockGameOverlays.mock.calls.length - 1][0];
@@ -61,10 +63,10 @@ jest.mock('../../components/game/GameOverlays', () => ({
     GameOverlays: (props: any) => mockGameOverlays(props),
 }));
 jest.mock('../../components/game/PlayerArea', () => ({
-    PlayerArea: () => null,
+    PlayerArea: (props: any) => mockPlayerArea(props),
 }));
 jest.mock('../../components/game/ActionFooter', () => ({
-    ActionFooter: () => null,
+    ActionFooter: (props: any) => mockActionFooter(props),
 }));
 jest.mock('../../components/UnifiedResultOverlay', () => ({
     UnifiedResultOverlay: () => null,
@@ -385,6 +387,65 @@ describe('GameScreen grade-up flow', () => {
             mancheNumber: 1,
             startingHandSize: 7,
         };
+    });
+
+    it('garde visuellement le joueur qui vient de jouer actif pendant l animation du domino', async () => {
+        mockCurrentGameState = {
+            ...mockCurrentGameState,
+            phase: 'PLAYING',
+            currentPlayerId: 'p1',
+            turnId: 7,
+            history: [],
+        } as any;
+
+        const view = render(
+            <GameScreen
+                gameId="game-123"
+                userId="p1"
+                mode="solo"
+                gameMode="MANCHE"
+                winningCondition={3}
+                turnDuration={15}
+                startingHandSize={7}
+            />
+        );
+
+        mockCurrentGameState = {
+            ...mockCurrentGameState,
+            currentPlayerId: 'bot-1',
+            turnId: 8,
+            history: [
+                {
+                    action: 'PLAY',
+                    playerId: 'p1',
+                    domino: { id: 'd-6', left: 6, right: 6, isDouble: true },
+                    timestamp: 1000,
+                },
+            ],
+        } as any;
+
+        view.rerender(
+            <GameScreen
+                gameId="game-123"
+                userId="p1"
+                mode="solo"
+                gameMode="MANCHE"
+                winningCondition={3}
+                turnDuration={15}
+                startingHandSize={7}
+            />
+        );
+
+        await act(async () => {
+            await Promise.resolve();
+        });
+
+        const lastPlayerAreaProps = mockPlayerArea.mock.calls[mockPlayerArea.mock.calls.length - 1][0];
+        const lastActionFooterProps = mockActionFooter.mock.calls[mockActionFooter.mock.calls.length - 1][0];
+
+        expect(mockCurrentGameState.currentPlayerId).toBe('bot-1');
+        expect(lastPlayerAreaProps.gameState.currentPlayerId).toBe('p1');
+        expect(lastActionFooterProps.gameState.currentPlayerId).toBe('p1');
     });
 
     it('affiche RewardOverlay quand la récompense de fin de match contient un gradeUp', async () => {
