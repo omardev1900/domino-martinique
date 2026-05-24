@@ -9,6 +9,15 @@
 
 ## Mai 2026
 
+### 2026-05-24 - Stabilisation affichage tour pendant animation
+
+- [x] **[BUG-TURN-ADVANCE-BEFORE-DOMINO-LAND]** Correction du passage visuel trop tot au joueur suivant pendant l'animation domino.
+  - **Probleme** : le compteur, le joueur actif et les dominos jouables du prochain joueur pouvaient s'afficher avant que le domino joue soit visuellement pose sur le plateau.
+  - **Correction** :
+    - L'UI garde le joueur qui vient de jouer comme reference visuelle jusqu'a la fin complete de l'animation.
+    - Le moteur de jeu peut continuer a preparer l'etat suivant, mais l'affichage du tour suivant attend la pose definitive du domino.
+    - Ajout d'un test de regression sur `GameScreen` pour verifier que l'UI ne libere pas le prochain tour pendant l'animation.
+  - Fichiers modifies : `mobile/src/screens/GameScreen.tsx`, `mobile/src/screens/__tests__/GameScreen.gradeUp.test.tsx`
 ### 2026-05-23 - Correctif freeze bot solo manche 2
 
 - [x] **[FIX-SOLO-BOT-FREEZE-MK]** Correction du gel de tour des bots METKAYALI en solo.

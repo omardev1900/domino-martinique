@@ -3,7 +3,7 @@
 > Ce fichier contient les sujets connus mais non encore planifies.
 > Des qu'une tache devient prioritaire et decidee, elle sort du backlog pour aller dans `TASKS.md`.
 
-**Derniere mise a jour :** 2026-05-23
+**Derniere mise a jour :** 2026-05-24
 
 ---
 
@@ -18,7 +18,6 @@
 | **UX-MODAL-ANIM-SFX** | Harmoniser les modals/popups du jeu : apparition/fermeture animees, transitions coherentes, sons associes quand l'evenement le justifie. |
 | **UX-BUTTON-FEEDBACK-SFX** | Ajouter un feedback sonore et/ou haptique coherent aux boutons principaux de l'accueil, des ecrans et du gameplay, sans surcharger l'experience. |
 | **UX-SCREEN-PREMIUM-MOTION** | Ameliorer les ecrans trop statiques : rendre certains blocs et sections plus vivants avec micro-animations, profondeur visuelle et effets 3D sobres. |
-| **UX-ENDMATCH-NAV-FLASH** | Corriger le flash visuel du plateau apres le modal de fin de match : au clic sur `Continuer`, le plateau ne doit plus reapparaitre brievement avant le retour a l'accueil. |
 
 | **GOD-MODE** | Nouveau mode solo separe "GOD MODE" : 2 bots METKAYALI allies contre le joueur, format `VICTOIRE` v1, acces verrouille par progression joueur |
 | **ECO-STAKE-PAYOUT-RULES** | Arbitrer la redistribution des mises en multi et l'eventuelle commission |

@@ -4,6 +4,12 @@
 
 ---
 
+## [2.5.11] - 2026-05-24
+
+### Corrige
+- **Animation domino / tour joueur** - le compteur, le joueur actif et les dominos jouables du joueur suivant ne s'affichent plus avant que le domino en mouvement soit pose sur le plateau.
+
+---
 ## [2.5.10] - 2026-05-23
 
 ### Corrige
