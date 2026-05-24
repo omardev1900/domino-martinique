@@ -15,7 +15,6 @@
 | **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression |
 | **ECO-ADS-COINS-TUNING** | Definir la recompense coins du visionnage pub volontaire post-match |
 | **SOLO-REJOUER-REVANCHE** | Priorite moyenne - En solo, revoir le modal de fin de match : apres une victoire afficher `Rejouer`, `Retour aux modes`, `Quitter` ; apres une defaite afficher `Revanche - X coins`, `Retour aux modes`, `Quitter`. `Rejouer` relance les memes parametres avec de nouveaux bots et le cout solo normal. `Revanche` relance exactement les memes parametres contre les memes bots, avec cout progressif `500`, `1000`, `2000`, etc. La serie s'arrete des que le joueur quitte l'ecran de match. Si le joueur gagne une revanche, il recupere sa mise et gagne `+300` coins. |
-| **UX-ADS-MODAL-CLOSE** | Corriger le modal de pub apres fin de match difficile a fermer : le bouton `X` doit fermer au premier appui, sans zone morte ni conflit avec l'overlay. |
 | **UX-MODAL-ANIM-SFX** | Harmoniser les modals/popups du jeu : apparition/fermeture animees, transitions coherentes, sons associes quand l'evenement le justifie. |
 | **UX-BUTTON-FEEDBACK-SFX** | Ajouter un feedback sonore et/ou haptique coherent aux boutons principaux de l'accueil, des ecrans et du gameplay, sans surcharger l'experience. |
 | **UX-SCREEN-PREMIUM-MOTION** | Ameliorer les ecrans trop statiques : rendre certains blocs et sections plus vivants avec micro-animations, profondeur visuelle et effets 3D sobres. |

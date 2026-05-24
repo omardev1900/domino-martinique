@@ -23,6 +23,8 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 |---|---|---|---|
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
 | **ANIM-DOMINO-POLISH** | Ameliorer l'animation des dominos poses : trajectoire plus naturelle, timing plus fluide, positionnement fiable depuis la main ou l'avatar, sans jamais recoupler l'animation au moteur de jeu. | Haute | En cours |
+| **BUG-TURN-ADVANCE-BEFORE-DOMINO-LAND** | Corriger le decalage UI pendant l'animation domino : le tour, le compteur et les dominos jouables du joueur suivant ne doivent pas etre affiches/liberes avant la pose visuelle complete du domino sur le plateau, sans bloquer le moteur de jeu. | Haute | Priorite |
+| **UX-ADS-MODAL-CLOSE** | Corriger les fermetures difficiles des modals en jeu : pub apres fin de match et menu options doivent fermer au premier appui, sans zone morte ni conflit d'overlay. | Haute | En cours |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
 
 
