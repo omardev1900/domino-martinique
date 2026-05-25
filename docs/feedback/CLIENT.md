@@ -229,3 +229,21 @@
 
 ### BUGS MULTIJOUEUR
 - Mode multi avec bots a la place d'adversaires humains : apres quelques rounds, la modal "partie bloquee" apparait puis disparait, ensuite plus personne ne peut jouer. L'avatar du joueur local affiche aussi l'icone de deconnexion / pas de reseau, et le header disparait.
+
+---
+
+## RETOUR #8 - 24 mai 2026
+
+> Retour recu le 24 mai 2026.
+
+### DEMANDE URGENTE PRE-LANCEMENT
+- Imposer aux joueurs de telecharger les nouvelles versions quand elles sont en ligne.
+---
+
+## RETOUR #9 - 25 mai 2026
+
+> Retour recu le 25 mai 2026.
+
+### BUGS UX URGENTS
+- Le modal de cadeau du jour apparait plusieurs fois lors de l'ouverture du jeu et un des clics ne fait rien du tout.
+- Le modal de round bloque qui precede la fin d'un match apparait 2 fois avant le modal de fin de match.
