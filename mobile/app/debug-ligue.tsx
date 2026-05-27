@@ -345,7 +345,9 @@ export default function DebugLigueScreen() {
                         ? LEAGUE_FRAME_THRESHOLDS[lastUnlockedGrade as keyof typeof LEAGUE_FRAME_THRESHOLDS]
                         : cochons,
                     breakdown: [],
-                    frameCoinsBonus: 0,
+                    frameCoinsBonus: lastUnlockedGrade
+                        ? (LEAGUE_FRAME_REWARDS[lastUnlockedGrade as keyof typeof LEAGUE_FRAME_REWARDS]?.coinsBonus ?? 0)
+                        : 0,
                     newlyUnlockedFrames: [],
                 }}
             />

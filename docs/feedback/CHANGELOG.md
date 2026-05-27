@@ -1,4 +1,4 @@
-# 📝 CHANGELOG — Domino Martiniquais
+﻿# 📝 CHANGELOG — Domino Martiniquais
 
 > Journal des changements notables, classés par date (plus récent en premier).
 

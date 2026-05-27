@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
-import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, useWindowDimensions, Image, Platform, Pressable } from 'react-native';
+import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, useWindowDimensions, Image, Platform, Pressable, AppState, AppStateStatus } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, FadeInLeft, FadeInRight, FadeIn, ZoomIn, FadeOut, FadeInUp } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -127,6 +127,24 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
     const [isPaused, setIsPaused] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
+
+    // -- BUG-DOMINO-SIZE-ON-RESUME: layout key pour forcer recalcul apres retour d'appel/notification --
+    // GameTable.boardScale utilise useWindowDimensions() qui peut retourner des valeurs transitoires
+    // apres un AppState change vers 'active'. Incrementer layoutKey force un remount de GameTable
+    // avec les bonnes dimensions fraiches.
+    const [layoutKey, setLayoutKey] = useState(0);
+    useEffect(() => {
+        if (Platform.OS === 'web') return; // web n'a pas d'interruptions telephoniques
+        const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+            if (nextState === 'active') {
+                // L'app revient au premier plan : laisser les dimensions se stabiliser (150ms)
+                // puis forcer le recalcul de boardScale dans GameTable via un remount.
+                setTimeout(() => setLayoutKey(k => k + 1), 150);
+                LogService.debug('GameScreen', 'AppState -> active, forcing layout refresh');
+            }
+        });
+        return () => subscription.remove();
+    }, []);
 
     let handleTimeoutCb = (pId: string, turnId?: number) => {
         // Will be wired to the engine
@@ -646,7 +664,9 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                         // ✅ Exécution sécurisée côté serveur (Backend Banker)
                         const reward = await economyService.processServerReward(rewardInput, persistenceUserId);
                         setMatchReward(reward);
-                        if (reward.gradeUp || (reward.newlyUnlockedFrames?.length ?? 0) > 0) {
+                        // BUG-LEAGUE-TIER-REWARD: declencher l'overlay aussi quand frameCoinsBonus > 0
+                        // (passage de palier Ligue sans cadre visuel, LEAGUE_FRAMES_ENABLED = false)
+                        if (reward.gradeUp || (reward.newlyUnlockedFrames?.length ?? 0) > 0 || reward.frameCoinsBonus > 0) {
                             setShowRewardOverlay(true);
                         }
 
@@ -1600,6 +1620,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
                 <GameTable
                     ref={tableRef}
+                    key={layoutKey}
                     gameState={gameState}
                     theme={tableTheme}
                     pendingDomino={pendingDomino}

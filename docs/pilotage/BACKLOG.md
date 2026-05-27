@@ -9,6 +9,17 @@
 
 ## Avant lancement officiel - Phase de test ferme
 
+### Bugs testeur du 27 mai 2026
+
+| Ticket | Description | Estimation |
+|---|---|---|
+| **BUG-LEAGUE-TIER-REWARD** | Passage de palier Ligue des Cochons : le joueur ne reçoit pas les coins de récompense du palier et l'animation `RewardOverlay` n'affiche pas les gains en coins liés au palier (item `league_frame_unlock` du breakdown). `LEAGUE_FRAMES_ENABLED = false` bloque l'envoi de `frameCoinsBonus` ET l'affichage de la modale grade-up est masquée quand `shouldHideMainRewardContent`. | ~0,5 j |
+| **BUG-MULTI-GRADE-DISPLAY** | En partie multi, l'affichage du grade/cadre Ligue disparaît parfois en cours de jeu. Suspect : le snapshot Firestore de la room ne transporte pas le `leagueGrade` du profil joueur à chaque mise à jour. | ~0,5 j |
+| **BUG-DOMINO-SIZE-ON-RESUME** | Les dominos rétrécissent après un retour en jeu (appel, notification, changement d'app). Le layout React Native ne recalcule pas les dimensions de la main/plateau après un `AppState` change vers `active`. | ~0,5 j |
+| **BUG-APP-RESUME-AFTER-CALL** | Difficultés à reprendre la partie après un appel téléphonique. Probablement lié à une déconnexion Firestore ou un focus manqué côté audio/game au retour d'interruption. Lié à **BUG-DOMINO-SIZE-ON-RESUME**. | ~0,5 j |
+| **ECO-REBALANCE** | Réviser le coût d'un jeu multi (100 coins) et les gains de victoire (300 coins). Modifier les constantes dans `economy.constants.ts` et Cloud Function. | ~0,5 j |
+| **SHOP-VIDEO-REWARD** | Ajouter dans la boutique un bloc "Regarder une vidéo → +300 🪙" (limité ex: 3×/jour). Inspiré du `AdRewardButton` existant, à positionner dans un onglet dédié de la boutique. | ~1 j |
+
 | Ticket | Description | Estimation |
 |---|---|---|
 | **ADS-POST-MATCH-REWARD-UPSSELL** | Apres la pub obligatoire de fin de match pour les non premium, proposer aux joueurs premium inclus une pub volontaire pour gagner des coins |

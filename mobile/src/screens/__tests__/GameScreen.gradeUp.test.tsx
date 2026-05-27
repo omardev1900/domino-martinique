@@ -1,15 +1,15 @@
-import React from 'react';
+﻿import React from 'react';
 import { act, render, waitFor } from '@testing-library/react-native';
 import GameScreen from '../GameScreen';
 import { MatchReward } from '../../core/economy.types';
 
 jest.setTimeout(15000);
 
-const mockGameOverlays = jest.fn(() => null);
-const mockRewardOverlay = jest.fn(() => null);
-const mockRoundResultCard = jest.fn(() => null);
-const mockPlayerArea = jest.fn(() => null);
-const mockActionFooter = jest.fn(() => null);
+const mockGameOverlays = jest.fn((props: any) => null as any);
+const mockRewardOverlay = jest.fn((props: any) => null as any);
+const mockRoundResultCard = jest.fn((props: any) => null as any);
+const mockPlayerArea = jest.fn((props: any) => null as any);
+const mockActionFooter = jest.fn((props: any) => null as any);
 const mockHandleOverlayContinue = jest.fn();
 
 const getLastOverlayProps = () => mockGameOverlays.mock.calls[mockGameOverlays.mock.calls.length - 1][0];

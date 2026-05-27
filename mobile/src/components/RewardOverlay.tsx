@@ -113,7 +113,7 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
 
     useEffect(() => {
         // Modale grade-up uniquement si gradeUp sans nouveau cadre (sinon le cadre affiche déjà les félicitations)
-        if (visible && reward?.gradeUp && (!LEAGUE_FRAMES_ENABLED || !reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0)) {
+        if (visible && reward && (reward.gradeUp || (reward.frameCoinsBonus ?? 0) > 0) && (!LEAGUE_FRAMES_ENABLED || !(reward.newlyUnlockedFrames?.length > 0))) {
             setShowGradeUpModal(true);
         } else {
             setShowGradeUpModal(false);
@@ -146,7 +146,10 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
     const isGradeUp = reward.gradeUp;
     const gradeTheme = reward.newGrade ? getGradeTheme(reward.newGrade) : null;
     const popupScrollMaxHeight = height * (isLandscape ? 0.9 : 0.82);
-    const isStandaloneGradeUp = isGradeUp && (!LEAGUE_FRAMES_ENABLED || !reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0);
+    const isStandaloneGradeUp = (isGradeUp || (reward.frameCoinsBonus ?? 0) > 0) && (!LEAGUE_FRAMES_ENABLED || !reward.newlyUnlockedFrames || reward.newlyUnlockedFrames.length === 0);
+    // displayGrade: grade a afficher dans la modale (newGrade si passage de grade mensuel,
+    // sinon previousGrade si c'est juste un passage de palier cochons sans changement de grade)
+    const displayGrade = reward.newGrade ?? reward.previousGrade;
     const shouldHideMainRewardContent = isStandaloneGradeUp && showGradeUpModal;
 
     return (
@@ -466,8 +469,8 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
                 </Modal>
             )}
 
-            {/* Modale PASSAGE DE GRADE (sans nouveau cadre) */}
-            {isStandaloneGradeUp && reward.newGrade && (
+            {/* Modale PASSAGE DE GRADE ou BONUS PALIER COCHON (sans nouveau cadre visuel) */}
+            {isStandaloneGradeUp && displayGrade && (
                 <Modal
                     visible={showGradeUpModal}
                     animationType="fade"
@@ -498,25 +501,40 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
                             </TouchableOpacity>
                             <Text style={styles.gradeUpSimpleTitle}>FELICITATIONS !</Text>
                             <Text style={styles.gradeUpModalIcon}>
-                                {LEAGUE_ICONS[reward.newGrade]}
+                                {LEAGUE_ICONS[displayGrade]}
                             </Text>
                             <Text style={[styles.gradeUpModalGrade, gradeTheme && { color: gradeTheme.accent }]}>
-                                {LEAGUE_LABELS[reward.newGrade].toUpperCase()}
+                                {LEAGUE_LABELS[displayGrade].toUpperCase()}
                             </Text>
                             <Text style={[styles.gradeUpModalCochons, gradeTheme && { color: gradeTheme.accent }]}>
                                 {reward.newLeaguePoints} COCHONS INFLIGES
                             </Text>
+                            {/* BUG-LEAGUE-TIER-REWARD: afficher les coins de bonus de palier */}
+                            {reward.frameCoinsBonus > 0 && (
+                                <View style={styles.gradeUpCoinsContainer}>
+                                    <Text style={styles.gradeUpCoinsLabel}>PIÈCES GAGNÉES</Text>
+                                    <View style={styles.gradeUpCoinsRow}>
+                                        <Text style={styles.gradeUpCoinsPlus}>+</Text>
+                                        <RollingNumber
+                                            value={reward.frameCoinsBonus}
+                                            duration={1200}
+                                            style={styles.gradeUpCoinsValue}
+                                        />
+                                        <Text style={styles.gradeUpCoinSymbol}> 🪙</Text>
+                                    </View>
+                                </View>
+                            )}
                             <ShareImageButton
                                 text={buildGradeShareText({
-                                    gradeLabel: LEAGUE_LABELS[reward.newGrade],
+                                    gradeLabel: LEAGUE_LABELS[displayGrade],
                                     totalCochons: reward.newLeaguePoints,
                                 })}
                                 label="Partager mon palier"
                             >
                                 <GradeShareCard
                                     playerName={playerName}
-                                    gradeLabel={LEAGUE_LABELS[reward.newGrade]}
-                                    gradeIcon={LEAGUE_ICONS[reward.newGrade]}
+                                    gradeLabel={LEAGUE_LABELS[displayGrade]}
+                                    gradeIcon={LEAGUE_ICONS[displayGrade]}
                                     totalCochons={reward.newLeaguePoints}
                                     accentColor={gradeTheme?.accent ?? '#FFD700'}
                                 />
@@ -815,6 +833,47 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         marginBottom: 10,
         textAlign: 'center',
+    },
+    gradeUpCoinsContainer: {
+        alignItems: 'center',
+        marginBottom: 12,
+        marginTop: 4,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,215,0,0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+        width: '100%',
+    },
+    gradeUpCoinsLabel: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        marginBottom: 6,
+    },
+    gradeUpCoinsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    gradeUpCoinsPlus: {
+        color: '#FFD700',
+        fontSize: 24,
+        fontWeight: '900',
+    },
+    gradeUpCoinsValue: {
+        color: '#FFD700',
+        fontSize: 28,
+        fontWeight: '900',
+        letterSpacing: 1,
+    },
+    gradeUpCoinSymbol: {
+        color: '#FFD700',
+        fontSize: 24,
+        fontWeight: '900',
     },
     gradeUpCloseButton: {
         position: 'absolute',

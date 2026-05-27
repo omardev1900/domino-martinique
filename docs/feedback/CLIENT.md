@@ -247,3 +247,21 @@
 ### BUGS UX URGENTS
 - Le modal de cadeau du jour apparait plusieurs fois lors de l'ouverture du jeu et un des clics ne fait rien du tout.
 - Le modal de round bloque qui precede la fin d'un match apparait 2 fois avant le modal de fin de match.
+
+---
+
+## RETOUR #10 - 27 mai 2026
+
+> Retour recu le 27 mai 2026 - session testeur.
+
+### BUGS GAMEPLAY
+
+- Quand on gagne un pallier de ligue des cochons, il ne reçoit pas les coins de récompense de ce passage et ne voit pas dans l'animation les gains en coins.
+- Le niveau des grades disparait des fois lors d'un jeu multi.
+- Les dominos deviennent petit quand on quitte le jeu et n'y retourne quelque soit la raison (appel, message, autre).
+- Quand on reçoit un appel on a du mal a retourner au jeu.
+
+### DEMANDES ECONOMIE / BOUTIQUE
+
+- Modifier le systeme des coins : cout d'un jeu 100, gains 300.
+- Ajouter dans la boutique la possibilite de voir une video et gagner 300 coins.
