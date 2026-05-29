@@ -25,6 +25,7 @@ interface DailyRewardModalProps {
     visible: boolean;
     amount: number;
     isWelcome?: boolean;
+    isStoreAd?: boolean;
     onClaim: () => void;
     onWatchAd: () => void;
     onSkip?: () => void;
@@ -99,6 +100,7 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
     visible,
     amount,
     isWelcome = false,
+    isStoreAd = false,
     onClaim,
     onWatchAd,
     onSkip,
@@ -270,7 +272,7 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                             {/* Textes + bouton */}
                             <View style={isLandscape ? styles.rightColumn : styles.centerColumn}>
                                 <Animated.Text style={[styles.title, titleAnimStyle, { fontSize: titleFontSize }]}>
-                                    {isWelcome ? 'CADEAU DE BIENVENUE !' : 'CADEAU DU JOUR !'}
+                                    {isStoreAd ? 'RÉCOMPENSE !' : isWelcome ? 'CADEAU DE BIENVENUE !' : 'CADEAU DU JOUR !'}
                                 </Animated.Text>
 
                                 <Text style={[styles.amountText, { fontSize: amountFontSize }]}>
@@ -281,7 +283,7 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                                     fontSize: subtitleFontSize,
                                     marginBottom: isLandscape ? 8 : 16,
                                 }]}>
-                                    {isWelcome ? 'Bienvenue dans Domino Martiniquais' : 'Revenez demain pour un nouveau cadeau'}
+                                    {isStoreAd ? 'Merci d\'avoir visionné la publicité !' : isWelcome ? 'Bienvenue dans Domino Martiniquais' : 'Revenez demain pour un nouveau cadeau'}
                                 </Text>
 
                                 <TouchableOpacity
@@ -301,9 +303,11 @@ export const DailyRewardModal: React.FC<DailyRewardModalProps> = ({
                                         }]}>
                                             {isClaiming 
                                                 ? `🪙 +${displayedAmount}` 
-                                                : isWelcome 
-                                                    ? `RÉCUPÉRER → +${amount} 🪙` 
-                                                    : `📺 VOIR UNE PUB → +${amount} 🪙`}
+                                                : isStoreAd
+                                                    ? `RÉCUPÉRER → +${amount} 🪙`
+                                                    : isWelcome 
+                                                        ? `RÉCUPÉRER → +${amount} 🪙` 
+                                                        : `📺 VOIR UNE PUB → +${amount} 🪙`}
                                         </Text>
                                     </LinearGradient>
                                 </TouchableOpacity>

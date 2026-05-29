@@ -378,10 +378,11 @@ export default function StoreScreen() {
             <DailyRewardModal
                 visible={showVideoReward}
                 amount={100}
+                isStoreAd={true}
                 onClaim={() => setShowVideoReward(false)}
                 onWatchAd={() => setShowVideoReward(false)}
-            />
-
+            /> 
+            
             {loading ? (
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color="#FFD700" />

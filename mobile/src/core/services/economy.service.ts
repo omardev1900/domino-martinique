@@ -724,6 +724,10 @@ class EconomyService {
                 local.lastDailyRewardTimestamp ?? 0,
                 remote.lastDailyRewardTimestamp ?? 0
             ) || undefined,
+            lastStoreAdTimestamp: Math.max(
+                local.lastStoreAdTimestamp ?? 0,
+                remote.lastStoreAdTimestamp ?? 0
+            ) || undefined,
             // ─── Tchat (inventaire consommable) ───
             unlockedChatItems: remote.unlockedChatItems ?? local.unlockedChatItems ?? [],
             chatInventory: remote.chatInventory ?? local.chatInventory ?? {},
@@ -749,6 +753,7 @@ class EconomyService {
             unlockedFrames: (partial.unlockedFrames as LeagueFrameId[]) ?? [],
             activeFrame: (partial.activeFrame as LeagueFrameId | null) ?? null,
             lastDailyRewardTimestamp: partial.lastDailyRewardTimestamp,
+            lastStoreAdTimestamp: partial.lastStoreAdTimestamp,
             // ─── Tchat (inventaire consommable) ───
             unlockedChatItems: partial.unlockedChatItems ?? [],
             chatInventory: partial.chatInventory ?? {},
