@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, useWindowDimensions, Alert, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInLeft, FadeIn } from 'react-native-reanimated';
@@ -125,7 +126,7 @@ export default function SoloScreen() {
             if (!success) {
                 Alert.alert(
                     'Coins insuffisants 🪙',
-                    `Il vous faut ${tableConfig.buyIn} coins pour jouer à la ${tableConfig.label}.\n\nVous n’en avez pas assez.`,
+                    `Il vous faut ${tableConfig.buyIn} coins pour jouer à la ${tableConfig.label}.\n\nVous n'en avez pas assez.`,
                     [{ text: 'OK', style: 'cancel' }]
                 );
                 return; // ❌ Bloquer la navigation
@@ -136,11 +137,19 @@ export default function SoloScreen() {
             setTimeout(() => setDebitFeedback(null), 1800);
         }
 
+        // ── Option A : gameId stable basé sur l'UID ──
+        // Même joueur = même clé AsyncStorage = restauration garantie après interruption.
+        const soloGameId = `solo-${user.uid}`;
+
+        // Si une partie était en cours, on la purge avant d'en démarrer une nouvelle.
+        // (L'utilisateur a explicitement lancé une nouvelle partie depuis solo.tsx.)
+        await AsyncStorage.removeItem(`@solo_game_state:${soloGameId}`).catch(() => {});
+
         // ✅ Buy-in débité, lancer la partie
         router.push({
             pathname: '/game/[id]',
             params: {
-                id: 'solo-' + Date.now(),
+                id: soloGameId,
                 authUid: user.uid,
                 mode: 'solo',
                 difficulty: difficulty,
@@ -925,3 +934,4 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 });
+

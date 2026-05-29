@@ -5,7 +5,7 @@
 >
 > **Flux obligatoire :** `BACKLOG.md` -> `TASKS.md` -> `DONE.md`
 
-**Derniere mise a jour :** 2026-05-25
+**Derniere mise a jour :** 2026-05-29
 **Sprint actuel :** Pre-Lancement Officiel
 
 ---

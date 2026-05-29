@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 import { View, StyleSheet, Text, StatusBar, TouchableOpacity, Alert, useWindowDimensions, Image, Platform, Pressable, AppState, AppStateStatus } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -1157,15 +1157,25 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     try {
                         const parsedState = JSON.parse(savedStateStr) as GameState;
                         if (parsedState && parsedState.players && parsedState.players.length > 0) {
-                            LogService.info('GameScreen', `[SOLO] Restored saved solo game state for ${gameId}`);
-                            setGameState(parsedState);
-                            return; // Restauration réussie, quitter startSoloGame
+                            // ✅ FIX : Ne pas restaurer une partie déjà terminée.
+                            // Si l'OS a tué l'app avant que handleLeaveRoom() purge la clé,
+                            // l'état MATCH_END resterait en AsyncStorage et bloquerait le joueur.
+                            if (parsedState.phase === 'MATCH_END') {
+                                LogService.info('GameScreen', `[SOLO] Saved state is MATCH_END for ${gameId}, purging and starting fresh.`);
+                                await AsyncStorage.removeItem(`@solo_game_state:${gameId}`);
+                                // On laisse tomber la restauration → nouvelle partie ci-dessous
+                            } else {
+                                LogService.info('GameScreen', `[SOLO] Restored saved solo game state for ${gameId}`);
+                                setGameState(parsedState);
+                                return; // Restauration réussie, quitter startSoloGame
+                            }
                         }
                     } catch (parseErr) {
                         LogService.error('GameScreen', '[SOLO] Failed to parse saved solo game state:', parseErr);
                     }
                 }
             }
+
 
             const botDifficulty = difficulty || 'MAPIPI';
 

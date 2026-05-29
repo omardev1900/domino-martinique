@@ -1,6 +1,15 @@
-﻿> Convention : classement par date descendante (plus recent en haut), date au format AAAA-MM-JJ.
+> Convention : classement par date descendante (plus recent en haut), date au format AAAA-MM-JJ.
 
 ## Mai 2026
+
+### 2026-05-29
+
+- [x] **[BUG-SOLO-RESUME]** Partie solo perdue après interruption (appel, mise en arrière-plan, OS kill)
+  - **Problème** : Le `gameId` solo était généré avec `Date.now()` à chaque lancement, rendant impossible la restauration de l'état AsyncStorage sauvegardé entre deux sessions.
+  - **Correction A** : `gameId` stable `solo-${uid}` — même joueur = même clé AsyncStorage, garantissant la restauration après toute interruption.
+  - **Correction B** : Détection de partie en cours dans `solo.tsx` au retour sur l'écran (`useFocusEffect`) + bandeau ⏸️ animé avec deux actions : **Reprendre** (navigue directement) / **Nouvelle partie** (confirmation Alert + purge de l'ancienne clé).
+  - **Correction C** : Dans `startSoloGame()`, si l'état restauré est en phase `MATCH_END` (OS a tué l'app avant `handleLeaveRoom`), la clé est purgée et une nouvelle partie démarre au lieu de bloquer le joueur sur un écran de fin fantôme.
+  - Fichiers modifiés : `mobile/app/solo.tsx`, `mobile/src/screens/GameScreen.tsx`
 
 ### 2026-05-27
 

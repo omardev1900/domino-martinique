@@ -1,6 +1,13 @@
-﻿# 📝 CHANGELOG — Domino Martiniquais
+# 📝 CHANGELOG — Domino Martiniquais
 
 > Journal des changements notables, classés par date (plus récent en premier).
+
+---
+
+## [2.5.12] - 2026-05-29
+
+### Corrigé
+- **Mode Solo — Reprise de partie** — une partie solo interrompue (appel téléphonique, mise en arrière-plan, fermeture de l'app par l'OS) est maintenant retrouvée automatiquement au retour dans le jeu. Un bandeau ⏸️ « Partie en cours » s'affiche sur l'écran Solo avec les actions **Reprendre** et **Nouvelle partie** (confirmation requise pour ne pas perdre la progression). La partie ne redémarre plus depuis zéro à chaque ouverture.
 
 ---
 

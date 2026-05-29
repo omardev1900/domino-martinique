@@ -21,6 +21,8 @@ import * as Notifications from 'expo-notifications';
 import { updateDoc, doc, getDoc } from 'firebase/firestore';
 
 import { NetworkRequiredScreen } from '@/components/NetworkRequiredScreen';
+import { SoloResumeModal } from '@/components/SoloResumeModal';
+import { useSoloResume } from '@/hooks/useSoloResume';
 import { adService } from '@/core/services/ad.service';
 import { authService } from '@/core/services/auth.service';
 import { db, auth, findActiveRoomForUser, signalPlayerOnline, setUserActiveRoom } from '@/core/services/firebase';
@@ -112,6 +114,9 @@ export default Sentry.wrap(function RootLayout() {
   const [isCheckingNetwork, setIsCheckingNetwork] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+
+  // ── Reprise de partie solo ──
+  const { resumeInfo: soloResumeInfo, dismiss: dismissResume, abandon: abandonSolo } = useSoloResume(pathname);
 
   // Network check (NetInfo) listener
   useEffect(() => {
@@ -417,6 +422,24 @@ export default Sentry.wrap(function RootLayout() {
             </View>
           )}
           {/* ──────────────────────────────────────────────────────────── */}
+
+          {/* ── Modal de reprise de partie solo (global, toutes pages) ── */}
+          {soloResumeInfo && appReady && !pathname.startsWith('/game') && (
+            <SoloResumeModal
+              resumeInfo={soloResumeInfo}
+              onResume={() => {
+                dismissResume();
+                router.push({
+                  pathname: '/game/[id]',
+                  params: {
+                    id: soloResumeInfo.gameId,
+                    mode: 'solo',
+                  }
+                });
+              }}
+              onAbandon={abandonSolo}
+            />
+          )}
 
           <StatusBar hidden={true} />
         </LinearGradient>
