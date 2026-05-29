@@ -4,6 +4,12 @@
 
 ### 2026-05-29
 
+- [x] **[FEAT-FORCE-UPDATE]** Mise à jour obligatoire via Play Store
+  - **Problème** : Les anciens clients peuvent causer des bugs s'ils ne sont pas à jour avec le serveur.
+  - **Solution** : Ajout d'un système de blocage distant via Firestore (`config/appSettings`).
+  - **Implémentation** : Création du hook `useForceUpdate` et du composant `ForceUpdateModal` (impossible à fermer). Le bouton redirige directement vers le Play Store. Le système ignore la vérification s'il tourne sur le Web ou en cas d'erreur réseau pour ne jamais bloquer le joueur par erreur.
+  - Fichiers modifiés : `mobile/src/hooks/useForceUpdate.ts`, `mobile/src/components/ForceUpdateModal.tsx`, `mobile/app/_layout.tsx`, `mobile/firestore.rules`
+
 - [x] **[BUG-SOLO-RESUME]** Partie solo perdue après interruption (appel, mise en arrière-plan, OS kill)
   - **Problème** : Le `gameId` solo était généré avec `Date.now()` à chaque lancement, rendant impossible la restauration de l'état AsyncStorage sauvegardé entre deux sessions.
   - **Correction A** : `gameId` stable `solo-${uid}` — même joueur = même clé AsyncStorage, garantissant la restauration après toute interruption.

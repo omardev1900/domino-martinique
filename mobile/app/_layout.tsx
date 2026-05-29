@@ -20,6 +20,8 @@ import * as Sentry from '@sentry/react-native';
 import * as Notifications from 'expo-notifications';
 import { updateDoc, doc, getDoc } from 'firebase/firestore';
 
+import { ForceUpdateModal } from '@/components/ForceUpdateModal';
+import { useForceUpdate } from '@/hooks/useForceUpdate';
 import { NetworkRequiredScreen } from '@/components/NetworkRequiredScreen';
 import { SoloResumeModal } from '@/components/SoloResumeModal';
 import { useSoloResume } from '@/hooks/useSoloResume';
@@ -114,6 +116,9 @@ export default Sentry.wrap(function RootLayout() {
   const [isCheckingNetwork, setIsCheckingNetwork] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+
+  // ── Mise à jour forcée ──
+  const forceUpdateInfo = useForceUpdate();
 
   // ── Reprise de partie solo ──
   const { resumeInfo: soloResumeInfo, dismiss: dismissResume, abandon: abandonSolo } = useSoloResume(pathname);
@@ -329,6 +334,13 @@ export default Sentry.wrap(function RootLayout() {
         isChecking={isCheckingNetwork}
       />
     );
+  }
+
+  // ── Écran bloquant de Mise à Jour Forcée ──
+  // Doit s'afficher avant même de vérifier si appReady ou fontsLoaded,
+  // ou en tout cas bloquer complètement l'accès au reste de l'app.
+  if (forceUpdateInfo?.isRequired) {
+    return <ForceUpdateModal info={forceUpdateInfo} />;
   }
 
   if (!appReady || !fontsLoaded || authLoading) {

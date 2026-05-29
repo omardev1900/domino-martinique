@@ -2,6 +2,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Configuration de l'app (Lecture seule pour tous)
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if false; 
+    }
+
     // Profiles et Économie
     match /users/{userId} {
       allow read: if true;
