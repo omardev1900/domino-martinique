@@ -14,6 +14,10 @@
   - **Problème** : Lorsque la phase passe de `BOUDE` directement à `MANCHE_END` ou `MATCH_END`, le modal `RoundResultCard` était réaffiché une seconde fois par l'effet de ces phases, provoquant un clignotement désagréable.
   - **Solution** : Ajout de la garde `boudeHandledRef.current` pour les phases `MANCHE_END` et `MATCH_END` (tout comme c'était déjà le cas pour `PARTIE_END`) afin de passer directement au flux suivant (Overlay de Manche/Match ou Publicité) sans réafficher la carte de résultat du round bloqué qui a déjà été montrée.
 
+- [x] **[FEAT-STORE-AD]** Ajout d'une carte vidéo récompensée dans la boutique.
+  - **Objectif** : Permettre aux joueurs de gagner 100 coins supplémentaires en regardant une pub, avec un cooldown d'une heure.
+  - **Technique** : Création du composant `StoreAdCard` intégré à la grille des items, ajout du timestamp `lastStoreAdTimestamp` dans le profil économique, et logique d'affichage adaptative selon le cooldown calculé.
+
 - [x] **[FEAT-STORE-REVIEW]** Stratégie de notation et filtre de satisfaction
   - **Objectif** : Capter les notes 5 étoiles de manière organique sans enfreindre les règles Google Play (Incentivized Ratings interdites).
   - **Implémentation** : Ajout du hook `useStoreReviewStrategy` qui compte les victoires (`@domino_win_count`). Au bout de 1, 5, 10, 20... victoires, la `SatisfactionFilterModal` s'affiche.

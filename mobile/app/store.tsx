@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,8 @@ import { StoreItem, StoreItemType, PlayerInventory } from '../src/core/store.typ
 import { adService } from '../src/core/services/ad.service';
 import { Ad } from '../src/core/ad.types';
 import { AdBannerModal } from '../src/components/AdBannerModal';
+import { authService } from '../src/core/services/auth.service';
+import { DailyRewardModal } from '../src/components/DailyRewardModal';
 
 type TabType = 'ALL' | StoreItemType;
 
@@ -64,6 +66,42 @@ export default function StoreScreen() {
 
     const [adToShow, setAdToShow] = useState<Ad | null>(null);
     const adTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [pendingStoreAdReward, setPendingStoreAdReward] = useState(false);
+    const [isProcessingAd, setIsProcessingAd] = useState(false);
+    const [showVideoReward, setShowVideoReward] = useState(false);
+
+    const handleWatchStoreAd = async () => {
+        setIsProcessingAd(true);
+        try {
+            const ad = await adService.getAdForPlacement('END_OF_MATCH', 'REWARDED');
+            if (ad) {
+                setPendingStoreAdReward(true);
+                setAdToShow(ad);
+            } else {
+                const user = await authService.getCurrentUser();
+                await economyService.claimStoreAdReward(user?.uid);
+                setEconomyRefresh(prev => prev + 1);
+                await loadData();
+                setShowVideoReward(true);
+            }
+        } catch (e) {
+            console.error('Erreur lancement pub store', e);
+        } finally {
+            setIsProcessingAd(false);
+        }
+    };
+
+    const handleAdClose = async () => {
+        setAdToShow(null);
+        if (pendingStoreAdReward) {
+            setPendingStoreAdReward(false);
+            const user = await authService.getCurrentUser();
+            await economyService.claimStoreAdReward(user?.uid);
+            setEconomyRefresh(prev => prev + 1);
+            await loadData();
+            setShowVideoReward(true);
+        }
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -141,6 +179,72 @@ export default function StoreScreen() {
     const filteredCatalog = activeTab === 'ALL'
         ? catalog
         : catalog.filter(item => item.type === activeTab);
+
+    const StoreAdCard = ({ playerEconomy }: { playerEconomy: any }) => {
+        const { width: currentWidth, height: currentHeight } = useWindowDimensions();
+        const cardLandscape = currentWidth > currentHeight;
+        
+        const [remainingSeconds, setRemainingSeconds] = useState(0);
+
+        useEffect(() => {
+            if (!playerEconomy) return;
+            const updateTimer = () => {
+                const lastAd = playerEconomy.lastStoreAdTimestamp || 0;
+                const diff = 3600000 - (Date.now() - lastAd);
+                setRemainingSeconds(diff > 0 ? Math.ceil(diff / 1000) : 0);
+            };
+            updateTimer();
+            const interval = setInterval(updateTimer, 1000);
+            return () => clearInterval(interval);
+        }, [playerEconomy]);
+
+        const formatTime = (secs: number) => {
+            const m = Math.floor(secs / 60);
+            const s = secs % 60;
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        };
+
+        const isAvailable = remainingSeconds === 0;
+
+        return (
+            <Animated.View entering={FadeIn} style={[styles.card, cardLandscape && styles.cardLandscape, cardLandscape && { width: currentWidth * 0.24 }]}>
+                <View style={{ flex: 1 }}>
+                    <View style={styles.cardHeader}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>Vidéo Récompensée</Text>
+                        <Text style={styles.cardRarity}>GRATUIT</Text>
+                    </View>
+
+                    <View style={[styles.cardImagePlaceholder, { justifyContent: 'center', alignItems: 'center' }]}>
+                        <Ionicons name="play-circle" size={60} color="#FFD700" />
+                    </View>
+
+                    <View style={styles.descriptionRow}>
+                        <Text style={styles.cardDescription} numberOfLines={2}>
+                            Regardez une vidéo pour gagner 100 Coins instantanément.
+                        </Text>
+                    </View>
+                </View>
+
+                <View style={styles.cardFooter}>
+                    <View style={styles.priceContainer}>
+                        <Text style={styles.priceText}>🪙 100</Text>
+                    </View>
+
+                    {isProcessingAd ? (
+                        <ActivityIndicator color="#FFD700" size="small" />
+                    ) : isAvailable ? (
+                        <TouchableOpacity style={styles.buyButton} onPress={handleWatchStoreAd}>
+                            <Text style={styles.buyButtonText}>Visionner</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={[styles.buyButton, { backgroundColor: 'gray' }]}>
+                            <Text style={styles.buyButtonText}>{formatTime(remainingSeconds)}</Text>
+                        </View>
+                    )}
+                </View>
+            </Animated.View>
+        );
+    };
 
     const StoreItemCard = ({
         item,
@@ -271,6 +375,13 @@ export default function StoreScreen() {
                 onEquip={() => purchaseSuccessItem && handleEquip(purchaseSuccessItem.id)}
             />
 
+            <DailyRewardModal
+                visible={showVideoReward}
+                amount={100}
+                onClaim={() => setShowVideoReward(false)}
+                onWatchAd={() => setShowVideoReward(false)}
+            />
+
             {loading ? (
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color="#FFD700" />
@@ -285,7 +396,11 @@ export default function StoreScreen() {
                     decelerationRate="fast"
                 >
                     {filteredCatalog.length > 0 ? (
-                        filteredCatalog.map(item => (
+                        <>
+                            {activeTab === 'ALL' && inventory && economy && (
+                                <StoreAdCard playerEconomy={economy} />
+                            )}
+                            {filteredCatalog.map(item => (
                             inventory ? (
                                 <StoreItemCard
                                     key={item.id}
@@ -297,13 +412,14 @@ export default function StoreScreen() {
                                     isProcessing={processingPurchase === item.id}
                                 />
                             ) : null
-                        ))
+                            ))}
+                        </>
                     ) : (
                         <Text style={styles.emptyText}>Aucun article dans cette catégorie pour le moment.</Text>
                     )}
                 </ScrollView>
             )}
-            <AdBannerModal ad={adToShow} onClose={() => setAdToShow(null)} />
+            <AdBannerModal ad={adToShow} onClose={handleAdClose} />
         </SafeAreaView>
     );
 }

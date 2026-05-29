@@ -533,6 +533,31 @@ class EconomyService {
     }
 
     /**
+     * [STORE-AD] Crédite la récompense après visionnage d'une pub dans la boutique.
+     * Montant fixe : 100 coins. Met à jour le timestamp de cooldown.
+     */
+    async claimStoreAdReward(userId?: string, profile?: EconomyProfileInfo): Promise<number> {
+        const current = await this.getEconomy();
+        const rewardAmount = 100;
+
+        const updated: PlayerEconomy = {
+            ...current,
+            coins: current.coins + rewardAmount,
+            lastStoreAdTimestamp: Date.now(),
+        };
+
+        this.cached = updated;
+        await this.persistLocal();
+
+        if (userId && !userId.startsWith('guest_')) {
+            await this.pushToFirebase(userId, updated, profile);
+        }
+
+        LogService.info('EconomyService', `[STORE-AD] +${rewardAmount} coins credited after store ad view.`);
+        return rewardAmount;
+    }
+
+    /**
      * Force une mise à jour directe de l'économie (utile pour les tests ou migrations).
      */
     async setEconomy(economy: Partial<PlayerEconomy>, userId?: string, profile?: EconomyProfileInfo): Promise<void> {

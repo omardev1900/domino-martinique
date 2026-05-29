@@ -38,6 +38,7 @@ export interface PlayerEconomy {
     unlockedFrames?: LeagueFrameId[]; // Cadres avatar débloqués (liste des paliers atteints)
     activeFrame?: LeagueFrameId | null; // Cadre actuellement équipé
     lastDailyRewardTimestamp?: number; // 📅 Dernier cadeau reçu (pour check quotidien)
+    lastStoreAdTimestamp?: number;     // 📺 Dernier visionnage de pub boutique (cooldown 1h)
     unlockedChatItems?: string[];      // IDs Firestore des items de tchat achetés à vie (usagesPerPurchase === 0)
     chatInventory?: Record<string, { remaining: number }>; // Compteur d'usages restants par item consommable
     chatInventoryMigratedAt?: number;  // Timestamp de migration one-shot (prévient double-crédit)
