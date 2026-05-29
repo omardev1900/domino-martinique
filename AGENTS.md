@@ -77,6 +77,7 @@ GameScreen → useGameEngine → useActionDispatcher → LogicEngine.ts
 - TypeScript strict + validation inputs via Zod
 - Tests obligatoires pour toute logique dans `LogicEngine`
 - `structuredClone` — jamais `JSON.parse(JSON.stringify())`
+- **Règle de découpage** : Ne JAMAIS créer de fichiers volumineux (ex: > 400 lignes). Privilégier systématiquement des petits fichiers facilement maintenables (composants purs, custom hooks dédiés).
 - Nouveaux composants : reproduire le pattern de `src/features/auth/`
 - Nouvelles features : suivre le pattern des Custom Hooks (`useGameEngine`, etc.)
 

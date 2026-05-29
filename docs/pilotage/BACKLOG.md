@@ -67,6 +67,7 @@
 | **ECO-CHAT-MIGRATED-AT** | Corriger l'ecriture Firestore invalide `economy.chatInventoryMigratedAt = undefined` dans `EconomyService` / fallback Firebase. Firestore refuse `setDoc()` avec valeur `undefined` |
 | **AUDIO-PREMIUM-TRANSITIONS** | Premiumiser les transitions audio : fade-out/fade-in de la BGM entre ecrans, ducking lors des modals evenements, puis remontée progressive du volume apres fermeture ou retour au gameplay |
 | **CONFIG-DYNAMIQUE** | Rendre les constantes du jeu (mise de départ, récompenses, pot) dynamiques via Firestore `config/game` depuis le panel admin. Spec : `docs/specs/features/DYNAMIC_CONFIG.md` |
+| **REFACTOR-GAMESCREEN** | Dette technique : Découper l'immense fichier `GameScreen.tsx` (~1800 lignes) en de multiples petits fichiers maintenables (hooks dédiés, composants UI éclatés) sans ajouter aucune nouvelle fonctionnalité. |
 
 ---
 

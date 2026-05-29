@@ -8,6 +8,7 @@
 
 ### Ajouté
 - **Mise à jour obligatoire (Force Update)** — implémentation d'un système de blocage distant via Firestore. Si la version de l'application est trop ancienne, un écran incontournable s'affiche pour inviter le joueur à télécharger la nouvelle version sur le Google Play Store.
+- **Filtre de Satisfaction (In-App Review)** — apparition intelligente d'une demande d'avis (paliers: 1, 5, 10, 20 victoires...). Redirige vers le Play Store si l'avis est positif, ou vers notre formulaire de feedback interne si le joueur souhaite faire remonter des problèmes. Fin des relances dès qu'un choix est exprimé.
 
 ### Corrigé
 - **Mode Solo — Reprise de partie** — une partie solo interrompue (appel téléphonique, mise en arrière-plan, fermeture de l'app par l'OS) est maintenant retrouvée automatiquement au retour dans le jeu. Un bandeau ⏸️ « Partie en cours » s'affiche sur l'écran Solo avec les actions **Reprendre** et **Nouvelle partie** (confirmation requise pour ne pas perdre la progression). La partie ne redémarre plus depuis zéro à chaque ouverture.

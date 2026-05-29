@@ -217,8 +217,9 @@ class EconomyService {
                  remoteEconomy = {};
             }
 
-            // On télécharge et écrase le local, AUCUN MERGE HASARDEUX avec le guest
-            const downloadedEconomy = this.mergeWithDefaults(remoteEconomy);
+            // On télécharge et fusionne intelligemment (on garde le timestamp local s'il est plus récent)
+            const localEconomy = await this.getEconomy();
+            const downloadedEconomy = this.mergeEconomies(localEconomy, remoteEconomy);
 
             // 🛡️ MIGRATION / RESTAURATION COCHONS [2026-04-15]
             if (remoteStats && typeof remoteStats.totalCochonsInflicted === 'number') {

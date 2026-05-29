@@ -880,6 +880,27 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         }
 
         if (gameState.phase === 'MANCHE_END') {
+            if (boudeHandledRef.current) {
+                boudeHandledRef.current = false;
+                activeBoudeResultKeyRef.current = null;
+                setScoreOverlayPhase(null);
+                setShowRoundResult(false);
+                
+                // On passe directement à l'overlay de manche (ou pub) car la carte a déjà été montrée via BOUDE
+                if (nextAdRef.current) {
+                    isAdVisibleRef.current = true;
+                    setIsAdVisible(true);
+                    setCurrentAd(nextAdRef.current);
+                    nextAdRef.current = null;
+                    pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MANCHE_END');
+                } else if (isAdVisibleRef.current) {
+                    pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MANCHE_END');
+                } else {
+                    setScoreOverlayPhase('MANCHE_END');
+                }
+                return;
+            }
+
             // Fin de manche : RoundResultCard 5s, PUIS UnifiedResultOverlay
             setScoreOverlayPhase(null);
             setRoundResultSnapshot(gameState);
@@ -902,6 +923,27 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         }
 
         if (gameState.phase === 'MATCH_END') {
+            if (boudeHandledRef.current) {
+                boudeHandledRef.current = false;
+                activeBoudeResultKeyRef.current = null;
+                setScoreOverlayPhase(null);
+                setShowRoundResult(false);
+                
+                // On passe directement à l'overlay de match (ou pub) car la carte a déjà été montrée via BOUDE
+                if (nextAdRef.current) {
+                    isAdVisibleRef.current = true;
+                    setIsAdVisible(true);
+                    setCurrentAd(nextAdRef.current);
+                    nextAdRef.current = null;
+                    pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MATCH_END');
+                } else if (isAdVisibleRef.current) {
+                    pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MATCH_END');
+                } else {
+                    setScoreOverlayPhase('MATCH_END');
+                }
+                return;
+            }
+
             // Fin de match : affichage temporaire du RoundResultCard (2.5s) PUIS UnifiedResultOverlay
             setScoreOverlayPhase(null);
             setRoundResultSnapshot(gameState);

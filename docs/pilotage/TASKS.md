@@ -19,20 +19,26 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 ## Sprint Pre-Lancement Officiel
 
+**Sprint actuel :** Pre-Lancement Officiel
+
+---
+
+## Priorite immediate
+
+Le repo est sorti des gros sprints de livraison d'avril-debut mai.
+Le travail actif est maintenant un sprint court de finition avant lancement officiel.
+
+---
+
+## Sprint Pre-Lancement Officiel
+
 | Ticket | Description | Priorite | Statut |
 |---|---|---|---|
 | **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
 | **ANIM-DOMINO-POLISH** | Ameliorer l'animation des dominos poses : trajectoire plus naturelle, timing plus fluide, positionnement fiable depuis la main ou l'avatar, sans jamais recoupler l'animation au moteur de jeu. | Haute | En cours |
 | **UX-ADS-MODAL-CLOSE** | Corriger les fermetures difficiles des modals en jeu : pub apres fin de match et menu options doivent fermer au premier appui, sans zone morte ni conflit d'overlay. | Haute | En cours |
 | **UX-ENDMATCH-FLOW-CLEANUP** | Assainir tout le process de fin de match : ne plus afficher le plateau apres la fin, nettoyer la sequence resultats / pub contre coins / details, et garantir que chaque modal repond immediatement aux clics utilisateur. | Haute | Priorite |
-| **FORCE-UPDATE** | Imposer la mise a jour obligatoire quand une nouvelle version minimale est publiee : verifier la version courante au demarrage, afficher un ecran bloquant si elle est obsolete, et rediriger vers le store. | Haute | Priorite |
-| **UX-DAILY-GIFT-MODAL-DUPLICATE** | Corriger le modal de cadeau du jour a l'ouverture du jeu : il ne doit s'afficher qu'une seule fois par session eligible, et tous ses clics doivent declencher une action visible ou fermer correctement le flux. | Haute | Priorite |
-| **BUG-BLOCKED-ROUND-BEFORE-MATCH-END-DUPLICATE** | Corriger le modal de round bloque juste avant la fin d'un match : il ne doit pas apparaitre deux fois avant le modal de fin de match, meme si plusieurs etats ou snapshots arrivent rapidement. | Haute | Priorite |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
-
-
----
-
 ## Ordre recommande
 
 1. `OTP-INSCRIPTION`

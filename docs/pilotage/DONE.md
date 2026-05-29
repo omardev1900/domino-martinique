@@ -4,6 +4,21 @@
 
 ### 2026-05-29
 
+- [x] **[BUG-UX-DAILY-GIFT-MODAL-DUPLICATE]** Correction des apparitions multiples et intempestives du modal "Cadeau du Jour".
+  - **Problème** : Le modal pouvait s'afficher en double car le `useFocusEffect` de l'accueil se redéclenchait. De plus, il pouvait réapparaître chez un joueur ayant déjà réclamé le cadeau si le pull Firestore (qui écrase le local) ramenait un timestamp obsolète juste après l'action.
+  - **Solution** : 
+    1. Ajout de gardes dans `home.tsx` (`if (showWelcomeReward || showDailyReward || pendingDailyReward) return;`) pour ne jamais reprogrammer un affichage si un est déjà en attente.
+    2. Modification de `syncFromFirebase` dans `economy.service.ts` pour qu'il utilise `mergeEconomies(local, remote)` au lieu d'un écrasement brutal. Le `lastDailyRewardTimestamp` le plus récent (via `Math.max`) est désormais conservé de force.
+
+- [x] **[BUG-BLOCKED-ROUND-BEFORE-MATCH-END-DUPLICATE]** Correction du clignotement du modal de Round Bloqué à la fin d'une manche/match.
+  - **Problème** : Lorsque la phase passe de `BOUDE` directement à `MANCHE_END` ou `MATCH_END`, le modal `RoundResultCard` était réaffiché une seconde fois par l'effet de ces phases, provoquant un clignotement désagréable.
+  - **Solution** : Ajout de la garde `boudeHandledRef.current` pour les phases `MANCHE_END` et `MATCH_END` (tout comme c'était déjà le cas pour `PARTIE_END`) afin de passer directement au flux suivant (Overlay de Manche/Match ou Publicité) sans réafficher la carte de résultat du round bloqué qui a déjà été montrée.
+
+- [x] **[FEAT-STORE-REVIEW]** Stratégie de notation et filtre de satisfaction
+  - **Objectif** : Capter les notes 5 étoiles de manière organique sans enfreindre les règles Google Play (Incentivized Ratings interdites).
+  - **Implémentation** : Ajout du hook `useStoreReviewStrategy` qui compte les victoires (`@domino_win_count`). Au bout de 1, 5, 10, 20... victoires, la `SatisfactionFilterModal` s'affiche.
+  - **Logique** : Si le joueur aime -> appel natif `expo-store-review`. S'il n'aime pas trop -> redirection vers le `MdcFeedbackModal`. Dès qu'un choix (autre que "Plus tard") est fait, l'état `@domino_has_answered_review` est sauvegardé et la popup ne réapparaîtra plus jamais.
+
 - [x] **[FEAT-FORCE-UPDATE]** Mise à jour obligatoire via Play Store
   - **Problème** : Les anciens clients peuvent causer des bugs s'ils ne sont pas à jour avec le serveur.
   - **Solution** : Ajout d'un système de blocage distant via Firestore (`config/appSettings`).
