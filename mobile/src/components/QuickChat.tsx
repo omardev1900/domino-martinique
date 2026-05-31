@@ -257,7 +257,14 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
     };
 
     return (
-        <View style={styles.root}>
+        <View style={[styles.root, isOpen && styles.rootExpanded]} pointerEvents="box-none">
+            {isOpen && (
+                <TouchableOpacity
+                    style={StyleSheet.absoluteFill}
+                    activeOpacity={1}
+                    onPress={() => setIsOpen(false)}
+                />
+            )}
             {isOpen && (
                 <Animated.View
                     entering={ZoomIn}
@@ -401,7 +408,14 @@ const styles = StyleSheet.create({
         right: 0,
         zIndex: 1000,
     },
+    rootExpanded: {
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+    },
     floatingButton: {
+        position: 'absolute',
         width: 50, height: 50, borderRadius: 25,
         backgroundColor: 'rgba(0,0,0,0.6)',
         justifyContent: 'center', alignItems: 'center',
