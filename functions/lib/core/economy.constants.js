@@ -12,27 +12,27 @@ exports.LEAGUE_GRADE_COLORS = exports.LEAGUE_ICONS = exports.LEAGUE_LABELS = exp
 /** Gains par événement de jeu (avant multiplicateur de niveau) */
 exports.BASE_REWARDS = {
     ROUND_WIN: {
-        coins: 5,
+        coins: 0,
         xp: 10,
         diamonds: 0,
         leaguePoints: 0,
     },
     MANCHE_WIN: {
-        coins: 50,
+        coins: 0,
         xp: 100,
         diamonds: 0,
         leaguePoints: 0,
     },
     /** Cochon infligé à 1 adversaire (3-étoiles vs 0 étoile) */
     COCHON_BONUS: {
-        coins: 100,
+        coins: 0,
         xp: 150,
         diamonds: 0,
         leaguePoints: 1,
     },
     /** Double Cochon : 2 adversaires à 0 étoile = 3-0-0 */
     DOUBLE_COCHON: {
-        coins: 250,
+        coins: 0,
         xp: 300,
         diamonds: 1,
         leaguePoints: 2,
@@ -74,7 +74,7 @@ exports.POT_DISTRIBUTION = {
     THIRD: 0.00, // 3ème — perd sa mise
 };
 /** Gain fixe en Solo (pas de pot car pas de buy-in PvP) */
-exports.SOLO_WIN_FLAT_REWARD = 500; // 🪙
+exports.SOLO_WIN_FLAT_REWARD = 300; // 🪙
 // ─── Cadeau de bienvenue ─────────────────────────────────────────────────────
 exports.NEW_PLAYER_COINS = 300; // 🪙 donné à la création du compte
 /** Coins offerts chaque jour à la connexion */
