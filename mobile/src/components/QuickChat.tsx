@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator, ScrollView } from 'react-native';
 import Animated, { FadeOut, ZoomIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -317,7 +317,7 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
                         </View>
 
                         {/* Contenu */}
-                        <View style={styles.contentArea}>
+                        <ScrollView style={styles.contentAreaScroll} contentContainerStyle={styles.contentArea} showsVerticalScrollIndicator={false}>
                             {chatLoading ? (
                                 <View style={styles.loadingContainer}>
                                     <ActivityIndicator color="#8B6508" />
@@ -375,7 +375,7 @@ export const QuickChat: React.FC<QuickChatProps> = ({ onSelectMessage, onSelectE
                                     )}
                                 </>
                             )}
-                        </View>
+                        </ScrollView>
                     </View>
                 </Animated.View>
             )}
@@ -447,6 +447,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2,
     },
     premiumTabIcon: { flexDirection: 'row', alignItems: 'center' },
+    contentAreaScroll: { maxHeight: 180 },
     contentArea: { paddingHorizontal: 8, paddingBottom: 12 },
     loadingContainer: { height: 80, justifyContent: 'center', alignItems: 'center' },
     messagesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

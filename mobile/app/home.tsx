@@ -333,7 +333,7 @@ export default function HomeScreen() {
     return (
         <LinearGradient
             colors={['#2D1B4E', '#1A0E2E']}
-            style={[styles.container, { minHeight: height }]}
+            style={styles.container}
         >
             {/* Header Area */}
             <View style={[styles.header, { paddingTop: insets.top || 20 }, USE_NEW_SIDEBAR && styles.headerCentered]}>
