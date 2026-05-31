@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking as RNLinking, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking as RNLinking, Platform, Alert } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Image } from 'expo-image';
 import { GameRoom, GameMode } from '../core/types';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
-
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { getAvatarImage, AVAILABLE_AVATARS, AvatarId } from '../core/avatars';
@@ -13,7 +12,8 @@ import { AvatarFrame } from '../components/AvatarFrame';
 import { GradeBadge } from '../components/GradeBadge';
 import { LEAGUE_FRAMES_ENABLED, LEAGUE_GRADE_COLORS } from '../core/economy.constants';
 import { addBotToWaitingRoom, leaveRoom } from '../core/services/firebase';
-import { Alert } from 'react-native';
+import { BotSelectionModal } from '../components/BotSelectionModal';
+import { BotDifficulty } from '../core/services/bot.service';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -41,6 +41,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
     const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(null);
     const hasAutoStarted = useRef(false);
     const rootRef = useRef<View>(null);
+    const [botModalVisible, setBotModalVisible] = useState(false);
 
     const handleAddBot = () => {
         if (Platform.OS === 'web') {
@@ -51,18 +52,11 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
             else if (input !== null) addBotToWaitingRoom(roomData.roomId, 'MAPIPI');
             return;
         }
+        setBotModalVisible(true);
+    };
 
-        Alert.alert(
-            "Ajouter un Bot",
-            "Choisissez le niveau de difficulté",
-            [
-                { text: "Ti-Manmay (Facile)", onPress: () => addBotToWaitingRoom(roomData.roomId, 'TI_MANMAY') },
-                { text: "Mapipi (Moyen)", onPress: () => addBotToWaitingRoom(roomData.roomId, 'MAPIPI') },
-                { text: "Gran-moun (Difficile)", onPress: () => addBotToWaitingRoom(roomData.roomId, 'GRAN_MOUN') },
-                { text: "Mètkayali (IA avancé)", onPress: () => addBotToWaitingRoom(roomData.roomId, 'METKAYALI') },
-                { text: "Annuler", style: "cancel" }
-            ]
-        );
+    const handleBotSelected = (difficulty: BotDifficulty) => {
+        addBotToWaitingRoom(roomData.roomId, difficulty);
     };
 
     const handleRemoveBot = (botUid: string) => {
@@ -327,7 +321,12 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                 )}
             </Animated.View>
         </LinearGradient>
-    );
+        <BotSelectionModal
+            visible={botModalVisible}
+            onClose={() => setBotModalVisible(false)}
+            onSelectBot={handleBotSelected}
+        />
+    </>);
 };
 
 const styles = StyleSheet.create({

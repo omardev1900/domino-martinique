@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUserAccount = exports.closeTournament = exports.migrateCochonsGiven = exports.processMatchRewardHttp = exports.processMatchReward = void 0;
+exports.resetMonthlyLeague = exports.deleteUserAccount = exports.closeTournament = exports.migrateCochonsGiven = exports.processMatchRewardHttp = exports.processMatchReward = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const RewardEngine_1 = require("./core/RewardEngine");
@@ -339,5 +339,84 @@ exports.deleteUserAccount = functions.https.onCall(async (_data, context) => {
         });
         throw new functions.https.HttpsError('internal', 'Erreur lors de la suppression du compte.');
     }
+});
+/**
+ * Remise à zéro mensuelle de la Ligue des Cochons.
+ * S'exécute automatiquement le 1er de chaque mois à minuit (00:00 UTC).
+ *
+ * Actions :
+ *  1. Sauvegarde les scores du mois écoulé dans `league_history/{YYYY-MM}/players/{uid}`
+ *  2. Remet `leaguePoints` et `cochonsGiven` à 0 dans l'économie de chaque joueur
+ *  3. Remet `leagueGrade` à null (grade rechargé depuis 0 au prochain gain)
+ */
+exports.resetMonthlyLeague = functions.pubsub
+    .schedule('0 0 1 * *') // Premier du mois à minuit UTC
+    .timeZone('America/Martinique')
+    .onRun(async (_context) => {
+    var _a, _b, _c, _d, _e, _f, _g;
+    const now = new Date();
+    // Mois précédent (car on exécute le 1er du mois courant)
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const monthKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    console.log(`[resetMonthlyLeague] Début du reset pour le mois ${monthKey}`);
+    const usersSnap = await db.collection('users').get();
+    if (usersSnap.empty) {
+        console.log('[resetMonthlyLeague] Aucun utilisateur trouvé.');
+        return null;
+    }
+    const historyRef = db.collection('league_history').doc(monthKey);
+    const BATCH_SIZE = 400;
+    let batchCount = 0;
+    let batch = db.batch();
+    let historyBatch = db.batch();
+    let processed = 0;
+    for (const userDoc of usersSnap.docs) {
+        const uid = userDoc.id;
+        const data = userDoc.data();
+        const economy = (_a = data === null || data === void 0 ? void 0 : data.economy) !== null && _a !== void 0 ? _a : {};
+        const leaguePoints = (_b = economy.leaguePoints) !== null && _b !== void 0 ? _b : 0;
+        const cochonsGiven = (_c = economy.cochonsGiven) !== null && _c !== void 0 ? _c : 0;
+        const leagueGrade = (_d = economy.leagueGrade) !== null && _d !== void 0 ? _d : null;
+        // 1. Archiver le score du mois
+        const playerHistoryRef = historyRef.collection('players').doc(uid);
+        historyBatch.set(playerHistoryRef, {
+            uid,
+            displayName: (_g = (_e = data === null || data === void 0 ? void 0 : data.displayName) !== null && _e !== void 0 ? _e : (_f = data === null || data === void 0 ? void 0 : data.profile) === null || _f === void 0 ? void 0 : _f.displayName) !== null && _g !== void 0 ? _g : 'Inconnu',
+            leaguePoints,
+            cochonsGiven,
+            leagueGrade,
+            archivedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        // 2. Remettre à zéro
+        batch.update(userDoc.ref, {
+            'economy.leaguePoints': 0,
+            'economy.cochonsGiven': 0,
+            'economy.leagueGrade': null,
+        });
+        batchCount++;
+        processed++;
+        // Firestore : limite de 500 opérations par batch
+        if (batchCount >= BATCH_SIZE) {
+            await batch.commit();
+            await historyBatch.commit();
+            batch = db.batch();
+            historyBatch = db.batch();
+            batchCount = 0;
+        }
+    }
+    if (batchCount > 0) {
+        await batch.commit();
+        await historyBatch.commit();
+    }
+    console.log(`[resetMonthlyLeague] Reset terminé : ${processed} joueurs remis à zéro pour ${monthKey}.`);
+    await (0, systemLog_1.logSystemEvent)({
+        event: 'monthly_league_reset',
+        level: 'info',
+        functionName: 'resetMonthlyLeague',
+        uid: 'system',
+        message: `Reset mensuel ligue terminé : ${processed} joueurs, mois ${monthKey}`,
+        metadata: { monthKey, processed },
+    });
+    return null;
 });
 //# sourceMappingURL=index.js.map

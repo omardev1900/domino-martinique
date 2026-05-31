@@ -65,13 +65,13 @@ exports.TABLE_CONFIGS = {
     EXPERT: { tier: 'EXPERT', buyIn: 1000, label: 'Table Expert', icon: '⚔️' },
     LEGENDE: { tier: 'LEGENDE', buyIn: 10000, label: 'Table Légende', icon: '👑' },
 };
-/** Taxe de table prélevée sur le pot total */
-exports.RAKE_PERCENT = 0.10; // 10%
-/** Distribution du pot (après rake) */
+/** Taxe de table prélevée sur le pot total — 0% (vainqueur prend tout) */
+exports.RAKE_PERCENT = 0.00; // 0% — pas de taxe
+/** Distribution du pot : le vainqueur remporte tout le pot, les autres perdent leur mise */
 exports.POT_DISTRIBUTION = {
-    FIRST: 0.80, // 80% au 1er
-    SECOND: 0.20, // 20% au 2ème (remboursement partiel)
-    THIRD: 0.00, // 3ème perd sa mise
+    FIRST: 1.00, // 100% au 1er (gagne 300 coins sur Table Débutant à 3 joueurs)
+    SECOND: 0.00, // 2ème — perd sa mise
+    THIRD: 0.00, // 3ème — perd sa mise
 };
 /** Gain fixe en Solo (pas de pot car pas de buy-in PvP) */
 exports.SOLO_WIN_FLAT_REWARD = 500; // 🪙

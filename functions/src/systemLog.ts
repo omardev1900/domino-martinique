@@ -8,6 +8,7 @@ export type SystemLogEvent =
     | 'tournament_closed'
     | 'account_deleted'
     | 'cochons_migrated'
+    | 'monthly_league_reset'
     | 'function_error';
 
 export interface SystemLogEntry {
