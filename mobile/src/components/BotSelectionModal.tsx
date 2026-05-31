@@ -6,6 +6,7 @@ import {
     StyleSheet,
     TouchableOpacity,
     TouchableWithoutFeedback,
+    ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -89,7 +90,7 @@ export const BotSelectionModal: React.FC<BotSelectionModalProps> = ({
                             </LinearGradient>
 
                             {/* Bot Options */}
-                            <View style={styles.optionsList}>
+                            <ScrollView style={styles.optionsList} contentContainerStyle={styles.optionsListContent} showsVerticalScrollIndicator={false}>
                                 {BOT_OPTIONS.map((option, index) => (
                                     <Animated.View
                                         key={option.difficulty}
@@ -126,7 +127,7 @@ export const BotSelectionModal: React.FC<BotSelectionModalProps> = ({
                                         </TouchableOpacity>
                                     </Animated.View>
                                 ))}
-                            </View>
+                            </ScrollView>
                         </Animated.View>
                     </TouchableWithoutFeedback>
                 </View>
@@ -187,6 +188,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     optionsList: {
+        maxHeight: 250, // Limite la hauteur en mode paysage
+    },
+    optionsListContent: {
         padding: 12,
         gap: 8,
     },
