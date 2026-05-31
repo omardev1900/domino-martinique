@@ -187,8 +187,7 @@ export default function LoginScreen() {
                 >
                     {/* TOP: Short Title */}
                     <Text style={styles.mainTitle}>DEVIENS UNE LÉGENDE !</Text>
-                    <Text style={styles.benefitText}>Ver 1.3.0 !</Text>
-
+                    
                     <View style={styles.contentWrapper}>
                         {/* MIDDLE: Free Account Card (Highly Compressed) */}
                         <LinearGradient

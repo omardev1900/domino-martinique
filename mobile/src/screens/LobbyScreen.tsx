@@ -44,14 +44,6 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
     const [botModalVisible, setBotModalVisible] = useState(false);
 
     const handleAddBot = () => {
-        if (Platform.OS === 'web') {
-            const input = window.prompt("Choisissez le niveau du bot :\n1 = Ti-Manmay\n2 = Mapipi\n3 = Gran-moun\n4 = Mètkayali", "2");
-            if (input === '1') addBotToWaitingRoom(roomData.roomId, 'TI_MANMAY');
-            else if (input === '3') addBotToWaitingRoom(roomData.roomId, 'GRAN_MOUN');
-            else if (input === '4') addBotToWaitingRoom(roomData.roomId, 'METKAYALI');
-            else if (input !== null) addBotToWaitingRoom(roomData.roomId, 'MAPIPI');
-            return;
-        }
         setBotModalVisible(true);
     };
 

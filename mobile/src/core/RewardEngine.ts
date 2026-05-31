@@ -167,21 +167,26 @@ export const RewardEngine = {
         } = input;
 
         const breakdown: RewardBreakdown[] = [];
-        let totalCoinsRaw = 0;
+        let totalCoinsRaw = 0; // Coins de performance (manches, rounds) — soumis au multiplicateur
+        let potCoins = 0;      // Coins du pot — jamais multipliés par le niveau
         let totalXP = 0;
         let totalDiamonds = 0;
         let totalLeaguePoints = 0;
 
-        // ── 1. Gains par événement de manche ─────────────────────────────────
+        // Calculé ici car nécessaire dès la section 1
+        const isSolo = playerCount <= 1 || gameMode === 'SOLO';
+
+        // ── 1. Gains par événement de manche ──────────────────────────────────────
+        // En multi, les manches n'apportent que de l'XP (pas de coins — le pot suffit)
         for (const manche of mancheHistory) {
             if (manche.isWinner) {
-                // Victoire de Manche (NORMAL ou COCHON)
-                totalCoinsRaw += BASE_REWARDS.MANCHE_WIN.coins;
+                // Victoire de Manche : coins uniquement en Solo
+                if (isSolo) totalCoinsRaw += BASE_REWARDS.MANCHE_WIN.coins;
                 totalXP += BASE_REWARDS.MANCHE_WIN.xp;
                 breakdown.push({
                     id: `manche_win_${manche.mancheNumber}`,
                     label: `Victoire Manche #${manche.mancheNumber}`,
-                    coins: BASE_REWARDS.MANCHE_WIN.coins,
+                    coins: isSolo ? BASE_REWARDS.MANCHE_WIN.coins : 0,
                     xp: BASE_REWARDS.MANCHE_WIN.xp,
                     diamonds: 0,
                     leaguePoints: 0,
@@ -190,27 +195,27 @@ export const RewardEngine = {
                 if (manche.resultType === 'COCHON' && manche.cochonCount > 0) {
                     if (manche.cochonCount >= 2) {
                         // Double Cochon (3-0-0)
-                        totalCoinsRaw += BASE_REWARDS.DOUBLE_COCHON.coins;
+                        if (isSolo) totalCoinsRaw += BASE_REWARDS.DOUBLE_COCHON.coins;
                         totalXP += BASE_REWARDS.DOUBLE_COCHON.xp;
                         totalDiamonds += BASE_REWARDS.DOUBLE_COCHON.diamonds;
                         totalLeaguePoints += BASE_REWARDS.DOUBLE_COCHON.leaguePoints;
                         breakdown.push({
                             id: `double_cochon_${manche.mancheNumber}`,
                             label: `🐷🐷 Double Cochon (Manche #${manche.mancheNumber})`,
-                            coins: BASE_REWARDS.DOUBLE_COCHON.coins,
+                            coins: isSolo ? BASE_REWARDS.DOUBLE_COCHON.coins : 0,
                             xp: BASE_REWARDS.DOUBLE_COCHON.xp,
                             diamonds: BASE_REWARDS.DOUBLE_COCHON.diamonds,
                             leaguePoints: BASE_REWARDS.DOUBLE_COCHON.leaguePoints,
                         });
                     } else {
-                        // Cochon Simple (3-1-0 ou équivalent)
-                        totalCoinsRaw += BASE_REWARDS.COCHON_BONUS.coins;
+                        // Cochon Simple (3-1-0)
+                        if (isSolo) totalCoinsRaw += BASE_REWARDS.COCHON_BONUS.coins;
                         totalXP += BASE_REWARDS.COCHON_BONUS.xp;
                         totalLeaguePoints += BASE_REWARDS.COCHON_BONUS.leaguePoints;
                         breakdown.push({
                             id: `cochon_${manche.mancheNumber}`,
                             label: `🐷 Bonus Cochon (Manche #${manche.mancheNumber})`,
-                            coins: BASE_REWARDS.COCHON_BONUS.coins,
+                            coins: isSolo ? BASE_REWARDS.COCHON_BONUS.coins : 0,
                             xp: BASE_REWARDS.COCHON_BONUS.xp,
                             diamonds: 0,
                             leaguePoints: BASE_REWARDS.COCHON_BONUS.leaguePoints,
@@ -218,7 +223,6 @@ export const RewardEngine = {
                     }
                 }
             } else if (manche.isCochonne) {
-                // Le joueur a été cochonné — gain minimal
                 totalXP += BASE_REWARDS.MATCH_COCHONNE.xp;
                 breakdown.push({
                     id: `cochonne_${manche.mancheNumber}`,
@@ -231,12 +235,13 @@ export const RewardEngine = {
             }
         }
 
-        // ── 2. Gains de Rounds ────────────────────────────────────────────────
+        // ── 2. Gains de Rounds ──────────────────────────────────────────
+        // En multi, les rounds n'apportent que de l'XP
         const roundWins = playerFinalStats.totalRoundWins;
         if (roundWins > 0) {
-            const roundCoins = BASE_REWARDS.ROUND_WIN.coins * roundWins;
+            const roundCoins = isSolo ? BASE_REWARDS.ROUND_WIN.coins * roundWins : 0;
             const roundXP = BASE_REWARDS.ROUND_WIN.xp * roundWins;
-            totalCoinsRaw += roundCoins;
+            if (isSolo) totalCoinsRaw += roundCoins;
             totalXP += roundXP;
             breakdown.push({
                 id: 'round_wins',
@@ -248,25 +253,24 @@ export const RewardEngine = {
             });
         }
 
-        // ── 3. Gains de fin de Match (classement) ────────────────────────────
+        // ── 3. Gains de fin de Match (classement) ──────────────────────────
         const rank = playerFinalStats.rank;
-        const isSolo = playerCount <= 1 || gameMode === 'SOLO';
+        // Note : isSolo est calculé en amont (avant section 1)
 
         if (rank === 1) {
             // Vainqueur du match
             totalXP += BASE_REWARDS.MATCH_WIN.xp;
             totalDiamonds += BASE_REWARDS.MATCH_WIN.diamonds;
 
-            let potCoins: number;
             if (isSolo) {
                 potCoins = SOLO_WIN_FLAT_REWARD;
             } else {
                 const tableConfig = TABLE_CONFIGS[tableTier];
                 const pot = calculatePot(tableConfig.buyIn, playerCount);
+                // potCoins est exact et ne subit PAS le multiplicateur de niveau
                 potCoins = Math.floor(pot * POT_DISTRIBUTION.FIRST);
             }
 
-            totalCoinsRaw += potCoins;
             breakdown.push({
                 id: 'match_win',
                 label: `🏆 Victoire du Match`,
@@ -279,15 +283,14 @@ export const RewardEngine = {
             // 2ème — remboursement partiel du pot
             const tableConfig = TABLE_CONFIGS[tableTier];
             const pot = calculatePot(tableConfig.buyIn, playerCount);
-            const secondCoins = Math.floor(pot * POT_DISTRIBUTION.SECOND);
-            totalCoinsRaw += secondCoins;
+            potCoins = Math.floor(pot * POT_DISTRIBUTION.SECOND);
             totalXP += BASE_REWARDS.MATCH_FINISH.xp;
 
-            if (secondCoins > 0) {
+            if (potCoins > 0) {
                 breakdown.push({
                     id: 'match_second',
                     label: `🥈 2ème Place`,
-                    coins: secondCoins,
+                    coins: potCoins,
                     xp: BASE_REWARDS.MATCH_FINISH.xp,
                     diamonds: 0,
                     leaguePoints: 0,
@@ -306,20 +309,23 @@ export const RewardEngine = {
             });
         }
 
-        // ── 4. Appliquer le multiplicateur de niveau ──────────────────────────
-        const coinsEarned = applyLevelMultiplier(totalCoinsRaw, currentLevel);
+        // ── 4. Appliquer le multiplicateur de niveau (performance coins uniquement) ───
+        // potCoins (= pot du match en multi, flat reward en solo) N'est PAS multiplié.
+        // Le multiplicateur de niveau s'applique UNIQUEMENT aux coins de performance
+        // (manches, rounds en solo — en multi totalCoinsRaw = 0 donc pas d'effet).
+        const performanceCoinsMultiplied = applyLevelMultiplier(totalCoinsRaw, currentLevel);
+        const coinsEarned = performanceCoinsMultiplied + potCoins;
 
-        // Mise à jour du breakdown avec les coins réels (après multiplicateur)
-        // On applique la même proportion à chaque ligne
-        const multiplierRatio = totalCoinsRaw > 0 ? coinsEarned / totalCoinsRaw : 1;
+        // Ratio pour ajuster le breakdown (ne s'applique qu'aux lignes performance)
+        const multiplierRatio = totalCoinsRaw > 0 ? performanceCoinsMultiplied / totalCoinsRaw : 1;
         const adjustedBreakdown = breakdown.map(b => ({
             ...b,
             coins: Math.floor(b.coins * multiplierRatio),
         }));
 
-        // Si un multiplicateur est actif, ajouter une ligne explicative
-        if (currentLevel > 1 && totalCoinsRaw > 0) {
-            const bonusCoins = coinsEarned - totalCoinsRaw;
+        // Si un multiplicateur est actif, ajouter une ligne explicative (solo uniquement)
+        if (isSolo && currentLevel > 1 && totalCoinsRaw > 0) {
+            const bonusCoins = performanceCoinsMultiplied - totalCoinsRaw;
             if (bonusCoins > 0) {
                 adjustedBreakdown.push({
                     id: 'level_multiplier',
