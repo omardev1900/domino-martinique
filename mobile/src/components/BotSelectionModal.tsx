@@ -95,6 +95,7 @@ export const BotSelectionModal: React.FC<BotSelectionModalProps> = ({
                                     <Animated.View
                                         key={option.difficulty}
                                         entering={FadeIn.delay(index * 60)}
+                                        style={styles.optionWrapper}
                                     >
                                         <TouchableOpacity
                                             style={styles.optionRow}
@@ -145,8 +146,8 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     container: {
-        width: '100%',
-        maxWidth: 400,
+        width: '95%',
+        maxWidth: 580,
         backgroundColor: '#1E1340',
         borderRadius: 20,
         overflow: 'hidden',
@@ -188,32 +189,39 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     optionsList: {
-        maxHeight: 250, // Limite la hauteur en mode paysage
+        // La hauteur n'est plus limitée, la grille 2x2 prend moins de place en hauteur
     },
     optionsListContent: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
         padding: 12,
         gap: 8,
+    },
+    optionWrapper: {
+        width: '49%', // Un peu moins de la moitié pour laisser la place au gap
     },
     optionRow: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(255,255,255,0.04)',
         borderRadius: 12,
-        padding: 10,
+        padding: 8,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.06)',
-        gap: 12,
+        gap: 10,
+        minHeight: 76,
     },
     emojiContainer: {
-        width: 44,
-        height: 44,
+        width: 38,
+        height: 38,
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
         flexShrink: 0,
     },
     optionEmoji: {
-        fontSize: 22,
+        fontSize: 20,
     },
     optionText: {
         flex: 1,
