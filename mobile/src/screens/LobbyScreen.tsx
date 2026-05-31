@@ -222,11 +222,12 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
     };
 
     return (
-        <LinearGradient
-            colors={['#2D1B4E', '#1A0E2E']}
-            style={styles.container}
-            {...({ ref: rootRef, tabIndex: -1 } as any)}
-        >
+        <>
+            <LinearGradient
+                colors={['#2D1B4E', '#1A0E2E']}
+                style={styles.container}
+                {...({ ref: rootRef, tabIndex: -1 } as any)}
+            >
             <Animated.View entering={FadeIn.delay(100)} style={styles.header}>
                 <View style={styles.headerLeft}>
                     <EconomyHeader />
