@@ -2,7 +2,7 @@
   "expo": {
     "name": "Domino Martiniquais",
     "slug": "domino-martinique",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "landscape",
     "icon": "./src/assets/images/icon.png",
     "scheme": "domino-martinique",
@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.dominomartinique.mobile",
-      "versionCode": 8,
+      "versionCode": 9,
       "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false,
       "intentFilters": [

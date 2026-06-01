@@ -25,12 +25,7 @@ export function ForceUpdateModal({ info }: ForceUpdateModalProps) {
     };
 
     return (
-        <Modal
-            transparent
-            animationType="none"
-            visible
-            statusBarTranslucent
-        >
+        <View style={styles.container}>
             <View style={styles.overlay}>
                 <Animated.View
                     entering={FadeIn.duration(300)}
@@ -63,21 +58,25 @@ export function ForceUpdateModal({ info }: ForceUpdateModalProps) {
                     </TouchableOpacity>
                 </Animated.View>
             </View>
-        </Modal>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#1A0E2E',
+    },
     overlay: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 28,
-        zIndex: 9999, // Au-dessus de TOUT
+        zIndex: 9999,
     },
     backdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(26, 14, 46, 0.95)', // Très opaque pour masquer le jeu derrière
+        backgroundColor: '#1A0E2E',
     },
     card: {
         width: '100%',
