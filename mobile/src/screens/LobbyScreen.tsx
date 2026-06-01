@@ -119,7 +119,8 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
 
     const shareToWhatsApp = () => {
         const deepLink = `https://domino-martinique.online/join/${roomData.roomId}`;
-        const message = `Rejoins ma table de Domino Martiniquais ! Code : ${roomData.roomId}\n\nLien : ${deepLink}`;
+        const modeText = gameMode.charAt(0).toUpperCase() + gameMode.slice(1).toLowerCase();
+        const message = `Rejoins ma table de Domino Martiniquais Mode ${modeText}, Objectif : ${winningCondition} ! Code : ${roomData.roomId}\n\nLien : ${deepLink}`;
 
         let url = `whatsapp://send?text=${encodeURIComponent(message)}`;
 

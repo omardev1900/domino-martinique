@@ -638,7 +638,7 @@ export default function LobbyScreen() {
                     {/* Mode badge */}
                     <View style={styles.modeBadge}>
                         <Text style={styles.modeBadgeText}>
-                            {MODE_LABELS[item.gameMode || 'MANCHE']}
+                            {MODE_LABELS[item.gameMode || 'MANCHE']} | Obj: {item.winningCondition || 3}
                         </Text>
                     </View>
                     <Text style={styles.playerCount}>{item.players.length}/3 👤</Text>
