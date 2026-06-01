@@ -1,5 +1,15 @@
 > Convention : classement par date descendante (plus recent en haut), date au format AAAA-MM-JJ.
 
+## Juin 2026
+
+### 2026-06-01
+
+- [x] **[ADMIN-NEWS-MANAGER]** Accès à `/dashboard/news` ouvert aux managers
+  - Retrait de `/dashboard/news` de la liste `SUPERADMIN_ONLY` dans `layout.tsx`
+  - Suppression de `superadminOnly: true` sur l'entrée `Actualités` dans `Sidebar.tsx`
+  - Les règles Firestore étaient déjà permissives (`isAdmin()`) : aucun changement côté DB
+  - Les managers peuvent désormais créer, modifier, activer/désactiver et supprimer des actualités
+
 ## Mai 2026
 
 ### 2026-05-29

@@ -4,6 +4,13 @@
 
 ---
 
+## [Admin] - 2026-06-01
+
+### Modifié (Admin)
+- **Panel Admin — Actualités accessibles aux managers** — la page `/dashboard/news` est désormais accessible aux comptes de type Manager. Ils peuvent créer, modifier, activer/désactiver et supprimer des actualités depuis l'interface admin, sans avoir besoin d'un accès Superadmin.
+
+---
+
 ## [2.5.12] - 2026-05-29
 
 ### Ajouté

@@ -11,7 +11,6 @@ const SUPERADMIN_ONLY = [
   '/dashboard/config',
   '/dashboard/logs',
   '/dashboard/notifications',
-  '/dashboard/news',
   '/dashboard/feedbacks',
   '/dashboard/access',
   '/dashboard/audio',

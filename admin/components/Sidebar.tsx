@@ -38,7 +38,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/feedbacks', label: 'Feedbacks', icon: '📩', superadminOnly: true },
   { href: '/dashboard/logs', label: 'Logs admin', icon: '📋', superadminOnly: true },
   { href: '/dashboard/notifications', label: 'Notifications', icon: '📣', superadminOnly: true },
-  { href: '/dashboard/news', label: 'Actualités', icon: '📰', superadminOnly: true },
+  { href: '/dashboard/news', label: 'Actualités', icon: '📰' },
   { href: '/dashboard/ads', label: 'Publicités', icon: '📢' },
   { href: '/dashboard/audio', label: 'Musiques', icon: '🎵', superadminOnly: true },
   { href: '/dashboard/access', label: 'Accès admins', icon: '🔑', superadminOnly: true },
