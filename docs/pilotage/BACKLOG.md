@@ -13,7 +13,6 @@
 
 | Ticket | Description | Priorité | Estimation |
 |---|---|---|---|
-| **BUG-WELCOME-COINS** | Cadeau de bienvenue (300 coins) ne se crédite pas — écrasement suspect lors de l'initialisation du profil à la création de compte. | 🔴 Critique | ~0,5 j |
 | **ECO-DIAMOND-REDUCE** | Supprimer ou réduire les gains en diamants hors paliers de Ligue (ne conserver les diamants qu'aux passages de palier officiel). | 🟡 Moyenne | ~0,25 j |
 | **SHARE-APP-LINK** | Lien de partage de l'application (Play Store + Web). Bouton dans l'accueil ou les paramètres. | 🟡 Moyenne | ~0,25 j |
 | **SHARE-LEAGUE-LEVEL** | Lien / carte de partage du niveau actuel de Ligue des Cochons (palier + grade). Extension du composant de partage social existant. | 🟡 Moyenne | ~0,5 j |

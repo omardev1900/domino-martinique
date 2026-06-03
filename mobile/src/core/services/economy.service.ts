@@ -53,6 +53,9 @@ const DEFAULT_ECONOMY: PlayerEconomy = {
 class EconomyService {
     private cached: PlayerEconomy | null = null;
     private storageScope = GUEST_STORAGE_SCOPE;
+    /** Nombre d'écritures Firestore en cours. Empêche le listener onSnapshot
+     *  d'écraser le cache local avec des données périmées. */
+    private pendingWrites = 0;
 
     private get storageKey(): string {
         return `${STORAGE_KEY_ECONOMY}:${this.storageScope}`;
@@ -231,6 +234,31 @@ class EconomyService {
                     );
                     downloadedEconomy.cochonsGiven = statsCochons;
                 }
+            }
+
+            // 🛡️ BUG-WELCOME-COINS : Protection race condition nouveau joueur.
+            // Si Firestore répond avant la propagation complète de pushToFirebase (signUp),
+            // remote.coins peut valoir 0 ou undefined, ce qui écraserait le cadeau de bienvenue.
+            // On vérifie le flag posé par signUp et on restaure/re-pousse si nécessaire.
+            try {
+                const protectedCoinsRaw = await AsyncStorage.getItem('@new_player_coins_protected');
+                if (protectedCoinsRaw !== null) {
+                    const protectedCoins = parseInt(protectedCoinsRaw, 10);
+                    if (!isNaN(protectedCoins) && (downloadedEconomy.coins ?? 0) < protectedCoins) {
+                        LogService.warn(
+                            'EconomyService',
+                            `[BUG-WELCOME-COINS] Race condition détectée : Firestore coins=${downloadedEconomy.coins} < protégé=${protectedCoins}. Restauration des coins de bienvenue.`
+                        );
+                        downloadedEconomy.coins = protectedCoins;
+                        // Re-pousse la valeur correcte sur Firestore pour corriger la propagation
+                        await this.pushToFirebase(uid, downloadedEconomy);
+                    }
+                    // Flag consommé — le supprimer dans tous les cas
+                    await AsyncStorage.removeItem('@new_player_coins_protected');
+                    LogService.info('EconomyService', '[BUG-WELCOME-COINS] Flag de protection consommé.');
+                }
+            } catch (flagError) {
+                LogService.warn('EconomyService', '[BUG-WELCOME-COINS] Impossible de lire/supprimer le flag de protection.', flagError);
             }
 
             this.cached = downloadedEconomy;
@@ -617,6 +645,13 @@ class EconomyService {
                 const remoteEconomy = snap.data().economy as Partial<PlayerEconomy> | undefined;
                 if (!remoteEconomy) return;
 
+                // 🛡️ pendingWrites : si un push est en cours, on ne laisse pas le snapshot
+                // Firestore (potentiellement périmé) écraser le cache local.
+                if (this.pendingWrites > 0) {
+                    LogService.info('EconomyService', 'onSnapshot ignoré : écriture en cours (pendingWrites > 0).');
+                    return;
+                }
+
                 // [R3-B9] FIX : fusionner remote + local pour ne pas perdre lastDailyRewardTimestamp
                 // mergeWithDefaults(remote) seul écrasait le timestamp local si Firestore était en retard.
                 const local = await this.getEconomy();
@@ -655,19 +690,23 @@ class EconomyService {
     }
 
     async pushToFirebase(uid: string, economy: PlayerEconomy, profile?: EconomyProfileInfo): Promise<void> {
+        this.pendingWrites++;
         try {
             const userRef = doc(db, 'users', uid);
 
-            // Nettoyage des valeurs undefined pour éviter l'erreur Firestore
-            const cleanEconomy = { ...economy };
-            if (cleanEconomy.lastDailyRewardTimestamp === undefined) {
-                delete cleanEconomy.lastDailyRewardTimestamp;
-            }
-            if (cleanEconomy.chatInventoryMigratedAt === undefined) {
-                delete cleanEconomy.chatInventoryMigratedAt;
+            // 🔑 Nettoyage GÉNÉRIQUE de tous les champs undefined/null-undefined.
+            // Firestore v9 modular SDK rejette TOUTE écriture si un champ vaut `undefined`.
+            // Les anciens fix ponctuels (lastDailyRewardTimestamp, chatInventoryMigratedAt)
+            // étaient insuffisants — les champs optionnels comme lastStoreAdTimestamp,
+            // unlockedChatItems, etc. provoquaient un silent-fail (catch interne).
+            const cleanEconomy: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(economy)) {
+                if (value !== undefined) {
+                    cleanEconomy[key] = value;
+                }
             }
 
-            const payload: Record<string, any> = { economy: cleanEconomy };
+            const payload: Record<string, unknown> = { economy: cleanEconomy };
             // Écrire displayName et avatarId si fournis, pour que le leaderboard
             // puisse afficher le vrai nom et l'avatar du joueur
             if (profile) {
@@ -678,6 +717,8 @@ class EconomyService {
             LogService.info('EconomyService', 'Economy pushed to Firebase.', profile ? `(with profile: ${profile.displayName})` : '');
         } catch (e) {
             LogService.error('EconomyService', 'pushToFirebase error:', e);
+        } finally {
+            this.pendingWrites--;
         }
     }
 

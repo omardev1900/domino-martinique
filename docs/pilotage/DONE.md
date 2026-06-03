@@ -4,6 +4,21 @@
 
 ### 2026-06-03
 
+- [x] **[BUG-WELCOME-COINS + ECONOMY-0-COINS]** Coins toujours à 0 après création de compte, après un match ou au retour sur l'accueil.
+  - **Cause racine (identifiée en production)** : `pushToFirebase()` échouait **silencieusement sur 100% des appels** depuis le client Web. Le SDK Firestore v9 modular rejette toute écriture contenant un champ `undefined`. La fonction ne nettoyait que 2 champs hardcodés (`lastDailyRewardTimestamp`, `chatInventoryMigratedAt`) mais pas les autres optionnels (`lastStoreAdTimestamp`, `unlockedChatItems`, etc.). L'erreur était catchée sans rethrow → Firestore n'avait jamais l'économie → la CF `processMatchReward` lisait 0 et récompensait depuis 0.
+  - **Cause secondaire** : Race condition `listenToEconomy` — un snapshot Firestore périmé (avant propagation du write) pouvait écraser le cache local correct (500 coins → 300 dans l'UI).
+  - **Corrections** :
+    - `economy.service.ts` — `pushToFirebase` : nettoyage GÉNÉRIQUE via `Object.entries` (supprime tout champ `undefined` au lieu de 2 champs hardcodés).
+    - `economy.service.ts` — `pushToFirebase` : compteur `pendingWrites` (incrémenté avant `setDoc`, décrémenté dans `finally`).
+    - `economy.service.ts` — `listenToEconomy` : ignore le snapshot si `pendingWrites > 0`.
+    - `auth.service.ts` — `signUp` : flag `@new_player_coins_protected` (garde-fou résiduel si le push est lent).
+
+  - **Problème** : quand `home.tsx` appelle `syncFromFirebase` dans les millisecondes suivant la création du compte, Firestore peut retourner `economy: {}` ou `coins: 0` si la propagation du `pushToFirebase` n'est pas encore terminée. `mergeEconomies` prend alors `remote.coins = 0` et écrase le cache local qui contenait les 300 coins.
+  - **Correction** :
+    - `auth.service.ts` : après `pushToFirebase` dans `signUp`, pose le flag `@new_player_coins_protected = 300` dans AsyncStorage.
+    - `economy.service.ts` : dans `syncFromFirebase`, si ce flag est présent et que `downloadedEconomy.coins < protectedCoins`, restaure les coins locaux, re-pousse vers Firestore et consomme le flag.
+  - **Sécurité** : SEC-3 préservé — on ne restaure que si les coins Firestore sont *inférieurs* à la valeur attendue, jamais supérieurs. Le flag n'est actif que les quelques secondes après la création de compte.
+
 - [x] **[ECO-OBJECTIVES-DEFAULT]** Valeurs par défaut des modes de jeu revues à la hausse dans `solo.tsx` et `lobby.tsx` (solo + multijoueur) :
   - Mode Victoire : `5` → `10` victoires
   - Mode Score : `10` → `25` points

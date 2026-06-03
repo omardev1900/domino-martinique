@@ -80,6 +80,15 @@ class AuthService {
             
             const defaultEconomy = await economyService.getEconomy();
             await economyService.pushToFirebase(profile.uid, defaultEconomy);
+
+            // 🛡️ BUG-WELCOME-COINS : Protège les coins de bienvenue contre la race condition
+            // où syncFromFirebase (déclenché par home.tsx) lirait Firestore avant que
+            // la propagation soit complète, et écraserait les coins à 0 ou une valeur vide.
+            await AsyncStorage.setItem(
+                '@new_player_coins_protected',
+                String(defaultEconomy.coins)
+            );
+            LogService.info('AuthService', `[BUG-WELCOME-COINS] Flag de protection posé: ${defaultEconomy.coins} coins.`);
             
             await economyService.syncProfileMetadata(
                 profile.uid,
