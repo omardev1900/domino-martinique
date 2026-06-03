@@ -66,6 +66,12 @@ if (Platform.OS === 'web' && typeof window !== 'undefined') {
     }
   `;
   document.head.appendChild(style);
+
+  // REDIRECT ANDROID USERS TO PLAY STORE (Web Only)
+  const userAgent = navigator.userAgent || navigator.vendor;
+  if (/android/i.test(userAgent)) {
+    window.location.href = 'https://play.google.com/store/apps/details?id=com.dominomartinique.mobile';
+  }
 }
 
 export const unstable_settings = {
