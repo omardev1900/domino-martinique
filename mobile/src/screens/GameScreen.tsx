@@ -1234,6 +1234,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             const botProfiles = await botService.getBotsForLevel(botDifficulty, 2);
             const playerNames = [playerDisplayName, ...botProfiles.map(b => b.name)];
 
+            const eco = await economyService.getEconomy();
+
             const fullState = dealGameSolo(
                 localPlayerId,
                 playerDisplayName,
@@ -1245,9 +1247,12 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             // Configure local player and bots avatars
             fullState.players[0].avatarId = playerAvatarId as AvatarId;
             // Propager le leagueGrade du joueur local s'il est disponible
-            if ((playerEconomyRef.current as any).leagueGrade) {
+            if (eco.leagueGrade) {
+                fullState.players[0].leagueGrade = eco.leagueGrade;
+            } else if ((playerEconomyRef.current as any).leagueGrade) {
                 fullState.players[0].leagueGrade = (playerEconomyRef.current as any).leagueGrade;
             }
+
 
             fullState.players[1].name = botProfiles[0].name;
             fullState.players[1].avatarId = (botProfiles[0].imageUrl || botProfiles[0].avatarId) as AvatarId;

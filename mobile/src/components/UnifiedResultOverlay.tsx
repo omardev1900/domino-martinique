@@ -398,7 +398,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                             {showTotalScore ? getPlayerTotalScore(p) : `${p.currentMancheStars || 0} ⭐`}
                         </Text>
                         {/* [R3-M2] Badge grade Ligue */}
-                        <GradeBadge grade={p.leagueGrade} size="xs" />
+                        <GradeBadge grade={p.id === currentUserId && matchReward ? matchReward.newGrade : p.leagueGrade} size="xs" />
                         {isWinner && showTotalScore && (
                             <View style={styles.podiumWinBadge}>
                                 <Text style={styles.podiumWinBadgeText}>CHAMPION</Text>
