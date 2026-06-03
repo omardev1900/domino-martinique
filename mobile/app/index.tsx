@@ -16,7 +16,6 @@ import Constants from 'expo-constants';
 import { authService } from '@/core/services/auth.service';
 import SettingsManager from '@/core/SettingsManager';
 import SoundManager from '@/core/audio/SoundManager';
-import { findActiveRoomForUser } from '@/core/services/firebase';
 
 // ─── Timings ─────────────────────────────────────────────────────────────────
 // Delay before bar starts (logo entrance time)
@@ -37,7 +36,6 @@ export default function PremiumSplashScreen() {
     const router = useRouter();
     const { height } = useWindowDimensions();
     const authResultRef = useRef<'home' | 'login'>('login');
-    const activeRoomIdRef = useRef<string | null>(null);
 
     // ── RN Animated values (work reliably on web) ─────────────────
     const logoScale = useRef(new Animated.Value(0.82)).current;
@@ -55,7 +53,6 @@ export default function PremiumSplashScreen() {
                 await SettingsManager.loadSettings();
                 const user = await authService.getCurrentUser();
                 if (user) {
-                    activeRoomIdRef.current = await findActiveRoomForUser(user.uid);
                     authResultRef.current = 'home';
                 } else {
                     authResultRef.current = 'login';
@@ -166,10 +163,6 @@ export default function PremiumSplashScreen() {
     // ── Navigation ────────────────────────────────────────────────
     const handlePlay = () => {
         SoundManager.unlockAudio();
-        if (activeRoomIdRef.current) {
-            router.replace({ pathname: '/game/[id]', params: { id: activeRoomIdRef.current } });
-            return;
-        }
         router.replace(`/${authResultRef.current}` as any);
     };
 

@@ -4,6 +4,12 @@
 
 ### 2026-06-03
 
+- **[BUG-RECONNECT-MULTI]** (Fait)
+  - **Problème** : Lors d'une perte réseau en mode multijoueur, l'application affichait un écran blanc. Au retour du réseau, aucune invitation n'était proposée pour rejoindre la partie (contrairement au mode solo).
+  - **Correction** : 
+    - Modification de `app/_layout.tsx` pour afficher `NetworkRequiredScreen` en overlay absolu, ce qui empêche le démontage critique de la structure applicative et de la navigation.
+    - Ajout du composant `MultiResumeModal` et du hook `useMultiResume` pour repérer les rooms en cours (`WAITING` ou `PLAYING`) et proposer poliment au joueur de les rejoindre avec indication de perte de coins s'il ignore la demande.
+
 - **[BUG-UI-SANS-GRADE]** (Fait)
   - **Problème** : La mention "Sans grade" s'affichait systématiquement à la fin du second match d'une session, même si le joueur avait été promu.
   - **Cause** : `playerEconomyRef.current` perdait le `leagueGrade` après l'application des récompenses.

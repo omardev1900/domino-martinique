@@ -674,11 +674,11 @@ export const findActiveRoomForUser = async (userId: string): Promise<string | nu
             const persistedRoomSnap = await getDoc(persistedRoomRef);
             if (persistedRoomSnap.exists()) {
                 const persistedRoom = persistedRoomSnap.data() as GameRoom;
-                const isPlaying = persistedRoom.status === RoomStatus.PLAYING;
+                const isActive = persistedRoom.status === RoomStatus.PLAYING || persistedRoom.status === RoomStatus.WAITING;
                 const isInPlayersList = persistedRoom.players.some(p => p.uid === userId);
-                const isInGameState = persistedRoom.gameState?.players.some(p => p.id === userId);
+                const isInGameState = persistedRoom.gameState?.players?.some(p => p.id === userId) ?? false;
                 const isInPlayerIds = persistedRoom.playerIds?.includes(userId) ?? false;
-                if (isPlaying && (isInPlayersList || isInGameState || isInPlayerIds)) {
+                if (isActive && (isInPlayersList || isInGameState || isInPlayerIds)) {
                     LogService.debug('Firebase', `Found persisted active room for user ${userId}: ${persistedRoomId}`);
                     return persistedRoomId;
                 }
@@ -695,7 +695,7 @@ export const findActiveRoomForUser = async (userId: string): Promise<string | nu
 
         const q = query(
             collection(db, ROOMS_COLLECTION),
-            where("status", "==", RoomStatus.PLAYING)
+            where("status", "in", [RoomStatus.PLAYING, RoomStatus.WAITING])
         );
 
         const snapshot = await getDocs(q);
@@ -708,7 +708,7 @@ export const findActiveRoomForUser = async (userId: string): Promise<string | nu
             const isInPlayersList = data.players.some(p => p.uid === userId);
 
             // Check if user is in gameState players (was in game, might be disconnected)
-            const isInGameState = data.gameState?.players.some(p => p.id === userId);
+            const isInGameState = data.gameState?.players?.some(p => p.id === userId) ?? false;
 
             // Persistent membership marker, survives temporary disconnects and session resets
             const isInPlayerIds = data.playerIds?.includes(userId) ?? false;

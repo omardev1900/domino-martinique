@@ -25,6 +25,8 @@ import { useForceUpdate } from '@/hooks/useForceUpdate';
 import { NetworkRequiredScreen } from '@/components/NetworkRequiredScreen';
 import { SoloResumeModal } from '@/components/SoloResumeModal';
 import { useSoloResume } from '@/hooks/useSoloResume';
+import { MultiResumeModal } from '@/components/MultiResumeModal';
+import { useMultiResume } from '@/hooks/useMultiResume';
 import { adService } from '@/core/services/ad.service';
 import { authService } from '@/core/services/auth.service';
 import { db, auth, findActiveRoomForUser, signalPlayerOnline, setUserActiveRoom } from '@/core/services/firebase';
@@ -122,6 +124,9 @@ export default Sentry.wrap(function RootLayout() {
 
   // ── Reprise de partie solo ──
   const { resumeInfo: soloResumeInfo, dismiss: dismissResume, abandon: abandonSolo } = useSoloResume(pathname);
+
+  // ── Reprise de partie multi ──
+  const { resumeInfo: multiResumeInfo, dismiss: dismissMulti, abandon: abandonMulti } = useMultiResume(pathname);
 
   // Network check (NetInfo) listener
   useEffect(() => {
@@ -264,61 +269,7 @@ export default Sentry.wrap(function RootLayout() {
     SoundManager.playMusic('appActive', 0.5);
   }, [pathname, appReady]);
 
-  useEffect(() => {
-    if (!appReady) return;
-    if (pathname.startsWith('/game')) return;
 
-    let cancelled = false;
-
-    const forceBackToActiveMatch = async () => {
-      let activeRoomId = await AsyncStorage.getItem('active_roomId');
-
-      if (activeRoomId) {
-        try {
-          const roomRef = doc(db, 'rooms', activeRoomId);
-          const roomSnap = await getDoc(roomRef);
-          let isValid = false;
-          if (roomSnap.exists()) {
-            const roomData = roomSnap.data();
-            if (roomData && roomData.status === 'PLAYING') {
-              isValid = true;
-            }
-          }
-          if (!isValid) {
-            LogService.warn('App', `Stale activeRoomId found in AsyncStorage: ${activeRoomId}. Cleaning up.`);
-            await AsyncStorage.removeItem('active_roomId');
-            activeRoomId = null;
-            const currentUser = await authService.getCurrentUser();
-            if (currentUser) {
-              await setUserActiveRoom(currentUser.uid, null);
-            }
-          }
-        } catch (err) {
-          LogService.error('App', 'Error validating activeRoomId from AsyncStorage:', err);
-          activeRoomId = null;
-        }
-      }
-
-      if (!activeRoomId) {
-        const currentUser = await authService.getCurrentUser();
-        if (currentUser && !currentUser.uid.startsWith('guest_')) {
-          activeRoomId = await findActiveRoomForUser(currentUser.uid);
-          if (activeRoomId) {
-            await AsyncStorage.setItem('active_roomId', activeRoomId);
-          }
-        }
-      }
-
-      if (!activeRoomId || cancelled) return;
-      router.replace({ pathname: '/game/[id]', params: { id: activeRoomId } });
-    };
-
-    forceBackToActiveMatch().catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [appReady, pathname, router]);
 
   const onLayoutRootView = useCallback(async () => {
     if (appReady) {
@@ -327,14 +278,7 @@ export default Sentry.wrap(function RootLayout() {
     }
   }, [appReady]);
 
-  if (isConnected === false) {
-    return (
-      <NetworkRequiredScreen
-        onRetry={handleRetryNetwork}
-        isChecking={isCheckingNetwork}
-      />
-    );
-  }
+
 
   // ── Écran bloquant de Mise à Jour Forcée ──
   // Doit s'afficher avant même de vérifier si appReady ou fontsLoaded,
@@ -451,6 +395,31 @@ export default Sentry.wrap(function RootLayout() {
               }}
               onAbandon={abandonSolo}
             />
+          )}
+
+          {/* ── Modal de reprise de partie multi (global, toutes pages) ── */}
+          {multiResumeInfo && appReady && !pathname.startsWith('/game') && (
+            <MultiResumeModal
+              resumeInfo={multiResumeInfo}
+              onResume={() => {
+                dismissMulti();
+                router.replace({
+                  pathname: '/game/[id]',
+                  params: { id: multiResumeInfo.roomId }
+                });
+              }}
+              onAbandon={abandonMulti}
+            />
+          )}
+
+          {/* ── Overlay Réseau (ne démonte pas l'app) ── */}
+          {isConnected === false && (
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, elevation: 99999 }}>
+              <NetworkRequiredScreen
+                onRetry={handleRetryNetwork}
+                isChecking={isCheckingNetwork}
+              />
+            </View>
           )}
 
           <StatusBar hidden={true} />
