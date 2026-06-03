@@ -29,6 +29,7 @@ import { EconomyHeader } from '../src/components/EconomyHeader';
 import { DailyRewardModal } from '../src/components/DailyRewardModal';
 import { HelpOverlay } from '../src/components/HelpOverlay';
 import { LeagueProgressWidget } from '../src/components/LeagueProgressWidget';
+import { ShareTextButton } from '../src/components/ShareButton';
 import { NewsService, NewsItem } from '../src/core/services/news.service';
 import { adService } from '../src/core/services/ad.service';
 import { Ad } from '../src/core/ad.types';
@@ -531,6 +532,15 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </Animated.View>
                 </View>
+
+                {/* Bouton d'invitation social */}
+                <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.inviteContainer}>
+                    <ShareTextButton 
+                        text="Rejoins-moi sur Domino Martiniquais pour une petite partie ! Télécharge le jeu ici : https://play.domino-martinique.online/"
+                        label="Inviter des amis"
+                        iconSize={20}
+                    />
+                </Animated.View>
             </ScrollView>
 
             {/* Help Overlay */}
@@ -944,6 +954,11 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: '900',
         letterSpacing: 2,
+    },
+    inviteContainer: {
+        marginTop: 24,
+        paddingHorizontal: '10%',
+        alignItems: 'center',
     },
     topCardsRow: {
         flexDirection: 'row',

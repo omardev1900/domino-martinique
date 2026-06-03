@@ -17,6 +17,7 @@ import { leaderboardService, LeaderboardEntry } from '../core/services/leaderboa
 import { authService } from '../core/services/auth.service';
 import { getAvatarImage } from '../core/avatars';
 import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../core/leagueProgress';
+import { ShareTextButton, buildGradeShareText } from './ShareButton';
 
 type TabType = 'MA_LIGUE' | 'CLASSEMENT_MOIS' | 'CLASSEMENT_GLOBAL';
 export type LeagueHubTabType = TabType;
@@ -142,6 +143,16 @@ export const LeagueHubView: React.FC<LeagueHubViewProps> = ({
                                 : `${leaguePoints} 🐷 • grade maximum`}
                         </Text>
                     </View>
+                    {progress.grade && (
+                        <View style={{ marginTop: 12, width: '100%', alignItems: 'center' }}>
+                            <ShareTextButton 
+                                text={buildGradeShareText({ gradeLabel: LEAGUE_LABELS[progress.grade], totalCochons: leaguePoints })}
+                                label="Inviter au défi"
+                                buttonStyle={styles.shareBtnCompact}
+                                iconSize={14}
+                            />
+                        </View>
+                    )}
                 </Animated.View>
 
                 <View style={styles.monthlyGradeCard}>
@@ -595,6 +606,16 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '700',
         textAlign: 'center',
+    },
+    shareBtnCompact: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFD700',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        gap: 6,
     },
     monthlyGradeCard: {
         width: '48.5%',
