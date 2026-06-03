@@ -34,23 +34,10 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 | Ticket | Description | Priorite | Statut |
 |---|---|---|---|
-| **UX-ENDMATCH-FLOW-CLEANUP** | Assainir tout le process de fin de match : ne plus afficher le plateau apres la fin, fermeture immediates des modals (pub, menu options, resultats), nettoyer la sequence entiere et garantir que chaque modal repond au premier appui sans zone morte ni conflit d'overlay. *(Regroupe UX-ADS-MODAL-CLOSE)* | Haute | Priorite |
+| **BUG-MULTI-BOUDE-LOOP** | [BUG CRITIQUE] Multijoueur : Boucle infinie et blocage sur l'état "boudé". | Critique | Priorité 1 |
+| **BUG-ECO-GAINS** | [BUG] Économie : Gains anormaux selon les modes de jeu. Fixer les gains à 300 coins au total quel que soit le mode de jeu. | Haute | Priorité 2 |
+| **UX-ENDMATCH-FLOW-CLEANUP** | Assainir tout le process de fin de match : ne plus afficher le plateau apres la fin, fermeture immediates des modals (pub, menu options, resultats), nettoyer la sequence entiere et garantir que chaque modal repond au premier appui sans zone morte ni conflit d'overlay. *(Regroupe UX-ADS-MODAL-CLOSE)* | Haute | En attente |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
-## Ordre recommande
-
-1. `UX-ENDMATCH-FLOW-CLEANUP` (prioritaire — retours clients actifs)
-2. `OTP-INSCRIPTION` (differe — Web uniquement)
-
-Raison :
-`UX-ENDMATCH-FLOW-CLEANUP` regroupe desormais la correction des fermetures de modals (`UX-ADS-MODAL-CLOSE`) et l'assainissement complet du flow de fin de match. C'est la priorite immediate avant le lancement.
-`OTP-INSCRIPTION` est limite au Web uniquement (mobile non concerne) et reporte apres la phase de test ferme.
-
----
-
-## Detail prioritaire - UX-ENDMATCH-FLOW-CLEANUP
-
-Objectif :
-Assainir completement le process de fin de match et garantir que toutes les interactions modals repondent immediatement.
 
 Perimetre :
 - Ne plus afficher le plateau apres la fin du match

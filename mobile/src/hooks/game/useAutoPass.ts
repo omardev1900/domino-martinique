@@ -66,11 +66,7 @@ export const useAutoPass = ({
             playerId: currentPlayerId,
             turnId: capturedTurnId
         });
-        try {
-            SoundManager.playSound('toktok');
-        } catch (e) {
-            // Ignorer les erreurs sonores en test/background
-        }
+        // Le son est maintenant joué par useActionDispatcher lors du MARK_BOUDE
 
         const timer = setTimeout(() => {
             const freshState = gameStateRef.current;

@@ -4,7 +4,22 @@
 
 ### 2026-06-03
 
-- [x] **[BUG-WELCOME-COINS + ECONOMY-0-COINS]** Coins toujours à 0 après création de compte, après un match ou au retour sur l'accueil.
+- **[BUG-UI-SANS-GRADE]** (Fait)
+  - **Problème** : La mention "Sans grade" s'affichait systématiquement à la fin du second match d'une session, même si le joueur avait été promu.
+  - **Cause** : `playerEconomyRef.current` perdait le `leagueGrade` après l'application des récompenses.
+  - **Correction** : Mise à jour de `GameScreen.tsx` pour inclure et propager le `leagueGrade` dans la mise à jour de l'économie locale.
+
+- **[GAMEPLAY-BOT-RHYTHM]** & **[UI/UX] Visibilité "boudé"** (Fait)
+  - **Problème** : Les bots jouaient trop vite, son "toktok" en double, et pas de texte "boudé" sur le plateau.
+  - **Cause** : L'état `isMoveAnimationPending` n'était pas envoyé au composant, et `useAutoPass` doublonnait le son du dispatcher.
+  - **Correction** :
+    - Pause de la réflexion des bots pendant le vol des dominos.
+    - Centralisation du son "toktok" dans `useActionDispatcher.ts`.
+    - Ajout d'une modale texte "Vous êtes boudé" ou "[Nom] est boudé" au centre du `GameScreen`.
+
+
+
+
   - **Cause racine (identifiée en production)** : `pushToFirebase()` échouait **silencieusement sur 100% des appels** depuis le client Web. Le SDK Firestore v9 modular rejette toute écriture contenant un champ `undefined`. La fonction ne nettoyait que 2 champs hardcodés (`lastDailyRewardTimestamp`, `chatInventoryMigratedAt`) mais pas les autres optionnels (`lastStoreAdTimestamp`, `unlockedChatItems`, etc.). L'erreur était catchée sans rethrow → Firestore n'avait jamais l'économie → la CF `processMatchReward` lisait 0 et récompensait depuis 0.
   - **Cause secondaire** : Race condition `listenToEconomy` — un snapshot Firestore périmé (avant propagation du write) pouvait écraser le cache local correct (500 coins → 300 dans l'UI).
   - **Corrections** :

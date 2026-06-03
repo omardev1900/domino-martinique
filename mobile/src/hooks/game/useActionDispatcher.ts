@@ -190,8 +190,13 @@ export const useActionDispatcher = ({
                         if ((SoundManager as any).playSound) (SoundManager as any).playSound('shuffle');
                     } else if (tilePlayed) {
                         if (onTilePlayed) onTilePlayed(tilePlayed);
-                    } else if (command.type === 'PASS_TURN' || (command.type === 'TIMEOUT' && !tilePlayed)) {
+                    } else if (command.type === 'MARK_BOUDE') {
                         if ((SoundManager as any).playSound) (SoundManager as any).playSound('toktok');
+                    } else if (command.type === 'PASS_TURN' || (command.type === 'TIMEOUT' && !tilePlayed)) {
+                        // Avoid playing toktok again if it was already played during MARK_BOUDE
+                        if (gameState.boudePlayerId !== command.playerId) {
+                            if ((SoundManager as any).playSound) (SoundManager as any).playSound('toktok');
+                        }
                     }
                 } catch (e) {
                     console.error('[ActionDispatcher] Sound error:', e);

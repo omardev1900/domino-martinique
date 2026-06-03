@@ -10,9 +10,20 @@
 - **Animation des dominos (polish)** — trajectoire plus naturelle, timing plus fluide, positionnement fiable depuis la main ou l'avatar. L'animation reste complètement découplée du moteur de jeu.
 - **Ligue des Cochons — récompense de palier** — les coins de passage de palier sont maintenant correctement crédités et affichés dans l'animation `RewardOverlay`, même lorsque `LEAGUE_FRAMES_ENABLED = false`.
 - **Ligue des Cochons — grade en partie multi** — le grade/cadre Ligue ne disparaît plus en cours de partie. Le snapshot Firestore transporte désormais correctement le `leagueGrade` à chaque mise à jour de la room.
+- **Ligue des Cochons — grade en fin de match** — le badge "Sans grade" n'apparaît plus à tort. Le grade survit à la mise à jour locale post-match.
 - **Dominos qui rétrécissaient au retour en jeu** — le layout recalcule maintenant correctement les dimensions de la main et du plateau après un `AppState` change vers `active` (appel téléphonique, notification, changement d'app).
+- **Bug critique : cadeau de bienvenue** — les 300 coins offerts à l'inscription sont désormais correctement crédités et sauvegardés. Le problème qui réinitialisait parfois le solde à zéro juste après la création du compte a été résolu (correction de l'enregistrement dans la base de données).
 - **Reprise de partie après un appel téléphonique** — reconnexion Firestore et focus audio/game correctement restaurés au retour d'interruption.
 - **Bug critique : réinitialisation des stats à la connexion** — les statistiques, coins, diamants et progression de Ligue ne sont plus remis à zéro lors de la connexion. Architecture Pull-Only stricte implémentée (voir R6-B1-STATS-RESET).
+- **Gameplay / Bots** — les bots respectent maintenant le temps d'animation visuelle avant de jouer.
+- **Son "boudé" en double** — le son (toktok) ne se joue plus en double lors du passage de tour automatique.
+
+### Ajouté
+- **Feedback UI "Boudé"** — ajout d'une bannière de texte dynamique au centre du plateau indiquant quand un joueur passe son tour ("VOUS ÊTES BOUDÉ" ou "NomDuJoueur EST BOUDÉ").
+
+### Modifié
+- **Objectifs par défaut** — les valeurs par défaut pour créer une partie (Solo et Multijoueur) ont été augmentées (10 victoires, 25 points, 5 manches, 5 cochons).
+- **Pubs Boutique** — le délai entre deux publicités pour gagner des coins gratuits est passé d'1 heure à 3 minutes.
 
 ### Modifié
 - **Économie** — rééquilibrage du coût d'un jeu multi et des gains de victoire (constantes `economy.constants.ts` et Cloud Function).

@@ -425,7 +425,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         localPlayerId,
         isSoloMode,
         gameId,
-        isPaused: isPaused || showOptions || isAdVisible,
+        isPaused: isPaused || showOptions || isAdVisible || isMoveAnimationPending,
         isLocalHost,
         roomData,
         userId,
@@ -553,6 +553,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const boudeHandledRef = useRef(false);
     const activeBoudeResultKeyRef = useRef<string | null>(null);
     const resolvedBoudeResultKeysRef = useRef<Set<string>>(new Set());
+    const boudeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // -- 6. Derived State & Layout --
     const localPlayer = gameState?.players.find(p => p.id === localPlayerId);
@@ -593,7 +594,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const [currentAd, setCurrentAd] = useState<Ad | null>(null);
     const [matchReward, setMatchReward] = useState<MatchReward | null>(null);
     const [showRewardOverlay, setShowRewardOverlay] = useState(false);
-    const playerEconomyRef = useRef<{ level: number; xp: number; leaguePoints: number; cochonsGiven?: number; unlockedFrames?: any[] }>({ level: 1, xp: 0, leaguePoints: 0 });
+    const playerEconomyRef = useRef<{ level: number; xp: number; leaguePoints: number; cochonsGiven?: number; unlockedFrames?: any[]; leagueGrade?: string | null }>({ level: 1, xp: 0, leaguePoints: 0 });
 
     // Load economy on mount
     useEffect(() => {
@@ -654,7 +655,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                             localPlayerId,
                             currentLevel: playerEconomyRef.current.level,
                             currentXP: playerEconomyRef.current.xp,
-                            currentLeaguePoints: currentMonthlyLeaguePoints,
+                            currentLeaguePoints: playerEconomyRef.current.leaguePoints,
                             currentCochonsGiven: playerEconomyRef.current.cochonsGiven || 0,
                             unlockedFrames: playerEconomyRef.current.unlockedFrames || [],
                             tableTier: activeTableTier,
@@ -691,6 +692,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                                 ...(playerEconomyRef.current.unlockedFrames || []),
                                 ...reward.newlyUnlockedFrames.map((f: any) => f.frameId),
                             ],
+                            leagueGrade: reward.newGrade || (playerEconomyRef.current as any).leagueGrade,
                         };
 
                         LogService.info('GameScreen', `Economy rewards applied — coins:${reward.coinsEarned} xp:${reward.xpEarned} gradeUp:${reward.gradeUp} leaguePointsEarned:${leaguePointsEarned}`);
@@ -830,22 +832,29 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             }
         }
 
-        if (gameState.phase === 'BOUDE' && activeBoudeResultKeyRef.current !== boudeResultKey) {
-            // Partie bloquée : card immédiate 3.5s, host résout BOUDE au bout
-            boudeHandledRef.current = true;
-            activeBoudeResultKeyRef.current = boudeResultKey;
-            setScoreOverlayPhase(null);
-            setRoundResultSnapshot(gameState);
-            setShowRoundResult(true);
-            if (isLocalHost) {
-                // Host : on résout soi-même après 5s (annule le timer 6s séparé)
-                const timer = setTimeout(() => {
+        if (gameState.phase === 'BOUDE') {
+            if (activeBoudeResultKeyRef.current !== boudeResultKey) {
+                // Partie bloquée : card immédiate 3.5s, host résout BOUDE au bout
+                boudeHandledRef.current = true;
+                activeBoudeResultKeyRef.current = boudeResultKey;
+                setScoreOverlayPhase(null);
+                setRoundResultSnapshot(gameState);
+                setShowRoundResult(true);
+            }
+            if (isLocalHost && !boudeTimerRef.current) {
+                // Host : on résout soi-même après 5s
+                boudeTimerRef.current = setTimeout(() => {
                     resolveBoudeOnce(boudeResultKey);
+                    boudeTimerRef.current = null;
                 }, 5000);
-                return () => clearTimeout(timer);
             }
             // Non-host : attend PARTIE_END via Firestore (timer 5s du host)
             return;
+        } else {
+            if (boudeTimerRef.current) {
+                clearTimeout(boudeTimerRef.current);
+                boudeTimerRef.current = null;
+            }
         }
 
         if (gameState.phase === 'PARTIE_END') {
@@ -1348,7 +1357,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                         leagueGrade: roomPlayer.leagueGrade,   // Propagé depuis PlayerProfile
                         activeFrame: roomPlayer.activeFrame,   // Propagé depuis PlayerProfile
                         status: roomPlayer.status === 'BOT' ? 'BOT' : 'HUMAN',
-                        difficulty: roomPlayer.status === 'BOT' ? roomPlayer.difficulty : undefined
+                        difficulty: roomPlayer.status === 'BOT' ? (roomPlayer as any).difficulty : undefined
                     };
                 } else {
                     const relativeBotIdx = i - roomData.players.length;
@@ -1669,6 +1678,54 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     }}
                     onQuitGame={handleLeaveRoom}
                 />
+
+                {/* ANIMATION TEXTE BOUDÉ */}
+                {localBoudedPlayerId && (() => {
+                    const bPlayer = gameState?.players.find(p => p.id === localBoudedPlayerId);
+                    if (!bPlayer) return null;
+                    const isMe = bPlayer.id === localPlayerId;
+                    const text = isMe ? "Vous êtes boudé" : `${bPlayer.name} est boudé`;
+                    return (
+                        <Animated.View
+                            entering={FadeInUp.springify().damping(12).mass(0.8)}
+                            exiting={FadeOut.duration(300)}
+                            style={{
+                                position: 'absolute',
+                                top: isMe ? undefined : '28%',
+                                bottom: isMe ? '32%' : undefined,
+                                width: '100%',
+                                alignItems: 'center',
+                                zIndex: 500,
+                            }}
+                            pointerEvents="none"
+                        >
+                            <View style={{
+                                backgroundColor: 'rgba(0,0,0,0.85)',
+                                paddingHorizontal: 28,
+                                paddingVertical: 14,
+                                borderRadius: 16,
+                                borderWidth: 2,
+                                borderColor: isMe ? '#FF6B6B' : '#4ECDC4',
+                                shadowColor: isMe ? '#FF6B6B' : '#4ECDC4',
+                                shadowOffset: { width: 0, height: 0 },
+                                shadowOpacity: 0.5,
+                                shadowRadius: 10,
+                                elevation: 8,
+                            }}>
+                                <Text style={{
+                                    color: '#FFFFFF',
+                                    fontSize: 22,
+                                    fontWeight: '900',
+                                    letterSpacing: 1.5,
+                                    textTransform: 'uppercase',
+                                    textShadowColor: 'black',
+                                    textShadowOffset: { width: 0, height: 2 },
+                                    textShadowRadius: 4,
+                                }}>{text}</Text>
+                            </View>
+                        </Animated.View>
+                    );
+                })()}
 
                 <GameTable
                     ref={tableRef}
