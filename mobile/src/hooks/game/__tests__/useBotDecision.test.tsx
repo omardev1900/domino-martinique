@@ -78,6 +78,7 @@ describe('useBotDecision', () => {
             localPlayerId: 'player1',
             isSoloMode: true,
             isPaused: false,
+            isLocalHost: true,
             canAction: () => true,
             dispatch,
         }));
@@ -151,6 +152,7 @@ describe('useBotDecision', () => {
             localPlayerId: 'player1',
             isSoloMode: true,
             isPaused: false,
+            isLocalHost: true,
             canAction,
             dispatch,
         }));

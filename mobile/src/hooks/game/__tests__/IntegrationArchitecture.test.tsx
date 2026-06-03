@@ -67,6 +67,7 @@ describe('Integration Architecture', () => {
                 localPlayerId: 'p1', // local = l'hôte p1, c'est lui qui héberge le bot
                 isSoloMode: false,
                 isPaused: false,
+                isLocalHost: true,
                 canAction: turnManager.canAction,
                 dispatch
             });
