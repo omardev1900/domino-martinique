@@ -71,9 +71,8 @@ export function EconomyHeader({ refreshTrigger, onCoinsPress, onDiamondsPress, o
     }));
 
     const formatAmount = (n: number) => {
-        if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
-        if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-        return String(n);
+        // Affiche les chiffres en entier avec séparateur de milliers (ex: 2.100)
+        return Math.floor(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     };
 
     return (
