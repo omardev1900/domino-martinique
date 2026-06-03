@@ -614,6 +614,7 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
         firstPlayerOfRound: null,
         history: [],
         mancheResult: null,
+        tiedPlayerIds: undefined,
         lastActionTimestamp: Date.now(),
         turnId: 0, // Reset strict du turnId pour ce tour 1
         roundNumber: isMancheEnd ? 1 : (activeState.roundNumber || 0) + 1,

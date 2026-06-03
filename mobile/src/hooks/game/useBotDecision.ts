@@ -11,6 +11,7 @@ export interface UseBotDecisionProps {
     localPlayerId: string;
     isSoloMode: boolean;
     isPaused: boolean;
+    isLocalHost: boolean;
     canAction: (playerId: string, options?: { isAuto?: boolean; minAgeMs?: number }) => boolean;
     dispatch: (command: ActionCommand) => Promise<void>;
 }
@@ -21,6 +22,7 @@ export const useBotDecision = ({
     localPlayerId,
     isSoloMode,
     isPaused,
+    isLocalHost,
     canAction,
     dispatch
 }: UseBotDecisionProps) => {
@@ -63,7 +65,7 @@ export const useBotDecision = ({
         }
 
         // Anti-split-brain en multi : Seul le host calcule et envoie le coup du bot
-        if (!isSoloMode && roomData && roomData.createdBy !== localPlayerId) {
+        if (!isSoloMode && !isLocalHost) {
             return;
         }
 

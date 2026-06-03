@@ -83,6 +83,7 @@ export const useGameEngine = ({
         localPlayerId,
         isSoloMode,
         isPaused,
+        isLocalHost,
         canAction: turnManager.canAction,
         dispatch
     });
