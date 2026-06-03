@@ -9,6 +9,12 @@
 
 ## Avant lancement officiel - Phase de test ferme
 
+### Bugs & améliorations — retour #12 du 03 juin 2026
+
+| Ticket | Description | Priorité | Estimation |
+| **UX-BOUDE-TEXT** | [UI/UX] Visibilité "boudé" : Ajouter un texte explicite sur le plateau (ex: "jojo est boudé", "vous êtes boudé", etc.). | 🟡 Moyenne | ~0,25 j |
+| **UX-OPPONENT-DOMINOS** | [UI/UX] Inventaire adverse : Afficher des petits rectangles visuels pour représenter les dominos restants des adversaires sur le plateau. | 🟡 Moyenne | ~0,5 j |
+
 ### Bugs & améliorations — retour #11 du 03 juin 2026
 
 | Ticket | Description | Priorité | Estimation |

@@ -291,3 +291,27 @@
 - [FEATURE] Lien de partage de l'application.
 - [FEATURE] Lien de partage de son niveau actuel (palier de ligue).
 - [FEATURE] Système de parrainage : offrir des coins pour chaque nouveau téléchargement via le lien de parrainage.
+
+---
+
+## RETOUR #12 - 03 juin 2026
+
+> Retour reçu le 03 juin 2026.
+
+- [BUG CRITIQUE] Multijoueur : Boucle infinie et blocage sur l'état "boudé"
+- [BUG] Économie : Gains anormaux selon les modes de jeu. ficxer les gains a 300 oins au total quelques soit le mode de jeu
+- [BUG UI] Écran de fin : Affichage de la mention "Sans grade" pour tous a résoudre
+- [GAMEPLAY/AUDIO] Rythme bots : Délai de réflexion bots manquant et double son "boudé" qui se joue en solo
+- [UI/UX] Visibilité "boudé" : Ajouter un texte explicite sur le plateau (jojo est boudé, vous ees boudé...etc)
+- [UI/UX] Inventaire adverse : Afficher des petits rectangles visuels pour afficher les dominos restats des adversaires
+
+---
+
+## RETOUR #13 - 03 juin 2026 (Réseau Multi)
+
+> Retour reçu le 03 juin 2026.
+
+alerte bugs a mettre dans le spriorités:
+en mode multi, un joueur a perdu le réseau et a réessayer d'y retourner et :
+- quand le réseua ne retourne pas encore, un écran blanc apparait
+- si le réseau revient et réouvre l'app il ne voit pas de message pour rejoindre la table et elle exite encore (il doit aller au mode jeu, multijoueur, publiques, pourchercher sa table qui affoche 3/3 pus clique dessus pour la joindre) et aucun message ne l'invite a y retourner...cette focntionnalité existe bien en mode solo et focntionne correctemnt
