@@ -181,12 +181,13 @@ export const RewardEngine = {
         for (const manche of mancheHistory) {
             if (manche.isWinner) {
                 // Victoire de Manche : coins uniquement en Solo
-                if (isSolo) totalCoinsRaw += BASE_REWARDS.MANCHE_WIN.coins;
+                // ECO-GAINS FIX: 0 coins for manches. Flat 300 for match win.
+                if (isSolo) totalCoinsRaw += 0;
                 totalXP += BASE_REWARDS.MANCHE_WIN.xp;
                 breakdown.push({
                     id: `manche_win_${manche.mancheNumber}`,
                     label: `Victoire Manche #${manche.mancheNumber}`,
-                    coins: isSolo ? BASE_REWARDS.MANCHE_WIN.coins : 0,
+                    coins: 0,
                     xp: BASE_REWARDS.MANCHE_WIN.xp,
                     diamonds: 0,
                     leaguePoints: 0,
@@ -195,27 +196,27 @@ export const RewardEngine = {
                 if (manche.resultType === 'COCHON' && manche.cochonCount > 0) {
                     if (manche.cochonCount >= 2) {
                         // Double Cochon (3-0-0)
-                        if (isSolo) totalCoinsRaw += BASE_REWARDS.DOUBLE_COCHON.coins;
+                        if (isSolo) totalCoinsRaw += 0;
                         totalXP += BASE_REWARDS.DOUBLE_COCHON.xp;
                         totalDiamonds += BASE_REWARDS.DOUBLE_COCHON.diamonds;
                         totalLeaguePoints += BASE_REWARDS.DOUBLE_COCHON.leaguePoints;
                         breakdown.push({
                             id: `double_cochon_${manche.mancheNumber}`,
                             label: `🐷🐷 Double Cochon (Manche #${manche.mancheNumber})`,
-                            coins: isSolo ? BASE_REWARDS.DOUBLE_COCHON.coins : 0,
+                            coins: 0,
                             xp: BASE_REWARDS.DOUBLE_COCHON.xp,
                             diamonds: BASE_REWARDS.DOUBLE_COCHON.diamonds,
                             leaguePoints: BASE_REWARDS.DOUBLE_COCHON.leaguePoints,
                         });
                     } else {
                         // Cochon Simple (3-1-0)
-                        if (isSolo) totalCoinsRaw += BASE_REWARDS.COCHON_BONUS.coins;
+                        if (isSolo) totalCoinsRaw += 0;
                         totalXP += BASE_REWARDS.COCHON_BONUS.xp;
                         totalLeaguePoints += BASE_REWARDS.COCHON_BONUS.leaguePoints;
                         breakdown.push({
                             id: `cochon_${manche.mancheNumber}`,
                             label: `🐷 Bonus Cochon (Manche #${manche.mancheNumber})`,
-                            coins: isSolo ? BASE_REWARDS.COCHON_BONUS.coins : 0,
+                            coins: 0,
                             xp: BASE_REWARDS.COCHON_BONUS.xp,
                             diamonds: 0,
                             leaguePoints: BASE_REWARDS.COCHON_BONUS.leaguePoints,
@@ -239,7 +240,7 @@ export const RewardEngine = {
         // En multi, les rounds n'apportent que de l'XP
         const roundWins = playerFinalStats.totalRoundWins;
         if (roundWins > 0) {
-            const roundCoins = isSolo ? BASE_REWARDS.ROUND_WIN.coins * roundWins : 0;
+            const roundCoins = 0; // ECO-GAINS FIX: 0 coins for rounds
             const roundXP = BASE_REWARDS.ROUND_WIN.xp * roundWins;
             if (isSolo) totalCoinsRaw += roundCoins;
             totalXP += roundXP;
@@ -262,14 +263,8 @@ export const RewardEngine = {
             totalXP += BASE_REWARDS.MATCH_WIN.xp;
             totalDiamonds += BASE_REWARDS.MATCH_WIN.diamonds;
 
-            if (isSolo) {
-                potCoins = SOLO_WIN_FLAT_REWARD;
-            } else {
-                const tableConfig = TABLE_CONFIGS[tableTier];
-                const pot = calculatePot(tableConfig.buyIn, playerCount);
-                // potCoins est exact et ne subit PAS le multiplicateur de niveau
-                potCoins = Math.floor(pot * POT_DISTRIBUTION.FIRST);
-            }
+            // ECO-GAINS FIX: Flat 300 coins for winner in all modes
+            potCoins = 300;
 
             breakdown.push({
                 id: 'match_win',
@@ -280,10 +275,8 @@ export const RewardEngine = {
                 leaguePoints: 0,
             });
         } else if (rank === 2 && !isSolo) {
-            // 2ème — remboursement partiel du pot
-            const tableConfig = TABLE_CONFIGS[tableTier];
-            const pot = calculatePot(tableConfig.buyIn, playerCount);
-            potCoins = Math.floor(pot * POT_DISTRIBUTION.SECOND);
+            // 2ème — ECO-GAINS FIX: 0 coins for 2nd place
+            potCoins = 0;
             totalXP += BASE_REWARDS.MATCH_FINISH.xp;
 
             if (potCoins > 0) {

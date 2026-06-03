@@ -4,6 +4,7 @@
 
 ### 2026-06-03
 
+- **[BUG-ECO-GAINS]** : Gains anormaux selon les modes de jeu (fixés à +300 coins net pour le vainqueur, et +0 pour les perdants, quel que soit le mode ou le nombre de manches).
 - **[SOLO-REPLAY-FEATURE]** : Ajout d'un bouton pour rejouer instantanément une partie Solo en fin de match (conserve mode, objectif et difficulté).
 - **[UI-ENDMATCH-REFACTO]** : Refonte de la navigation du modale de fin de match (boutons Partager et Rejouer intégrés en haut, suppression des boutons doublons en bas, ajout de libellés).
 

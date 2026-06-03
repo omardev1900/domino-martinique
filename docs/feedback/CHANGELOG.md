@@ -11,6 +11,7 @@
 - **Refonte modale fin de match (UI-ENDMATCH-REFACTO)** — la modale de fin de match a été épurée : les boutons redondants en bas de l'écran ont été supprimés au profit d'une barre de navigation claire en haut (Accueil, Rejouer, Partager) accompagnée de libellés pour une meilleure expérience utilisateur.
 
 ### Corrigé
+- **Gains de fin de match (Économie)** — les gains sont désormais figés à +300 coins pour le vainqueur et 0 coin pour les perdants, quel que soit le mode de jeu (Solo ou Multi) ou le nombre de manches disputées.
 - **Animation des dominos (polish)** — trajectoire plus naturelle, timing plus fluide, positionnement fiable depuis la main ou l'avatar. L'animation reste complètement découplée du moteur de jeu.
 - **Ligue des Cochons — récompense de palier** — les coins de passage de palier sont maintenant correctement crédités et affichés dans l'animation `RewardOverlay`, même lorsque `LEAGUE_FRAMES_ENABLED = false`.
 - **Ligue des Cochons — grade en partie multi** — le grade/cadre Ligue ne disparaît plus en cours de partie. Le snapshot Firestore transporte désormais correctement le `leagueGrade` à chaque mise à jour de la room.

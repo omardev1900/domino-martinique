@@ -263,7 +263,8 @@ export const RewardEngine = {
             totalXP += BASE_REWARDS.MATCH_WIN.xp;
             totalDiamonds += BASE_REWARDS.MATCH_WIN.diamonds;
 
-            potCoins = 300; // ECO-GAINS FIX: Flat 300 coins for winner in all modes
+            // ECO-GAINS FIX: Flat 300 coins for winner in all modes
+            potCoins = 300;
 
             breakdown.push({
                 id: 'match_win',
@@ -274,8 +275,8 @@ export const RewardEngine = {
                 leaguePoints: 0,
             });
         } else if (rank === 2 && !isSolo) {
-            // 2ème — remboursement partiel du pot
-            potCoins = 0; // ECO-GAINS FIX: 0 coins for 2nd place
+            // 2ème — ECO-GAINS FIX: 0 coins for 2nd place
+            potCoins = 0;
             totalXP += BASE_REWARDS.MATCH_FINISH.xp;
 
             if (potCoins > 0) {

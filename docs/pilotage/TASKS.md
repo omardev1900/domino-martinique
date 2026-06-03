@@ -34,8 +34,6 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 | Ticket | Description | Priorite | Statut |
 |---|---|---|---|
-| **BUG-MULTI-BOUDE-LOOP** | [BUG CRITIQUE] Multijoueur : Boucle infinie et blocage sur l'état "boudé". | Critique | Priorité 1 |
-| **BUG-ECO-GAINS** | [BUG] Économie : Gains anormaux selon les modes de jeu. Fixer les gains à 300 coins au total quel que soit le mode de jeu. | Haute | Priorité 2 |
 | **UX-ENDMATCH-FLOW-CLEANUP** | Assainir tout le process de fin de match : ne plus afficher le plateau apres la fin, fermeture immediates des modals (pub, menu options, resultats), nettoyer la sequence entiere et garantir que chaque modal repond au premier appui sans zone morte ni conflit d'overlay. *(Regroupe UX-ADS-MODAL-CLOSE)* | Haute | En attente |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
 
