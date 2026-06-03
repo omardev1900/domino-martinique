@@ -42,9 +42,13 @@ interface ShareTextButtonProps {
     label?: string;
     /** Contenu à capturer comme image (carte victoire). Sinon, texte seul. */
     cardContent?: React.ReactNode;
+    iconOnly?: boolean;
+    buttonStyle?: any;
+    iconColor?: string;
+    iconSize?: number;
 }
 
-export function ShareTextButton({ text, label = 'Partager', cardContent }: ShareTextButtonProps) {
+export function ShareTextButton({ text, label = 'Partager', cardContent, iconOnly = false, buttonStyle, iconColor = "#1A0E2E", iconSize = 18 }: ShareTextButtonProps) {
     const viewShotRef = useRef<ViewShot>(null);
     const [sharing, setSharing] = useState(false);
 
@@ -82,9 +86,9 @@ export function ShareTextButton({ text, label = 'Partager', cardContent }: Share
                     {cardContent}
                 </ViewShot>
             )}
-            <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.8} disabled={sharing}>
-                <Ionicons name="share-social" size={18} color="#1A0E2E" />
-                <Text style={styles.shareBtnText}>{label}</Text>
+            <TouchableOpacity style={buttonStyle || styles.shareBtn} onPress={handleShare} activeOpacity={0.8} disabled={sharing}>
+                <Ionicons name="share-social" size={iconSize} color={iconColor} />
+                {!iconOnly && <Text style={styles.shareBtnText}>{label}</Text>}
             </TouchableOpacity>
         </View>
     );

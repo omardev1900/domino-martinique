@@ -262,7 +262,9 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
     // ── Shared footer (rounds uniquement) ─────────────────────────────────────
     const renderFooter = () => {
-        if (mancheResult === 'CHIRE' && !isMatchOver) {
+        if (isMatchOver) return null; // Retiré à la demande : "enlenver les boutons en bas : Continuer"
+        
+        if (mancheResult === 'CHIRE') {
             return (
                 <View style={styles.footer}>
                     <View style={[styles.actionBtn, styles.waitingBtn, styles.autoAdvanceBtn]}>
@@ -418,29 +420,61 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     // ── MATCH END — main view (results + rewards inline) ──────────────────────
     const renderMatchEndMain = () => (
         <ScrollView style={{ width: '100%', flexShrink: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
-            {/* ── Navigation haut : Accueil (gauche) + Mode/Objectif (centre) + Détails (droite) ── */}
+            {/* ── Navigation haut : Actions (gauche) + Mode/Objectif (centre) + Détails (droite) ── */}
             <View style={styles.matchTopNav}>
-                <TouchableOpacity
-                    style={styles.quitBtn}
-                    onPress={onContinue}
-                    activeOpacity={0.85}
-                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                    accessibilityLabel="Retour à l'accueil"
-                >
-                    <Ionicons name="home" size={22} color="#FFF" />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ alignItems: 'center' }}>
+                        <TouchableOpacity
+                            style={styles.quitBtn}
+                            onPress={onContinue}
+                            activeOpacity={0.85}
+                            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                            accessibilityLabel="Retour à l'accueil"
+                        >
+                            <Ionicons name="home" size={22} color="#FFF" />
+                        </TouchableOpacity>
+                        <Text style={styles.topNavActionText}>Accueil</Text>
+                    </View>
 
-                {isSoloMode && onReplay && (
-                    <TouchableOpacity
-                        style={[styles.quitBtn, { marginLeft: 10, backgroundColor: 'rgba(255, 215, 0, 0.15)', borderColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 1 }]}
-                        onPress={onReplay}
-                        activeOpacity={0.85}
-                        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                        accessibilityLabel="Rejouer"
-                    >
-                        <Ionicons name="refresh" size={22} color="#FFD700" />
-                    </TouchableOpacity>
-                )}
+                    {isSoloMode && onReplay && (
+                        <View style={{ alignItems: 'center' }}>
+                            <TouchableOpacity
+                                style={[styles.quitBtn, { backgroundColor: 'rgba(255, 215, 0, 0.15)', borderColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 1 }]}
+                                onPress={onReplay}
+                                activeOpacity={0.85}
+                                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                                accessibilityLabel="Rejouer"
+                            >
+                                <Ionicons name="refresh" size={22} color="#FFD700" />
+                            </TouchableOpacity>
+                            <Text style={styles.topNavActionText}>Rejouer</Text>
+                        </View>
+                    )}
+
+                    {isMeWinner && isMatchOver && (() => {
+                        const me = gameState.players.find(p => p.id === currentUserId);
+                        const winParams = {
+                            playerName: me?.name ?? 'Mwen',
+                            cochons: me?.totalCochonsInfliges ?? 0,
+                            gradeLabel: matchReward?.newGrade
+                                ? LEAGUE_LABELS[matchReward.newGrade]
+                                : 'Sans grade',
+                        };
+                        return (
+                            <View style={{ alignItems: 'center' }}>
+                                <ShareTextButton
+                                    text={buildWinShareText(winParams)}
+                                    cardContent={<WinShareCard {...winParams} />}
+                                    iconOnly={true}
+                                    iconColor="#4ECDC4"
+                                    iconSize={22}
+                                    buttonStyle={[styles.quitBtn, { backgroundColor: 'rgba(78, 205, 196, 0.15)', borderColor: 'rgba(78, 205, 196, 0.4)', borderWidth: 1 }]}
+                                />
+                                <Text style={styles.topNavActionText}>Partager</Text>
+                            </View>
+                        );
+                    })()}
+                </View>
 
                 <Text style={styles.matchModeLabel} numberOfLines={1}>
                     {getMatchModeLabel()}
@@ -479,25 +513,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 </Animated.View>
             )}
 
-            {isMeWinner && isMatchOver && (() => {
-                const me = gameState.players.find(p => p.id === currentUserId);
-                const winParams = {
-                    playerName: me?.name ?? 'Mwen',
-                    cochons: me?.totalCochonsInfliges ?? 0,
-                    gradeLabel: matchReward?.newGrade
-                        ? LEAGUE_LABELS[matchReward.newGrade]
-                        : 'Sans grade',
-                };
-                return (
-                    <Animated.View entering={reducedMotion ? undefined : FadeInUp.delay(600).duration(300)}>
-                        <ShareTextButton
-                            label="Partager ma victoire"
-                            text={buildWinShareText(winParams)}
-                            cardContent={<WinShareCard {...winParams} />}
-                        />
-                    </Animated.View>
-                );
-            })()}
+            {/* Bouton "Partager ma victoire" supprimé (déplacé dans le header) */}
 
             {/* Bouton "Voir une pub" supprimé car déplacé dans une popup distincte (MatchRewardModal) */}
         </ScrollView>
@@ -955,6 +971,13 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.08)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.22)',
+    },
+    topNavActionText: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 10,
+        marginTop: 4,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
     },
     historyLinkBtn: {
         flexDirection: 'row',
