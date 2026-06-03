@@ -210,11 +210,10 @@ export default function StatsScreen() {
 
     const renderHeader = () => (
         <View style={[styles.header, { paddingTop: insets.top || 10 }]}>
-            <View style={styles.headerTitleBlock}>
-                <Text style={styles.headerTitle}>MES STATS</Text>
-                <Text style={styles.headerSub}>
-                    {activeMode === 'MONTHLY' ? 'Vos performances du mois en cours' : 'Votre progression cumulée'}
-                </Text>
+            <Text style={styles.headerTitle}>MES STATS</Text>
+            
+            <View style={styles.headerCenter}>
+                {renderModeSwitch()}
             </View>
 
             <TouchableOpacity
@@ -361,7 +360,6 @@ export default function StatsScreen() {
             <LinearGradient colors={['#1a0505', '#2a0a0a']} style={StyleSheet.absoluteFillObject} />
 
             {renderHeader()}
-            {renderModeSwitch()}
 
             {isLoading ? (
                 <View style={styles.loadingContainer}>
@@ -421,10 +419,10 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255,215,0,0.1)',
         zIndex: 10,
     },
-    headerTitleBlock: {
+    headerCenter: {
         flex: 1,
         alignItems: 'center',
-        paddingLeft: 44,
+        paddingHorizontal: 10,
     },
     headerTitle: {
         fontSize: 20,
@@ -433,14 +431,8 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
         textTransform: 'uppercase',
     },
-    headerSub: {
-        color: 'rgba(255,255,255,0.45)',
-        fontSize: 11,
-        marginTop: 3,
-        textAlign: 'center',
-    },
     historyButton: {
-        width: 44,
+        width: 30,
         alignItems: 'flex-end',
         justifyContent: 'center',
         position: 'relative',
@@ -467,9 +459,6 @@ const styles = StyleSheet.create({
     },
     modeSwitchWrap: {
         flexDirection: 'row',
-        alignSelf: 'center',
-        marginTop: 12,
-        marginBottom: 8,
         backgroundColor: 'rgba(255,255,255,0.05)',
         borderRadius: 18,
         borderWidth: 1,
@@ -477,8 +466,8 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     modeButton: {
-        paddingHorizontal: 18,
-        paddingVertical: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
     },
     modeButtonActive: {
         backgroundColor: 'rgba(255,215,0,0.16)',
