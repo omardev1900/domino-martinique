@@ -148,7 +148,7 @@ export default function ProfileScreen() {
                 activeOpacity={0.85}
             >
                 <View style={styles.leagueBlockHeader}>
-                    <Text style={styles.leagueBlockTitle}>🐷 Niveau Boucher</Text>
+                    <Text style={styles.leagueBlockTitle}>🐷 Niveau Ligue</Text>
                     <Ionicons name="chevron-forward" size={18} color="#FFD700" />
                 </View>
                 <Text style={styles.leagueGradeText}>
