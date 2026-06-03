@@ -27,6 +27,8 @@ interface UnifiedResultOverlayProps {
     currentUserId: string;
     onContinue: () => void;
     onLeave?: () => void;
+    onReplay?: () => void;
+    isSoloMode?: boolean;
     allReady?: boolean;
     onAnimationFinished?: () => void;
     isHost?: boolean;
@@ -40,6 +42,9 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
     visible,
     currentUserId,
     onContinue,
+    onLeave,
+    onReplay,
+    isSoloMode,
     isHost = true,
     matchReward,
     onAdRewardClaim,
@@ -424,6 +429,18 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 >
                     <Ionicons name="home" size={22} color="#FFF" />
                 </TouchableOpacity>
+
+                {isSoloMode && onReplay && (
+                    <TouchableOpacity
+                        style={[styles.quitBtn, { marginLeft: 10, backgroundColor: 'rgba(255, 215, 0, 0.15)', borderColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 1 }]}
+                        onPress={onReplay}
+                        activeOpacity={0.85}
+                        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                        accessibilityLabel="Rejouer"
+                    >
+                        <Ionicons name="refresh" size={22} color="#FFD700" />
+                    </TouchableOpacity>
+                )}
 
                 <Text style={styles.matchModeLabel} numberOfLines={1}>
                     {getMatchModeLabel()}

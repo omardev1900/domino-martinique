@@ -391,7 +391,15 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
     const handleReplay = async () => {
         if (isSoloMode) {
-            router.replace('/home');
+            if (gameId) {
+                await AsyncStorage.removeItem(`@solo_game_state:${gameId}`);
+            }
+            setIsStarting(false);
+            setGameState(null);
+            setScoreOverlayPhase(null);
+            setShowMatchRewardModal(false);
+            
+            startSoloGame();
             return;
         }
 
@@ -1807,6 +1815,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 localPlayerId={localPlayerId}
                 onOverlayContinue={interceptOverlayContinue}
                 onLeaveRoom={handleLeaveRoom}
+                onReplay={handleReplay}
                 roomData={roomData}
                 bannerState={bannerState}
                 isPaused={isPaused}

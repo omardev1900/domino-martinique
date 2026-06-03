@@ -24,6 +24,7 @@ export interface GameOverlaysProps {
     bannerState: 'NONE' | 'MANCHE' | 'ROUND';
     isPaused: boolean;
     onResume: () => void;
+    onReplay?: () => void;
     matchReward?: any | null; // Passer les requêtes de recompénses depuis GameScreen
 }
 
@@ -44,6 +45,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
     bannerState,
     isPaused,
     onResume,
+    onReplay,
     matchReward,
 }) => {
     const isHost = isSoloMode || roomData?.createdBy === localPlayerId;
@@ -145,6 +147,8 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                         currentUserId={localPlayerId}
                         onContinue={onOverlayContinue}
                         onLeave={onLeaveRoom}
+                        onReplay={onReplay}
+                        isSoloMode={isSoloMode}
                         isHost={isHost}
                         matchReward={matchReward}
                     />
