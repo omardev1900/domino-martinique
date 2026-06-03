@@ -6,6 +6,10 @@
 
 ## [2.5.13] - 2026-06-03
 
+### Ajouté
+- **Rejouer en Solo (SOLO-REPLAY-FEATURE)** — les joueurs peuvent désormais rejouer instantanément une partie solo terminée depuis l'écran de fin de match, en conservant le même mode, le même objectif et la même difficulté.
+- **Refonte modale fin de match (UI-ENDMATCH-REFACTO)** — la modale de fin de match a été épurée : les boutons redondants en bas de l'écran ont été supprimés au profit d'une barre de navigation claire en haut (Accueil, Rejouer, Partager) accompagnée de libellés pour une meilleure expérience utilisateur.
+
 ### Corrigé
 - **Animation des dominos (polish)** — trajectoire plus naturelle, timing plus fluide, positionnement fiable depuis la main ou l'avatar. L'animation reste complètement découplée du moteur de jeu.
 - **Ligue des Cochons — récompense de palier** — les coins de passage de palier sont maintenant correctement crédités et affichés dans l'animation `RewardOverlay`, même lorsque `LEAGUE_FRAMES_ENABLED = false`.

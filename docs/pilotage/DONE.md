@@ -4,6 +4,19 @@
 
 ### 2026-06-03
 
+- **[SOLO-REPLAY-FEATURE]** : Ajout d'un bouton pour rejouer instantanément une partie Solo en fin de match (conserve mode, objectif et difficulté).
+- **[UI-ENDMATCH-REFACTO]** : Refonte de la navigation du modale de fin de match (boutons Partager et Rejouer intégrés en haut, suppression des boutons doublons en bas, ajout de libellés).
+
+### 2026-06-03 (Précédents)
+
+- **[BUG-MULTI-BOUDE-LOOP]** (Fait)
+  - **Problème** : En multijoueur, le jeu figeait complètement sur l'état "boudé" dans certains cas, particulièrement quand le créateur de la room abandonnait, et la réinitialisation de `tiedPlayerIds` provoquait des contraintes indues de démarreurs.
+  - **Cause** : Le composant `useBotDecision` vérifiait la légitimité du bot via `roomData.createdBy !== localPlayerId`. Si le créateur quittait la room, aucun des autres joueurs ne prenait le relai, ce qui bloquait les bots et déclenchait un auto-pass continu. Par ailleurs, les id liés aux TIE n'étaient pas réinitialisés.
+  - **Correction** : 
+    - Modification de `useBotDecision` pour utiliser la propriété calculée `isLocalHost` (qui est correctement réattribuée en cas de départ du créateur).
+    - Ajout de la propagation `isLocalHost` dans `useGameEngine`.
+    - Correction de la réinitialisation de `tiedPlayerIds` dans `computeNextRoundState` (`LogicEngine.ts`).
+
 - **[BUG-RECONNECT-MULTI]** (Fait)
   - **Problème** : Lors d'une perte réseau en mode multijoueur, l'application affichait un écran blanc. Au retour du réseau, aucune invitation n'était proposée pour rejoindre la partie (contrairement au mode solo).
   - **Correction** : 
