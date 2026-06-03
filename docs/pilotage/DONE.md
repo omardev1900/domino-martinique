@@ -2,6 +2,31 @@
 
 ## Juin 2026
 
+### 2026-06-03
+
+- [x] **[ECO-OBJECTIVES-DEFAULT]** Valeurs par défaut des modes de jeu revues à la hausse dans `solo.tsx` et `lobby.tsx` (solo + multijoueur) :
+  - Mode Victoire : `5` → `10` victoires
+  - Mode Score : `10` → `25` points
+  - Mode Cochon : `3` → `5` cochons
+  - Mode Manche : `3` → `5` manches
+  - L'état initial `useState` aligné sur VICTOIRE = 10.
+
+- [x] **[ECO-AD-TIMER-REWARD]** Cooldown de la pub vidéo en boutique réduit de **1 heure à 3 minutes** (`3 600 000 ms` → `180 000 ms`) dans `store.tsx` et commentaire synchronisé dans `economy.types.ts`.
+
+- [x] **[ANIM-DOMINO-POLISH]** Amélioration de l'animation des dominos posés : trajectoire plus naturelle, timing plus fluide, positionnement fiable depuis la main ou l'avatar, sans recoupler l'animation au moteur de jeu.
+
+- [x] **[ECO-REBALANCE]** Révision de l'économie : coût d'un jeu multi et gains de victoire ajustés dans `economy.constants.ts` et Cloud Function.
+
+- [x] **[BUG-LEAGUE-TIER-REWARD]** Palier Ligue des Cochons : coins de récompense désormais crédités et affichés dans l'animation `RewardOverlay`. `LEAGUE_FRAMES_ENABLED` ne bloque plus `frameCoinsBonus` ni l'affichage de la modale grade-up quand `shouldHideMainRewardContent`.
+
+- [x] **[BUG-DOMINO-SIZE-ON-RESUME]** Dominos qui rétrécissaient au retour en jeu (appel, notification) — layout React Native recalcule maintenant correctement les dimensions après un `AppState` change vers `active`.
+
+- [x] **[BUG-APP-RESUME-AFTER-CALL]** Reprise de partie après un appel téléphonique fiabilisée — reconnexion Firestore et focus audio/game correctement restaurés au retour d'interruption.
+
+- [x] **[R6-B1-STATS-RESET]** Bug majeur résolu : statistiques et économie (coins, diamants, ligue) ne sont plus remises à zéro lors de la connexion. Architecture Pull-Only stricte implémentée.
+
+- [x] **[BUG-MULTI-GRADE-DISPLAY]** Grade/cadre Ligue qui disparaissait parfois en cours de partie multi — le snapshot Firestore transporte maintenant correctement le `leagueGrade` du profil joueur à chaque mise à jour de la room.
+
 ### 2026-06-01
 
 - [x] **[ADMIN-NEWS-MANAGER]** Accès à `/dashboard/news` ouvert aux managers

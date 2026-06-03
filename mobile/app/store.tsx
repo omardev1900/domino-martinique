@@ -190,7 +190,7 @@ export default function StoreScreen() {
             if (!playerEconomy) return;
             const updateTimer = () => {
                 const lastAd = playerEconomy.lastStoreAdTimestamp || 0;
-                const diff = 3600000 - (Date.now() - lastAd);
+                const diff = 180000 - (Date.now() - lastAd); // cooldown 3 minutes
                 setRemainingSeconds(diff > 0 ? Math.ceil(diff / 1000) : 0);
             };
             updateTimer();

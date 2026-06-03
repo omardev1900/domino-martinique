@@ -4,6 +4,21 @@
 
 ---
 
+## [2.5.13] - 2026-06-03
+
+### Corrigé
+- **Animation des dominos (polish)** — trajectoire plus naturelle, timing plus fluide, positionnement fiable depuis la main ou l'avatar. L'animation reste complètement découplée du moteur de jeu.
+- **Ligue des Cochons — récompense de palier** — les coins de passage de palier sont maintenant correctement crédités et affichés dans l'animation `RewardOverlay`, même lorsque `LEAGUE_FRAMES_ENABLED = false`.
+- **Ligue des Cochons — grade en partie multi** — le grade/cadre Ligue ne disparaît plus en cours de partie. Le snapshot Firestore transporte désormais correctement le `leagueGrade` à chaque mise à jour de la room.
+- **Dominos qui rétrécissaient au retour en jeu** — le layout recalcule maintenant correctement les dimensions de la main et du plateau après un `AppState` change vers `active` (appel téléphonique, notification, changement d'app).
+- **Reprise de partie après un appel téléphonique** — reconnexion Firestore et focus audio/game correctement restaurés au retour d'interruption.
+- **Bug critique : réinitialisation des stats à la connexion** — les statistiques, coins, diamants et progression de Ligue ne sont plus remis à zéro lors de la connexion. Architecture Pull-Only stricte implémentée (voir R6-B1-STATS-RESET).
+
+### Modifié
+- **Économie** — rééquilibrage du coût d'un jeu multi et des gains de victoire (constantes `economy.constants.ts` et Cloud Function).
+
+---
+
 ## [Admin] - 2026-06-01
 
 ### Modifié (Admin)

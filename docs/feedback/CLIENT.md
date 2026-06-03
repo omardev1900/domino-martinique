@@ -265,3 +265,29 @@
 
 - Modifier le systeme des coins : cout d'un jeu 100, gains 300.
 - Ajouter dans la boutique la possibilite de voir une video et gagner 300 coins.
+
+---
+
+## RETOUR #11 - 03 juin 2026
+
+> Retour recu le 03 juin 2026.
+
+### BUGS CRITIQUES
+
+- [BUG CRITIQUE] Écrasement du cadeau de bienvenue (300 coins) qui ne se crédite pas.
+
+### BUGS UI
+
+- [BUG UI] Superposition des blocs des sous-titres (STATISTIQUES DU MOIS et APERÇU CUMULÉ) dans l'écran des Statistiques. Refonte de cette page demandée : réduire le header ou aligner le titre principal avec les tabs "Ce mois-ci" et "Cumulé".
+
+### ÉQUILIBRAGE
+
+- [ÉQUILIBRAGE] Réduction du timer pub ou augmentation de la récompense. Ajouter une option : si un joueur n'a plus de coins, afficher un popup pour voir une pub contre des coins (reproduire le composant déjà existant en boutique).
+- [ÉQUILIBRAGE] Suppression des gains en diamants hors paliers de ligue, ou les réduire.
+- [ÉQUILIBRAGE] Réduction des objectifs par défaut : 10 victoires, 25 points de score, 5 cochons, 5 manches.
+
+### FEATURES
+
+- [FEATURE] Lien de partage de l'application.
+- [FEATURE] Lien de partage de son niveau actuel (palier de ligue).
+- [FEATURE] Système de parrainage : offrir des coins pour chaque nouveau téléchargement via le lien de parrainage.

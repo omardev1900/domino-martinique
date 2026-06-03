@@ -5,7 +5,7 @@
 >
 > **Flux obligatoire :** `BACKLOG.md` -> `TASKS.md` -> `DONE.md`
 
-**Derniere mise a jour :** 2026-05-29
+**Derniere mise a jour :** 2026-06-03 (10h15)
 **Sprint actuel :** Pre-Lancement Officiel
 
 ---
@@ -34,50 +34,34 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 | Ticket | Description | Priorite | Statut |
 |---|---|---|---|
-| **ECO-REBALANCE** | Economie revisee - coins pour jouer, recompenses et gains post-match | Haute | Differe |
-| **ANIM-DOMINO-POLISH** | Ameliorer l'animation des dominos poses : trajectoire plus naturelle, timing plus fluide, positionnement fiable depuis la main ou l'avatar, sans jamais recoupler l'animation au moteur de jeu. | Haute | En cours |
-| **UX-ADS-MODAL-CLOSE** | Corriger les fermetures difficiles des modals en jeu : pub apres fin de match et menu options doivent fermer au premier appui, sans zone morte ni conflit d'overlay. | Haute | En cours |
-| **UX-ENDMATCH-FLOW-CLEANUP** | Assainir tout le process de fin de match : ne plus afficher le plateau apres la fin, nettoyer la sequence resultats / pub contre coins / details, et garantir que chaque modal repond immediatement aux clics utilisateur. | Haute | Priorite |
+| **UX-ENDMATCH-FLOW-CLEANUP** | Assainir tout le process de fin de match : ne plus afficher le plateau apres la fin, fermeture immediates des modals (pub, menu options, resultats), nettoyer la sequence entiere et garantir que chaque modal repond au premier appui sans zone morte ni conflit d'overlay. *(Regroupe UX-ADS-MODAL-CLOSE)* | Haute | Priorite |
 | **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
 ## Ordre recommande
 
-1. `OTP-INSCRIPTION`
-2. `ECO-REBALANCE`
+1. `UX-ENDMATCH-FLOW-CLEANUP` (prioritaire — retours clients actifs)
+2. `OTP-INSCRIPTION` (differe — Web uniquement)
 
 Raison :
-`CF-PROCESSMATCHREWARD-CORS` est demarre pour fiabiliser les tests Web locaux autour des recompenses de fin de match avant d'ajouter de nouvelles variantes pub.
-`ECO-WELCOME-DAILY` est un correctif rapide des constantes d'economie (bienvenue 300, cadeau jour 200) avant que les nouveaux joueurs arrivent post-lancement.
+`UX-ENDMATCH-FLOW-CLEANUP` regroupe desormais la correction des fermetures de modals (`UX-ADS-MODAL-CLOSE`) et l'assainissement complet du flow de fin de match. C'est la priorite immediate avant le lancement.
 `OTP-INSCRIPTION` est limite au Web uniquement (mobile non concerne) et reporte apres la phase de test ferme.
-`ECO-REBALANCE` est differe en attendant l'arbitrage produit avec le client et l'associe.
 
 ---
 
-## Detail prioritaire - CF-PROCESSMATCHREWARD-CORS
+## Detail prioritaire - UX-ENDMATCH-FLOW-CLEANUP
 
 Objectif :
-fiabiliser les appels Web locaux a la Cloud Function `processMatchReward`, en particulier depuis `http://localhost:8081`, pour que les tests de recompense ne soient plus pollues par un probleme CORS.
+Assainir completement le process de fin de match et garantir que toutes les interactions modals repondent immediatement.
 
-Attendus :
-- verifier comment `httpsCallable` appelle aujourd'hui `processMatchReward`
-- confirmer si le blocage vient bien du CORS ou d'une autre couche Web locale
-- corriger le serveur si necessaire, ou documenter clairement le fallback client si le comportement est volontaire
-- valider que les recompenses post-match restent exploitables en test Web local
+Perimetre :
+- Ne plus afficher le plateau apres la fin du match
+- Fermeture immediate des modals : pub fin de match, menu options, resultats (premier appui, sans zone morte, sans conflit d'overlay)
+- Nettoyer la sequence : resultats → pub contre coins → details
+- Garantir que chaque modal repond immediatement aux clics utilisateur
 
----
-
-## Detail prioritaire - ECO-WELCOME-DAILY
-
-Objectif :
-reequilibrer les deux constantes cles de l'economie debutant avant l'afflux de nouveaux joueurs post-lancement.
-
-Changements :
-- `NEW_PLAYER_COINS` : `1000` → `300` (dans `economy.constants.ts`)
-- `DAILY_REWARD_COINS` : `300` → `200` (dans `economy.constants.ts`)
-
-Points d'attention :
-- Ces constantes alimentent aussi bien le client (`economy.service.ts`) que la Cloud Function si elle y fait reference.
-- Les joueurs existants ne sont PAS affectes (le cadeau de bienvenue n'est applique qu'a la creation du compte).
-- Verifier les tests existants qui pourraient coder en dur ces valeurs.
+Originellement deux tickets distincts :
+- `UX-ADS-MODAL-CLOSE` : fermetures difficiles pub + menu options
+- `UX-ENDMATCH-FLOW-CLEANUP` : plateau post-match + sequence resultats
+Regroupes car ils partagent la meme zone de code (`GameOverlays`, `UnifiedResultOverlay`).
 
 ---
 
