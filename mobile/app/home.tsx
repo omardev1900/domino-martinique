@@ -332,9 +332,15 @@ export default function HomeScreen() {
         >
             {/* Header Area */}
             <View style={[styles.header, { paddingTop: insets.top || 20 }, USE_NEW_SIDEBAR && styles.headerCentered]}>
-                {/* Left Side: Controls — masqué si sidebar active */}
-                {!USE_NEW_SIDEBAR && (
-                    <View style={styles.headerLeft}>
+                {/* Top Left: Invite friends (Visible on all devices) */}
+                <View style={[styles.headerTopLeft, { top: (insets.top || 20) + 12 }]}>
+                    <ShareTextButton 
+                        text="Rejoins-moi sur Domino Martiniquais pour une petite partie ! Télécharge le jeu ici : https://play.domino-martinique.online/"
+                        label="Inviter"
+                        iconSize={14}
+                        buttonStyle={styles.headerShareBtn}
+                    />
+                    {!USE_NEW_SIDEBAR && (
                         <TouchableOpacity
                             style={styles.helpButton}
                             onPress={() => setShowHelp(true)}
@@ -346,8 +352,8 @@ export default function HomeScreen() {
                                 color="#FFD700"
                             />
                         </TouchableOpacity>
-                    </View>
-                )}
+                    )}
+                </View>
 
                 {/* Right Side: Economy — centré quand sidebar active */}
                 <Animated.View entering={FadeInRight.duration(400)} style={[styles.headerRight, USE_NEW_SIDEBAR && styles.headerRightCentered]}>
@@ -532,15 +538,6 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </Animated.View>
                 </View>
-
-                {/* Bouton d'invitation social */}
-                <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.inviteContainer}>
-                    <ShareTextButton 
-                        text="Rejoins-moi sur Domino Martiniquais pour une petite partie ! Télécharge le jeu ici : https://play.domino-martinique.online/"
-                        label="Inviter des amis"
-                        iconSize={20}
-                    />
-                </Animated.View>
             </ScrollView>
 
             {/* Help Overlay */}
@@ -635,6 +632,24 @@ const styles = StyleSheet.create({
     },
     headerCentered: {
         justifyContent: 'center',
+    },
+    headerTopLeft: {
+        position: 'absolute',
+        left: 20,
+        zIndex: 100,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    headerShareBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFD700',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        gap: 6,
     },
     headerLeft: {
         flex: 1,
@@ -954,11 +969,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: '900',
         letterSpacing: 2,
-    },
-    inviteContainer: {
-        marginTop: 24,
-        paddingHorizontal: '10%',
-        alignItems: 'center',
     },
     topCardsRow: {
         flexDirection: 'row',
