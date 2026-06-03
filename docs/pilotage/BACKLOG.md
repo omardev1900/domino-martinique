@@ -12,7 +12,6 @@
 ### Bugs & améliorations — retour #12 du 03 juin 2026
 
 | Ticket | Description | Priorité | Estimation |
-| **UX-BOUDE-TEXT** | [UI/UX] Visibilité "boudé" : Ajouter un texte explicite sur le plateau (ex: "jojo est boudé", "vous êtes boudé", etc.). | 🟡 Moyenne | ~0,25 j |
 | **UX-OPPONENT-DOMINOS** | [UI/UX] Inventaire adverse : Afficher des petits rectangles visuels pour représenter les dominos restants des adversaires sur le plateau. | 🟡 Moyenne | ~0,5 j |
 
 ### Bugs & améliorations — retour #11 du 03 juin 2026
@@ -30,7 +29,6 @@
 | **ADS-POST-MATCH-REWARD-UPSSELL** | Apres la pub obligatoire de fin de match pour les non premium, proposer aux joueurs premium inclus une pub volontaire pour gagner des coins |
 | **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression |
 | **ECO-ADS-COINS-TUNING** | Definir la recompense coins du visionnage pub volontaire post-match |
-| **SOLO-REJOUER-REVANCHE** | Priorite moyenne - En solo, revoir le modal de fin de match : apres une victoire afficher `Rejouer`, `Retour aux modes`, `Quitter` ; apres une defaite afficher `Revanche - X coins`, `Retour aux modes`, `Quitter`. `Rejouer` relance les memes parametres avec de nouveaux bots et le cout solo normal. `Revanche` relance exactement les memes parametres contre les memes bots, avec cout progressif `500`, `1000`, `2000`, etc. La serie s'arrete des que le joueur quitte l'ecran de match. Si le joueur gagne une revanche, il recupere sa mise et gagne `+300` coins. |
 | **UX-MODAL-ANIM-SFX** | Harmoniser les modals/popups du jeu : apparition/fermeture animees, transitions coherentes, sons associes quand l'evenement le justifie. |
 | **UX-BUTTON-FEEDBACK-SFX** | Ajouter un feedback sonore et/ou haptique coherent aux boutons principaux de l'accueil, des ecrans et du gameplay, sans surcharger l'experience. |
 | **UX-SCREEN-PREMIUM-MOTION** | Ameliorer les ecrans trop statiques : rendre certains blocs et sections plus vivants avec micro-animations, profondeur visuelle et effets 3D sobres. |
@@ -38,7 +36,6 @@
 | **GOD-MODE** | Nouveau mode solo separe "GOD MODE" : 2 bots METKAYALI allies contre le joueur, format `VICTOIRE` v1, acces verrouille par progression joueur |
 | **ECO-STAKE-PAYOUT-RULES** | Arbitrer la redistribution des mises en multi et l'eventuelle commission |
 | **MULTI-PENALITE-ABANDON** | Differencier abandon volontaire et deconnexion (statut SURRENDERED). A la fin, le joueur en abandon volontaire perd tout et finit dernier, meme si son bot gagne. |
-| **R6-B1-STATS-RESET** | Bug majeur: statistiques et economie (coins, diamants, ligue) remises a zero lors de la connexion. |
 
 
 
