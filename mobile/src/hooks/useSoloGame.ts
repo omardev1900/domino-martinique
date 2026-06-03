@@ -27,109 +27,7 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
         setGameState(newState);
     }, []);
 
-    // Action-Driven Boudé Trigger
-    const triggerBoude = useCallback((finalState: GameState) => {
-        setTimeout(() => {
-            const currentState = gameStateRef.current;
-            if (!currentState || currentState.phase !== 'BOUDE') return;
 
-            const { newState, isTie } = resolveBoude(finalState);
-
-            if (isTie) {
-                // Restart game on tie
-                const partialState = dealGameSolo(localPlayerId, 'Me', difficulty);
-                const players = partialState.players as Player[];
-                const firstPlayerId = determineFirstPlayer(players);
-
-                const restartState: GameState = {
-                    gameId: 'solo-' + Date.now(),
-                    players: players,
-                    talonMort: partialState.talonMort as Domino[],
-                    table: partialState.table!,
-                    currentPlayerId: firstPlayerId,
-                    phase: 'PLAYING',
-                    firstPlayerOfRound: null,
-                    history: [],
-                    winningCondition: 3,
-                    gameMode: 'MANCHE',
-                    turnDuration: 15,
-                    lastActionTimestamp: Date.now(),
-                    turnId: 0,
-                    mancheHistory: [],
-                    roundNumber: 1,
-                    mancheNumber: 1,
-                    startingHandSize: 7
-                };
-                updateGameState(restartState);
-
-                // Check if bot starts
-                const firstPlayer = restartState.players.find(p => p.id === firstPlayerId);
-                if (firstPlayer?.status === 'BOT') {
-                    triggerBotTurn();
-                }
-            } else {
-                updateGameState(newState);
-            }
-        }, 4000); // Reverted from 500
-    }, [localPlayerId, difficulty, updateGameState]);
-
-    // Imperative Bot Turn Trigger
-    const triggerBotTurn = useCallback(() => {
-        // Clear any existing timer
-        if (botTimerRef.current) {
-            clearTimeout(botTimerRef.current);
-            botTimerRef.current = null;
-        }
-
-        botTimerRef.current = setTimeout(() => {
-            const currentState = gameStateRef.current;
-
-            // Safety guard
-            if (!currentState || currentState.phase !== 'PLAYING') return;
-
-            const currentPlayer = currentState.players.find(p => p.id === currentState.currentPlayerId);
-
-            // Verify it's still a bot turn
-            if (currentPlayer?.status !== 'BOT') return;
-
-            const forcedOpeningId = getForcedOpeningDominoId(currentState, currentPlayer.id);
-            const forcedOpeningTile = forcedOpeningId
-                ? currentPlayer.hand.find(tile => tile.id === forcedOpeningId) || null
-                : null;
-
-            const move = forcedOpeningTile
-                ? { tile: forcedOpeningTile, side: 'start' as const }
-                : computeBotDecision(currentState, currentPlayer.id);
-
-            try {
-                let newState: GameState;
-
-                if (move) {
-                    newState = handleTurn(currentState, currentPlayer.id, move.tile, move.side === 'start' ? undefined : move.side);
-                } else {
-                    newState = passTurn(currentState, currentPlayer.id);
-                    SoundManager.playSound('notify');
-                }
-
-                updateGameState(newState);
-
-                // Check for Boudé
-                if (newState.phase === 'BOUDE') {
-                    triggerBoude(newState);
-                    return;
-                }
-
-                // Check if next player is also a bot
-                const nextPlayer = newState.players.find(p => p.id === newState.currentPlayerId);
-                if (nextPlayer?.status === 'BOT' && newState.phase === 'PLAYING') {
-                    triggerBotTurn();
-                }
-
-            } catch (error) {
-                console.error("Bot Error", error);
-            }
-        }, 1500); // Reverted from 500
-    }, [updateGameState, triggerBoude]);
 
     // Initialize Solo Game
     const startSoloGame = useCallback(() => {
@@ -159,94 +57,8 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
 
         SoundManager.playSound('shuffle');
         updateGameState(fullState);
+    }, [localPlayerId, difficulty, updateGameState]);
 
-        // Check if bot starts
-        const firstPlayer = players.find(p => p.id === firstPlayerId);
-        if (firstPlayer?.status === 'BOT') {
-            triggerBotTurn();
-        }
-    }, [localPlayerId, difficulty, updateGameState, triggerBotTurn]);
-
-    // Handle Human Move
-    const handleHumanMove = useCallback((domino: Domino) => {
-        const currentState = gameStateRef.current;
-        if (!currentState) return;
-        if (currentState.currentPlayerId !== localPlayerId) return;
-
-        try {
-            const newState = handleTurn(currentState, localPlayerId, domino);
-            HapticManager.triggerImpact();
-            updateGameState(newState);
-
-            // Check if next player is bot
-            const nextPlayer = newState.players.find(p => p.id === newState.currentPlayerId);
-            if (nextPlayer?.status === 'BOT' && newState.phase === 'PLAYING') {
-                triggerBotTurn();
-            }
-        } catch (e) {
-            console.log("Invalid move", e);
-        }
-    }, [localPlayerId, updateGameState, triggerBotTurn]);
-
-    // Handle Human Pass
-    const handleHumanPass = useCallback(() => {
-        const currentState = gameStateRef.current;
-        if (!currentState) return;
-
-        // Validation check
-        const player = currentState.players.find(p => p.id === localPlayerId);
-        const canPlay = player?.hand.some(d =>
-            checkValidMove(d, currentState.table.leftValue, currentState.table.rightValue).canPlay
-        );
-
-        if (canPlay) {
-            throw new Error("Vous avez des dominos jouables.");
-        }
-
-        const newState = passTurn(currentState, localPlayerId);
-        updateGameState(newState);
-
-        // Check for Boudé
-        if (newState.phase === 'BOUDE') {
-            triggerBoude(newState);
-            return;
-        }
-
-        // Check if next player is bot
-        const nextPlayer = newState.players.find(p => p.id === newState.currentPlayerId);
-        if (nextPlayer?.status === 'BOT' && newState.phase === 'PLAYING') {
-            triggerBotTurn();
-        }
-    }, [localPlayerId, updateGameState, triggerBoude, triggerBotTurn]);
-
-    // Handle Timeout (AFK)
-    const handleTimeout = useCallback((playerId: PlayerId) => {
-        const currentState = gameStateRef.current;
-        if (!currentState) return;
-        if (currentState.currentPlayerId !== playerId) return;
-
-        const player = currentState.players.find(p => p.id === playerId);
-        const forcedOpeningId = getForcedOpeningDominoId(currentState, playerId);
-        if (forcedOpeningId) {
-            const forcedOpeningTile = player?.hand.find(tile => tile.id === forcedOpeningId);
-            if (forcedOpeningTile) {
-                handleHumanMove(forcedOpeningTile);
-                return;
-            }
-        }
-
-        const validMove = player?.hand.find(d =>
-            checkValidMove(d, currentState.table.leftValue, currentState.table.rightValue).canPlay
-        );
-
-        if (validMove) {
-            handleHumanMove(validMove);
-        } else {
-            handleHumanPass();
-        }
-    }, [handleHumanMove, handleHumanPass]);
-
-    // Handle Next Round (Keep scores)
     const handleNextRound = useCallback(() => {
         const currentState = gameStateRef.current;
         if (!currentState) return;
@@ -277,20 +89,11 @@ export const useSoloGame = (userId: string, difficulty: 'TI_MANMAY' | 'MAPIPI' |
         };
 
         updateGameState(nextState);
-
-        // Check if bot starts new round
-        const firstPlayer = nextPlayers.find(p => p.id === firstPlayerId);
-        if (firstPlayer?.status === 'BOT') {
-            triggerBotTurn();
-        }
-    }, [localPlayerId, difficulty, updateGameState, triggerBotTurn]);
+    }, [localPlayerId, difficulty, updateGameState]);
 
     return {
         gameState,
         startSoloGame,
-        handleHumanMove,
-        handleHumanPass,
-        handleTimeout,
         handleNextRound,
         setGameState: updateGameState
     };
