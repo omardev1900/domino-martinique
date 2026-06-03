@@ -56,3 +56,4 @@ error.txt
 
 
 .env.local
+sentry.properties
