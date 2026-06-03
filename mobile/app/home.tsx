@@ -200,13 +200,7 @@ export default function HomeScreen() {
                     if (firestoreActiveRoomId) {
                         await AsyncStorage.setItem('active_roomId', firestoreActiveRoomId);
                         setReconnectRoomId(firestoreActiveRoomId);
-                        router.replace({
-                            pathname: '/game/[id]',
-                            params: {
-                                id: firestoreActiveRoomId,
-                                userId: currentUser.uid
-                            }
-                        });
+                        // La modale MultiResumeModal (_layout.tsx) s'occupera d'afficher l'invitation.
                     } else {
                         await AsyncStorage.removeItem('active_roomId');
                         setReconnectRoomId(null);

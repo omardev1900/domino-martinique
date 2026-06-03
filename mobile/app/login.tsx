@@ -98,8 +98,7 @@ export default function LoginScreen() {
                         const { findActiveRoomForUser } = require('../src/core/services/firebase');
                         const activeRoomId = await findActiveRoomForUser(user.uid);
                         if (activeRoomId) {
-                            router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } });
-                            return;
+                            // La modale MultiResumeModal (_layout.tsx) s'occupera d'afficher l'invitation.
                         }
                     } catch (e) {
                         console.error("❌ Rejoin check failed:", e);
@@ -147,8 +146,7 @@ export default function LoginScreen() {
                     const { findActiveRoomForUser } = require('../src/core/services/firebase');
                     const activeRoomId = await findActiveRoomForUser(user.uid);
                     if (activeRoomId) {
-                        router.replace({ pathname: '/game/[id]', params: { id: activeRoomId, userId: user.uid } });
-                        return;
+                        // La modale MultiResumeModal (_layout.tsx) s'occupera d'afficher l'invitation.
                     }
                 } catch (e) {
                     console.error("❌ Rejoin check failed:", e);
