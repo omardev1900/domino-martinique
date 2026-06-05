@@ -13,7 +13,7 @@
 
 | Ticket | Description | Priorité | Estimation |
 |---|---|---|---|
-| **BUG-ROOM-NOT-EXIST** | [BUG MULTI] Pop-up "Erreur, Room does not exist" affiché en pleine partie après une déconnexion, laissant le joueur bloqué sur "Boudé" sans possibilité de revenir en jeu. | 🔴 Haute | ~1 j |
+
 | **IAP-PAYMENTS** | [FEATURE] Intégrer les achats in-app (In-App Purchases via Google Play / Apple) pour : 1) Option "Sans Publicité", 2) Achat de packs de Coins ou de Cosmétiques dans la boutique. | 🔴 Haute | ~3 j |
 
 
@@ -24,9 +24,7 @@
 
 | Ticket | Description | Priorité | Estimation |
 |---|---|---|---|
-| **ECO-DIAMOND-REDUCE** | Supprimer ou réduire les gains en diamants hors paliers de Ligue (ne conserver les diamants qu'aux passages de palier officiel). | 🟡 Moyenne | ~0,25 j |
-| **SHARE-APP-LINK** | Lien de partage de l'application (Play Store + Web). Bouton dans l'accueil ou les paramètres. | 🟡 Moyenne | ~0,25 j |
-| **SHARE-LEAGUE-LEVEL** | Lien / carte de partage du niveau actuel de Ligue des Cochons (palier + grade). Extension du composant de partage social existant. | 🟡 Moyenne | ~0,5 j |
+| **ECO-DIAMOND-REDUCE** | Modifier la récompense en diamants : donner un seul et unique diamant pour chaque victoire d'un match complet (peu importe le mode). | 🟡 Moyenne | ~0,25 j |
 | **REFERRAL-SYSTEM** | Système de parrainage simple : code unique par joueur (ex: basé sur l'UID tronqué), saisi à l'inscription par le filleul. À l'inscription : créditer le parrain en coins (ex: +200) et le filleul en coins (ex: +100). Pas de tracking d'installation externe — vérification côté Cloud Function à la création du compte. | 🔵 Long terme | ~1,5 j |
 
 

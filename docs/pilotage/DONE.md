@@ -4,6 +4,8 @@
 
 ### 2026-06-05
 
+- **[ECO-DIAMOND-REDUCE]** : Réduction du gain de diamants en fin de partie (uniquement au vainqueur d'un match complet, 0 pour les perdants, quel que soit le mode).
+- **[FIX-FREEZE-ON-BOUDE]** : Résolution du blocage où l'écran restait figé sur le statut "Partie Bloquée" en fin de match solo, en corrigeant un catch-all de GameScreen qui skippait le fast-path de MANCHE_END/MATCH_END.
 - **[BUG-ROOM-NOT-EXIST]** : Résolution du blocage fatal des parties multijoueur (Boudé ou Tour de bot figé). Implémentation du système "Acting Host" qui transfère automatiquement le rôle de chef d'orchestre au prochain joueur humain actif si le créateur d'origine quitte la partie ou subit une déconnexion (Web ou Mobile). Ajout d'un timer de sécurité de 10s pour garantir la résolution du statut "Boudé".
 - **[FCM-NATIVE-MIGRATION]** : Migration du système de récupération des tokens Push Mobile de `getExpoPushTokenAsync` vers `getDevicePushTokenAsync` pour supporter pleinement Firebase Cloud Messaging (FCM) en natif.
 - **[GHOST-ROOM-CLEANUP]** : Ajout d'une Cloud Function Cron (`cleanupRooms`) qui s'exécute toutes les 15 minutes pour purger silencieusement les salles "WAITING" ou "PLAYING" abandonnées (aucune activité depuis 15+ minutes) afin de libérer les ressources Firebase.

@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
-import { db, authService, findActiveRoomForUser, setUserActiveRoom } from '../core/services/firebase';
+import { db, findActiveRoomForUser, setUserActiveRoom } from '../core/services/firebase';
+import { authService } from '../core/services/auth.service';
 import { LogService } from '../core/services/LogService';
 
 export type MultiResumeInfo = {

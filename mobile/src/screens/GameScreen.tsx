@@ -929,10 +929,10 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         // IMPORTANT : ne pas retourner early pour MANCHE_END/MATCH_END — laisser
         // leurs handlers ci-dessous s'exécuter (BOUDE peut résoudre directement en MANCHE_END).
         if (boudeHandledRef.current && gameState.phase !== 'BOUDE' && gameState.phase !== 'PARTIE_END') {
-            boudeHandledRef.current = false;
-            activeBoudeResultKeyRef.current = null;
-            setShowRoundResult(false);
             if (gameState.phase !== 'MANCHE_END' && gameState.phase !== 'MATCH_END') {
+                boudeHandledRef.current = false;
+                activeBoudeResultKeyRef.current = null;
+                setShowRoundResult(false);
                 return;
             }
         }
