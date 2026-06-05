@@ -2,6 +2,10 @@
 
 ## Juin 2026
 
+### 2026-06-05
+
+- **[BUG-BOUDE-ENDMATCH]** : Correction du bug d'affichage où le badge "🚫 BOUDÉ" restait affiché en fin de match et chevauchait la modale de résultats (nettoyage forcé de `localBoudedPlayerId` sur les phases de fin).
+
 ### 2026-06-03
 
 - **[BUG-ECO-GAINS]** : Gains anormaux selon les modes de jeu (fixés à +300 coins net pour le vainqueur, et +0 pour les perdants, quel que soit le mode ou le nombre de manches).

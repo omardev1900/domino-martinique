@@ -307,6 +307,22 @@
 
 ---
 
+## RETOUR #14 - 05 juin 2026 (Session de test)
+
+> Retour reçu le 05 juin 2026 après plusieurs parties de test.
+
+### BUGS GAMEPLAY
+
+- [BUG UI] AFFICHAGE BOUDÉ : En fin de match, le message du joueur boudé reste affiché et chevauche avec le modal de fin de match.
+- [BUG RÈGLE] DOUBLE 6 : Lors du début d'une 4ème manche, un joueur sans le double 6 a commencé le jeu en priorité (violation de la règle : premier d'une manche = celui avec le double le plus élevé).
+- [BUG CRITIQUE] BLOCAGE MULTI : Partie bloquée en multi et personne ne peut jouer.
+
+### ERREUR SENTRY
+
+- [SENTRY #123935325] TypeError: undefined is not a function — Fatal, Android 15, SM-A057F, v1.0.10+10. Stacktrace : t2 → _performTransitionSideEffects → _receiveSignal → onResponderRelease → executeDispatch. Probablement un handler onPress appelé sur une fonction undefined lors d'une interaction tactile en fin/pendant le jeu.
+
+---
+
 ## RETOUR #13 - 03 juin 2026 (Réseau Multi)
 
 > Retour reçu le 03 juin 2026.

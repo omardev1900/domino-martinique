@@ -9,7 +9,15 @@
 
 ## Avant lancement officiel - Phase de test ferme
 
-### Bugs & améliorations — retour #12 du 03 juin 2026
+### Bugs & améliorations — retour #14 du 05 juin 2026
+
+| Ticket | Description | Priorité | Estimation |
+|---|---|---|---|
+| **BUG-MULTI-BLOCKED** | [BUG CRITIQUE] Partie bloquée en multi : plus personne ne peut jouer. Cause : race condition sur `history.slice(-N)` dans `passTurn` + possible phase corrompue. Fix : double vérification directe des mains dans LogicEngine + watchdog hôte dans GameScreen + logging renforcé. | 🔴 Critique | ~1j |
+| **BUG-DOUBLE6-MANCHE** | [BUG RÈGLE] Mauvais joueur de départ au 1er round d'une nouvelle manche : un joueur sans le double le plus élevé commence. Cause : `computeNextRoundState` hérite de `tiedPlayerIds` résiduels qui restreignent `determineTieBreakStarter` à 2 joueurs sur 3. Fix dans `LogicEngine.ts`. | 🔴 Haute | ~0.5j |
+| **SENTRY-UNDEFINED-FN** | [BUG CRASH PROD] Fatal crash Android 15 (SM-A057F) — `TypeError: undefined is not a function` sur `onResponderRelease`. Deux suspects : (1) `handleTimeoutRef` stale closure dans `GameScreen.tsx` L.449-454 ; (2) `onSideSelect={undefined}` passé lors du release tactile quand `pendingDomino` reset entre PressIn et Release. Fix : remplacer ref manuelle par `useCallback` + guard `onSideSelect` + sourcemaps Sentry. | 🟠 Haute | ~0.5j + CI |
+
+
 
 | Ticket | Description | Priorité | Estimation |
 | **UX-OPPONENT-DOMINOS** | [UI/UX] Inventaire adverse : Afficher des petits rectangles visuels pour représenter les dominos restants des adversaires sur le plateau. | 🟡 Moyenne | ~0,5 j |

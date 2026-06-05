@@ -542,15 +542,21 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const [localBoudedPlayerId, setLocalBoudedPlayerId] = useState<string | null>(null);
     const lastBoudeTurnIdRef = useRef<number>(-1);
     useEffect(() => {
+        const phase = gameState?.phase;
+        if (phase === 'MATCH_END' || phase === 'MANCHE_END' || phase === 'PARTIE_END') {
+            setLocalBoudedPlayerId(null);
+            return;
+        }
+
         const turnId = gameState?.turnId ?? -1;
         const firebaseBoudedId = gameState?.boudePlayerId ?? null;
         if (firebaseBoudedId && turnId !== lastBoudeTurnIdRef.current) {
             lastBoudeTurnIdRef.current = turnId;
             setLocalBoudedPlayerId(firebaseBoudedId);
-        } else if (!firebaseBoudedId && localBoudedPlayerId) {
+        } else if (!firebaseBoudedId) {
             setLocalBoudedPlayerId(null);
         }
-    }, [gameState?.boudePlayerId, gameState?.turnId]);
+    }, [gameState?.boudePlayerId, gameState?.turnId, gameState?.phase]);
 
     const rootRef = useRef<View>(null);
     const processedBotTurnRef = useRef<string | null>(null);

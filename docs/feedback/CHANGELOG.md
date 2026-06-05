@@ -4,6 +4,13 @@
 
 ---
 
+## [2.5.14] - 2026-06-05
+
+### Corrigé
+- **Affichage "Boudé" persistant** — le badge/message "BOUDÉ" ne reste plus bloqué indéfiniment sur l'écran en fin de partie, évitant ainsi le chevauchement visuel désagréable avec la modale de résultats ou le classement final.
+
+---
+
 ## [2.5.13] - 2026-06-03
 
 ### Ajouté
