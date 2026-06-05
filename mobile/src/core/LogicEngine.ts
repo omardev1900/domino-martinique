@@ -601,7 +601,11 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
     );
 
     if (!winnerId) {
-        winnerId = determineTieBreakStarter(newPlayers, activeState.tiedPlayerIds);
+        // FIX BUG-DOUBLE6-MANCHE: En début de manche, toujours chercher parmi TOUS les joueurs, 
+        // ignorer tiedPlayerIds résiduels de la manche précédente.
+        winnerId = isMancheEnd 
+            ? determineFirstPlayer(newPlayers) 
+            : determineTieBreakStarter(newPlayers, activeState.tiedPlayerIds);
     }
 
     return {
@@ -614,7 +618,6 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
         firstPlayerOfRound: null,
         history: [],
         mancheResult: null,
-        tiedPlayerIds: undefined,
         lastActionTimestamp: Date.now(),
         turnId: 0, // Reset strict du turnId pour ce tour 1
         roundNumber: isMancheEnd ? 1 : (activeState.roundNumber || 0) + 1,

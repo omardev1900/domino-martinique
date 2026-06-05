@@ -459,3 +459,58 @@ describe('resolveBoude + redonne tie-break integration', () => {
     });
 });
 
+import * as LogicEngineModule from '../LogicEngine';
+
+describe('computeNextRoundState - Nouvelle Manche (BUG-DOUBLE6-MANCHE)', () => {
+    it('doit ignorer tiedPlayerIds et faire commencer le joueur avec le plus gros double lors d\'une nouvelle manche', () => {
+        // Arrange
+        const oldPlayers = [
+            { id: 'p1', name: 'A', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'HUMAN' },
+            { id: 'p2', name: 'B', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'BOT' },
+            { id: 'p3', name: 'C', hand: [], handSize: 0, wins: 0, mancheWins: 0, currentMancheStars: 0, totalRoundWins: 0, totalPoints: 0, isCochon: false, totalCochons: 0, totalCochonsInfliges: 0, totalCochonsSubis: 0, status: 'BOT' },
+        ];
+
+        const state: GameState = {
+            gameId: 'g1',
+            players: oldPlayers as Player[],
+            talonMort: [],
+            table: { sequence: [], leftValue: null, rightValue: null },
+            currentPlayerId: 'p1',
+            phase: 'MANCHE_END', // <- C'est une fin de manche
+            firstPlayerOfRound: null,
+            history: [],
+            winningCondition: 3,
+            gameMode: 'MANCHE',
+            mancheResult: null,
+            turnDuration: 30,
+            lastActionTimestamp: 0,
+            turnId: 0,
+            mancheHistory: [],
+            roundNumber: 6, // Fin du round 6
+            mancheNumber: 1, // Fin de la manche 1
+            startingHandSize: 7,
+            tiedPlayerIds: ['p1', 'p2'], // Simule une égalité précédente entre p1 et p2 (p3 est exclu de l'égalité)
+            boudePlayerId: null
+        };
+
+        // Act & Assert
+        let p3StartedAtLeastOnce = false;
+
+        for (let i = 0; i < 50; i++) {
+            const nextState = LogicEngineModule.computeNextRoundState(state);
+            const expectedStarter = LogicEngineModule.determineFirstPlayer(nextState.players);
+            
+            // Le joueur qui commence doit toujours être celui qui a le plus gros double globalement,
+            // et non restreint à p1 ou p2.
+            expect(nextState.currentPlayerId).toBe(expectedStarter);
+            
+            if (nextState.currentPlayerId === 'p3') {
+                p3StartedAtLeastOnce = true;
+            }
+        }
+
+        // On vérifie que p3 a bien pu commencer au moins une fois, prouvant qu'il n'est plus ignoré.
+        expect(p3StartedAtLeastOnce).toBe(true);
+    });
+});
+

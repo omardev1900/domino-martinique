@@ -4,6 +4,7 @@
 
 ### 2026-06-05
 
+- **[BUG-DOUBLE6-MANCHE]** : Correction du bug de règle où le premier joueur d'une nouvelle manche n'était pas celui possédant le plus gros double, suite à la persistance d'une égalité du round précédent (`tiedPlayerIds` ignoré en début de manche).
 - **[BUG-BOUDE-ENDMATCH]** : Correction du bug d'affichage où le badge "🚫 BOUDÉ" restait affiché en fin de match et chevauchait la modale de résultats (nettoyage forcé de `localBoudedPlayerId` sur les phases de fin).
 
 ### 2026-06-03

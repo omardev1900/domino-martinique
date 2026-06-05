@@ -7,6 +7,7 @@
 ## [2.5.14] - 2026-06-05
 
 ### Corrigé
+- **Mauvais joueur de départ en nouvelle manche** — correction d'un bug où, suite à une égalité sur le round précédent, le premier joueur de la nouvelle manche n'était pas celui possédant le plus gros double.
 - **Affichage "Boudé" persistant** — le badge/message "BOUDÉ" ne reste plus bloqué indéfiniment sur l'écran en fin de partie, évitant ainsi le chevauchement visuel désagréable avec la modale de résultats ou le classement final.
 
 ---
