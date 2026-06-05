@@ -64,12 +64,19 @@ export const useGameSync = ({
                 setRoomData(data);
 
                 if (data.gameState) {
+                    // Check if it's actually an update from someone else (or just our own reflected)
+                    if (gameStateRef.current && (
+                        gameStateRef.current.turnId !== data.gameState.turnId ||
+                        gameStateRef.current.phase !== data.gameState.phase
+                    )) {
+                        LogService.info('GameSync', `[SYNC] 📥 Incoming State: Phase=${data.gameState.phase}, TurnId=${data.gameState.turnId}`);
+                    }
                     setGameState(data.gameState);
                 } else {
 
                 }
             } else {
-
+                LogService.warn('GameSync', '[SYNC] 🗑️ Room document deleted or does not exist');
                 // Handle room destruction
             }
         }, (error) => {

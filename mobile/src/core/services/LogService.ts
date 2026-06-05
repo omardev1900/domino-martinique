@@ -51,5 +51,23 @@ export const LogService = {
     if (isDev) {
       console.log(...args);
     }
+  },
+
+  /**
+   * Tracer une transition d'état majeure (ex: phase de jeu)
+   */
+  transition: (tag: string, fromState: string, toState: string, ...args: any[]) => {
+    if (isDev) {
+      console.log(`🔄 [TRANSITION][${tag}] ${fromState} ➔ ${toState}`, ...args);
+    }
+  },
+
+  /**
+   * Tracer un événement ponctuel important (ex: ouverture/fermeture modale, timer)
+   */
+  event: (tag: string, eventName: string, ...args: any[]) => {
+    if (isDev) {
+      console.log(`⚡ [EVENT][${tag}] ${eventName}`, ...args);
+    }
   }
 };

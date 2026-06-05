@@ -35,14 +35,14 @@ export const BASE_REWARDS = {
     DOUBLE_COCHON: {
         coins: 0,
         xp: 300,
-        diamonds: 1,
+        diamonds: 0,
         leaguePoints: 2,
     },
     /** Vainqueur du Match (Podium 1er) */
     MATCH_WIN: {
         coins: 0,     // Déterminé par le Pot
         xp: 500,
-        diamonds: 2,
+        diamonds: 1,
         leaguePoints: 0,
     },
     /** Participer au match (non vainqueur) */

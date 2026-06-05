@@ -51,6 +51,8 @@ export const useActionDispatcher = ({
     const dispatch = useCallback(async (command: ActionCommand) => {
         if (!gameState) return;
 
+        LogService.info('ActionDispatcher', `[DISPATCH] ➔ ${command.type}`, 'playerId' in command ? command.playerId : '');
+
         // Autorité de l'Hôte pour le TIMEOUT
         if (command.type === 'TIMEOUT') {
             const player = gameState.players.find(p => p.id === command.playerId);
@@ -215,11 +217,12 @@ export const useActionDispatcher = ({
                     const cleanState = JSON.parse(JSON.stringify(newState));
                     try {
                         await safeUpdateGameState(gameId, cleanState);
+                        LogService.info('ActionDispatcher', `[SYNC] Firebase update SUCCESS for ${command.type}`);
                     } catch (syncError: any) {
                         // ✅ FIX: Fallback local si Firebase échoue définitivement après retries.
                         // onSnapshot corrigera la divergence automatiquement dès qu'une autre
                         // écriture réussira (celle d'un autre joueur ou le prochain coup).
-                        LogService.warn('ActionDispatcher', `Firebase sync failed, applying state locally to unblock host: ${syncError?.code}`);
+                        LogService.warn('ActionDispatcher', `[SYNC] Firebase sync failed, applying state locally to unblock host: ${syncError?.code}`);
                         setGameState(newState);
                     }
                 }
@@ -227,7 +230,7 @@ export const useActionDispatcher = ({
 
             }
         } catch (e) {
-            console.error('[ActionDispatcher] Erreur durant l\'action:', e);
+            LogService.error('ActionDispatcher', 'Erreur durant l\'action:', e);
         } finally {
             // Toujours libérer le verrou à la fin de l'action, qu'elle réussisse ou échoue !
             if (usesTurnLock) {

@@ -134,132 +134,74 @@ exports.RewardEngine = {
         let totalLeaguePoints = 0;
         // Calculé ici car nécessaire dès la section 1
         const isSolo = playerCount <= 1 || gameMode === 'SOLO';
-        // ── 1. Gains par événement de manche ──────────────────────────────────────
-        // En multi, les manches n'apportent que de l'XP (pas de coins — le pot suffit)
+        // ── 0. Calcul des rounds joués (approximatif = somme des victoires de round) ──
+        const totalRoundsPlayed = finalRanking.reduce((sum, p) => sum + p.totalRoundWins, 0) || 1;
+        // ── 1. Gains par événement de manche (LIGUE DES COCHONS UNIQUEMENT) ─────────
+        // Les manches n'apportent plus d'XP, Coins ou Diamants.
+        // Elles ne servent qu'à comptabiliser les cochons infligés (League Points).
         for (const manche of mancheHistory) {
             if (manche.isWinner) {
-                // Victoire de Manche : coins uniquement en Solo
-                // ECO-GAINS FIX: 0 coins for manches. Flat 300 for match win.
-                if (isSolo)
-                    totalCoinsRaw += 0;
-                totalXP += economy_constants_1.BASE_REWARDS.MANCHE_WIN.xp;
-                breakdown.push({
-                    id: `manche_win_${manche.mancheNumber}`,
-                    label: `Victoire Manche #${manche.mancheNumber}`,
-                    coins: 0,
-                    xp: economy_constants_1.BASE_REWARDS.MANCHE_WIN.xp,
-                    diamonds: 0,
-                    leaguePoints: 0,
-                });
                 if (manche.resultType === 'COCHON' && manche.cochonCount > 0) {
                     if (manche.cochonCount >= 2) {
                         // Double Cochon (3-0-0)
-                        if (isSolo)
-                            totalCoinsRaw += 0;
-                        totalXP += economy_constants_1.BASE_REWARDS.DOUBLE_COCHON.xp;
-                        totalDiamonds += economy_constants_1.BASE_REWARDS.DOUBLE_COCHON.diamonds;
                         totalLeaguePoints += economy_constants_1.BASE_REWARDS.DOUBLE_COCHON.leaguePoints;
                         breakdown.push({
                             id: `double_cochon_${manche.mancheNumber}`,
                             label: `🐷🐷 Double Cochon (Manche #${manche.mancheNumber})`,
                             coins: 0,
-                            xp: economy_constants_1.BASE_REWARDS.DOUBLE_COCHON.xp,
-                            diamonds: economy_constants_1.BASE_REWARDS.DOUBLE_COCHON.diamonds,
+                            xp: 0,
+                            diamonds: 0,
                             leaguePoints: economy_constants_1.BASE_REWARDS.DOUBLE_COCHON.leaguePoints,
                         });
                     }
                     else {
                         // Cochon Simple (3-1-0)
-                        if (isSolo)
-                            totalCoinsRaw += 0;
-                        totalXP += economy_constants_1.BASE_REWARDS.COCHON_BONUS.xp;
                         totalLeaguePoints += economy_constants_1.BASE_REWARDS.COCHON_BONUS.leaguePoints;
                         breakdown.push({
                             id: `cochon_${manche.mancheNumber}`,
                             label: `🐷 Bonus Cochon (Manche #${manche.mancheNumber})`,
                             coins: 0,
-                            xp: economy_constants_1.BASE_REWARDS.COCHON_BONUS.xp,
+                            xp: 0,
                             diamonds: 0,
                             leaguePoints: economy_constants_1.BASE_REWARDS.COCHON_BONUS.leaguePoints,
                         });
                     }
                 }
             }
-            else if (manche.isCochonne) {
-                totalXP += economy_constants_1.BASE_REWARDS.MATCH_COCHONNE.xp;
-                breakdown.push({
-                    id: `cochonne_${manche.mancheNumber}`,
-                    label: `🥚 Cochonné (Manche #${manche.mancheNumber})`,
-                    coins: 0,
-                    xp: economy_constants_1.BASE_REWARDS.MATCH_COCHONNE.xp,
-                    diamonds: 0,
-                    leaguePoints: 0,
-                });
-            }
         }
-        // ── 2. Gains de Rounds ──────────────────────────────────────────
-        // En multi, les rounds n'apportent que de l'XP
-        const roundWins = playerFinalStats.totalRoundWins;
-        if (roundWins > 0) {
-            const roundCoins = 0; // ECO-GAINS FIX: 0 coins for rounds
-            const roundXP = economy_constants_1.BASE_REWARDS.ROUND_WIN.xp * roundWins;
-            if (isSolo)
-                totalCoinsRaw += roundCoins;
-            totalXP += roundXP;
-            breakdown.push({
-                id: 'round_wins',
-                label: `Victoires de Round (×${roundWins})`,
-                coins: roundCoins,
-                xp: roundXP,
-                diamonds: 0,
-                leaguePoints: 0,
-            });
-        }
-        // ── 3. Gains de fin de Match (classement) ──────────────────────────
+        // ── 2. Gains de Rounds (Désactivé) ──────────────────────────────────────────
+        // L'XP par victoire de round individuelle est remplacée par un gain global en fin de match.
+        // ── 3. Gains de fin de Match (Standardisation) ──────────────────────────
         const rank = playerFinalStats.rank;
-        // Note : isSolo est calculé en amont (avant section 1)
+        // XP globale basée sur le temps de jeu (20 XP par round joué dans le match)
+        totalXP = totalRoundsPlayed * 20;
         if (rank === 1) {
             // Vainqueur du match
-            totalXP += economy_constants_1.BASE_REWARDS.MATCH_WIN.xp;
-            totalDiamonds += economy_constants_1.BASE_REWARDS.MATCH_WIN.diamonds;
-            // ECO-GAINS FIX: Flat 300 coins for winner in all modes
             potCoins = 300;
+            totalDiamonds = 1;
             breakdown.push({
                 id: 'match_win',
                 label: `🏆 Victoire du Match`,
                 coins: potCoins,
-                xp: economy_constants_1.BASE_REWARDS.MATCH_WIN.xp,
-                diamonds: economy_constants_1.BASE_REWARDS.MATCH_WIN.diamonds,
+                xp: totalXP,
+                diamonds: totalDiamonds,
                 leaguePoints: 0,
             });
         }
-        else if (rank === 2 && !isSolo) {
-            // 2ème — ECO-GAINS FIX: 0 coins for 2nd place
-            potCoins = 0;
-            totalXP += economy_constants_1.BASE_REWARDS.MATCH_FINISH.xp;
-            if (potCoins > 0) {
-                breakdown.push({
-                    id: 'match_second',
-                    label: `🥈 2ème Place`,
-                    coins: potCoins,
-                    xp: economy_constants_1.BASE_REWARDS.MATCH_FINISH.xp,
-                    diamonds: 0,
-                    leaguePoints: 0,
-                });
-            }
-        }
         else {
             // Participation (non vainqueur)
-            totalXP += economy_constants_1.BASE_REWARDS.MATCH_FINISH.xp;
+            potCoins = 0;
+            totalDiamonds = 0;
             breakdown.push({
                 id: 'match_finish',
                 label: `Participation`,
-                coins: 0,
-                xp: economy_constants_1.BASE_REWARDS.MATCH_FINISH.xp,
+                coins: potCoins,
+                xp: totalXP,
                 diamonds: 0,
                 leaguePoints: 0,
             });
         }
+        // NOTE: The previous MATCH_END breakdown lines are now included in the chunk above!
         // ── 4. Appliquer le multiplicateur de niveau (performance coins uniquement) ───
         // potCoins (= pot du match en multi, flat reward en solo) N'est PAS multiplié.
         // Le multiplicateur de niveau s'applique UNIQUEMENT aux coins de performance

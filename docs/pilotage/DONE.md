@@ -4,6 +4,8 @@
 
 ### 2026-06-05
 
+- **[SYS-LOGGING-ENGINE]** : Mise en place d'un système de logs structuré via `LogService` (`transition` et `event`) pour tracer clairement le cycle de vie du jeu (`gameState.phase`), l'ouverture/fermeture des modales, le flux d'actions de `useActionDispatcher` et les synchronisations Firebase `useGameSync`.
+- **[ECO-REWARD-STANDARDIZATION]** : Homogénéisation des gains de fin de match (tout mode confondu) : 300 coins et 1 diamant pour une victoire de match. L'XP gagnée est calculée selon le nombre de rounds joués (20 XP * nombre de rounds).
 - **[ECO-DIAMOND-REDUCE]** : Réduction du gain de diamants en fin de partie (uniquement au vainqueur d'un match complet, 0 pour les perdants, quel que soit le mode).
 - **[FIX-FREEZE-ON-BOUDE]** : Résolution du blocage où l'écran restait figé sur le statut "Partie Bloquée" en fin de match solo, en corrigeant un catch-all de GameScreen qui skippait le fast-path de MANCHE_END/MATCH_END.
 - **[BUG-ROOM-NOT-EXIST]** : Résolution du blocage fatal des parties multijoueur (Boudé ou Tour de bot figé). Implémentation du système "Acting Host" qui transfère automatiquement le rôle de chef d'orchestre au prochain joueur humain actif si le créateur d'origine quitte la partie ou subit une déconnexion (Web ou Mobile). Ajout d'un timer de sécurité de 10s pour garantir la résolution du statut "Boudé".

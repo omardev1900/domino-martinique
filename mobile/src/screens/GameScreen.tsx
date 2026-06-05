@@ -177,6 +177,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 try {
                     // updateDoc is directly applied to rooms to avoid full GameState rewrite conflicts
                     const { updateDoc, doc } = await import('firebase/firestore');
+                    const { db } = await import('../core/services/firebase');
                     const roomRef = doc(db, 'rooms', gameId);
                     await updateDoc(roomRef, { 'gameState.players': updatedPlayers });
                 } catch (error) {
@@ -890,6 +891,37 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             loadSettings();
         }, [isSoloMode])
     );
+    // ── SYS-LOGGING-ENGINE: Suivi des Transitions de Phase ──
+    const previousPhaseRef = useRef<GamePhase | null>(null);
+    useEffect(() => {
+        if (gameState && gameState.phase !== previousPhaseRef.current) {
+            if (previousPhaseRef.current !== null) {
+                LogService.transition('GameScreen', previousPhaseRef.current, gameState.phase, `Turn: ${gameState.turnId}`);
+            }
+            previousPhaseRef.current = gameState.phase;
+        }
+    }, [gameState?.phase, gameState?.turnId]);
+
+    // ── SYS-LOGGING-ENGINE: Suivi des Overlays (Modales) ──
+    useEffect(() => {
+        LogService.event('GameScreen', showRoundResult ? '🟢 Overlay OPEN: RoundResultCard' : '🔴 Overlay CLOSE: RoundResultCard');
+    }, [showRoundResult]);
+
+    useEffect(() => {
+        if (scoreOverlayPhase) {
+            LogService.event('GameScreen', `🟢 Overlay OPEN: ScoreOverlay (${scoreOverlayPhase})`);
+        } else {
+            LogService.event('GameScreen', '🔴 Overlay CLOSE: ScoreOverlay');
+        }
+    }, [scoreOverlayPhase]);
+
+    useEffect(() => {
+        LogService.event('GameScreen', showMatchRewardModal ? '🟢 Overlay OPEN: UnifiedResultOverlay' : '🔴 Overlay CLOSE: UnifiedResultOverlay');
+    }, [showMatchRewardModal]);
+
+    useEffect(() => {
+        LogService.event('GameScreen', showRewardOverlay ? '🟢 Overlay OPEN: LeagueRewardOverlay' : '🔴 Overlay CLOSE: LeagueRewardOverlay');
+    }, [showRewardOverlay]);
 
     // Gestion des fins de round / manche / match
     // Ref stable vers handleOverlayContinue (disponible dès useGameEngine, avant ce point)
@@ -990,7 +1022,32 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
                     if (nextAdRef.current === 'ADMOB') {
-                        showAdMob();
+                        setTimeout(() => {
+                            try {
+                                showAdMob();
+                                setTimeout(() => {
+                                    if (isAdVisibleRef.current) {
+                                        LogService.warn('GameScreen', 'AdMob fallback timeout (PARTIE_END)');
+                                        isAdVisibleRef.current = false;
+                                        setIsAdVisible(false);
+                                        if (pendingPhaseTransitionRef.current) {
+                                            const pending = pendingPhaseTransitionRef.current;
+                                            pendingPhaseTransitionRef.current = null;
+                                            pending();
+                                        }
+                                    }
+                                }, 15000);
+                            } catch (e) {
+                                LogService.error('GameScreen', 'Failed to show AdMob (PARTIE_END)', e);
+                                isAdVisibleRef.current = false;
+                                setIsAdVisible(false);
+                                if (pendingPhaseTransitionRef.current) {
+                                    const pending = pendingPhaseTransitionRef.current;
+                                    pendingPhaseTransitionRef.current = null;
+                                    pending();
+                                }
+                            }
+                        }, 50);
                     } else {
                         setCurrentAd(nextAdRef.current);
                     }
@@ -1017,7 +1074,32 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
                     if (nextAdRef.current === 'ADMOB') {
-                        showAdMob();
+                        setTimeout(() => {
+                            try {
+                                showAdMob();
+                                setTimeout(() => {
+                                    if (isAdVisibleRef.current) {
+                                        LogService.warn('GameScreen', 'AdMob fallback timeout (MANCHE_END skip)');
+                                        isAdVisibleRef.current = false;
+                                        setIsAdVisible(false);
+                                        if (pendingPhaseTransitionRef.current) {
+                                            const pending = pendingPhaseTransitionRef.current;
+                                            pendingPhaseTransitionRef.current = null;
+                                            pending();
+                                        }
+                                    }
+                                }, 15000);
+                            } catch (e) {
+                                LogService.error('GameScreen', 'Failed to show AdMob (MANCHE_END skip)', e);
+                                isAdVisibleRef.current = false;
+                                setIsAdVisible(false);
+                                if (pendingPhaseTransitionRef.current) {
+                                    const pending = pendingPhaseTransitionRef.current;
+                                    pendingPhaseTransitionRef.current = null;
+                                    pending();
+                                }
+                            }
+                        }, 50);
                     } else {
                         setCurrentAd(nextAdRef.current);
                     }
@@ -1041,7 +1123,32 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
                     if (nextAdRef.current === 'ADMOB') {
-                        showAdMob();
+                        setTimeout(() => {
+                            try {
+                                showAdMob();
+                                setTimeout(() => {
+                                    if (isAdVisibleRef.current) {
+                                        LogService.warn('GameScreen', 'AdMob fallback timeout (MANCHE_END)');
+                                        isAdVisibleRef.current = false;
+                                        setIsAdVisible(false);
+                                        if (pendingPhaseTransitionRef.current) {
+                                            const pending = pendingPhaseTransitionRef.current;
+                                            pendingPhaseTransitionRef.current = null;
+                                            pending();
+                                        }
+                                    }
+                                }, 15000);
+                            } catch (e) {
+                                LogService.error('GameScreen', 'Failed to show AdMob (MANCHE_END)', e);
+                                isAdVisibleRef.current = false;
+                                setIsAdVisible(false);
+                                if (pendingPhaseTransitionRef.current) {
+                                    const pending = pendingPhaseTransitionRef.current;
+                                    pendingPhaseTransitionRef.current = null;
+                                    pending();
+                                }
+                            }
+                        }, 50);
                     } else {
                         setCurrentAd(nextAdRef.current);
                     }
@@ -1068,7 +1175,32 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
                     if (nextAdRef.current === 'ADMOB') {
-                        showAdMob();
+                        setTimeout(() => {
+                            try {
+                                showAdMob();
+                                setTimeout(() => {
+                                    if (isAdVisibleRef.current) {
+                                        LogService.warn('GameScreen', 'AdMob fallback timeout (MATCH_END skip)');
+                                        isAdVisibleRef.current = false;
+                                        setIsAdVisible(false);
+                                        if (pendingPhaseTransitionRef.current) {
+                                            const pending = pendingPhaseTransitionRef.current;
+                                            pendingPhaseTransitionRef.current = null;
+                                            pending();
+                                        }
+                                    }
+                                }, 15000);
+                            } catch (e) {
+                                LogService.error('GameScreen', 'Failed to show AdMob (MATCH_END skip)', e);
+                                isAdVisibleRef.current = false;
+                                setIsAdVisible(false);
+                                if (pendingPhaseTransitionRef.current) {
+                                    const pending = pendingPhaseTransitionRef.current;
+                                    pendingPhaseTransitionRef.current = null;
+                                    pending();
+                                }
+                            }
+                        }, 50);
                     } else {
                         setCurrentAd(nextAdRef.current);
                     }
@@ -1092,7 +1224,32 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
                     if (nextAdRef.current === 'ADMOB') {
-                        showAdMob();
+                        setTimeout(() => {
+                            try {
+                                showAdMob();
+                                setTimeout(() => {
+                                    if (isAdVisibleRef.current) {
+                                        LogService.warn('GameScreen', 'AdMob fallback timeout (MATCH_END)');
+                                        isAdVisibleRef.current = false;
+                                        setIsAdVisible(false);
+                                        if (pendingPhaseTransitionRef.current) {
+                                            const pending = pendingPhaseTransitionRef.current;
+                                            pendingPhaseTransitionRef.current = null;
+                                            pending();
+                                        }
+                                    }
+                                }, 15000);
+                            } catch (e) {
+                                LogService.error('GameScreen', 'Failed to show AdMob (MATCH_END)', e);
+                                isAdVisibleRef.current = false;
+                                setIsAdVisible(false);
+                                if (pendingPhaseTransitionRef.current) {
+                                    const pending = pendingPhaseTransitionRef.current;
+                                    pendingPhaseTransitionRef.current = null;
+                                    pending();
+                                }
+                            }
+                        }, 50);
                     } else {
                         setCurrentAd(nextAdRef.current);
                     }
