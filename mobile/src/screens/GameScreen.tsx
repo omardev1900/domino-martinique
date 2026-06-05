@@ -136,6 +136,44 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
     const isLocalHost = isSoloMode || (roomData?.createdBy === localPlayerId);
 
+    // -- VIGILANCE: Web Player Disconnection Tracker --
+    // L'hôte vérifie périodiquement les heartbeats (pings) des autres joueurs humains.
+    // Si un joueur n'a pas mis à jour son ping depuis 25s, il est déclaré déconnecté.
+    useEffect(() => {
+        if (!gameId || isSoloMode || !isLocalHost || !roomData || !roomData.gameState?.players) return;
+
+        const checkInterval = setInterval(async () => {
+            const now = Date.now();
+            let hasTimedOutPlayers = false;
+            
+            const updatedPlayers = roomData.gameState!.players.map(p => {
+                if (p.id === localPlayerId || p.status !== 'HUMAN') return p;
+                
+                const lastPing = roomData.heartbeats?.[p.id] || 0;
+                // Timeout au bout de 25 secondes sans heartbeat
+                if (now - lastPing > 25000) {
+                    hasTimedOutPlayers = true;
+                    LogService.info('GameScreen', `Player ${p.id} heartbeat timeout. Marking as DISCONNECTED.`);
+                    return { ...p, status: 'DISCONNECTED' as const };
+                }
+                return p;
+            });
+
+            if (hasTimedOutPlayers) {
+                try {
+                    // updateDoc is directly applied to rooms to avoid full GameState rewrite conflicts
+                    const { updateDoc, doc } = await import('firebase/firestore');
+                    const roomRef = doc(db, 'rooms', gameId);
+                    await updateDoc(roomRef, { 'gameState.players': updatedPlayers });
+                } catch (error) {
+                    LogService.error('GameScreen', 'Error updating timed out players:', error);
+                }
+            }
+        }, 5000);
+
+        return () => clearInterval(checkInterval);
+    }, [gameId, isSoloMode, isLocalHost, roomData, localPlayerId]);
+
     const [isPaused, setIsPaused] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
 

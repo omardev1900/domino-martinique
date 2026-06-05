@@ -464,3 +464,5 @@ export const resetMonthlyLeague = functions.pubsub
 
         return null;
     });
+
+export * from './cleanupRooms';

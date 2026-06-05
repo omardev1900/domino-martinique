@@ -32,6 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resetMonthlyLeague = exports.deleteUserAccount = exports.closeTournament = exports.migrateCochonsGiven = exports.processMatchRewardHttp = exports.processMatchReward = void 0;
 const admin = __importStar(require("firebase-admin"));
@@ -419,4 +422,5 @@ exports.resetMonthlyLeague = functions.pubsub
     });
     return null;
 });
+__exportStar(require("./cleanupRooms"), exports);
 //# sourceMappingURL=index.js.map

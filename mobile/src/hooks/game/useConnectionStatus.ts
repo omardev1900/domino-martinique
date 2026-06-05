@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../core/services/firebase';
-import { doc, runTransaction } from 'firebase/firestore';
+import { doc, runTransaction, updateDoc } from 'firebase/firestore';
 import { GameRoom } from '../../core/types';
 import { LogService } from '../../core/services/LogService';
 
@@ -8,6 +8,8 @@ export interface UseConnectionStatusProps {
     gameId: string | undefined;
     localPlayerId: string;
     isSoloMode: boolean;
+    isLocalHost?: boolean;
+    roomData?: GameRoom | null;
 }
 
 export interface UseConnectionStatusResult {
@@ -19,10 +21,32 @@ export interface UseConnectionStatusResult {
 export const useConnectionStatus = ({
     gameId,
     localPlayerId,
-    isSoloMode
+    isSoloMode,
+    isLocalHost,
+    roomData
 }: UseConnectionStatusProps): UseConnectionStatusResult => {
     // ✅ FIX ANTI-ZOMBIE: signal visible pour l'UI quand un joueur reprend sa connexion
     const [isRejoining, setIsRejoining] = useState(false);
+
+    // 1. PING: Envoyer un heartbeat toutes les 10s (Web Disconnect tracking)
+    useEffect(() => {
+        if (!gameId || isSoloMode) return;
+        
+        const sendPing = async () => {
+            try {
+                const roomRef = doc(db, 'rooms', gameId);
+                await updateDoc(roomRef, { [`heartbeats.${localPlayerId}`]: Date.now() });
+            } catch (error) {
+                // Ignore silent network errors on ping
+            }
+        };
+
+        sendPing(); // Ping immédiat
+        const interval = setInterval(sendPing, 10000);
+        return () => clearInterval(interval);
+    }, [gameId, isSoloMode, localPlayerId]);
+
+    // Vigilance logic moved to GameScreen to avoid circular dependencies
 
     // Anti-Zombie / Reconnection logic
     const signalPlayerOnline = useCallback(async () => {
@@ -34,8 +58,8 @@ export const useConnectionStatus = ({
                 const roomDoc = await transaction.get(roomRef);
                 if (!roomDoc.exists()) return;
 
-                const roomData = roomDoc.data() as GameRoom;
-                const state = roomData.gameState;
+                const currentRoomData = roomDoc.data() as GameRoom;
+                const state = currentRoomData.gameState;
                 if (!state || !state.players) return;
 
                 // Remove zombie status
@@ -43,7 +67,7 @@ export const useConnectionStatus = ({
                 const updatedPlayers = state.players.map((p) => {
                     if (p.id === localPlayerId && (p.status !== 'HUMAN')) {
                         stateUpdated = true;
-                        return { ...p, status: 'HUMAN' };
+                        return { ...p, status: 'HUMAN' as const };
                     }
                     return p;
                 });
@@ -77,13 +101,13 @@ export const useConnectionStatus = ({
                 const roomDoc = await transaction.get(roomRef);
                 if (!roomDoc.exists()) return;
 
-                const roomData = roomDoc.data() as GameRoom;
-                const state = roomData.gameState;
+                const currentRoomData = roomDoc.data() as GameRoom;
+                const state = currentRoomData.gameState;
                 if (!state || !state.players) return;
 
                 const updatedPlayers = state.players.map((p) => {
                     if (p.id === localPlayerId) {
-                        return { ...p, status: 'DISCONNECTED' };
+                        return { ...p, status: 'DISCONNECTED' as const };
                     }
                     return p;
                 });

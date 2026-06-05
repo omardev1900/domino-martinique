@@ -99,7 +99,8 @@ async function registerPushToken() {
     }
     if (finalStatus !== 'granted') return;
 
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    const tokenData = await Notifications.getDevicePushTokenAsync();
+    const token = tokenData.data;
     const user = await authService.getCurrentUser();
     if (user && !user.uid.startsWith('guest_')) {
       await updateDoc(doc(db, 'users', user.uid), { fcmToken: token });
