@@ -21,7 +21,9 @@ export function NetworkRequiredScreen({ onRetry, isChecking = false }: NetworkRe
 
     const handlePressRetry = () => {
         SoundManager.playSfx('click');
-        onRetry();
+        if (typeof onRetry === 'function') {
+            onRetry();
+        }
     };
 
     return (

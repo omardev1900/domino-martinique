@@ -45,7 +45,16 @@ Sentry.init({
 
   // Enable Logs
   enableLogs: true,
-  integrations: [Sentry.feedbackIntegration()],
+  replaysSessionSampleRate: 1.0,
+  replaysOnErrorSampleRate: 1.0,
+  integrations: [
+    Sentry.feedbackIntegration(),
+    Sentry.mobileReplayIntegration({
+      maskAllText: true,
+      maskAllImages: true,
+      maskAllVectors: true,
+    }),
+  ],
 
   // uncomment the line below to enable Spotlight (https://spotlightjs.com)
   // spotlight: __DEV__,
