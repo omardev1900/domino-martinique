@@ -146,9 +146,15 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         return () => subscription.remove();
     }, []);
 
-    let handleTimeoutCb = (pId: string, turnId?: number) => {
-        // Will be wired to the engine
-    };
+    // Référence mutable pour stocker la fonction handleTimeout issue du moteur
+    const handleTimeoutRef = useRef<((pId: string, turnId?: number) => void) | null>(null);
+    
+    // Callback stable passé à useGameTimers
+    const handleTimeoutCb = useCallback((pId: string, turnId?: number) => {
+        if (handleTimeoutRef.current) {
+            handleTimeoutRef.current(pId, turnId);
+        }
+    }, []);
 
     // Pub in-game : pause moteur + mémorisation de la transition en attente
     const [isAdVisible, setIsAdVisible] = useState(false);
@@ -450,8 +456,6 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     useEffect(() => {
         handleTimeoutRef.current = handleTimeout;
     }, [handleTimeout]);
-    const handleTimeoutRef = useRef(handleTimeout);
-    handleTimeoutCb = (pId: string) => handleTimeoutRef.current(pId);
 
 
     // -- 5. UI State remaining --
@@ -1539,6 +1543,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
     const wrappedConfirmSidePlay = useCallback(
         (side: 'left' | 'right') => {
+            if (!pendingDomino) return; // Sécurité : évite l'appel undefined si la pièce a été reset avant le release
             if (pendingDomino) {
                 const handSnapshot = localPlayer?.hand ?? [];
                 const playableIds = handSnapshot
@@ -1752,7 +1757,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     gameState={gameState}
                     theme={tableTheme}
                     pendingDomino={pendingDomino}
-                    onSideSelect={pendingDomino ? wrappedConfirmSidePlay : undefined}
+                    onSideSelect={wrappedConfirmSidePlay}
                     skinConfig={playerSkinConfig}
                     hiddenDominoId={effectiveHiddenDominoId}
                 />

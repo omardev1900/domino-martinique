@@ -528,11 +528,17 @@ export default function LobbyScreen() {
                                 <View style={styles.paramItemHorizontal}>
                                     <Text style={styles.paramLabelSmall}>OBJECTIF</Text>
                                     <View style={styles.stepperSmall}>
-                                        <TouchableOpacity onPress={() => setWinningCondition(prev => Math.max(1, prev - 1))} style={styles.stepBtnSmall}>
+                                        <TouchableOpacity onPress={() => setWinningCondition(prev => {
+                                            const min = gameMode === 'VICTOIRE' ? 5 : gameMode === 'SCORE' ? 5 : 3;
+                                            return Math.max(min, prev - 1);
+                                        })} style={styles.stepBtnSmall}>
                                             <Ionicons name="remove" size={18} color="#FFF" />
                                         </TouchableOpacity>
                                         <Text style={styles.stepValueSmall}>{winningCondition}</Text>
-                                        <TouchableOpacity onPress={() => setWinningCondition(prev => Math.min(100, prev + 1))} style={styles.stepBtnSmall}>
+                                        <TouchableOpacity onPress={() => setWinningCondition(prev => {
+                                            const max = gameMode === 'VICTOIRE' ? 15 : gameMode === 'SCORE' ? 25 : gameMode === 'COCHON' ? 10 : 15;
+                                            return Math.min(max, prev + 1);
+                                        })} style={styles.stepBtnSmall}>
                                             <Ionicons name="add" size={18} color="#FFF" />
                                         </TouchableOpacity>
                                     </View>
@@ -544,22 +550,22 @@ export default function LobbyScreen() {
                                     <Text style={styles.paramLabelSmall}>VITESSE</Text>
                                     <View style={styles.stepperSmall}>
                                         <TouchableOpacity onPress={() => setTurnDuration(prev => {
-                                            const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+                                            const steps = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
                                             const idx = steps.indexOf(prev);
                                             return idx > 0 ? steps[idx - 1] : steps[0];
                                         })} style={styles.stepBtnSmall}>
                                             <Ionicons name="remove" size={18} color="#FFF" />
                                         </TouchableOpacity>
-                                        <Text style={styles.stepValueSmall}>{turnDuration === 0 ? '∞' : turnDuration}</Text>
+                                        <Text style={styles.stepValueSmall}>{turnDuration}</Text>
                                         <TouchableOpacity onPress={() => setTurnDuration(prev => {
-                                            const steps = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+                                            const steps = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
                                             const idx = steps.indexOf(prev);
                                             return idx < steps.length - 1 ? steps[idx + 1] : steps[steps.length - 1];
                                         })} style={styles.stepBtnSmall}>
                                             <Ionicons name="add" size={18} color="#FFF" />
                                         </TouchableOpacity>
                                     </View>
-                                    <Text style={styles.paramSubtext}>{turnDuration === 0 ? 'Illimité' : 'secondes'}</Text>
+                                    <Text style={styles.paramSubtext}>secondes</Text>
                                 </View>
                             </View>
                         </View>

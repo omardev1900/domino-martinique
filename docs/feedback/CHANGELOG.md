@@ -9,6 +9,7 @@
 ### Corrigé
 - **Mauvais joueur de départ en nouvelle manche** — correction d'un bug où, suite à une égalité sur le round précédent, le premier joueur de la nouvelle manche n'était pas celui possédant le plus gros double.
 - **Affichage "Boudé" persistant** — le badge/message "BOUDÉ" ne reste plus bloqué indéfiniment sur l'écran en fin de partie, évitant ainsi le chevauchement visuel désagréable avec la modale de résultats ou le classement final.
+- **Blocage en multijoueur (Bug majeur)** — correction d'un bug critique qui bloquait indéfiniment les parties en multijoueur. Le tour passe désormais automatiquement de façon fiable, même en cas de mauvaise connexion ou de légers décalages d'horloge entre les joueurs.
 
 ---
 

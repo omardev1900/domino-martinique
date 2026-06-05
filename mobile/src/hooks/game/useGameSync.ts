@@ -127,9 +127,36 @@ export const useGameSync = ({
                     return;
                 }
 
-                // Compare timestamps to avoid split-brain rewrites
-                // Allow write if same phase AND new timestamp is higher, or if phase changed (e.g PLAYING -> END)
-                if (newState.phase === currentState.phase && newState.lastActionTimestamp <= currentState.lastActionTimestamp) {
+                // Compare progression to avoid split-brain rewrites and clock sync issues
+                let isValidUpdate = false;
+
+                if ((newState.mancheNumber ?? 1) > (currentState.mancheNumber ?? 1)) {
+                    isValidUpdate = true;
+                } else if ((newState.mancheNumber ?? 1) === (currentState.mancheNumber ?? 1) && (newState.roundNumber ?? 1) > (currentState.roundNumber ?? 1)) {
+                    isValidUpdate = true;
+                } else if ((newState.mancheNumber ?? 1) === (currentState.mancheNumber ?? 1) && (newState.roundNumber ?? 1) === (currentState.roundNumber ?? 1)) {
+                    if ((newState.turnId ?? 0) > (currentState.turnId ?? 0)) {
+                        isValidUpdate = true;
+                    } else if ((newState.turnId ?? 0) === (currentState.turnId ?? 0)) {
+                        if (newState.phase !== currentState.phase) {
+                            isValidUpdate = true;
+                        } else if (newState.boudePlayerId && !currentState.boudePlayerId) {
+                            isValidUpdate = true; // MARK_BOUDE
+                        }
+                    }
+                }
+                
+                if (newState.phase === 'MATCH_END' && currentState.phase !== 'MATCH_END') {
+                    isValidUpdate = true;
+                }
+
+                if (!isValidUpdate) {
+                    LogService.warn('useGameSync', 'Skipping stale state update to prevent overwrite', {
+                        newTurnId: newState.turnId,
+                        currentTurnId: currentState.turnId,
+                        newPhase: newState.phase,
+                        currentPhase: currentState.phase
+                    });
                     return; // Skip update — state déjà plus récent sur Firebase
                 }
 

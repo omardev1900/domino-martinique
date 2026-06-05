@@ -91,7 +91,7 @@ export const useActionDispatcher = ({
         }
 
         // Tente d'acquérir le verrou
-        const usesTurnLock = command.type !== 'NEXT_ROUND' && command.type !== 'RESOLVE_BOUDE';
+        const usesTurnLock = command.type !== 'NEXT_ROUND' && command.type !== 'RESOLVE_BOUDE' && command.type !== 'MARK_BOUDE';
 
         if (usesTurnLock && !acquireLock()) {
             LogService.info('ActionDispatcher', 'Action rejected because lock is already held.', {

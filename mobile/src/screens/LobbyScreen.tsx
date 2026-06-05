@@ -250,7 +250,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                         </View>
                         <View style={styles.optionChip}>
                             <Text style={styles.optionChipLabel}>Tour</Text>
-                            <Text style={styles.optionChipValue}>{turnDuration === 0 ? '∞' : `${turnDuration}s`}</Text>
+                            <Text style={styles.optionChipValue}>{turnDuration}s</Text>
                         </View>
                     </View>
                 </Animated.View>
