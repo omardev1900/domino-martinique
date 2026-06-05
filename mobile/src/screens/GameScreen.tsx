@@ -59,6 +59,7 @@ import { SkinConfig } from '../core/store.types';
 import { adService } from '../core/services/ad.service';
 import { Ad, AdPlacement } from '../core/ad.types';
 import { AdBannerModal } from '../components/AdBannerModal';
+import { useInterstitialAd, TestIds } from '../core/services/AdMobAdapter';
 
 interface GameScreenProps {
     gameId?: string;
@@ -486,7 +487,31 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const chatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastChatTimeRef = useRef<number>(0);
     const gameStateRef = useRef<GameState | null>(null);
-    const nextAdRef = useRef<Ad | null>(null);
+    const nextAdRef = useRef<Ad | 'ADMOB' | null>(null);
+
+    // Google AdMob
+    const { isLoaded: isAdMobLoaded, isClosed: isAdMobClosed, load: loadAdMob, show: showAdMob } = useInterstitialAd(TestIds.INTERSTITIAL);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web') {
+            loadAdMob();
+        }
+    }, [loadAdMob]);
+
+    useEffect(() => {
+        if (isAdMobClosed) {
+            isAdVisibleRef.current = false;
+            setIsAdVisible(false);
+            const pending = pendingPhaseTransitionRef.current;
+            if (pending) {
+                pendingPhaseTransitionRef.current = null;
+                pending();
+            }
+            if (Platform.OS !== 'web') {
+                loadAdMob();
+            }
+        }
+    }, [isAdMobClosed, loadAdMob]);
 
     useEffect(() => {
         gameStateRef.current = gameState;
@@ -904,7 +929,11 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 if (nextAdRef.current) {
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
-                    setCurrentAd(nextAdRef.current);
+                    if (nextAdRef.current === 'ADMOB') {
+                        showAdMob();
+                    } else {
+                        setCurrentAd(nextAdRef.current);
+                    }
                     nextAdRef.current = null;
                     pendingPhaseTransitionRef.current = () => partieEndContinueRef.current();
                 } else if (isAdVisibleRef.current) {
@@ -927,7 +956,11 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 if (nextAdRef.current) {
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
-                    setCurrentAd(nextAdRef.current);
+                    if (nextAdRef.current === 'ADMOB') {
+                        showAdMob();
+                    } else {
+                        setCurrentAd(nextAdRef.current);
+                    }
                     nextAdRef.current = null;
                     pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MANCHE_END');
                 } else if (isAdVisibleRef.current) {
@@ -947,7 +980,11 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 if (nextAdRef.current) {
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
-                    setCurrentAd(nextAdRef.current);
+                    if (nextAdRef.current === 'ADMOB') {
+                        showAdMob();
+                    } else {
+                        setCurrentAd(nextAdRef.current);
+                    }
                     nextAdRef.current = null;
                     pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MANCHE_END');
                 } else if (isAdVisibleRef.current) {
@@ -970,7 +1007,11 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 if (nextAdRef.current) {
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
-                    setCurrentAd(nextAdRef.current);
+                    if (nextAdRef.current === 'ADMOB') {
+                        showAdMob();
+                    } else {
+                        setCurrentAd(nextAdRef.current);
+                    }
                     nextAdRef.current = null;
                     pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MATCH_END');
                 } else if (isAdVisibleRef.current) {
@@ -990,7 +1031,11 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 if (nextAdRef.current) {
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
-                    setCurrentAd(nextAdRef.current);
+                    if (nextAdRef.current === 'ADMOB') {
+                        showAdMob();
+                    } else {
+                        setCurrentAd(nextAdRef.current);
+                    }
                     nextAdRef.current = null;
                     pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MATCH_END');
                 } else if (isAdVisibleRef.current) {
@@ -1033,13 +1078,24 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             placement = 'END_OF_MATCH';
         }
         if (placement) {
-            adService.getAdForPlacement(placement).then(ad => {
-                if (ad) {
-                    nextAdRef.current = ad;
+            // Priority : Admin Priority Ads
+            adService.getAdForPlacement(placement, 'INTERSTITIAL', true).then(priorityAd => {
+                if (priorityAd) {
+                    nextAdRef.current = priorityAd;
+                } else if (isAdMobLoaded && Platform.OS !== 'web') {
+                    // Fallback 1: AdMob
+                    nextAdRef.current = 'ADMOB';
+                } else {
+                    // Fallback 2: Admin Standard Ads
+                    adService.getAdForPlacement(placement, 'INTERSTITIAL', false).then(fallbackAd => {
+                        if (fallbackAd) {
+                            nextAdRef.current = fallbackAd;
+                        }
+                    });
                 }
             });
         }
-    }, [gameState?.phase]);
+    }, [gameState?.phase, isAdMobLoaded]);
 
     // Auto-redirect non-hôtes quand l'hôte reset la room après le match
     useEffect(() => {
@@ -1407,7 +1463,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             });
 
             fullState.currentPlayerId = determineFirstPlayer(fullState.players);
-            await safeUpdateGameState(gameId, fullState);
+            await startGame(gameId, fullState);
 
         } catch (error) {
             LogService.error('GameScreen', "Failed to start game:", error);

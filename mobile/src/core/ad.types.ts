@@ -38,8 +38,9 @@ export interface Ad {
     imageUrl:      string;            // URL du média (image ou vidéo .mp4)
     targetUrl:     string | null;     // Lien ouvert au tap (optionnel)
     active:        boolean;           // Toggle ON/OFF global
+    isPriority?:   boolean;           // Si true : Bypass AdMob, affichage admin garanti
     isDailyReward: boolean;           // Si true : utilisée pour le cadeau quotidien
-    isRewarded?: boolean;              // Si true : affichée via un bouton (donne des coins)
+    isRewarded?:   boolean;           // Si true : affichée via un bouton (donne des coins)
     rewardAmount?: number;            // Montant dynamique des coins (pour cadeau/reward)
     startsAt:      number;            // Timestamp de début de diffusion (ms)
     endsAt:        number;            // Timestamp de fin de diffusion (ms)

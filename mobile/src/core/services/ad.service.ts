@@ -73,20 +73,23 @@ class AdService {
      */
     async getAdForPlacement(
         placement: AdPlacement, 
-        type: 'INTERSTITIAL' | 'REWARDED' = 'INTERSTITIAL'
+        type: 'INTERSTITIAL' | 'REWARDED' = 'INTERSTITIAL',
+        filterPriority?: boolean
     ): Promise<Ad | null> {
         if (!this.cached) await this.preload();
         if (!this.sessionLoaded) await this.loadSessionCooldowns();
 
         const now = Date.now();
 
-        // Filtrer les candidats (active + fenêtre + placement), tri plus récent d'abord.
+        // Filtrer les candidats (active + fenêtre + placement + priority), tri plus récent d'abord.
         const candidates = (this.cached ?? [])
             .filter(ad => ad.active)
             .filter(ad => ad.startsAt <= now && now <= ad.endsAt)
             .filter(ad => ad.placements.includes(placement))
             // Filtrage par type : REWARDED doit avoir le flag isRewarded, INTERSTITIAL ne doit pas l'avoir
             .filter(ad => type === 'REWARDED' ? ad.isRewarded === true : !ad.isRewarded)
+            // Filtrage par priorité si spécifié
+            .filter(ad => filterPriority === undefined ? true : !!ad.isPriority === filterPriority)
             .sort((a, b) => b.createdAt - a.createdAt);
 
         // Première pub qui passe le cooldown.
@@ -228,6 +231,7 @@ class AdService {
             imageUrl:      (data.imageUrl as string) ?? '',
             targetUrl:     (data.targetUrl as string | null) ?? null,
             active:        data.active === true,
+            isPriority:    data.isPriority === true,
             isDailyReward: data.isDailyReward === true,
             isRewarded:    data.isRewarded === true,
             rewardAmount:  data.rewardAmount as number | undefined,

@@ -19,6 +19,7 @@ import NetInfo from '@react-native-community/netinfo';
 import * as Sentry from '@sentry/react-native';
 import * as Notifications from 'expo-notifications';
 import { updateDoc, doc, getDoc } from 'firebase/firestore';
+import { initializeAdMob } from '@/core/services/AdMobAdapter';
 
 import { ForceUpdateModal } from '@/components/ForceUpdateModal';
 import { useForceUpdate } from '@/hooks/useForceUpdate';
@@ -203,6 +204,15 @@ export default Sentry.wrap(function RootLayout() {
         // Android Immersive Mode — appel initial
         if (Platform.OS === 'android') {
           await applyImmersiveMode();
+        }
+
+        // Initialisation du SDK Google AdMob
+        if (Platform.OS !== 'web') {
+          try {
+            await initializeAdMob();
+          } catch (e) {
+            LogService.error('AdMob', 'Erreur init AdMob', e);
+          }
         }
 
       } catch (e) {

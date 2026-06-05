@@ -14,9 +14,7 @@
 | Ticket | Description | Priorité | Estimation |
 |---|---|---|---|
 | **BUG-ROOM-NOT-EXIST** | [BUG MULTI] Pop-up "Erreur, Room does not exist" affiché en pleine partie après une déconnexion, laissant le joueur bloqué sur "Boudé" sans possibilité de revenir en jeu. | 🔴 Haute | ~1 j |
-| **ADMIN-TABLES-IMPROVE** | [ADMIN] Améliorer l'espace Admin existant des "Tables en cours" : remplacer la colonne "Difficulté" par "Objectifs" (score, victoires, cochons) et ajouter un indicateur d'état des joueurs (déconnecté, abandon) ou un log détaillé par table. | 🟡 Moyenne | ~1 j |
 | **IAP-PAYMENTS** | [FEATURE] Intégrer les achats in-app (In-App Purchases via Google Play / Apple) pour : 1) Option "Sans Publicité", 2) Achat de packs de Coins ou de Cosmétiques dans la boutique. | 🔴 Haute | ~3 j |
-| **NOTIF-ADVANCED** | [ADMIN] Enrichir le module de Notifications Push : permettre un ciblage précis (tous les joueurs vs joueurs spécifiques par UID) et automatiser certaines notifications (ex: relance joueurs inactifs, palier ligue franchi). | 🟡 Moyenne | ~1,5 j |
 
 
 | Ticket | Description | Priorité | Estimation |
@@ -55,7 +53,6 @@
 
 | Ticket | Description | Estimation |
 |---|---|---|
-| **ADMOB-PHASE2** | AdMob automatique impressions/clics via `react-native-google-mobile-ads` | ~1-1,5 jour |
 | **TOURNAMENTS** | Bloc 11 - Tournois complets : admin, mobile, brackets, Cloud Functions | ~4 jours |
 | **GOOGLE-PAY** | Paiements in-app Android via Google Play Billing | ~2 jours |
 | **NOTIF-WEB** | Notifications push Web PWA | ~1 jour |

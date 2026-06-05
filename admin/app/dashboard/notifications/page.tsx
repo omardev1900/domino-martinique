@@ -29,13 +29,28 @@ export default function NotificationsPage() {
   const [result, setResult] = useState<SendResult | null>(null);
   const [error, setError] = useState('');
   const [history, setHistory] = useState<{ title: string; body: string; target: string; sent: number; ts: number }[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [customUid, setCustomUid] = useState('');
 
   useEffect(() => {
     fetch('/api/notify')
       .then((r) => r.json())
       .then((d) => setReachable(d.reachable ?? 0))
       .catch(() => setReachable(0));
+      
+    fetch('/api/users')
+      .then((r) => r.json())
+      .then((d) => setUsers(d.users || []))
+      .catch(() => {});
   }, []);
+
+  const filteredUsers = search.trim().length > 1
+    ? users.filter(u => 
+        (u.displayName || '').toLowerCase().includes(search.toLowerCase()) || 
+        (u.email || '').toLowerCase().includes(search.toLowerCase())
+      ).slice(0, 5)
+    : [];
 
   const handleTemplate = (t: Template) => {
     setTitle(t.title);
@@ -43,6 +58,15 @@ export default function NotificationsPage() {
   };
 
   const handleSend = async () => {
+    let finalTarget = target;
+    if (target === 'custom') {
+      if (!customUid) {
+        setError('Veuillez rechercher et sélectionner un joueur spécifique.');
+        return;
+      }
+      finalTarget = `uid:${customUid}`;
+    }
+
     if (!title.trim() || !body.trim()) {
       setError('Le titre et le message sont requis.');
       return;
@@ -55,7 +79,7 @@ export default function NotificationsPage() {
       const res = await fetch('/api/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, target }),
+        body: JSON.stringify({ title, body, target: finalTarget }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -67,7 +91,7 @@ export default function NotificationsPage() {
 
       // Save to local history
       setHistory((prev) => [{
-        title, body, target, sent: data.sent, ts: Date.now(),
+        title, body, target: finalTarget, sent: data.sent, ts: Date.now(),
       }, ...prev].slice(0, 10));
 
       setTitle('');
@@ -142,7 +166,6 @@ export default function NotificationsPage() {
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
             <h2 className="text-white font-semibold text-sm">Composer le message</h2>
 
-            {/* Target */}
             <div>
               <label className="text-gray-400 text-xs font-medium block mb-1.5">Destinataires</label>
               <select
@@ -151,9 +174,42 @@ export default function NotificationsPage() {
                 className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors"
               >
                 <option value="all">📱 Tous les joueurs ({reachable ?? '…'} appareils)</option>
+                <option value="inactive">😴 Joueurs inactifs ({'>'} 2 jours)</option>
                 <option value="topic:news">📢 Topic : news</option>
                 <option value="topic:events">🎯 Topic : events</option>
+                <option value="custom">👤 Joueur spécifique (Recherche)</option>
               </select>
+
+              {target === 'custom' && (
+                <div className="mt-3 relative">
+                  <input
+                    type="text"
+                    placeholder="Rechercher par nom ou email..."
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setCustomUid('');
+                    }}
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm placeholder-gray-600 focus:outline-none focus:border-yellow-400 transition-colors"
+                  />
+                  {filteredUsers.length > 0 && customUid === '' && (
+                    <div className="absolute z-10 mt-1 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      {filteredUsers.map(u => (
+                        <button
+                          key={u.uid}
+                          onClick={() => {
+                            setCustomUid(u.uid);
+                            setSearch(`${u.displayName || 'Anonyme'} (${u.email || "Pas d'email"})`);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-700 text-sm text-white transition-colors border-b border-gray-700/50 last:border-0"
+                        >
+                          {u.displayName || 'Anonyme'} <span className="text-gray-400 text-xs ml-2">{u.email}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Title */}

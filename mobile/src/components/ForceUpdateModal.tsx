@@ -7,6 +7,7 @@ import {
     StyleSheet,
     Linking,
     Platform,
+    Alert,
 } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { ForceUpdateInfo } from '../hooks/useForceUpdate';
@@ -16,11 +17,22 @@ interface ForceUpdateModalProps {
 }
 
 export function ForceUpdateModal({ info }: ForceUpdateModalProps) {
-    const handleUpdate = () => {
-        if (info.updateUrl) {
-            Linking.openURL(info.updateUrl).catch(err => {
-                console.error("Impossible d'ouvrir le lien de mise à jour", err);
-            });
+    const handleUpdate = async () => {
+        const marketUrl = 'market://details?id=com.dominomartinique.mobile';
+        const fallbackUrl = info.updateUrl || 'https://play.google.com/store/apps/details?id=com.dominomartinique.mobile';
+
+        try {
+            const canOpenMarket = await Linking.canOpenURL(marketUrl);
+            if (canOpenMarket) {
+                await Linking.openURL(marketUrl);
+            } else {
+                await Linking.openURL(fallbackUrl);
+            }
+        } catch (err) {
+            Alert.alert(
+                "Mise à jour",
+                "Impossible d'ouvrir le Play Store automatiquement. Vous pouvez le faire manuellement en cherchant 'Domino Martiniquais'."
+            );
         }
     };
 

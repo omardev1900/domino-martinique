@@ -4,11 +4,14 @@
 
 ### 2026-06-05
 
+- **[ADMIN-TABLES-IMPROVE]** : Amélioration de l'espace Admin "Tables en cours" avec affichage de l'objectif (score, victoires, cochons) et des badges d'état des joueurs (Actif, Déconnecté, Bot).
+- **[NOTIF-ADVANCED]** : Enrichissement du module de Notifications Push (Admin) avec possibilité de cibler un joueur spécifique via recherche (Nom/Email) et ajout d'un filtre pour relancer les joueurs inactifs depuis plus de 2 jours.
 - **[SENTRY-ENRICHMENT]** : Enrichissement des logs Sentry avec le contexte de jeu (`roomId`, `gameMode`, et écouteur des changements d'état réseau `NetInfo`) pour diagnostiquer finement les déconnexions multijoueur.
 - **[BUG-DOUBLE6-MANCHE]** : Correction du bug de règle où le premier joueur d'une nouvelle manche n'était pas celui possédant le plus gros double, suite à la persistance d'une égalité du round précédent (`tiedPlayerIds` ignoré en début de manche).
 - **[BUG-BOUDE-ENDMATCH]** : Correction du bug d'affichage où le badge "🚫 BOUDÉ" restait affiché en fin de match et chevauchait la modale de résultats (nettoyage forcé de `localBoudedPlayerId` sur les phases de fin).
 - **[BUG-MULTI-BLOCKED]** : Résolution du blocage fatal des parties multijoueur. Correction d'un deadlock où l'animation "BOUDÉ" verrouillait le tour indéfiniment empêchant le déclenchement de la passe automatique. Fiabilisation du moteur de synchronisation Firebase (`useGameSync`) en remplaçant la comparaison fragile d'horodatage (`lastActionTimestamp`) par une validation rigoureuse de la progression d'état (`mancheNumber`, `roundNumber`, `turnId`), ce qui évite d'ignorer des mouvements valides en cas de latence ou désynchronisation d'horloge.
 - **[SENTRY-UNDEFINED-FN]** : Correction du crash Sentry `TypeError: undefined is not a function` sur l'interaction tactile (`GameScreen.tsx`). Remplacement de variables muables (`let`) par des callbacks stables (`useCallback`) pour les événements asynchrones (`handleTimeoutRef`), et sécurisation du passage des dépendances (`onSideSelect`) lors du démontage en plein appui.
+- **[ADMOB-PHASE2]** : Intégration du SDK Google AdMob (`react-native-google-mobile-ads`). Mise en place d'une logique "Waterfall" : les publicités Admin marquées comme `isPriority` s'affichent en premier, suivies des publicités AdMob (Interstitiel ou Récompensées), puis des publicités Admin standards en fallback. Validation Play Store via `app-ads.txt`.
 
 ### 2026-06-03
 
