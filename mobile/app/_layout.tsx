@@ -138,6 +138,11 @@ export default Sentry.wrap(function RootLayout() {
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected !== false);
+      Sentry.addBreadcrumb({
+        category: 'network',
+        message: `Network state changed: isConnected=${state.isConnected}, type=${state.type}`,
+        level: 'info',
+      });
     });
     return () => unsubscribe();
   }, []);
@@ -159,8 +164,10 @@ export default Sentry.wrap(function RootLayout() {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser && !firebaseUser.isAnonymous && firebaseUser.email) {
         setIsAuthenticated(true);
+        Sentry.setUser({ id: firebaseUser.uid, email: firebaseUser.email });
       } else {
         setIsAuthenticated(false);
+        Sentry.setUser(null);
       }
       setAuthLoading(false);
     });

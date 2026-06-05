@@ -6,6 +6,12 @@
 
 ## [2.5.14] - 2026-06-05
 
+### Modifié
+- **Limites des objectifs de partie** — les compteurs de création de partie (Solo et Multijoueur) ont été rationalisés. Le minimum est forcé à 1 pour tous les modes. Le maximum est plafonné selon le mode (15 pour Victoire/Manches, 25 pour Score, 10 pour Cochons).
+- **Vitesse de jeu (Solo)** — le mode "Illimité" (symbole ∞) a été retiré des paramètres pour s'aligner sur la cohérence du mode multijoueur. Le curseur s'arrête désormais à 1 seconde minimum.
+- **Confort Développeur** — en environnement de test local (`__DEV__`), les objectifs de partie sont automatiquement pré-réglés à 1 pour accélérer les tests.
+- **Positionnement du texte "Boudé"** — le message animé indiquant qu'un joueur passe son tour s'affiche désormais tout en bas (pour le joueur local) ou tout en haut (pour les adversaires) et passe au-dessus de tous les autres éléments UI (z-index maximal) pour ne plus jamais être caché par les dominos en main.
+
 ### Corrigé
 - **Mauvais joueur de départ en nouvelle manche** — correction d'un bug où, suite à une égalité sur le round précédent, le premier joueur de la nouvelle manche n'était pas celui possédant le plus gros double.
 - **Affichage "Boudé" persistant** — le badge/message "BOUDÉ" ne reste plus bloqué indéfiniment sur l'écran en fin de partie, évitant ainsi le chevauchement visuel désagréable avec la modale de résultats ou le classement final.

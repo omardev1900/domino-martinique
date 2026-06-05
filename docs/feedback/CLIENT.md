@@ -331,3 +331,9 @@ alerte bugs a mettre dans le spriorités:
 en mode multi, un joueur a perdu le réseau et a réessayer d'y retourner et :
 - quand le réseua ne retourne pas encore, un écran blanc apparait
 - si le réseau revient et réouvre l'app il ne voit pas de message pour rejoindre la table et elle exite encore (il doit aller au mode jeu, multijoueur, publiques, pourchercher sa table qui affoche 3/3 pus clique dessus pour la joindre) et aucun message ne l'invite a y retourner...cette focntionnalité existe bien en mode solo et focntionne correctemnt
+
+---
+
+## RETOUR #15 - 05 juin 2026 (Déconnexion en jeu)
+
+> "Hier j'ai et cette alerte : Un popup blanc avec message : Erreur, Room does not exist. En pleine partie, jai ete déconnecté. Je suis reste bloqué boudé et jamais je nai pu revenir."

@@ -4,6 +4,7 @@
 
 ### 2026-06-05
 
+- **[SENTRY-ENRICHMENT]** : Enrichissement des logs Sentry avec le contexte de jeu (`roomId`, `gameMode`, et écouteur des changements d'état réseau `NetInfo`) pour diagnostiquer finement les déconnexions multijoueur.
 - **[BUG-DOUBLE6-MANCHE]** : Correction du bug de règle où le premier joueur d'une nouvelle manche n'était pas celui possédant le plus gros double, suite à la persistance d'une égalité du round précédent (`tiedPlayerIds` ignoré en début de manche).
 - **[BUG-BOUDE-ENDMATCH]** : Correction du bug d'affichage où le badge "🚫 BOUDÉ" restait affiché en fin de match et chevauchait la modale de résultats (nettoyage forcé de `localBoudedPlayerId` sur les phases de fin).
 - **[BUG-MULTI-BLOCKED]** : Résolution du blocage fatal des parties multijoueur. Correction d'un deadlock où l'animation "BOUDÉ" verrouillait le tour indéfiniment empêchant le déclenchement de la passe automatique. Fiabilisation du moteur de synchronisation Firebase (`useGameSync`) en remplaçant la comparaison fragile d'horodatage (`lastActionTimestamp`) par une validation rigoureuse de la progression d'état (`mancheNumber`, `roundNumber`, `turnId`), ce qui évite d'ignorer des mouvements valides en cas de latence ou désynchronisation d'horloge.
