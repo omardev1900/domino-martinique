@@ -1703,53 +1703,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     onQuitGame={handleLeaveRoom}
                 />
 
-                {/* ANIMATION TEXTE BOUDÉ */}
-                {localBoudedPlayerId && (() => {
-                    const bPlayer = gameState?.players.find(p => p.id === localBoudedPlayerId);
-                    if (!bPlayer) return null;
-                    const isMe = bPlayer.id === localPlayerId;
-                    const text = isMe ? "Vous êtes boudé" : `${bPlayer.name} est boudé`;
-                    return (
-                        <Animated.View
-                            entering={FadeInUp.springify().damping(12).mass(0.8)}
-                            exiting={FadeOut.duration(300)}
-                            style={{
-                                position: 'absolute',
-                                top: isMe ? undefined : '28%',
-                                bottom: isMe ? '32%' : undefined,
-                                width: '100%',
-                                alignItems: 'center',
-                                zIndex: 500,
-                            }}
-                            pointerEvents="none"
-                        >
-                            <View style={{
-                                backgroundColor: 'rgba(0,0,0,0.85)',
-                                paddingHorizontal: 28,
-                                paddingVertical: 14,
-                                borderRadius: 16,
-                                borderWidth: 2,
-                                borderColor: isMe ? '#FF6B6B' : '#4ECDC4',
-                                shadowColor: isMe ? '#FF6B6B' : '#4ECDC4',
-                                shadowOffset: { width: 0, height: 0 },
-                                shadowOpacity: 0.5,
-                                shadowRadius: 10,
-                                elevation: 8,
-                            }}>
-                                <Text style={{
-                                    color: '#FFFFFF',
-                                    fontSize: 22,
-                                    fontWeight: '900',
-                                    letterSpacing: 1.5,
-                                    textTransform: 'uppercase',
-                                    textShadowColor: 'black',
-                                    textShadowOffset: { width: 0, height: 2 },
-                                    textShadowRadius: 4,
-                                }}>{text}</Text>
-                            </View>
-                        </Animated.View>
-                    );
-                })()}
+
 
                 <GameTable
                     ref={tableRef}
@@ -1898,6 +1852,55 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     }}
                 />
             )}
+            {/* ANIMATION TEXTE BOUDÉ */}
+            {localBoudedPlayerId && gameState?.phase === 'PLAYING' && (() => {
+                const bPlayer = gameState?.players.find(p => p.id === localBoudedPlayerId);
+                if (!bPlayer) return null;
+                const isMe = bPlayer.id === localPlayerId;
+                const text = isMe ? "Vous êtes boudé" : `${bPlayer.name} est boudé`;
+                return (
+                    <Animated.View
+                        entering={FadeInUp.springify().damping(12).mass(0.8)}
+                        exiting={FadeOut.duration(300)}
+                        style={{
+                            position: 'absolute',
+                            top: isMe ? undefined : '12%',
+                            bottom: isMe ? '15%' : undefined,
+                            width: '100%',
+                            alignItems: 'center',
+                            zIndex: 9999,
+                            elevation: 99,
+                        }}
+                        pointerEvents="none"
+                    >
+                        <View style={{
+                            backgroundColor: 'rgba(0,0,0,0.85)',
+                            paddingHorizontal: 28,
+                            paddingVertical: 14,
+                            borderRadius: 16,
+                            borderWidth: 2,
+                            borderColor: isMe ? '#FF6B6B' : '#4ECDC4',
+                            shadowColor: isMe ? '#FF6B6B' : '#4ECDC4',
+                            shadowOffset: { width: 0, height: 0 },
+                            shadowOpacity: 0.5,
+                            shadowRadius: 10,
+                            elevation: 99,
+                        }}>
+                            <Text style={{
+                                color: '#FFFFFF',
+                                fontSize: 22,
+                                fontWeight: '900',
+                                letterSpacing: 1.5,
+                                textTransform: 'uppercase',
+                                textShadowColor: 'black',
+                                textShadowOffset: { width: 0, height: 2 },
+                                textShadowRadius: 4,
+                            }}>{text}</Text>
+                        </View>
+                    </Animated.View>
+                );
+            })()}
+
         </View>
     );
 }
