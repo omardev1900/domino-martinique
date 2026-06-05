@@ -91,11 +91,11 @@ describe('useGameSync Hook', () => {
         expect(result.current.gameState).toEqual(mockGameState);
     });
 
-    it('runs safeUpdateGameState and rejects older timestamps', async () => {
+    it('runs safeUpdateGameState and rejects older states', async () => {
         const mockTransaction = {
             get: jest.fn().mockResolvedValue({
                 exists: () => true,
-                data: () => mockRoomData
+                data: () => ({ ...mockRoomData, gameState: { ...mockGameState, mancheNumber: 1, roundNumber: 2, turnId: 5 } })
             }),
             update: jest.fn()
         };
@@ -118,7 +118,7 @@ describe('useGameSync Hook', () => {
 
         const staleState = {
             ...mockGameState,
-            lastActionTimestamp: 999
+            mancheNumber: 1, roundNumber: 2, turnId: 4
         };
 
         await act(async () => {
@@ -128,11 +128,11 @@ describe('useGameSync Hook', () => {
         expect(mockTransaction.update).not.toHaveBeenCalled();
     });
 
-    it('runs safeUpdateGameState and allows newer timestamps', async () => {
+    it('runs safeUpdateGameState and allows newer states', async () => {
         const mockTransaction = {
             get: jest.fn().mockResolvedValue({
                 exists: () => true,
-                data: () => mockRoomData
+                data: () => ({ ...mockRoomData, gameState: { ...mockGameState, mancheNumber: 1, roundNumber: 2, turnId: 5 } })
             }),
             update: jest.fn()
         };
@@ -154,7 +154,7 @@ describe('useGameSync Hook', () => {
 
         const freshState = {
             ...mockGameState,
-            lastActionTimestamp: 1001
+            mancheNumber: 1, roundNumber: 2, turnId: 6
         };
 
         await act(async () => {
@@ -163,6 +163,6 @@ describe('useGameSync Hook', () => {
 
         expect(mockTransaction.update).toHaveBeenCalled();
         const updateArg = mockTransaction.update.mock.calls[0][1];
-        expect(updateArg.gameState.lastActionTimestamp).toBe(1001);
+        expect(updateArg.gameState.turnId).toBe(6);
     });
 });

@@ -4,6 +4,10 @@
 
 ### 2026-06-05
 
+- **[BUG-ROOM-NOT-EXIST]** : Résolution du blocage fatal des parties multijoueur (Boudé ou Tour de bot figé). Implémentation du système "Acting Host" qui transfère automatiquement le rôle de chef d'orchestre au prochain joueur humain actif si le créateur d'origine quitte la partie ou subit une déconnexion (Web ou Mobile). Ajout d'un timer de sécurité de 10s pour garantir la résolution du statut "Boudé".
+- **[FCM-NATIVE-MIGRATION]** : Migration du système de récupération des tokens Push Mobile de `getExpoPushTokenAsync` vers `getDevicePushTokenAsync` pour supporter pleinement Firebase Cloud Messaging (FCM) en natif.
+- **[GHOST-ROOM-CLEANUP]** : Ajout d'une Cloud Function Cron (`cleanupRooms`) qui s'exécute toutes les 15 minutes pour purger silencieusement les salles "WAITING" ou "PLAYING" abandonnées (aucune activité depuis 15+ minutes) afin de libérer les ressources Firebase.
+- **[WEB-HEARTBEAT]** : Ajout d'un système de Heartbeat spécifique pour les joueurs Web. Les clients Web pingent Firebase toutes les 10s, et le GameScreen détecte si le délai dépasse 25s pour marquer le joueur `DISCONNECTED` et éviter de paralyser la salle.
 - **[ADMIN-TABLES-IMPROVE]** : Amélioration de l'espace Admin "Tables en cours" avec affichage de l'objectif (score, victoires, cochons) et des badges d'état des joueurs (Actif, Déconnecté, Bot).
 - **[NOTIF-ADVANCED]** : Enrichissement du module de Notifications Push (Admin) avec possibilité de cibler un joueur spécifique via recherche (Nom/Email) et ajout d'un filtre pour relancer les joueurs inactifs depuis plus de 2 jours.
 - **[SENTRY-ENRICHMENT]** : Enrichissement des logs Sentry avec le contexte de jeu (`roomId`, `gameMode`, et écouteur des changements d'état réseau `NetInfo`) pour diagnostiquer finement les déconnexions multijoueur.

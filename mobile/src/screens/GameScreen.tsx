@@ -134,7 +134,21 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const [debitFeedback, setDebitFeedback] = useState<string | null>(null);
     const isIntentionalLeave = useRef(false);
 
-    const isLocalHost = isSoloMode || (roomData?.createdBy === localPlayerId);
+    // -- ACTING HOST LOGIC --
+    // Le vrai hôte est celui désigné par isHost, ou à défaut le créateur.
+    let currentHostUid = roomData?.players.find(p => p.isHost)?.uid || roomData?.createdBy;
+    
+    // Si la partie est lancée et que l'hôte officiel est déconnecté (ou est un bot), 
+    // le premier joueur humain actif prend le relais (Acting Host) de manière transparente.
+    if (!isSoloMode && roomData?.players) {
+        const activeHumans = roomData.players.filter(p => p.status === 'HUMAN');
+        const isDesignatedHostActive = activeHumans.some(p => p.uid === currentHostUid);
+        if (!isDesignatedHostActive && activeHumans.length > 0) {
+            currentHostUid = activeHumans[0].uid;
+        }
+    }
+
+    const isLocalHost = isSoloMode || (currentHostUid === localPlayerId);
 
     // -- VIGILANCE: Web Player Disconnection Tracker --
     // L'hôte vérifie périodiquement les heartbeats (pings) des autres joueurs humains.
@@ -938,8 +952,16 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     resolveBoudeOnce(boudeResultKey);
                     boudeTimerRef.current = null;
                 }, 5000);
+            } else if (!isLocalHost && !boudeTimerRef.current) {
+                // Secours (Acting Host transition fallback) : 
+                // Si l'hôte a crash ou est offline, n'importe quel autre joueur humain actif résout après 10s
+                // Firestore n'enregistrera l'update qu'une seule fois grâce à l'idempotence de resolveBoude
+                boudeTimerRef.current = setTimeout(() => {
+                    resolveBoudeOnce(boudeResultKey);
+                    boudeTimerRef.current = null;
+                }, 10000);
             }
-            // Non-host : attend PARTIE_END via Firestore (timer 5s du host)
+            // Attente de PARTIE_END via Firestore (timer du host ou secours)
             return;
         } else {
             if (boudeTimerRef.current) {

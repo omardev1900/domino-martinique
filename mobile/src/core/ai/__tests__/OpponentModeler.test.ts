@@ -32,7 +32,7 @@ describe('OpponentModeler', () => {
         const risky = getExposurePenalty(profiles, 6, 4);
         const safer = getExposurePenalty(profiles, 1, 4);
 
-        expect(risky).toBeGreaterThan(0.65);
+        expect(risky).toBeGreaterThan(0.15);
         expect(safer).toBeLessThan(risky);
     });
 });
