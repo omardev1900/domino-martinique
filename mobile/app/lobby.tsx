@@ -77,7 +77,7 @@ export default function LobbyScreen() {
     const [roomNameInput, setRoomNameInput] = useState('');
     const [roomError, setRoomError] = useState<string | null>(null);
     const [gameMode, setGameMode] = useState<GameMode>('VICTOIRE');
-    const [winningCondition, setWinningCondition] = useState(10);
+    const [winningCondition, setWinningCondition] = useState(__DEV__ ? 1 : 10);
     const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
     const [startingHandSize, setStartingHandSize] = useState(HAND_SIZE);
     // Phase 7 : le sélecteur de table sera dans l'UI — fixé à DEBUTANT pour l'instant
@@ -447,7 +447,7 @@ export default function LobbyScreen() {
                             description="Le premier à gagner un nombre défini de rounds."
                             icon="🏆"
                             colors={['#388E3C', '#66BB6A']}
-                            onPress={() => { setGameMode('VICTOIRE'); setWinningCondition(10); setUiStep('CONFIG'); }}
+                            onPress={() => { setGameMode('VICTOIRE'); setWinningCondition(__DEV__ ? 1 : 10); setUiStep('CONFIG'); }}
                             delay={100}
                         />
                         <GameModeCard
@@ -456,7 +456,7 @@ export default function LobbyScreen() {
                             description="Atteins l'objectif de points pour gagner la partie."
                             icon="🎯"
                             colors={['#0288D1', '#26C6DA']}
-                            onPress={() => { setGameMode('SCORE'); setWinningCondition(25); setUiStep('CONFIG'); }}
+                            onPress={() => { setGameMode('SCORE'); setWinningCondition(__DEV__ ? 1 : 15); setUiStep('CONFIG'); }}
                             delay={200}
                         />
                         <GameModeCard
@@ -465,7 +465,7 @@ export default function LobbyScreen() {
                             description="Évite de rester à zéro point pour ne pas être le cochon !"
                             icon="🐷"
                             colors={['#EC407A', '#FF7043']}
-                            onPress={() => { setGameMode('COCHON'); setWinningCondition(5); setUiStep('CONFIG'); }}
+                            onPress={() => { setGameMode('COCHON'); setWinningCondition(__DEV__ ? 1 : 5); setUiStep('CONFIG'); }}
                             delay={300}
                         />
                         <GameModeCard
@@ -474,7 +474,7 @@ export default function LobbyScreen() {
                             description="Joue un nombre fixe de manches et gagne au total."
                             icon="🎲"
                             colors={['#FFA000', '#FFD54F']}
-                            onPress={() => { setGameMode('MANCHE'); setWinningCondition(5); setUiStep('CONFIG'); }}
+                            onPress={() => { setGameMode('MANCHE'); setWinningCondition(__DEV__ ? 1 : 10); setUiStep('CONFIG'); }}
                             delay={400}
                         />                        
                     </View>
@@ -529,7 +529,7 @@ export default function LobbyScreen() {
                                     <Text style={styles.paramLabelSmall}>OBJECTIF</Text>
                                     <View style={styles.stepperSmall}>
                                         <TouchableOpacity onPress={() => setWinningCondition(prev => {
-                                            const min = gameMode === 'VICTOIRE' ? 5 : gameMode === 'SCORE' ? 5 : 3;
+                                            const min = 1;
                                             return Math.max(min, prev - 1);
                                         })} style={styles.stepBtnSmall}>
                                             <Ionicons name="remove" size={18} color="#FFF" />
