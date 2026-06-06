@@ -493,15 +493,18 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     {getMatchModeLabel()}
                 </Text>
 
-                <TouchableOpacity
-                    style={styles.historyLinkBtn}
-                    onPress={() => setShowHistory(true)}
-                    activeOpacity={0.75}
-                    hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-                >
-                    <Ionicons name="list-outline" size={18} color="rgba(255,255,255,0.85)" />
-                    <Text style={styles.historyLinkText}>Détails</Text>
-                </TouchableOpacity>
+                <View style={{ alignItems: 'center' }}>
+                    <TouchableOpacity
+                        style={[styles.quitBtn, { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.3)', borderWidth: 1 }]}
+                        onPress={() => setShowHistory(true)}
+                        activeOpacity={0.85}
+                        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                        accessibilityLabel="Détails"
+                    >
+                        <Ionicons name="list" size={22} color="#FFF" />
+                    </TouchableOpacity>
+                    <Text style={styles.topNavActionText}>Détails</Text>
+                </View>
             </View>
 
             {renderPodiumCards(true)}

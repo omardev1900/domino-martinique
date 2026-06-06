@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, useWindowDimensions, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, withTiming, useSharedValue, useAnimatedProps, Easing } from 'react-native-reanimated';
@@ -366,10 +366,12 @@ export default function StatsScreen() {
                     <Text style={styles.loadingText}>Chargement...</Text>
                 </View>
             ) : (
-                <View style={[styles.contentLayout, !isLandscape && { flexDirection: 'column' }]}>
-                    {renderSummaryBlock()}
-                    {renderPerformanceBlock()}
-                </View>
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <View style={[styles.contentLayout, !isLandscape && { flexDirection: 'column' }]}>
+                        {renderSummaryBlock()}
+                        {renderPerformanceBlock()}
+                    </View>
+                </ScrollView>
             )}
 
             <Modal
@@ -389,7 +391,7 @@ export default function StatsScreen() {
                         <View style={styles.modalInfoBanner}>
                             <Ionicons name="information-circle" size={16} color="#60DCFF" style={{ marginRight: 6 }} />
                             <Text style={styles.modalInfoText}>
-                                Seuls les 100 derniers matchs sont affichés. Les compteurs cumulés reflètent votre progression globale.
+                                Sur la base des 100 derniers matchs.
                             </Text>
                         </View>
                         <View style={{ flex: 1 }}>
@@ -495,6 +497,9 @@ const styles = StyleSheet.create({
         padding: 8,
         gap: 8,
     },
+    scrollContent: {
+        flexGrow: 1,
+    },
     bloc: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.3)',
@@ -528,7 +533,7 @@ const styles = StyleSheet.create({
     },
     statsRows: {
         flex: 1,
-        gap: 6,
+        gap: 4,
         justifyContent: 'center',
     },
     statRow: {
@@ -538,7 +543,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         borderWidth: 1,
         paddingHorizontal: 10,
-        paddingVertical: 9,
+        paddingVertical: 5,
         gap: 10,
     },
     statRowIcon: {

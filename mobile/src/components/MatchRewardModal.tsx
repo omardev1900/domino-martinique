@@ -59,7 +59,12 @@ export const MatchRewardModal: React.FC<MatchRewardModalProps> = ({ visible, amo
                         end={{ x: 0, y: 1 }}
                     />
                     
-                    <PremiumButton style={styles.closeBtn} onPress={onClose} soundName="notify">
+                    <PremiumButton 
+                        style={styles.closeBtn} 
+                        onPress={onClose} 
+                        soundName="notify"
+                        hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                    >
                         <Ionicons name="close" size={24} color="rgba(255,255,255,0.5)" />
                     </PremiumButton>
 
@@ -98,8 +103,8 @@ const styles = StyleSheet.create({
     },
     cardContainer: {
         backgroundColor: '#1E1B2A',
-        borderRadius: 24,
-        padding: 24,
+        borderRadius: 20,
+        padding: 20,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255, 215, 0, 0.3)',
@@ -118,32 +123,32 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     iconContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         backgroundColor: 'rgba(255, 215, 0, 0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 12,
         borderWidth: 2,
         borderColor: 'rgba(255, 215, 0, 0.4)',
     },
     icon: {
-        fontSize: 40,
+        fontSize: 32,
     },
     title: {
         color: '#FFD700',
-        fontSize: 22,
+        fontSize: 18,
         fontWeight: '900',
-        marginBottom: 8,
+        marginBottom: 4,
         textAlign: 'center',
     },
     subtitle: {
         color: 'rgba(255, 255, 255, 0.7)',
-        fontSize: 14,
+        fontSize: 13,
         textAlign: 'center',
-        marginBottom: 24,
-        lineHeight: 20,
+        marginBottom: 16,
+        lineHeight: 18,
     },
     btnWrap: {
         width: '100%',
