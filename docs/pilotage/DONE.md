@@ -2,6 +2,10 @@
 
 ## Juin 2026
 
+### 2026-06-06
+
+- **[SYS-STRESS-TESTS]** : Création et exécution de tests automatisés rigoureux simulant la boucle de jeu mathématique (`GameLoop.stress.test.ts`). Le script a couvert avec succès les 4 modes de jeu (Victoire, Score, Manche, Cochon) avec différents objectifs (1, 3, 5, 10). Résultat : 400 matchs joués sans blocage, validation que la logique de `LogicEngine` gère correctement les enchaînements et les résolutions d'égalités/Chirée.
+
 ### 2026-06-05
 
 - **[SYS-LOGGING-ENGINE]** : Mise en place d'un système de logs structuré via `LogService` (`transition` et `event`) pour tracer clairement le cycle de vie du jeu (`gameState.phase`), l'ouverture/fermeture des modales, le flux d'actions de `useActionDispatcher` et les synchronisations Firebase `useGameSync`.

@@ -25,7 +25,6 @@
 | Ticket | Description | Priorité | Estimation |
 |---|---|---|---|
 | **ECO-DIAMOND-REDUCE** | Modifier la récompense en diamants : donner un seul et unique diamant pour chaque victoire d'un match complet (peu importe le mode). | 🟡 Moyenne | ~0,25 j |
-| **SYS-STRESS-TESTS** | Création de tests automatisés rigoureux (stress tests) simulant des centaines de parties solo dans différents modes pour valider les boucles de fin de parties et le passage des tours sans blocage. | 🔴 Haute | ~1 j |
 | **REFACTOR-GAMESCREEN** | Dette technique : Découper l'immense fichier `GameScreen.tsx` (> 2000 lignes) en de multiples petits fichiers maintenables (hooks dédiés, composants UI éclatés). | 🔴 Haute | ~2 j |
 | **REFERRAL-SYSTEM** | Système de parrainage simple : code unique par joueur (ex: basé sur l'UID tronqué), saisi à l'inscription par le filleul. À l'inscription : créditer le parrain en coins (ex: +200) et le filleul en coins (ex: +100). Pas de tracking d'installation externe — vérification côté Cloud Function à la création du compte. | 🔵 Long terme | ~1,5 j |
 
