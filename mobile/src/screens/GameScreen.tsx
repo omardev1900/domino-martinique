@@ -1214,12 +1214,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 return;
             }
 
-            // Fin de match : affichage temporaire du RoundResultCard (2.5s) PUIS UnifiedResultOverlay
-            setScoreOverlayPhase(null);
-            setRoundResultSnapshot(gameState);
-            setShowRoundResult(true);
-            const timer = setTimeout(() => {
-                setShowRoundResult(false);
+            const triggerMatchEnd = () => {
                 if (nextAdRef.current) {
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
@@ -1260,6 +1255,24 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 } else {
                     setScoreOverlayPhase('MATCH_END');
                 }
+            };
+
+            // FIX: Ne pas afficher RoundResultCard en double si la manche s'est terminée par un BOUDE
+            // (UnifiedResultOverlay annonce déjà PARTIE BLOQUÉE)
+            if (gameState.mancheResult === 'BOUDE') {
+                setScoreOverlayPhase(null);
+                setShowRoundResult(false);
+                const timer = setTimeout(triggerMatchEnd, 1000);
+                return () => clearTimeout(timer);
+            }
+
+            // Fin de match : affichage temporaire du RoundResultCard (2.5s) PUIS UnifiedResultOverlay
+            setScoreOverlayPhase(null);
+            setRoundResultSnapshot(gameState);
+            setShowRoundResult(true);
+            const timer = setTimeout(() => {
+                setShowRoundResult(false);
+                triggerMatchEnd();
             }, 2500);
             return () => clearTimeout(timer);
         }
@@ -1988,16 +2001,18 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
 
 
-                <GameTable
-                    ref={tableRef}
-                    key={layoutKey}
-                    gameState={gameState}
-                    theme={tableTheme}
-                    pendingDomino={pendingDomino}
-                    onSideSelect={wrappedConfirmSidePlay}
-                    skinConfig={playerSkinConfig}
-                    hiddenDominoId={effectiveHiddenDominoId}
-                />
+                {gameState?.phase !== 'MATCH_END' && (
+                    <GameTable
+                        ref={tableRef}
+                        key={layoutKey}
+                        gameState={gameState}
+                        theme={tableTheme}
+                        pendingDomino={pendingDomino}
+                        onSideSelect={wrappedConfirmSidePlay}
+                        skinConfig={playerSkinConfig}
+                        hiddenDominoId={effectiveHiddenDominoId}
+                    />
+                )}
 
 
                 {/* QUICK CHAT UI */}
@@ -2009,21 +2024,23 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 )}
             </View>
 
-            <ActionFooter
-                localPlayer={localPlayerForActionFooter as any}
-                gameState={currentDisplayState}
-                localPlayerId={localPlayerId}
-                bannerState={bannerState}
-                forcedOpeningDominoId={forcedOpeningDominoId}
-                insets={insets}
-                onPlayDomino={wrappedHandlePlayDomino}
-                isPaused={isGamePaused || isMoveAnimationActive}
-                skinConfig={playerSkinConfig}
-                handSortMode={handSortMode}
-                hiddenDominoId={hiddenHandDominoId}
-                preservePlayableHighlights={preserveLocalHandHighlights}
-                preservedPlayableDominoIds={preservedPlayableDominoIds}
-            />
+            {gameState?.phase !== 'MATCH_END' && (
+                <ActionFooter
+                    localPlayer={localPlayerForActionFooter as any}
+                    gameState={currentDisplayState}
+                    localPlayerId={localPlayerId}
+                    bannerState={bannerState}
+                    forcedOpeningDominoId={forcedOpeningDominoId}
+                    insets={insets}
+                    onPlayDomino={wrappedHandlePlayDomino}
+                    isPaused={isGamePaused || isMoveAnimationActive}
+                    skinConfig={playerSkinConfig}
+                    handSortMode={handSortMode}
+                    hiddenDominoId={hiddenHandDominoId}
+                    preservePlayableHighlights={preserveLocalHandHighlights}
+                    preservedPlayableDominoIds={preservedPlayableDominoIds}
+                />
+            )}
 
             {/* PlayerArea rendu après ActionFooter pour que le bouton tri soit toujours au-dessus */}
             <PlayerArea

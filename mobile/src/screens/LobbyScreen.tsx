@@ -14,6 +14,7 @@ import { LEAGUE_FRAMES_ENABLED, LEAGUE_GRADE_COLORS } from '../core/economy.cons
 import { addBotToWaitingRoom, leaveRoom } from '../core/services/firebase';
 import { BotSelectionModal } from '../components/BotSelectionModal';
 import { BotDifficulty } from '../core/services/bot.service';
+import { PremiumButton } from '../components/common/PremiumButton';
 
 interface LobbyScreenProps {
     roomData: GameRoom;
@@ -155,12 +156,13 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                             </View>
                             <Text style={styles.emptyText}>Attente...</Text>
                             {isHost && (
-                                <TouchableOpacity 
+                                <PremiumButton 
                                     style={styles.addBotButton} 
                                     onPress={handleAddBot}
+                                    soundName="clack1"
                                 >
                                     <Text style={styles.addBotButtonText}>+ Bot</Text>
-                                </TouchableOpacity>
+                                </PremiumButton>
                             )}
                         </>
                     ) : (
@@ -191,12 +193,13 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                     <AvatarFrame frameId={slot.player.activeFrame} size={64} />
                                 )}
                                 {isHost && slot.player?.status === 'BOT' && (
-                                    <TouchableOpacity 
+                                    <PremiumButton 
                                         style={styles.removeBotButton} 
                                         onPress={() => handleRemoveBot(slot.player!.uid)}
+                                        soundName="clack1"
                                     >
                                         <Ionicons name="close" size={16} color="#FFF" />
-                                    </TouchableOpacity>
+                                    </PremiumButton>
                                 )}
                             </View>
                             <Text style={styles.playerName} numberOfLines={1}>
@@ -226,9 +229,9 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                     <EconomyHeader />
                 </View>
                 <View style={styles.headerRight}>
-                    <TouchableOpacity style={styles.shareIconButton} onPress={shareToWhatsApp} activeOpacity={0.7}>
+                    <PremiumButton style={styles.shareIconButton} onPress={shareToWhatsApp} soundName="notify">
                         <Ionicons name="logo-whatsapp" size={24} color="#FFF" />
-                    </TouchableOpacity>
+                    </PremiumButton>
                     <View style={styles.roomInfoContainer}>
                         <Text style={styles.roomCode}>Code : {roomData.roomId}</Text>
                     </View>
@@ -265,7 +268,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
             <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.footer}>
                 {isHost ? (
                     <>
-                        <TouchableOpacity
+                        <PremiumButton
                             style={[styles.actionButton, !canStart && styles.actionButtonDisabled]}
                             onPress={() => {
                                 if (canStart && !hasAutoStarted.current) {
@@ -274,7 +277,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                 }
                             }}
                             disabled={!canStart}
-                            activeOpacity={0.8}
+                            soundName="notify"
                         >
                             <LinearGradient
                                 colors={canStart ? ['#4CAF50', '#2E7D32'] : ['#555', '#333']}
@@ -288,20 +291,20 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                             : `ATTENDRE ${3 - roomData.players.length} PLUS`}
                                 </Text>
                             </LinearGradient>
-                        </TouchableOpacity>
+                        </PremiumButton>
                         {autoStartCountdown !== null && (
                             <Text style={styles.autoStartHint}>
                                 Appuyez pour démarrer immédiatement
                             </Text>
                         )}
                         {canDeleteWaitingRoom && onDeleteRoom ? (
-                            <TouchableOpacity
+                            <PremiumButton
                                 style={styles.deleteRoomButton}
                                 onPress={onDeleteRoom}
-                                activeOpacity={0.8}
+                                soundName="clack1"
                             >
                                 <Text style={styles.deleteRoomButtonText}>Supprimer la table</Text>
-                            </TouchableOpacity>
+                            </PremiumButton>
                         ) : null}
                     </>
                 ) : (

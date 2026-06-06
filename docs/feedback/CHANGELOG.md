@@ -4,6 +4,16 @@
 
 ---
 
+## [2.5.15] - 2026-06-06
+
+### Amélioré
+- **Expérience Utilisateur (UI/UX)** — Les écrans d'accueil, le lobby et les modales de fin de match (Résultats, Récompenses) ont été dynamisés :
+  - **Boutons premium :** Tous les boutons principaux (Jouer, Profil, Boutiques) réagissent désormais avec une animation de pression (scale), un retour haptique (vibration) et un effet sonore premium.
+  - **Modales animées :** Les fenêtres de fin de manche, le résumé de match et la proposition de bonus (pub volontaire) bénéficient d'animations d'apparition fluides accompagnées d'effets sonores immersifs.
+  - **Dynamisme :** L'interface globale des menus paraît moins statique et plus moderne.
+
+---
+
 ## [2.5.14] - 2026-06-05
 
 ### Modifié

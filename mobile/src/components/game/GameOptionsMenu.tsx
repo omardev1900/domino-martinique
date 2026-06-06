@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { GameState } from '../../core/types';
+import { PremiumButton } from '../common/PremiumButton';
 
 export interface GameOptionsMenuProps {
     visible: boolean;
@@ -145,11 +146,11 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                         <View style={styles.topRow}>
                             <View style={styles.tabBar}>
                                 {(['JEU', 'INFOS', 'HISTORIQUE'] as Tab[]).map(tab => (
-                                    <TouchableOpacity
+                                    <PremiumButton
                                         key={tab}
                                         style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
                                         onPress={() => setActiveTab(tab)}
-                                        activeOpacity={0.8}
+                                        soundName="clack1"
                                     >
                                         <Text
                                             style={[styles.tabLabel, isCompactWidth && styles.tabLabelCompact, activeTab === tab && styles.tabLabelActive]}
@@ -159,7 +160,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                         >
                                             {tab === 'JEU' ? '🎮 Jeu' : tab === 'INFOS' ? 'ℹ️ Infos' : '📜 Historique'}
                                         </Text>
-                                    </TouchableOpacity>
+                                    </PremiumButton>
                                 ))}
                             </View>
 
@@ -225,7 +226,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                     {!isSoloMode && gameId && (
                                         <>
                                             <View style={styles.divider} />
-                                            <TouchableOpacity style={styles.codeRow} onPress={handleCopyCode} activeOpacity={0.7}>
+                                            <PremiumButton style={styles.codeRow} onPress={handleCopyCode} soundName="notify">
                                                 <Ionicons name="key-outline" size={15} color="#FFD700" />
                                                 <Text style={styles.codeLabel}>Code salle</Text>
                                                 <Text style={styles.codeValue}>{gameId}</Text>
@@ -234,7 +235,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                                     size={15}
                                                     color={codeCopied ? '#4CAF50' : '#aaa'}
                                                 />
-                                            </TouchableOpacity>
+                                            </PremiumButton>
                                             {connectedPlayers.length > 0 && (
                                                 <View style={styles.playersBlock}>
                                                     <Text style={styles.playersTitle}>Joueurs</Text>
@@ -312,20 +313,20 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                         {/* ── Footer Quitter ── */}
                         <View style={styles.footer}>
                             {!showQuitConfirm ? (
-                                <TouchableOpacity style={styles.quitBtn} onPress={() => setShowQuitConfirm(true)} activeOpacity={0.8}>
+                                <PremiumButton style={styles.quitBtn} onPress={() => setShowQuitConfirm(true)} soundName="notify">
                                     <Ionicons name="exit-outline" size={16} color="#fff" />
                                     <Text style={styles.quitBtnText}>{isSoloMode ? 'Quitter la partie' : 'Abandonner la table'}</Text>
-                                </TouchableOpacity>
+                                </PremiumButton>
                             ) : (
                                 <View style={styles.confirmRow}>
                                     <Text style={styles.confirmText}>{isSoloMode ? 'Vraiment quitter ?' : 'Quitter et abandonner ?'}</Text>
                                     <View style={styles.confirmBtns}>
-                                        <TouchableOpacity style={styles.confirmBtnNo} onPress={() => setShowQuitConfirm(false)} activeOpacity={0.8}>
+                                        <PremiumButton style={styles.confirmBtnNo} onPress={() => setShowQuitConfirm(false)} soundName="clack1">
                                             <Text style={styles.confirmBtnNoText}>Rester</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity style={styles.confirmBtnYes} onPress={handleConfirmQuit} activeOpacity={0.8}>
+                                        </PremiumButton>
+                                        <PremiumButton style={styles.confirmBtnYes} onPress={handleConfirmQuit} soundName="clack1">
                                             <Text style={styles.confirmBtnYesText}>{isSoloMode ? 'Quitter' : 'Abandonner'}</Text>
-                                        </TouchableOpacity>
+                                        </PremiumButton>
                                     </View>
                                 </View>
                             )}

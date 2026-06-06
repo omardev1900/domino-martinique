@@ -37,6 +37,7 @@ import { AdBannerModal } from '../src/components/AdBannerModal';
 import { USE_NEW_SIDEBAR } from '../src/core/config/navigation.config';
 import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../src/core/leagueProgress';
 import { deleteWaitingRoomIfOwner, findActiveRoomForUser, findHostedWaitingRoom } from '../src/core/services/firebase';
+import { PremiumButton } from '../src/components/common/PremiumButton';
 
 
 export default function HomeScreen() {
@@ -360,38 +361,38 @@ export default function HomeScreen() {
                     <EconomyHeader refreshTrigger={economyRefresh} />
 
                     {!USE_NEW_SIDEBAR && <View style={styles.headerActions}>
-                        <TouchableOpacity
+                        <PremiumButton
                             style={styles.settingsButton}
                             onPress={() => router.push('/store')}
-                            activeOpacity={0.7}
+                            soundName="clack1"
                         >
                             <Text style={styles.settingsIcon}>🛒</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
+                        </PremiumButton>
+                        <PremiumButton
                             style={styles.settingsButton}
                             onPress={() => router.push('/collection')}
-                            activeOpacity={0.7}
+                            soundName="clack1"
                         >
                             <Text style={styles.settingsIcon}>🎒</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
+                        </PremiumButton>
+                        <PremiumButton
                             style={styles.settingsButton}
                             onPress={() => router.push('/leaderboard')}
-                            activeOpacity={0.7}
+                            soundName="clack1"
                         >
                             <Text style={styles.settingsIcon}>🏆</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
+                        </PremiumButton>
+                        <PremiumButton
                             style={styles.settingsButton}
                             onPress={() => router.push('/stats')}
-                            activeOpacity={0.7}
+                            soundName="clack1"
                         >
                             <Text style={styles.settingsIcon}>📈</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
+                        </PremiumButton>
+                        <PremiumButton
                             style={styles.userBadge}
                             onPress={() => router.push('/modal')}
-                            activeOpacity={0.8}
+                            soundName="clack1"
                         >
                             <View style={[
                                 styles.avatarCircle,
@@ -408,7 +409,7 @@ export default function HomeScreen() {
                                     cachePolicy="memory-disk"
                                 />
                             </View>
-                        </TouchableOpacity>
+                        </PremiumButton>
                     </View>}
                 </Animated.View>
             </View>
@@ -521,10 +522,10 @@ export default function HomeScreen() {
 
                     {/* 3. Bouton Principal JOUER - REDUCED AGAIN */}
                     <Animated.View entering={FadeInUp.delay(400).duration(500)} style={[styles.topCardWrapper, { flex: 0.6 }]}>
-                        <TouchableOpacity
+                        <PremiumButton
                             style={styles.playCardCompact}
                             onPress={() => router.push('/game-modes')}
-                            activeOpacity={0.8}
+                            soundName="success"
                         >
                             <LinearGradient
                                 colors={['#FFD700', '#FF8C00']}
@@ -535,7 +536,7 @@ export default function HomeScreen() {
                                 <Ionicons name="game-controller" size={34} color="#1A0E2E" />
                                 <Text style={styles.playTextCompact}>JOUER</Text>
                             </LinearGradient>
-                        </TouchableOpacity>
+                        </PremiumButton>
                     </Animated.View>
                 </View>
             </ScrollView>

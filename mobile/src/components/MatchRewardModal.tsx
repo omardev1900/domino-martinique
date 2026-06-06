@@ -4,6 +4,8 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, wit
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { AdRewardButton } from './AdRewardButton';
+import SoundManager from '../core/audio/SoundManager';
+import { PremiumButton } from './common/PremiumButton';
 
 interface MatchRewardModalProps {
     visible: boolean;
@@ -20,6 +22,7 @@ export const MatchRewardModal: React.FC<MatchRewardModalProps> = ({ visible, amo
 
     useEffect(() => {
         if (visible) {
+            SoundManager.playSound('notify');
             scale.value = withSpring(1, { damping: 12, stiffness: 100 });
             glowOpacity.value = withRepeat(
                 withSequence(
@@ -56,9 +59,9 @@ export const MatchRewardModal: React.FC<MatchRewardModalProps> = ({ visible, amo
                         end={{ x: 0, y: 1 }}
                     />
                     
-                    <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
+                    <PremiumButton style={styles.closeBtn} onPress={onClose} soundName="notify">
                         <Ionicons name="close" size={24} color="rgba(255,255,255,0.5)" />
-                    </TouchableOpacity>
+                    </PremiumButton>
 
                     <View style={styles.iconContainer}>
                         <Text style={styles.icon}>📺</Text>

@@ -4,6 +4,10 @@
 
 ### 2026-06-06
 
+- **[UX-MODAL-ANIM-SFX]** : Harmonisation des animations d'apparitions/fermetures de modales (UnifiedResultOverlay, RoundResultCard, MatchRewardModal) avec `react-native-reanimated` et ajout de sons associées (applaudissements, bruits de dominos, etc).
+- **[UX-BUTTON-FEEDBACK-SFX]** : Ajout du composant `PremiumButton` avec scale animation, retours haptiques et retours sonores. Appliqué aux boutons principaux des menus.
+- **[UX-SCREEN-PREMIUM-MOTION]** : Refonte de l'ergonomie sur LobbyScreen, HomeScreen et GameOptionsMenu via l'intégration de `PremiumButton` pour donner une profondeur visuelle, du feedback haptique et sonore aux interactions.
+- **[ADS-POST-MATCH-REWARD-UPSSELL]** : Audit confirmant que la mécanique de pub volontaire pour un gain en pièces en fin de match (upsell) est déjà implémentée via `MatchRewardModal` et fonctionnelle pour les joueurs.
 - **[SYS-STRESS-TESTS]** : Création et exécution de tests automatisés rigoureux simulant la boucle de jeu mathématique (`GameLoop.stress.test.ts`). Le script a couvert avec succès les 4 modes de jeu (Victoire, Score, Manche, Cochon) avec différents objectifs (1, 3, 5, 10). Résultat : 400 matchs joués sans blocage, validation que la logique de `LogicEngine` gère correctement les enchaînements et les résolutions d'égalités/Chirée.
 
 ### 2026-06-05

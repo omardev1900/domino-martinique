@@ -31,12 +31,8 @@
 
 | Ticket | Description | Estimation |
 |---|---|---|
-| **ADS-POST-MATCH-REWARD-UPSSELL** | Apres la pub obligatoire de fin de match pour les non premium, proposer aux joueurs premium inclus une pub volontaire pour gagner des coins |
 | **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression |
 | **ECO-ADS-COINS-TUNING** | Definir la recompense coins du visionnage pub volontaire post-match |
-| **UX-MODAL-ANIM-SFX** | Harmoniser les modals/popups du jeu : apparition/fermeture animees, transitions coherentes, sons associes quand l'evenement le justifie. |
-| **UX-BUTTON-FEEDBACK-SFX** | Ajouter un feedback sonore et/ou haptique coherent aux boutons principaux de l'accueil, des ecrans et du gameplay, sans surcharger l'experience. |
-| **UX-SCREEN-PREMIUM-MOTION** | Ameliorer les ecrans trop statiques : rendre certains blocs et sections plus vivants avec micro-animations, profondeur visuelle et effets 3D sobres. |
 
 | **GOD-MODE** | Nouveau mode solo separe "GOD MODE" : 2 bots METKAYALI allies contre le joueur, format `VICTOIRE` v1, acces verrouille par progression joueur |
 | **ECO-STAKE-PAYOUT-RULES** | Arbitrer la redistribution des mises en multi et l'eventuelle commission |

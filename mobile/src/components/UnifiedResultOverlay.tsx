@@ -13,10 +13,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { GameState, Player } from '@/core/types';
+import { AdPlacement } from '../core/ad.types';
+import SoundManager from '../core/audio/SoundManager';
 import { MatchReward } from '@/core/economy.types';
 import { LEAGUE_LABELS, AD_REWARD_COINS } from '@/core/economy.constants';
 import { getAvatarImage, AvatarId } from '@/core/avatars';
-import SoundManager from '@/core/audio/SoundManager';
 import { calculateHandPoints } from '@/core/ScoringEngine';
 import { GradeBadge } from './GradeBadge';
 import { ShareTextButton, buildWinShareText, WinShareCard } from './ShareButton';
@@ -172,6 +173,18 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
 
     useEffect(() => {
         if (visible) {
+            // Jouer le son approprié selon le résultat
+            if (isMatchOver) {
+                if (isMeWinner) SoundManager.playSound('win');
+                else SoundManager.playSound('lose');
+            } else if (isBoude) {
+                SoundManager.playSound('notify');
+            } else if (mancheResult === 'CHIRE' || mancheResult === 'COCHON') {
+                SoundManager.playSound('applause');
+            } else {
+                SoundManager.playSound('mancheEnd');
+            }
+
             if (reducedMotion) {
                 scaleValue.value = 1;
                 opacityValue.value = 1;
@@ -183,7 +196,7 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
             scaleValue.value = 0.5;
             opacityValue.value = 0;
         }
-    }, [visible, reducedMotion]);
+    }, [visible, reducedMotion, isMatchOver, isMeWinner, isBoude, mancheResult]);
 
     // Confettis en boucle : le premier tir est assuré par autoStart={true}.
     // Ensuite on relance toutes les ~3,5 s tant qu'on est sur la vue principale
