@@ -73,7 +73,7 @@ export const MatchRewardModal: React.FC<MatchRewardModalProps> = ({ visible, amo
                     </View>
                     
                     <Text style={styles.title}>Bonus Fin de Partie</Text>
-                    <Text style={styles.subtitle}>Regarde une courte publicité pour gagner {amount} pièces supplémentaires !</Text>
+                    <Text style={styles.subtitle}>Clique sur la pub pour gagner {amount} pièces !</Text>
                     
                     <View style={styles.btnWrap}>
                         <AdRewardButton
