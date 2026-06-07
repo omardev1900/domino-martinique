@@ -80,8 +80,9 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             showTimer={gameState.currentPlayerId === opponents[0]?.id && !isGameOver && isPlaying && gameState.turnDuration > 0}
                             isPaused={isPaused}
                             timerDuration={gameState.turnDuration}
-                            size={42}
+                            size={53}
                             layout="horizontal"
+                            namePlacement="below"
                             score={getPlayerScore(opponents[0])}
                             ptsScore={getCamionScore(opponents[0]?.id)}
                             position="top-right"
@@ -120,8 +121,9 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             showTimer={gameState.currentPlayerId === opponents[1]?.id && !isGameOver && isPlaying && gameState.turnDuration > 0}
                             isPaused={isPaused}
                             timerDuration={gameState.turnDuration}
-                            size={42}
+                            size={53}
                             layout="horizontal"
+                            namePlacement="below"
                             score={getPlayerScore(opponents[1])}
                             ptsScore={getCamionScore(opponents[1]?.id)}
                             position="top-left"
@@ -160,8 +162,9 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             showTimer={gameState.currentPlayerId === localPlayerId && !isGameOver && isPlaying && gameState.turnDuration > 0}
                             isPaused={isPaused}
                             timerDuration={gameState.turnDuration}
-                            size={48} // Reduced from 60
+                            size={60}
                             layout="horizontal"
+                            namePlacement="below"
                             score={getPlayerScore(localPlayer)}
                             ptsScore={getCamionScore(localPlayer.id)}
                             position="bottom"
@@ -176,7 +179,18 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             isSoloMode={isSoloMode}
                         />
                     </Animated.View>
-                    {/* Bouton de tri : icône main collée au bloc stats de l'avatar */}
+                </View>
+            )}
+
+            {/* SORT BUTTON (Hand Icon) - Moved to bottom right */}
+            {localPlayer && (
+                <View style={[
+                    styles.bottomRightHandSort,
+                    { 
+                        bottom: 20 + insets.bottom, 
+                        right: 20 + insets.right + (isSoloMode ? 0 : 65) 
+                    }
+                ]}>
                     <View style={styles.handSortWrapper}>
                         {isHandSortMenuOpen && (
                             <View style={styles.handSortMenu} testID="hand-sort-menu">
@@ -217,11 +231,19 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             ]}
                             testID="hand-sort-trigger"
                         >
-                            <Image
-                                source={require('../../assets/images/ui/hand-domino.png')}
-                                style={styles.handSortImage}
-                                resizeMode="contain"
-                            />
+                            <View style={styles.miniDomino}>
+                                <View style={styles.miniDominoTop}>
+                                    {handSortMode === 'AUTO' && <Text style={styles.miniDominoText}>A</Text>}
+                                    {handSortMode === 'DOUBLES' && <View style={styles.dot} />}
+                                    {handSortMode === 'SUM' && <Text style={styles.miniDominoText}>+</Text>}
+                                </View>
+                                <View style={styles.miniDominoDivider} />
+                                <View style={styles.miniDominoBottom}>
+                                    {handSortMode === 'AUTO' && <Text style={styles.miniDominoText}>A</Text>}
+                                    {handSortMode === 'DOUBLES' && <View style={styles.dot} />}
+                                    {handSortMode === 'SUM' && <Text style={styles.miniDominoText}>+</Text>}
+                                </View>
+                            </View>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -252,11 +274,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    // Conteneur du bouton tri — collé à droite du bloc stats de l'avatar
+    bottomRightHandSort: {
+        position: 'absolute',
+        zIndex: 60,
+    },
+    // Conteneur du bouton tri
     handSortWrapper: {
         alignItems: 'center',
         justifyContent: 'flex-end',
-        marginLeft: 4,
         zIndex: 60, // Au-dessus du ActionFooter (zIndex 50)
     },
     handSortTrigger: {
@@ -320,5 +345,49 @@ const styles = StyleSheet.create({
     },
     handSortOptionTextActive: {
         color: '#2f1706',
+    },
+    miniDomino: {
+        width: 22,
+        height: 42,
+        backgroundColor: '#f3e5c8',
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: '#8B6508',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 3,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
+    },
+    miniDominoTop: {
+        flex: 1,
+        width: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    miniDominoBottom: {
+        flex: 1,
+        width: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    miniDominoDivider: {
+        width: '80%',
+        height: 1,
+        backgroundColor: '#8B6508',
+    },
+    miniDominoText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#2f1706',
+    },
+    dot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#2f1706',
     },
 });
