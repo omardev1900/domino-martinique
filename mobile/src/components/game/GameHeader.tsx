@@ -20,23 +20,6 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
     return (
         <View style={[styles.unifiedHeader, { top: Math.max(insets.top, 10) }]} testID="game-header">
 
-            {/* Badge Objectif */}
-            <View style={styles.headerBadge}>
-                <Text style={styles.headerText}>
-                    {gameState.gameMode === 'VICTOIRE' ? `${gameState.winningCondition} 🏆` :
-                     gameState.gameMode === 'MANCHE'   ? `${gameState.winningCondition} Victoires` :
-                     gameState.gameMode === 'SCORE'    ? `${gameState.winningCondition} Pts` :
-                                                         `${gameState.winningCondition} 🐷`}
-                </Text>
-            </View>
-
-            {/* Badge Manche / Round */}
-            <View style={styles.headerBadge}>
-                <Text style={styles.headerText}>
-                    M{Math.max(1, gameState.mancheNumber ?? 1)} / R{Math.max(1, gameState.roundNumber ?? 1)}
-                </Text>
-            </View>
-
             {/* Bouton unique ⚙️ */}
             <TouchableOpacity
                 onPress={onOpenOptions}
@@ -60,19 +43,6 @@ const styles = StyleSheet.create({
         gap: 8,
         zIndex: 100,
         top: 10,
-    },
-    headerBadge: {
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        paddingHorizontal: 15,
-        paddingVertical: 8,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.3)',
-    },
-    headerText: {
-        color: '#FFD700',
-        fontWeight: 'bold',
-        fontSize: 14,
     },
     optionsBtn: {
         backgroundColor: 'rgba(0,0,0,0.6)',
