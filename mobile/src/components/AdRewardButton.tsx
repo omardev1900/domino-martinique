@@ -233,6 +233,9 @@ const styles = StyleSheet.create({
 
     textBlock: {
         flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
 
     labelText: {
@@ -250,7 +253,6 @@ const styles = StyleSheet.create({
         color: '#FFD700',
         fontSize: 12,
         fontWeight: '900',
-        marginTop: 1,
     },
 
     // ── Confirmation post-clic ──
