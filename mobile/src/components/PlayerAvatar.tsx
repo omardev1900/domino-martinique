@@ -479,10 +479,6 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                 </Animated.View>
                             )}
 
-                            {/* [R3-M2] Badge de grade Ligue — adversaires uniquement */}
-                            {position?.startsWith('top') && !hideLeagueVisuals && (
-                                <GradeBadge grade={player.leagueGrade} size="xs" />
-                            )}
                         </View>
                 {/* RENDER REMAINING HAND ON BOUDE */}
                 {showHandDominoes && player.hand && player.hand.length > 0 && (

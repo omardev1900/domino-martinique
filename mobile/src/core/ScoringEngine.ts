@@ -279,8 +279,13 @@ export const preparePlayersForNextRound = (
         if (originalPlayer?.difficulty !== undefined) {
             newPlayer.difficulty = originalPlayer.difficulty;
         }
+        if (originalPlayer?.leagueGrade !== undefined) {
+            newPlayer.leagueGrade = originalPlayer.leagueGrade;
+        }
+        if (originalPlayer?.activeFrame !== undefined) {
+            newPlayer.activeFrame = originalPlayer.activeFrame;
+        }
 
         return newPlayer;
     });
 };
-
