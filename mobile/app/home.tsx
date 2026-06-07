@@ -525,7 +525,7 @@ export default function HomeScreen() {
                         <PremiumButton
                             style={styles.playCardCompact}
                             onPress={() => router.push('/game-modes')}
-                            soundName="success"
+                            soundName="notify"
                         >
                             <LinearGradient
                                 colors={['#FFD700', '#FF8C00']}
