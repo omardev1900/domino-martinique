@@ -145,7 +145,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                         {/* ── Ligne unique : onglets + X ── */}
                         <View style={styles.topRow}>
                             <View style={styles.tabBar}>
-                                {(['JEU', 'INFOS', 'HISTORIQUE'] as Tab[]).map(tab => (
+                                {([ 'INFOS', 'JEU', 'HISTORIQUE'] as Tab[]).map(tab => (
                                     <PremiumButton
                                         key={tab}
                                         style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
@@ -158,7 +158,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                             adjustsFontSizeToFit
                                             minimumFontScale={0.82}
                                         >
-                                            {tab === 'JEU' ? '🎮 Jeu' : tab === 'INFOS' ? 'ℹ️ Infos' : '📜 Historique'}
+                                            {tab === 'JEU' ? '⚙️ Réglages' : tab === 'INFOS' ? 'ℹ️ Infos' : '📜 Historique'}
                                         </Text>
                                     </PremiumButton>
                                 ))}
@@ -177,7 +177,50 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                         </View>
 
                         {/* ── Contenu ── */}
-                        <View style={styles.content}>
+                        <View style={styles.content}>                            
+
+                            {/* Onglet INFOS */}
+                            {activeTab === 'INFOS' && gameState && (
+                                <View>
+                                    <InfoRow 
+                                        icon="game-controller-outline" 
+                                        label="Partie" 
+                                        value={`Mode ${gameModeLabel(gameState.gameMode)} - Objectif ${gameState.winningCondition}${isSoloMode ? ` - Niveau ${botDifficultyLabel(soloBotDifficulty)}` : ''}`} 
+                                    />
+                                    <InfoRow 
+                                        icon="layers-outline" 
+                                        label="En cours" 
+                                        value={`Manche ${Math.max(1, gameState.mancheNumber ?? 1)} · Round ${Math.max(1, gameState.roundNumber ?? 1)}`} 
+                                    />
+
+                                    {!isSoloMode && gameId && (
+                                        <>
+                                            <View style={styles.divider} />
+                                            <PremiumButton style={styles.codeRow} onPress={handleCopyCode} soundName="notify">
+                                                <Ionicons name="key-outline" size={15} color="#FFD700" />
+                                                <Text style={styles.codeLabel}>Code salle</Text>
+                                                <Text style={styles.codeValue}>{gameId}</Text>
+                                                <Ionicons
+                                                    name={codeCopied ? 'checkmark-circle' : 'copy-outline'}
+                                                    size={15}
+                                                    color={codeCopied ? '#4CAF50' : '#aaa'}
+                                                />
+                                            </PremiumButton>
+                                            {connectedPlayers.length > 0 && (
+                                                <View style={styles.playersBlock}>
+                                                    <Text style={styles.playersTitle}>Joueurs</Text>
+                                                    {connectedPlayers.map(p => (
+                                                        <View key={p.uid} style={styles.playerRow}>
+                                                            <Ionicons name="person-outline" size={12} color="#aaa" />
+                                                            <Text style={styles.playerName}>{p.displayName}</Text>
+                                                        </View>
+                                                    ))}
+                                                </View>
+                                            )}
+                                        </>
+                                    )}
+                                </View>
+                            )}
 
                             {/* Onglet JEU */}
                             {activeTab === 'JEU' && (
@@ -206,49 +249,6 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                         value={isVibrationEnabled}
                                         onToggle={onToggleVibration}
                                     />
-                                </View>
-                            )}
-
-                            {/* Onglet INFOS */}
-                            {activeTab === 'INFOS' && gameState && (
-                                <View>
-                                    {isSoloMode && (
-                                        <InfoRow
-                                            icon="school-outline"
-                                            label="Difficulte"
-                                            value={botDifficultyLabel(soloBotDifficulty)}
-                                        />
-                                    )}
-                                    <InfoRow icon="game-controller-outline" label="Mode"    value={gameModeLabel(gameState.gameMode)} />
-                                    <InfoRow icon="star-outline"            label="Objectif" value={objectifLabel(gameState)} />
-                                    <InfoRow icon="layers-outline"          label="Manche"   value={`M${Math.max(1, gameState.mancheNumber ?? 1)} · R${Math.max(1, gameState.roundNumber ?? 1)}`} />
-
-                                    {!isSoloMode && gameId && (
-                                        <>
-                                            <View style={styles.divider} />
-                                            <PremiumButton style={styles.codeRow} onPress={handleCopyCode} soundName="notify">
-                                                <Ionicons name="key-outline" size={15} color="#FFD700" />
-                                                <Text style={styles.codeLabel}>Code salle</Text>
-                                                <Text style={styles.codeValue}>{gameId}</Text>
-                                                <Ionicons
-                                                    name={codeCopied ? 'checkmark-circle' : 'copy-outline'}
-                                                    size={15}
-                                                    color={codeCopied ? '#4CAF50' : '#aaa'}
-                                                />
-                                            </PremiumButton>
-                                            {connectedPlayers.length > 0 && (
-                                                <View style={styles.playersBlock}>
-                                                    <Text style={styles.playersTitle}>Joueurs</Text>
-                                                    {connectedPlayers.map(p => (
-                                                        <View key={p.uid} style={styles.playerRow}>
-                                                            <Ionicons name="person-outline" size={12} color="#aaa" />
-                                                            <Text style={styles.playerName}>{p.displayName}</Text>
-                                                        </View>
-                                                    ))}
-                                                </View>
-                                            )}
-                                        </>
-                                    )}
                                 </View>
                             )}
 

@@ -4,6 +4,15 @@
 
 ---
 
+## [2.5.16] - 2026-06-07
+
+### Amélioré
+- **Affichage joueurs en jeu** — agrandissement des avatars de +25% (adversaires : 42→53px, joueur local : 48→60px) pour une meilleure lisibilité sur tous les écrans.
+- **Compteur de dominos** — le badge affichant le nombre de dominos restants est agrandi (+40%) pour être plus facilement lisible en pleine partie.
+- **Nom du joueur** — le nom de chaque joueur est maintenant affiché **sous son avatar** (plutôt qu'à côté dans le bloc stats), ce qui rend l'interface plus claire et intuitive.
+
+---
+
 ## [2.5.15] - 2026-06-06
 
 ### Amélioré

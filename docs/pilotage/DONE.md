@@ -2,8 +2,13 @@
 
 ## Juin 2026
 
+### 2026-06-07
+
+- **[UX-AVATAR-SCALE]** : Amélioration de l'affichage des joueurs en plein jeu — avatars agrandis de +25% (42→53px adversaires, 48→60px joueur local), badge nombre de dominos agrandi (+40%, 18→22px), nom du joueur déplacé sous l'avatar (prop `namePlacement="below"` + wrapper colonne dédié en layout horizontal). Fichiers modifiés : `PlayerArea.tsx`, `PlayerAvatar.tsx`.
+
 ### 2026-06-06
 
+- **[UX-ENDMATCH-FLOW-CLEANUP]** : Assainissement du process de fin de match (GameScreen masqué, modales publicitaires redimensionnées avec hitSlop optimisé, refonte du bouton Détails).
 - **[UX-MODAL-ANIM-SFX]** : Harmonisation des animations d'apparitions/fermetures de modales (UnifiedResultOverlay, RoundResultCard, MatchRewardModal) avec `react-native-reanimated` et ajout de sons associées (applaudissements, bruits de dominos, etc).
 - **[UX-BUTTON-FEEDBACK-SFX]** : Ajout du composant `PremiumButton` avec scale animation, retours haptiques et retours sonores. Appliqué aux boutons principaux des menus.
 - **[UX-SCREEN-PREMIUM-MOTION]** : Refonte de l'ergonomie sur LobbyScreen, HomeScreen et GameOptionsMenu via l'intégration de `PremiumButton` pour donner une profondeur visuelle, du feedback haptique et sonore aux interactions.
