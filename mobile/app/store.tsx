@@ -220,7 +220,7 @@ export default function StoreScreen() {
 
                     <View style={styles.descriptionRow}>
                         <Text style={styles.cardDescription} numberOfLines={2}>
-                            Regardez une vidéo pour gagner 100 Coins instantanément.
+                            Regardez une vidéo pour gagner 100 Coins.
                         </Text>
                     </View>
                 </View>
