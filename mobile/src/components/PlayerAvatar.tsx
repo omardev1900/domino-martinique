@@ -288,6 +288,8 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     </View>
                 )}
 
+                {/* Wrapper colonne avatar+nom pour le mode horizontal+namePlacement=below */}
+                <View style={isHorizontal && namePlacement === 'below' ? styles.avatarColumnWrapper : undefined}>
                 <Animated.View style={[{ width: size + 12, height: size + 12, alignItems: 'center', justifyContent: 'center' }, animatedAvatarStyle]}>
                     
                     {/* Pulsing Ping Halo */}
@@ -413,6 +415,12 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     )}
                 </Animated.View>
 
+                {/* Nom sous l'avatar en layout horizontal + namePlacement=below */}
+                {isHorizontal && namePlacement === 'below' && (
+                    <Text style={styles.nameUnderAvatar} numberOfLines={1}>{player.name}</Text>
+                )}
+                </View>
+
                 {/* Name below avatar in vertical layout */}
                 {
                     !isHorizontal && namePlacement === 'below' && (
@@ -442,7 +450,9 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                 </Animated.View>
                             )}
 
-                            <Text style={styles.opponentNameText} numberOfLines={1}>{player.name}</Text>
+                            {namePlacement !== 'below' && (
+                                <Text style={styles.opponentNameText} numberOfLines={1}>{player.name}</Text>
+                            )}
                             <View style={styles.opponentStatsRow}>
                                 {gameMode === 'COCHON' && (
                                     <View style={styles.opponentStatCol}>
@@ -584,7 +594,7 @@ const styles = StyleSheet.create({
     },
     handSizeText: {
         color: '#FFFFFF',
-        fontSize: 10,
+        fontSize: 13,
         fontWeight: '600',
         opacity: 0.8,
     },
@@ -655,9 +665,9 @@ const styles = StyleSheet.create({
     handBadgeOverlaid: {
         position: 'absolute',
         backgroundColor: '#FFF',
-        width: 18,
-        height: 18,
-        borderRadius: 9,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1.5,
@@ -665,16 +675,16 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     handBadgeBottomLeft: {
-        bottom: 2,
-        left: -2,
+        bottom: 0,
+        left: -3,
     },
     handBadgeBottomRight: {
-        bottom: 2,
-        right: -2,
+        bottom: 0,
+        right: -3,
     },
     handBadgeText: {
         color: '#000',
-        fontSize: 10,
+        fontSize: 13,
         fontWeight: 'bold',
     },
     opponentInfoBlock: {
@@ -767,5 +777,20 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 60,
         right: -10,
+    },
+    // Wrapper colonne pour avatar + nom en-dessous (mode horizontal + namePlacement=below)
+    avatarColumnWrapper: {
+        alignItems: 'center',
+    },
+    nameUnderAvatar: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        maxWidth: 70,
+        marginTop: 2,
+        textShadowColor: 'rgba(0,0,0,0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
     },
 });
