@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Image, useWindowDimensions } from 'react-native';
 import Animated, { FadeInRight, FadeInLeft } from 'react-native-reanimated';
 import { EdgeInsets } from 'react-native-safe-area-context';
 import { PlayerAvatar } from '../PlayerAvatar';
+import { OpponentHandBar } from './OpponentHandBar';
 import { Player, GameState } from '../../core/types';
 import { HandSortMode } from '../PlayerHand';
 
@@ -49,6 +50,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
 }) => {
     if (!gameState) return null;
 
+    const { width: screenWidth } = useWindowDimensions();
     const isGameOver = ['MATCH_END', 'MANCHE_END', 'PARTIE_END', 'BOUDE'].includes(gameState.phase);
     const isPlaying = gameState.phase === 'PLAYING';
 
@@ -72,7 +74,14 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                     <Animated.View
                         entering={FadeInRight.delay(200).duration(600)}
                         testID={`avatar-wrapper-${opponents[0].id}`}
+                        style={styles.opponentRow}
                     >
+                        {/* Barre dominos à GAUCHE du bloc avatar (côté centre écran) pour top-right */}
+                        <OpponentHandBar
+                            handSize={opponents[0].handSize}
+                            position="top-right"
+                            screenWidth={screenWidth}
+                        />
                         <PlayerAvatar
                             key={`${opponents[0]?.id}-${gameState.currentPlayerId}`}
                             player={opponents[0]}
@@ -113,6 +122,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                     <Animated.View
                         entering={FadeInLeft.delay(400).duration(600)}
                         testID={`avatar-wrapper-${opponents[1].id}`}
+                        style={styles.opponentRow}
                     >
                         <PlayerAvatar
                             key={`${opponents[1]?.id}-${gameState.currentPlayerId}`}
@@ -136,6 +146,12 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             skinConfig={skinConfig}
                             dimmed={isPlaying && gameState.currentPlayerId !== opponents[1]?.id}
                             isSoloMode={isSoloMode}
+                        />
+                        {/* Barre dominos à DROITE du bloc avatar (côté centre écran) pour top-left */}
+                        <OpponentHandBar
+                            handSize={opponents[1].handSize}
+                            position="top-left"
+                            screenWidth={screenWidth}
                         />
                     </Animated.View>
                 </View>
@@ -271,6 +287,11 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     localPlayerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    // Conteneur horizontal : [OpponentHandBar] + [PlayerAvatar] ou inverse selon position
+    opponentRow: {
         flexDirection: 'row',
         alignItems: 'center',
     },

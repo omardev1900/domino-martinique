@@ -5,7 +5,7 @@
 >
 > **Flux obligatoire :** `BACKLOG.md` -> `TASKS.md` -> `DONE.md`
 
-**Derniere mise a jour :** 2026-06-03 (10h15)
+**Derniere mise a jour :** 2026-06-07
 **Sprint actuel :** Pre-Lancement Officiel
 
 ---
@@ -34,7 +34,8 @@ Le travail actif est maintenant un sprint court de finition avant lancement offi
 
 | Ticket | Description | Priorite | Statut |
 |---|---|---|---|
-| **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Differe |
+| **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Différé |
+| **UX-OPPONENT-DOMINOS** | [UI/UX] Inventaire adverse : petits rectangles blancs face cachée affichés à côté du bloc stats (droite pour top-left, gauche pour top-right). Nouveau composant `OpponentHandBar`, taille adaptative via `useWindowDimensions`. | Moyenne | ✅ Livré |
 
 Checklist de cloture obligatoire :
 1. retirer le ticket de `TASKS.md`

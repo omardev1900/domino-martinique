@@ -5,6 +5,7 @@
 ### 2026-06-07
 
 - **[UX-AVATAR-SCALE]** : Amélioration de l'affichage des joueurs en plein jeu — avatars agrandis de +25% (42→53px adversaires, 48→60px joueur local), badge nombre de dominos agrandi (+40%, 18→22px), nom du joueur déplacé sous l'avatar (prop `namePlacement="below"` + wrapper colonne dédié en layout horizontal). Fichiers modifiés : `PlayerArea.tsx`, `PlayerAvatar.tsx`.
+- **[UX-OPPONENT-DOMINOS]** : Affichage de la main adverse sous forme de rectangles blancs face cachée — nouveau composant `OpponentHandBar.tsx` (composant pur ~90 lignes). Les rectangles apparaissent à droite du bloc stats pour le joueur top-left, et à gauche pour le joueur top-right. Taille adaptative selon la largeur d'écran (3 paliers : compact / standard / grand). La barre disparaît à `handSize = 0`. Fichiers modifiés : `OpponentHandBar.tsx` (NEW), `PlayerArea.tsx`.
 
 ### 2026-06-06
 

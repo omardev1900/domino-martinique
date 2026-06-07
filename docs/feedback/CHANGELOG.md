@@ -22,6 +22,7 @@
 - **Affichage joueurs en jeu** — agrandissement des avatars de +25% (adversaires : 42→53px, joueur local : 48→60px) pour une meilleure lisibilité sur tous les écrans.
 - **Compteur de dominos** — le badge affichant le nombre de dominos restants est agrandi (+40%) pour être plus facilement lisible en pleine partie.
 - **Nom du joueur** — le nom de chaque joueur est maintenant affiché **sous son avatar** (plutôt qu'à côté dans le bloc stats), ce qui rend l'interface plus claire et intuitive.
+- **Main des adversaires (face cachée)** — chaque adversaire affiche désormais ses dominos restants sous forme de petits rectangles blancs à côté du bloc scores, à droite pour le joueur en haut à gauche et à gauche pour le joueur en haut à droite. La taille des rectangles s'adapte automatiquement à la largeur de l'écran.
 
 ---
 
