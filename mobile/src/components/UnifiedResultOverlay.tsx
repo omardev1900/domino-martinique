@@ -20,6 +20,7 @@ import { LEAGUE_LABELS, AD_REWARD_COINS } from '@/core/economy.constants';
 import { getAvatarImage, AvatarId } from '@/core/avatars';
 import { calculateHandPoints } from '@/core/ScoringEngine';
 import { GradeBadge } from './GradeBadge';
+import { PlayerCard } from './common/PlayerCard';
 import { ShareTextButton, buildWinShareText, WinShareCard } from './ShareButton';
 
 interface UnifiedResultOverlayProps {
@@ -401,30 +402,19 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                         ? BounceIn.delay(delay + 80).duration(550)
                         : FadeInDown.delay(delay).springify().damping(16);
                 return (
-                    <Animated.View key={p.id} entering={entering}
-                        style={[styles.podiumCard, isWinner && styles.podiumCardWinner]}>
-                        <View style={styles.podiumAvatarWrap}>
-                            <Image
-                                source={getAvatarImage(p.avatarId as AvatarId || 'avatar_default')}
-                                style={[styles.podiumAvatar, isWinner && styles.podiumAvatarWinner]}
-                                contentFit="cover"
-                            />
-                            {isWinner && <Text style={styles.crown}>👑</Text>}
-                        </View>
-                        <Text style={[styles.podiumName, isWinner && styles.podiumNameWinner]} numberOfLines={1}>
-                            {p.id === currentUserId ? 'Moi' : p.name}
-                        </Text>
-                        <Text style={[styles.podiumScore, isWinner && styles.podiumScoreWinner]}>
-                            {showTotalScore ? getPlayerTotalScore(p) : `${p.currentMancheStars || 0} ⭐`}
-                        </Text>
-                        {/* [R3-M2] Badge grade Ligue */}
-                        <GradeBadge grade={p.id === currentUserId && matchReward ? matchReward.newGrade : p.leagueGrade} size="xs" />
-                        {isWinner && showTotalScore && (
-                            <View style={styles.podiumWinBadge}>
-                                <Text style={styles.podiumWinBadgeText}>CHAMPION</Text>
-                            </View>
-                        )}
-                    </Animated.View>
+                    <PlayerCard
+                        key={p.id}
+                        playerId={p.id}
+                        playerName={p.name}
+                        avatarId={p.avatarId}
+                        grade={p.id === currentUserId && matchReward ? matchReward.newGrade : p.leagueGrade}
+                        isWinner={isWinner}
+                        scoreText={showTotalScore ? getPlayerTotalScore(p) : `${p.currentMancheStars || 0} ⭐`}
+                        showCrown={isWinner}
+                        showWinBadge={isWinner && showTotalScore}
+                        entering={entering}
+                        isLocalPlayer={p.id === currentUserId}
+                    />
                 );
             })}
         </View>

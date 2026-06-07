@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { GameState } from '../../core/types';
 import { PremiumButton } from '../common/PremiumButton';
+import { PlayerCard } from '../common/PlayerCard';
 
 export interface GameOptionsMenuProps {
     visible: boolean;
@@ -206,19 +207,25 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                                     color={codeCopied ? '#4CAF50' : '#aaa'}
                                                 />
                                             </PremiumButton>
-                                            {connectedPlayers.length > 0 && (
-                                                <View style={styles.playersBlock}>
-                                                    <Text style={styles.playersTitle}>Joueurs</Text>
-                                                    {connectedPlayers.map(p => (
-                                                        <View key={p.uid} style={styles.playerRow}>
-                                                            <Ionicons name="person-outline" size={12} color="#aaa" />
-                                                            <Text style={styles.playerName}>{p.displayName}</Text>
-                                                        </View>
-                                                    ))}
-                                                </View>
-                                            )}
                                         </>
                                     )}
+
+                                    <View style={styles.divider} />
+                                    <View style={styles.playersBlock}>
+                                        <Text style={styles.playersTitle}>Joueurs</Text>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+                                            {gameState.players.map(p => (
+                                                <PlayerCard
+                                                    key={p.id}
+                                                    playerId={p.id}
+                                                    playerName={p.name}
+                                                    avatarId={p.avatarId}
+                                                    grade={p.leagueGrade}
+                                                    isLocalPlayer={p.id === localPlayerId}
+                                                />
+                                            ))}
+                                        </View>
+                                    </View>
                                 </View>
                             )}
 
