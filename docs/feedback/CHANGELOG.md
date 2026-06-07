@@ -4,6 +4,14 @@
 
 ---
 
+## [2.5.17] - 2026-06-07
+
+### Modifié
+- **Options en jeu** — L'onglet Infos intègre désormais une liste complète et visuelle de tous les joueurs de la partie (Solo et Multijoueur) avec leur avatar, pseudo et grade.
+- **Refactoring UI** — Création d'un composant autonome `PlayerCard` partagé entre la modale de fin de match et le menu d'options, pour standardiser l'affichage des joueurs et faciliter la maintenance.
+
+---
+
 ## [2.5.16] - 2026-06-07
 
 ### Amélioré

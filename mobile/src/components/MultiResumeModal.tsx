@@ -16,13 +16,13 @@ export function MultiResumeModal({ resumeInfo, onResume, onAbandon }: MultiResum
     const [isResuming, setIsResuming] = useState(false);
 
     const handleResume = () => {
-        SoundManager.playSfx('click');
+        SoundManager.playSound('notify');
         setIsResuming(true);
         onResume();
     };
 
     const handleAbandon = async () => {
-        SoundManager.playSfx('error');
+        SoundManager.playSound('notify');
         setIsAbandoning(true);
         await onAbandon();
     };
@@ -60,19 +60,19 @@ export function MultiResumeModal({ resumeInfo, onResume, onAbandon }: MultiResum
                     )}
 
                     <View style={styles.buttonRow}>
-                        {resumeInfo.status !== 'PLAYING' && (
-                            <TouchableOpacity 
-                                onPress={handleAbandon} 
-                                style={styles.abandonButton}
-                                disabled={isAbandoning || isResuming}
-                            >
-                                {isAbandoning ? (
-                                    <ActivityIndicator color="#E74C3C" />
-                                ) : (
-                                    <Text style={styles.abandonText}>Ignorer</Text>
-                                )}
-                            </TouchableOpacity>
-                        )}
+                        <TouchableOpacity 
+                            onPress={handleAbandon} 
+                            style={styles.abandonButton}
+                            disabled={isAbandoning || isResuming}
+                        >
+                            {isAbandoning ? (
+                                <ActivityIndicator color="#E74C3C" />
+                            ) : (
+                                <Text style={styles.abandonText}>
+                                    {resumeInfo.status === 'PLAYING' ? 'Quitter' : 'Ignorer'}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
 
                         <TouchableOpacity 
                             onPress={handleResume} 
