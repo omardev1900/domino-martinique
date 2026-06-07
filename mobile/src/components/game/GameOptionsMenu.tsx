@@ -27,7 +27,7 @@ export interface GameOptionsMenuProps {
     onQuitGame: () => void;
 }
 
-type Tab = 'JEU' | 'INFOS' | 'HISTORIQUE';
+type Tab = 'JEU' | 'INFOS' | 'JOUEURS' | 'HISTORIQUE';
 
 function gameModeLabel(mode?: string): string {
     switch (mode) {
@@ -76,7 +76,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
     onToggleVibration,
     onQuitGame,
 }) => {
-    const [activeTab, setActiveTab] = useState<Tab>('JEU');
+    const [activeTab, setActiveTab] = useState<Tab>('INFOS');
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [codeCopied, setCodeCopied] = useState(false);
     const closeHandledRef = useRef(false);
@@ -98,7 +98,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
         if (closeHandledRef.current) return;
         closeHandledRef.current = true;
         setShowQuitConfirm(false);
-        setActiveTab('JEU');
+        setActiveTab('INFOS');
         onClose();
         setTimeout(() => {
             closeHandledRef.current = false;
@@ -146,7 +146,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                         {/* ── Ligne unique : onglets + X ── */}
                         <View style={styles.topRow}>
                             <View style={styles.tabBar}>
-                                {([ 'INFOS', 'JEU', 'HISTORIQUE'] as Tab[]).map(tab => (
+                                {([ 'INFOS', 'JOUEURS', 'JEU', 'HISTORIQUE'] as Tab[]).map(tab => (
                                     <PremiumButton
                                         key={tab}
                                         style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
@@ -159,7 +159,7 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                             adjustsFontSizeToFit
                                             minimumFontScale={0.82}
                                         >
-                                            {tab === 'JEU' ? '⚙️ Réglages' : tab === 'INFOS' ? 'ℹ️ Infos' : '📜 Historique'}
+                                            {tab === 'JEU' ? '⚙️ Réglages' : tab === 'INFOS' ? 'ℹ️ Infos' : tab === 'JOUEURS' ? '👥 Joueurs' : '📜 Historique'}
                                         </Text>
                                     </PremiumButton>
                                 ))}
@@ -210,21 +210,23 @@ export const GameOptionsMenu: React.FC<GameOptionsMenuProps> = ({
                                         </>
                                     )}
 
-                                    <View style={styles.divider} />
-                                    <View style={styles.playersBlock}>
-                                        <Text style={styles.playersTitle}>Joueurs</Text>
-                                        <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginTop: 8 }}>
-                                            {gameState.players.map(p => (
-                                                <PlayerCard
-                                                    key={p.id}
-                                                    playerId={p.id}
-                                                    playerName={p.name}
-                                                    avatarId={p.avatarId}
-                                                    grade={p.leagueGrade}
-                                                    isLocalPlayer={p.id === localPlayerId}
-                                                />
-                                            ))}
-                                        </View>
+                                </View>
+                            )}
+
+                            {/* Onglet JOUEURS */}
+                            {activeTab === 'JOUEURS' && gameState && (
+                                <View style={styles.playersBlock}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+                                        {gameState.players.map(p => (
+                                            <PlayerCard
+                                                key={p.id}
+                                                playerId={p.id}
+                                                playerName={p.name}
+                                                avatarId={p.avatarId}
+                                                grade={p.leagueGrade}
+                                                isLocalPlayer={p.id === localPlayerId}
+                                            />
+                                        ))}
                                     </View>
                                 </View>
                             )}
