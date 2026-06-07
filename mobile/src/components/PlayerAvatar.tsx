@@ -408,7 +408,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     {showHandSize && isHorizontal && (
                         <View style={[
                             styles.handBadgeOverlaid,
-                            position === 'top-right' ? styles.handBadgeBottomRight : styles.handBadgeBottomLeft
+                            position === 'top-right' ? styles.handBadgeBottomLeft : styles.handBadgeBottomRight
                         ]}>
                             <Text style={styles.handBadgeText}>{player.handSize}</Text>
                         </View>
@@ -417,7 +417,36 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
 
                 {/* Nom sous l'avatar en layout horizontal + namePlacement=below */}
                 {isHorizontal && namePlacement === 'below' && (
-                    <Text style={styles.nameUnderAvatar} numberOfLines={1}>{player.name}</Text>
+                    <>
+                        <Text style={styles.nameUnderAvatar} numberOfLines={1}>{player.name}</Text>
+                        {/* Stats sous le nom (adversaires uniquement) */}
+                        {position?.startsWith('top') && (
+                            <View style={styles.opponentStatsUnderName}>
+                                {gameMode === 'COCHON' && (
+                                    <View style={styles.opponentStatCol}>
+                                        <Text style={styles.statLabelCochon}>🐷</Text>
+                                        <Text style={styles.statValueCochon}>{player.totalCochonsInfliges || 0}</Text>
+                                    </View>
+                                )}
+                                <View style={styles.opponentStatCol}>
+                                    <Text style={styles.statLabelV}>V</Text>
+                                    <Text style={styles.statValueV}>
+                                        {gameMode === 'VICTOIRE' ? (player.totalRoundWins || 0) : (player.currentMancheStars || 0)}
+                                    </Text>
+                                </View>
+                                <View style={styles.opponentStatCol}>
+                                    <Text style={styles.statLabelPTS}>PTS</Text>
+                                    <Text style={styles.statValuePTS}>{ptsScore}</Text>
+                                </View>
+                            </View>
+                        )}
+                        {/* BOUDÉ sous les stats pour les adversaires */}
+                        {position?.startsWith('top') && isBoude && (
+                            <Animated.View entering={ZoomIn.duration(300)} style={styles.boudeBadgeBottom}>
+                                <Text style={styles.boudeBadgeText}>🚫 BOUDÉ</Text>
+                            </Animated.View>
+                        )}
+                    </>
                 )}
                 </View>
 
@@ -438,10 +467,11 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                     )
                 }
 
-                {/* Info Block for Horizontal Layout */}
+                {/* Info Block for Horizontal Layout — masqué pour adversaires si stats sous le nom */}
                         <View style={[
                             styles.opponentInfoBlock,
-                            position === 'top-right' ? styles.opponentInfoBlockRight : styles.opponentInfoBlockLeft
+                            position === 'top-right' ? styles.opponentInfoBlockRight : styles.opponentInfoBlockLeft,
+                            (position?.startsWith('top') && namePlacement === 'below') && styles.hidden,
                         ]}>
                             {/* BOUDÉ LABEL FOR LOCAL PLAYER (Shows ABOVE name) */}
                             {!position?.startsWith('top') && isBoude && (
@@ -788,5 +818,20 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(0,0,0,0.8)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 3,
+    },
+    // Ligne stats (V, PTS) affichée sous le nom dans avatarColumnWrapper
+    opponentStatsUnderName: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 3,
+        backgroundColor: 'rgba(40, 30, 30, 0.8)',
+        borderRadius: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+    },
+    // Cache l'opponentInfoBlock quand les stats sont déplacées sous le nom
+    hidden: {
+        display: 'none',
     },
 });

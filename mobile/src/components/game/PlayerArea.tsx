@@ -81,6 +81,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             handSize={opponents[0].handSize}
                             position="top-right"
                             screenWidth={screenWidth}
+                            avatarContainerHeight={65}
                         />
                         <PlayerAvatar
                             key={`${opponents[0]?.id}-${gameState.currentPlayerId}`}
@@ -152,6 +153,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             handSize={opponents[1].handSize}
                             position="top-left"
                             screenWidth={screenWidth}
+                            avatarContainerHeight={65}
                         />
                     </Animated.View>
                 </View>
@@ -293,7 +295,7 @@ const styles = StyleSheet.create({
     // Conteneur horizontal : [OpponentHandBar] + [PlayerAvatar] ou inverse selon position
     opponentRow: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start', // flex-start pour que marginTop de la barre centre sur l'avatar
     },
     bottomRightHandSort: {
         position: 'absolute',
