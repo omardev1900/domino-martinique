@@ -23,7 +23,7 @@ import { ActionFooter } from '../components/game/ActionFooter';
 import { LobbyScreen } from './LobbyScreen';
 import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
 import { QuickChat } from '../components/QuickChat';
-import { RoundResultCard } from '../components/game/RoundResultCard';
+import { RoundEndFlow } from '../components/game/RoundEndFlow';
 import { RewardOverlay } from '../components/RewardOverlay';
 import { MatchRewardModal } from '../components/MatchRewardModal';
 
@@ -655,6 +655,22 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const lastSeenChatNonces = useRef<{ [playerId: string]: string }>({});
     const isFirstChatLoad = useRef<boolean>(true);
     const prevMancheRef = useRef<number>(1);
+
+    const roundResultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingRoundResultTransition = useRef<(() => void) | null>(null);
+
+    const handleDismissRoundResult = useCallback(() => {
+        if (roundResultTimerRef.current) {
+            clearTimeout(roundResultTimerRef.current);
+            roundResultTimerRef.current = null;
+        }
+        setShowRoundResult(false);
+        if (pendingRoundResultTransition.current) {
+            const pending = pendingRoundResultTransition.current;
+            pendingRoundResultTransition.current = null;
+            pending();
+        }
+    }, []);
     // Tracks whether current PARTIE_END came from a BOUDE (to skip re-showing the card)
     const boudeHandledRef = useRef(false);
     const activeBoudeResultKeyRef = useRef<string | null>(null);
@@ -979,19 +995,19 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 setShowRoundResult(true);
             }
             if (isLocalHost && !boudeTimerRef.current) {
-                // Host : on résout soi-même après 5s
+                // Host : on résout soi-même après 12s (pour laisser les animations de fin de round se terminer)
                 boudeTimerRef.current = setTimeout(() => {
                     resolveBoudeOnce(boudeResultKey);
                     boudeTimerRef.current = null;
-                }, 5000);
+                }, 12000);
             } else if (!isLocalHost && !boudeTimerRef.current) {
                 // Secours (Acting Host transition fallback) : 
-                // Si l'hôte a crash ou est offline, n'importe quel autre joueur humain actif résout après 10s
+                // Si l'hôte a crash ou est offline, n'importe quel autre joueur humain actif résout après 15s
                 // Firestore n'enregistrera l'update qu'une seule fois grâce à l'idempotence de resolveBoude
                 boudeTimerRef.current = setTimeout(() => {
                     resolveBoudeOnce(boudeResultKey);
                     boudeTimerRef.current = null;
-                }, 10000);
+                }, 15000);
             }
             // Attente de PARTIE_END via Firestore (timer du host ou secours)
             return;
@@ -1016,8 +1032,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             setScoreOverlayPhase(null);
             setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
-            const timer = setTimeout(() => {
-                setShowRoundResult(false);
+            pendingRoundResultTransition.current = () => {
                 if (nextAdRef.current) {
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
@@ -1058,8 +1073,11 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 } else {
                     partieEndContinueRef.current();
                 }
-            }, 5000);
-            return () => clearTimeout(timer);
+            };
+            roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
+            return () => {
+                if (roundResultTimerRef.current) clearTimeout(roundResultTimerRef.current);
+            };
         }
 
         if (gameState.phase === 'MANCHE_END') {
@@ -1117,8 +1135,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             setScoreOverlayPhase(null);
             setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
-            const timer = setTimeout(() => {
-                setShowRoundResult(false);
+            pendingRoundResultTransition.current = () => {
                 if (nextAdRef.current) {
                     isAdVisibleRef.current = true;
                     setIsAdVisible(true);
@@ -1159,8 +1176,11 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 } else {
                     setScoreOverlayPhase('MANCHE_END');
                 }
-            }, 5000);
-            return () => clearTimeout(timer);
+            };
+            roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
+            return () => {
+                if (roundResultTimerRef.current) clearTimeout(roundResultTimerRef.current);
+            };
         }
 
         if (gameState.phase === 'MATCH_END') {
@@ -1266,15 +1286,17 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 return () => clearTimeout(timer);
             }
 
-            // Fin de match : affichage temporaire du RoundResultCard (2.5s) PUIS UnifiedResultOverlay
+            // Fin de match : affichage temporaire du RoundResultCard (5s) PUIS UnifiedResultOverlay
             setScoreOverlayPhase(null);
             setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
-            const timer = setTimeout(() => {
-                setShowRoundResult(false);
+            pendingRoundResultTransition.current = () => {
                 triggerMatchEnd();
-            }, 2500);
-            return () => clearTimeout(timer);
+            };
+            roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
+            return () => {
+                if (roundResultTimerRef.current) clearTimeout(roundResultTimerRef.current);
+            };
         }
     }, [gameState?.phase, gameState?.gameId, gameState?.mancheNumber, gameState?.roundNumber, gameState?.turnId, isLocalHost, resolveBoudeOnce, isMoveAnimationActive]);
 
@@ -2024,7 +2046,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 )}
             </View>
 
-            {gameState?.phase !== 'MATCH_END' && (
+            {gameState?.phase !== 'MATCH_END' && !showRoundResult && !isCurrentBoudeResultVisible && (
                 <ActionFooter
                     localPlayer={localPlayerForActionFooter as any}
                     gameState={currentDisplayState}
@@ -2107,11 +2129,13 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 </View>
             )}
 
-            {/* ✨ RoundResultCard — résumé visuel avant l'écran de score */}
+            {/* ✨ RoundEndFlow — résumé animé avant l'écran de score */}
             {(roundResultSnapshot ?? gameState) && (
-                <RoundResultCard
+                <RoundEndFlow
                     gameState={roundResultSnapshot ?? gameState!}
                     visible={showRoundResult || !!isCurrentBoudeResultVisible}
+                    onDismiss={handleDismissRoundResult}
+                    localPlayerId={localPlayerId}
                 />
             )}
 
