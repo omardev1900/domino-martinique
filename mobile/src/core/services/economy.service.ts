@@ -46,6 +46,7 @@ const DEFAULT_ECONOMY: PlayerEconomy = {
     cochonsGiven: 0,
     unlockedFrames: [],
     activeFrame: null,
+    welcomeGiftClaimed: false,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -218,6 +219,12 @@ class EconomyService {
             if (!remoteEconomy) {
                  LogService.info('EconomyService', 'No economy or stats found, initializing with defaults.');
                  remoteEconomy = {};
+            }
+
+            // MIGRATION WELCOME GIFT
+            // Si le document distant n'a pas le flag, c'est un compte legacy (ils ont déjà eu les 500 coins à la création)
+            if (remoteEconomy.welcomeGiftClaimed === undefined && (remoteStats || Object.keys(remoteEconomy).length > 0)) {
+                remoteEconomy.welcomeGiftClaimed = true;
             }
 
             // On télécharge et fusionne intelligemment (on garde le timestamp local s'il est plus récent)
@@ -427,6 +434,37 @@ class EconomyService {
 
         LogService.debug('EconomyService', `Buy-in of ${buyIn} coins deducted. Remaining: ${updated.coins}`);
         return true;
+    }
+
+    // ─── Cadeau Quotidien & Bienvenue ─────────────────────────────────────────
+
+    /**
+     * Vérifie si le joueur a déjà réclamé son cadeau de bienvenue (nouveau joueur).
+     */
+    async hasClaimedWelcomeGift(): Promise<boolean> {
+        const eco = await this.getEconomy();
+        return eco.welcomeGiftClaimed ?? false;
+    }
+
+    /**
+     * Marque le cadeau de bienvenue comme réclamé.
+     */
+    async claimWelcomeGift(): Promise<void> {
+        const eco = await this.getEconomy();
+        if (eco.welcomeGiftClaimed) {
+            LogService.warn('EconomyService', 'Welcome gift already claimed');
+            return;
+        }
+
+        // Le montant (NEW_PLAYER_COINS) est déjà dans l'économie par défaut.
+        // On ne fait que mettre à jour le flag.
+        this.cached = {
+            ...eco,
+            welcomeGiftClaimed: true
+        };
+        await this.persistLocal();
+        await this.pushToFirebase(auth.currentUser?.uid || 'guest_temp', this.cached);
+        LogService.info('EconomyService', 'Welcome gift marked as claimed');
     }
 
     /**
@@ -773,6 +811,7 @@ class EconomyService {
             unlockedChatItems: remote.unlockedChatItems ?? local.unlockedChatItems ?? [],
             chatInventory: remote.chatInventory ?? local.chatInventory ?? {},
             chatInventoryMigratedAt: remote.chatInventoryMigratedAt ?? local.chatInventoryMigratedAt,
+            welcomeGiftClaimed: remote.welcomeGiftClaimed ?? local.welcomeGiftClaimed ?? false,
         };
     }
 

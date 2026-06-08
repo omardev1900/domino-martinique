@@ -42,6 +42,7 @@ export interface PlayerEconomy {
     unlockedChatItems?: string[];      // IDs Firestore des items de tchat achetés à vie (usagesPerPurchase === 0)
     chatInventory?: Record<string, { remaining: number }>; // Compteur d'usages restants par item consommable
     chatInventoryMigratedAt?: number;  // Timestamp de migration one-shot (prévient double-crédit)
+    welcomeGiftClaimed?: boolean;      // 🎁 True si le joueur a réclamé son cadeau de bienvenue initial (500 pièces)
 }
 
 export type LeagueGrade =

@@ -113,6 +113,27 @@ export default function HomeScreen() {
             authService.getCurrentUser().then(async u => {
                 if (cancelled) return;
                 if (u && !u.uid.startsWith('guest_')) {
+                    // 1. Vérifier si une partie est en cours AVANT d'afficher les modales pour éviter les flashs
+                    try {
+                        const firestoreActiveRoomId = await findActiveRoomForUser(u.uid);
+                        const hostedRoomId = await findHostedWaitingRoom(u.uid);
+                        if (cancelled) return;
+
+                        if (firestoreActiveRoomId) {
+                            await AsyncStorage.setItem('active_roomId', firestoreActiveRoomId);
+                            setReconnectRoomId(firestoreActiveRoomId);
+                            setHostedWaitingRoomId(hostedRoomId);
+                            return; // On stoppe l'évaluation des cadeaux : on va rediriger vers le jeu
+                        } else {
+                            await AsyncStorage.removeItem('active_roomId');
+                            setReconnectRoomId(null);
+                            setHostedWaitingRoomId(hostedRoomId);
+                        }
+                    } catch (e) {
+                        console.error('Error checking active room', e);
+                    }
+
+                    // 2. Synchronisation
                     // [R3-B12] syncFromFirebase AVANT isDailyRewardAvailable — sinon le timestamp
                     // n'est pas encore chargé depuis Firestore et le cadeau réapparaît à chaque connexion
                     await Promise.all([
@@ -124,10 +145,8 @@ export default function HomeScreen() {
                     await refreshMonthlyLeague();
                     if (cancelled) return;
 
-                    // Vérification du bonus de bienvenue (nouveau compte)
-                    const stats = await statsService.getStats();
-                    const welcomeSeen = await AsyncStorage.getItem('welcome_seen');
-                    const isNewAccount = stats.matchHistory.length === 0 && !welcomeSeen;
+                    // 3. Évaluation des cadeaux (base serveur fiable)
+                    const isNewAccount = !(await economyService.hasClaimedWelcomeGift());
 
                     // La pub HOME s'affiche AVANT les cadeaux (spec R2-M7)
                     const [ad, dailyAvailable] = await Promise.all([
@@ -143,7 +162,9 @@ export default function HomeScreen() {
                                 setAdToShow(ad);
                             }, HOME_AD_DELAY_MS);
                         } else {
-                            setShowWelcomeReward(true);
+                            setTimeout(() => {
+                                if (!cancelled) setShowWelcomeReward(true);
+                            }, 1000);
                         }
                     } else if (dailyAvailable) {
                         const amount = ad?.isDailyReward && ad.rewardAmount ? ad.rewardAmount : DAILY_REWARD_COINS;
@@ -156,7 +177,9 @@ export default function HomeScreen() {
                             }, HOME_AD_DELAY_MS);
                         } else {
                             // Pas de pub admin → popup cadeau directement
-                            setShowDailyReward(true);
+                            setTimeout(() => {
+                                if (!cancelled) setShowDailyReward(true);
+                            }, 500);
                         }
                     } else if (ad) {
                         homeAdTimeoutRef.current = setTimeout(() => {
@@ -190,34 +213,7 @@ export default function HomeScreen() {
 
     const currentNews = newsList[currentNewsIndex];
 
-    useFocusEffect(
-        useCallback(() => {
-            const checkActiveGame = async () => {
-                try {
-                    const currentUser = await authService.getCurrentUser();
-                    if (!currentUser || currentUser.uid.startsWith('guest_')) return;
 
-                    const firestoreActiveRoomId = await findActiveRoomForUser(currentUser.uid);
-                    const hostedRoomId = await findHostedWaitingRoom(currentUser.uid);
-                    if (firestoreActiveRoomId) {
-                        await AsyncStorage.setItem('active_roomId', firestoreActiveRoomId);
-                        setReconnectRoomId(firestoreActiveRoomId);
-                        // La modale MultiResumeModal (_layout.tsx) s'occupera d'afficher l'invitation.
-                    } else {
-                        await AsyncStorage.removeItem('active_roomId');
-                        setReconnectRoomId(null);
-                    }
-                    setHostedWaitingRoomId(hostedRoomId);
-                } catch (e) {
-                    console.error('Error checking active room', e);
-                }
-            };
-
-            // Delay check slightly to ensure screen is settled
-            const timer = setTimeout(checkActiveGame, 600);
-            return () => clearTimeout(timer);
-        }, [])
-    );
 
     // Appelé par DailyRewardModal après la fin de l'animation compteur
     const handleClaimDailyReward = async () => {
@@ -235,8 +231,7 @@ export default function HomeScreen() {
 
     // Appelé pour récupérer le bonus de bienvenue
     const handleClaimWelcomeReward = async () => {
-        // Le montant est déjà crédité à la création du compte, on marque juste comme vu
-        await AsyncStorage.setItem('welcome_seen', 'true');
+        await economyService.claimWelcomeGift();
         setShowWelcomeReward(false);
         
         // Si le cadeau quotidien est aussi dispo, on l'affiche juste après avec un délai
@@ -245,7 +240,7 @@ export default function HomeScreen() {
             setDailyRewardAmount(DAILY_REWARD_COINS);
             setTimeout(() => {
                 setShowDailyReward(true);
-            }, 1000);
+            }, 500);
         }
     };
 
@@ -272,12 +267,15 @@ export default function HomeScreen() {
         setAdToShow(null);
         if (pendingDailyReward) {
             setPendingDailyReward(false);
-            const welcomeSeen = await AsyncStorage.getItem('welcome_seen');
-            const stats = await statsService.getStats();
-            if (stats.matchHistory.length === 0 && !welcomeSeen) {
-                setShowWelcomeReward(true);
+            const isNewAccount = !(await economyService.hasClaimedWelcomeGift());
+            if (isNewAccount) {
+                setTimeout(() => {
+                    setShowWelcomeReward(true);
+                }, 1000);
             } else {
-                setShowDailyReward(true);
+                setTimeout(() => {
+                    setShowDailyReward(true);
+                }, 500);
             }
         }
     };
