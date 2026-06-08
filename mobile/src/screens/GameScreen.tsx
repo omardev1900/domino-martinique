@@ -24,6 +24,7 @@ import { LobbyScreen } from './LobbyScreen';
 import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
 import { QuickChat } from '../components/QuickChat';
 import { RoundEndFlow } from '../components/game/RoundEndFlow';
+import { MancheEndFlow } from '../components/game/MancheEndFlow';
 import { RewardOverlay } from '../components/RewardOverlay';
 import { MatchRewardModal } from '../components/MatchRewardModal';
 
@@ -1309,7 +1310,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     setMatchRewardAmount(ad.rewardAmount ?? 100);
                     const timer = setTimeout(() => {
                         setShowMatchRewardModal(true);
-                    }, 2000);
+                    }, 4000);
                     return () => clearTimeout(timer);
                 }
             });
@@ -2098,7 +2099,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 gameId={gameId}
                 showRoomInfo={showRoomInfo}
                 onCloseRoomInfo={() => {}}
-                showScoreOverlay={showScoreOverlay}
+                showScoreOverlay={showScoreOverlay && gameState?.phase === 'MATCH_END'}
                 localPlayerId={localPlayerId}
                 onOverlayContinue={interceptOverlayContinue}
                 onLeaveRoom={handleLeaveRoom}
@@ -2127,6 +2128,17 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                         <Text style={{ color: '#FFD700', fontSize: 24, fontWeight: 'bold' }}>Reprise de la connexion...</Text>
                     </View>
                 </View>
+            )}
+
+            {/* ✅ MancheEndFlow — résumé de la manche */}
+            {(showScoreOverlay && gameState?.phase === 'MANCHE_END') && (
+                <MancheEndFlow
+                    gameState={gameState!}
+                    visible={true}
+                    localPlayerId={localPlayerId}
+                    onContinue={interceptOverlayContinue}
+                    isHost={isLocalHost}
+                />
             )}
 
             {/* ✨ RoundEndFlow — résumé animé avant l'écran de score */}

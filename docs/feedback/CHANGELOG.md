@@ -4,6 +4,18 @@
 
 ---
 
+## [2.5.18] - 2026-06-08
+
+### Amélioré
+- **Écran de fin de round (UX/UI)** — L'écran de résultat de fin de round a été entièrement revu pour plus de fluidité :
+  - **Transition directe :** L'écran s'assombrit et affiche directement les dominos restants des adversaires, sans masquer le plateau de jeu en arrière-plan. L'ancienne bannière intermédiaire "Fin de round" a été supprimée pour aller à l'essentiel.
+  - **Comptage dynamique :** L'animation du score est maintenant incrémentée visuellement en temps réel.
+  - **Message contextuel :** Affichage spécifique ("Vous avez posé tous vos dominos") pour le vainqueur par épuisement de tuiles, dont le score n'est plus décompté à l'écran pour gagner du temps.
+  - **Interface responsive :** L'écran final du vainqueur a été optimisé pour les petits téléphones afin d'éviter tout chevauchement entre l'avatar, le texte et les boutons.
+  - **Sonorisation :** Suppression du bruit "Boudé" joué par erreur au moment du comptage.
+
+---
+
 ## [2.5.17] - 2026-06-07
 
 ### Corrigé
@@ -517,3 +529,5 @@ GameScreen (MATCH_END) → recordMatchResult(totalCochonsInfliges) + processServ
 ### Modifié
 - **Ligue des Cochons** — la progression affichée est maintenant mensuelle et synchronisée entre l’accueil, `Ma Ligue` et l’écran Ligue.
 - **Écran Ligue** — suppression des repères de jauge trompeurs ; affichage recentré sur les paliers du mois et les bonus en coins.
+
+

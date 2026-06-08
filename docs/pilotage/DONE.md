@@ -2,6 +2,16 @@
 
 ## Juin 2026
 
+### 2026-06-08
+
+- **[UX-ROUND-END]** : Refonte et polish de l'écran de fin de round.
+  - **Compteur dynamique** : Réécriture de RollingNumber (requestAnimationFrame) pour un décompte visuel fluide et en temps réel du score.
+  - **UI Vainqueur responsive** : Passage en Flexbox pour le WinnerHighlight afin d'empêcher tout chevauchement (avatar/texte/bouton) et adaptation dynamique sur petits écrans.
+  - **Affichage intelligent** : Omission du bloc de comptage pour le vainqueur (0 domino) et texte de victoire contextuel ("A posé tous ses dominos" vs "A gagné ce round").
+  - **Continuité visuelle** : Le plateau de jeu et les dominos restent toujours visibles (assombris en arrière-plan), même lors d'une Partie Bloquée.
+  - **Audio** : Suppression du son de "Boudé" (toktok.mp3) joué par erreur pendant le comptage.
+  - **Fluidité** : Suppression de la bannière intermédiaire d'introduction pour aller plus vite à l'essentiel.
+
 ### 2026-06-07
 
 - **[UX-AVATAR-SCALE]** : Amélioration de l'affichage des joueurs en plein jeu — avatars agrandis de +25% (42→53px adversaires, 48→60px joueur local), badge nombre de dominos agrandi (+40%, 18→22px), nom du joueur déplacé sous l'avatar (prop `namePlacement="below"` + wrapper colonne dédié en layout horizontal). Fichiers modifiés : `PlayerArea.tsx`, `PlayerAvatar.tsx`.
@@ -475,3 +485,6 @@ L'historique detaille d'avril reste archive dans `history.md` et dans les versio
   - Accès autorisé à /dashboard/leaderboard pour voir le classement
   - Accès retiré pour /dashboard/audio
   - Correction du crash (client-side exception) sur la page /dashboard/bots due au rendu et aux propriétés optionnelles
+
+### 2026-06-07
+- **ROUND-END-FLOW** : Remplacement des modals de fin de partie/manche par une animation fluide (RoundEndFlow) avec diminution de la luminosité du plateau, affichage des dominos restants, et mise en évidence du vainqueur.

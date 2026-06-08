@@ -45,10 +45,12 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
         if (phase === 'idle') {
             // Démarre la phase 1
             setPhase('dimming');
-            if (gameState.phase === 'PARTIE_END') {
-                SoundManager.playSound('roundEnd');
-            } else if (gameState.phase === 'MANCHE_END' || gameState.phase === 'BOUDE') {
-                SoundManager.playSound('mancheEnd');
+            if (isBoude) {
+                if (gameState.phase === 'PARTIE_END') {
+                    SoundManager.playSound('roundEnd');
+                } else if (gameState.phase === 'MANCHE_END' || gameState.phase === 'BOUDE') {
+                    SoundManager.playSound('mancheEnd');
+                }
             }
 
             // Timeline
@@ -75,9 +77,9 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
     useEffect(() => {
         if (phase === 'counting' && countsCompleted >= totalPlayersWithDominoes) {
             setPhase('result');
-            if (winner) {
-                SoundManager.playSound('applause');
-            }
+            // if (winner && isBoude) {
+            //     SoundManager.playSound('applause');
+            // }
         }
     }, [countsCompleted, phase, winner, totalPlayersWithDominoes]);
 
@@ -124,7 +126,7 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
                 isTie={isTie} 
                 isBoude={isBoude}
                 localPlayerId={localPlayerId}
-                visible={phase === 'result'} 
+                visible={(!isBoude && phase !== 'idle') || phase === 'result'} 
                 onContinue={onDismiss} 
             />
         </View>
