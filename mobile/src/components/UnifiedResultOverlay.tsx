@@ -180,6 +180,8 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 else SoundManager.playSound('lose');
             } else if (isBoude) {
                 SoundManager.playSound('notify');
+            } else if (mancheResult === 'CHIRE') {
+                SoundManager.playSound('uhoh');
             } else if (mancheResult === 'COCHON') {
                 SoundManager.playSound('applause');
             } else {

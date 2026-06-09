@@ -72,7 +72,9 @@ export const MancheEndFlow: React.FC<MancheEndFlowProps> = ({
         // Sons spécifiques selon le résultat de la manche
         if (isBoude) {
             SoundManager.playSound('notify');
-        } else if (mancheResult === 'CHIRE' || mancheResult === 'COCHON') {
+        } else if (mancheResult === 'CHIRE') {
+            SoundManager.playSound('uhoh');
+        } else if (mancheResult === 'COCHON') {
             SoundManager.playSound('applause');
         } else {
             SoundManager.playSound('mancheEnd');
