@@ -4,6 +4,7 @@
 
 ### 2026-06-09
 
+- **[ADMOB-REAL-IDS]** : Refonte de la logique publicitaire pour basculer exclusivement sur Google AdMob. Intégration des vrais IDs de production. Suppression des publicités in-game entre les manches lors des parties multijoueurs (limitées à la fin de match uniquement).
 - **[UX-ENDROUND-POLISH]** : Finalisation du peaufinage UX des écrans de jeu et modales de fin :
   - **Bouton de tri** : Transformation du menu déroulant en icône cliquable avec cycle rapide (`Auto` → `Doubles` → `Somme`) et correction du blocage de clic sous iOS/Web par les conteneurs superposés (`PlayerArea` remontée avec `zIndex: 60`).
   - **Masquage mains adverses** : Les rectangles blancs de la main adverse sont désormais masqués lors de la phase de fin de round.

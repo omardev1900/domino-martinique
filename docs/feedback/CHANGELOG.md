@@ -7,6 +7,7 @@
 ## [2.5.19] - 2026-06-09
 
 ### Amélioré
+- **Publicités (Monétisation)** — Migration complète vers Google AdMob avec les véritables identifiants. Pour le mode Multijoueur, les publicités entre les manches ont été supprimées afin de fluidifier l'expérience (elles n'apparaissent désormais qu'à la fin d'un match).
 - **Bouton de tri des dominos (UX)** — Le menu déroulant a été remplacé par une simple icône réactive au clic. Un seul appui suffit désormais pour cycler entre les modes de tri (`Auto`, `Doubles`, `Somme`). Le bouton reste désormais toujours réactif même lorsqu'un domino est sélectionné pour être joué.
 - **Détails des scores (UI)** — Le bouton texte "Retour" a été remplacé par une icône de fermeture clairement visible (croix encerclée) avec une zone tactile considérablement élargie pour fermer plus facilement l'historique de match.
 - **Récompense de fin de match (Audio)** — Un son gratifiant accompagne désormais le moment précis où vous réclamez la récompense liée à une publicité de fin de partie.

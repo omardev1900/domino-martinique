@@ -22,7 +22,7 @@ les points bloquants avant la communication officielle.
 
 | Ticket | Description | Priorité | Statut |
 |---|---|---|---|
-| **ADMOB-REAL-IDS** | Remplacer les IDs de test AdMob par les vrais IDs de production (Banner, Interstitiel, Rewarded) dans `.env` et vérifier le waterfall admin → AdMob → fallback. | 🔴 Haute | Prêt |
+
 | **IAP-PAYMENTS** | Intégrer les achats in-app (Google Play Billing) pour : Option « Sans Publicité » et packs de Coins / Cosmétiques. | 🔴 Haute | Prêt |
 | **UX-MULTI-PENALITE** | Différencier abandon volontaire et déconnexion (`SURRENDERED` vs `DISCONNECTED`) : abandon = dernier même si le bot gagne. | 🟡 Moyenne | Prêt |
 
