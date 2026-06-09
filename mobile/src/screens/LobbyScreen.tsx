@@ -326,6 +326,8 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                 : 'En attente du hote...'}
                         </Text>
                     </View>
+                )}
+                </Animated.View>
             </Animated.ScrollView>
         </LinearGradient>
         <BotSelectionModal
