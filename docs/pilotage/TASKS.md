@@ -1,53 +1,46 @@
-# TASKS - Taches actives
+# TASKS - Tâches actives
 
-> Ce fichier contient uniquement les taches planifiees, pretes, en cours ou differees.
-> Rien de livre ou archive ne doit rester ici.
+> Ce fichier contient uniquement les tâches planifiées, prêtes, en cours ou différées.
+> Rien de livré ou archivé ne doit rester ici.
 >
 > **Flux obligatoire :** `BACKLOG.md` -> `TASKS.md` -> `DONE.md`
 
-**Derniere mise a jour :** 2026-06-07
-**Sprint actuel :** Pre-Lancement Officiel
+**Dernière mise à jour :** 2026-06-09
+**Sprint actuel :** Mise à jour Grand Public
 
 ---
 
-## Priorite immediate
+## Contexte
 
-Le repo est sorti des gros sprints de livraison d'avril-debut mai.
-Le travail actif est maintenant un sprint court de finition avant lancement officiel.
-
----
-
-## Sprint Pre-Lancement Officiel
-
-**Sprint actuel :** Pre-Lancement Officiel
+L'app est publiée sur le Google Play Store mais pas encore communiquée au grand public.
+L'objectif de ce sprint est de livrer une mise à jour solide et distribuable qui finalise
+les points bloquants avant la communication officielle.
 
 ---
 
-## Priorite immediate
+## Sprint — Mise à jour Grand Public
 
-Le repo est sorti des gros sprints de livraison d'avril-debut mai.
-Le travail actif est maintenant un sprint court de finition avant lancement officiel.
-
----
-
-## Sprint Pre-Lancement Officiel
-
-| Ticket | Description | Priorite | Statut |
+| Ticket | Description | Priorité | Statut |
 |---|---|---|---|
-| **OTP-INSCRIPTION** | OTP email a l'inscription avec code 6 chiffres — **Web uniquement** (`Platform.OS === 'web'`). Mobile non concerne (validation via Google Play / App Store). | Haute | Différé |
-| **UX-OPPONENT-DOMINOS** | [UI/UX] Inventaire adverse : petits rectangles blancs face cachée affichés à côté du bloc stats (droite pour top-left, gauche pour top-right). Nouveau composant `OpponentHandBar`, taille adaptative via `useWindowDimensions`. | Moyenne | ✅ Livré |
+| **ADMOB-REAL-IDS** | Remplacer les IDs de test AdMob par les vrais IDs de production (Banner, Interstitiel, Rewarded) dans `.env` et vérifier le waterfall admin → AdMob → fallback. | 🔴 Haute | Prêt |
+| **IAP-PAYMENTS** | Intégrer les achats in-app (Google Play Billing) pour : Option « Sans Publicité » et packs de Coins / Cosmétiques. | 🔴 Haute | Prêt |
+| **UX-ENDROUND-POLISH** | Finaliser le peaufinage UX des écrans de fin de round, de manche et de match : enchaînements fluides, responsive mobile, aucun chevauchement visuel résiduel. | 🔴 Haute | En cours |
+| **UX-MULTI-PENALITE** | Différencier abandon volontaire et déconnexion (`SURRENDERED` vs `DISCONNECTED`) : abandon = dernier même si le bot gagne. | 🟡 Moyenne | Prêt |
 
-Checklist de cloture obligatoire :
-1. retirer le ticket de `TASKS.md`
-2. ajouter l'entree archivee dans `DONE.md` sous la date du jour
-3. ajouter `CHANGELOG.md` si le changement est visible cote joueur / utilisateur
-4. verifier qu'aucun sous-ticket `Fait` ne reste dans `TASKS.md`
+---
+
+## Checklist de clôture obligatoire
+
+1. Retirer le ticket de `TASKS.md`
+2. Ajouter l'entrée archivée dans `DONE.md` sous la date du jour
+3. Ajouter au `CHANGELOG.md` si le changement est visible côté joueur
+4. Vérifier qu'aucun sous-ticket `Fait` ne reste dans `TASKS.md`
 
 ---
 
 ## Liens utiles
 
 - Archive : `docs/pilotage/DONE.md`
-- Backlog non planifie : `docs/pilotage/BACKLOG.md`
+- Backlog non planifié : `docs/pilotage/BACKLOG.md`
 - Roadmap produit : `docs/ROADMAP.md`
 - Changelog user-facing : `docs/feedback/CHANGELOG.md`

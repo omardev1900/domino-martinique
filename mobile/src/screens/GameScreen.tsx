@@ -60,7 +60,7 @@ import { SkinConfig } from '../core/store.types';
 import { adService } from '../core/services/ad.service';
 import { Ad, AdPlacement } from '../core/ad.types';
 import { AdBannerModal } from '../components/AdBannerModal';
-import { useInterstitialAd, TestIds } from '../core/services/AdMobAdapter';
+import { useInterstitialAd, TestIds, AdMobIds } from '../core/services/AdMobAdapter';
 
 interface GameScreenProps {
     gameId?: string;
@@ -544,7 +544,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const nextAdRef = useRef<Ad | 'ADMOB' | null>(null);
 
     // Google AdMob
-    const { isLoaded: isAdMobLoaded, isClosed: isAdMobClosed, load: loadAdMob, show: showAdMob } = useInterstitialAd(TestIds.INTERSTITIAL);
+    const { isLoaded: isAdMobLoaded, isClosed: isAdMobClosed, load: loadAdMob, show: showAdMob } = useInterstitialAd(AdMobIds.INTERSTITIAL_FIN_PARTIE);
 
     useEffect(() => {
         if (Platform.OS !== 'web') {

@@ -23,7 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { adService } from '../core/services/ad.service';
 import { Ad, AdPlacement } from '../core/ad.types';
 import { AdBannerModal } from './AdBannerModal';
-import { useRewardedAd, TestIds } from '../core/services/AdMobAdapter';
+import { useRewardedAd, TestIds, AdMobIds } from '../core/services/AdMobAdapter';
 import { Platform } from 'react-native';
 
 export interface AdRewardButtonProps {
@@ -60,7 +60,7 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
     const [adToShow, setAdToShow] = useState<Ad | null>(null);
 
     // Google AdMob Rewarded
-    const { isLoaded: isAdMobLoaded, isClosed: isAdMobClosed, isEarnedReward, load: loadAdMob, show: showAdMob } = useRewardedAd(TestIds.REWARDED);
+    const { isLoaded: isAdMobLoaded, isClosed: isAdMobClosed, isEarnedReward, load: loadAdMob, show: showAdMob } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
 
     React.useEffect(() => {
         if (Platform.OS !== 'web') {

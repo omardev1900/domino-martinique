@@ -1,58 +1,39 @@
-# BACKLOG - Taches a planifier
+# BACKLOG - Tâches à planifier
 
-> Ce fichier contient les sujets connus mais non encore planifies.
-> Des qu'une tache devient prioritaire et decidee, elle sort du backlog pour aller dans `TASKS.md`.
+> Ce fichier contient les sujets connus mais non encore planifiés.
+> Dès qu'une tâche devient prioritaire et décidée, elle sort du backlog pour aller dans `TASKS.md`.
 
-**Derniere mise a jour :** 2026-06-03
-
----
-
-## Avant lancement officiel - Phase de test ferme
-
-### Bugs & améliorations — retour #14 du 05 juin 2026
-
-| Ticket | Description | Priorité | Estimation |
-|---|---|---|---|
-
-| **IAP-PAYMENTS** | [FEATURE] Intégrer les achats in-app (In-App Purchases via Google Play / Apple) pour : 1) Option "Sans Publicité", 2) Achat de packs de Coins ou de Cosmétiques dans la boutique. | 🔴 Haute | ~3 j |
-
-
-| Ticket | Description | Priorité | Estimation |
-| **UX-OPPONENT-DOMINOS** | [UI/UX] Inventaire adverse : Afficher des petits rectangles visuels pour représenter les dominos restants des adversaires sur le plateau. | 🟡 Moyenne | ~0,5 j |
-
-### Bugs & améliorations — retour #11 du 03 juin 2026
-
-| Ticket | Description | Priorité | Estimation |
-|---|---|---|---|
-| **ECO-DIAMOND-REDUCE** | Modifier la récompense en diamants : donner un seul et unique diamant pour chaque victoire d'un match complet (peu importe le mode). | 🟡 Moyenne | ~0,25 j |
-| **REFACTOR-GAMESCREEN** | Dette technique : Découper l'immense fichier `GameScreen.tsx` (> 2000 lignes) en de multiples petits fichiers maintenables (hooks dédiés, composants UI éclatés). | 🔴 Haute | ~2 j |
-| **REFERRAL-SYSTEM** | Système de parrainage simple : code unique par joueur (ex: basé sur l'UID tronqué), saisi à l'inscription par le filleul. À l'inscription : créditer le parrain en coins (ex: +200) et le filleul en coins (ex: +100). Pas de tracking d'installation externe — vérification côté Cloud Function à la création du compte. | 🔵 Long terme | ~1,5 j |
-
-
-| Ticket | Description | Estimation |
-|---|---|---|
-| **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression |
-| **ECO-ADS-COINS-TUNING** | Definir la recompense coins du visionnage pub volontaire post-match |
-
-| **GOD-MODE** | Nouveau mode solo separe "GOD MODE" : 2 bots METKAYALI allies contre le joueur, format `VICTOIRE` v1, acces verrouille par progression joueur |
-| **ECO-STAKE-PAYOUT-RULES** | Arbitrer la redistribution des mises en multi et l'eventuelle commission |
-| **MULTI-PENALITE-ABANDON** | Differencier abandon volontaire et deconnexion (statut SURRENDERED). A la fin, le joueur en abandon volontaire perd tout et finit dernier, meme si son bot gagne. |
-
-
-
-
+**Dernière mise à jour :** 2026-06-09
 
 ---
 
-## Apres lancement officiel
+## Avant communication grand public — Backlog immédiat
+
+> Ces tickets ne bloquent pas la distribution mais doivent être faits pour la 1ère vague de communication.
+
+| Ticket | Description | Priorité | Estimation |
+|---|---|---|---|
+| **IAP-PAYMENTS** | [FEATURE] Intégrer les achats in-app (Google Play / Apple) : Sans Pub, Coins, Cosmétiques. | 🔴 Haute | ~3 j |
+| **ADMOB-REAL-IDS** | Remplacer les IDs de test AdMob par les IDs de production réels pour monétisation. | 🔴 Haute | ~0,25 j |
+| **MULTI-PENALITE-ABANDON** | Différencier abandon volontaire et déconnexion (`SURRENDERED` vs `DISCONNECTED`). À la fin, le joueur en abandon volontaire perd tout et finit dernier, même si son bot gagne. | 🟡 Moyenne | ~0,5 j |
+| **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression. | 🟡 Moyenne | — |
+| **ECO-ADS-COINS-TUNING** | Définir la récompense coins du visionnage pub volontaire post-match. | 🟡 Moyenne | — |
+
+---
+
+## Après communication grand public — Post-lancement
 
 | Ticket | Description | Estimation |
 |---|---|---|
 | **TOURNAMENTS** | Bloc 11 - Tournois complets : admin, mobile, brackets, Cloud Functions | ~4 jours |
+| **OTP-INSCRIPTION** | OTP email à l'inscription (code 6 chiffres) — Web uniquement. Différé car validation Play Store / App Store suffit pour le mobile. | ~1 jour |
+| **REFACTOR-GAMESCREEN** | Dette technique : Découper `GameScreen.tsx` (>2000 lignes) en hooks et composants maintenables. | ~2 jours |
+| **REFERRAL-SYSTEM** | Système de parrainage : code unique par joueur, coins parrain +200 / filleul +100 via Cloud Function. | ~1,5 jour |
+| **GOD-MODE** | Mode solo séparé "GOD MODE" : 2 bots METKAYALI alliés contre le joueur, accès verrouillé par progression. | — |
 | **GOOGLE-PAY** | Paiements in-app Android via Google Play Billing | ~2 jours |
 | **NOTIF-WEB** | Notifications push Web PWA | ~1 jour |
-| **R4-B3-SESSION** | Multijoueur - reconnexion apres purge complete de session navigateur | ~1 jour |
-| **UX-LEAGUE-BANNER** | Banniere interactive et auto-scroll (Sticky Banner) dans la vue Ligue des Cochons | ~1 jour |
+| **R4-B3-SESSION** | Multijoueur - reconnexion après purge complète de session navigateur | ~1 jour |
+| **UX-LEAGUE-BANNER** | Bannière interactive et auto-scroll (Sticky Banner) dans la vue Ligue des Cochons | ~1 jour |
 | **AUDIO-IOS-FALLBACK** | Fallback WebAudio API Safari iOS pour les SFX | ~0,5 jour |
 
 ---
@@ -84,14 +65,14 @@
 
 ---
 
-## Notes de hygiene
+## Notes d'hygiène
 
-- Les tickets du sprint `Pre-Lancement Officiel` ne doivent plus vivre ici : ils sont maintenant dans `docs/pilotage/TASKS.md`.
-- `Shop3` sort de cette liste : la demande a deja ete livree via `R4-M3`.
-- `ECO-REBALANCE`, `OTP-INSCRIPTION` et `ADS-REWARD` restent suivis dans `TASKS.md` avec statut differe selon le calendrier des tests Google Play.
-- `ADS-POST-MATCH-MANDATORY` existe deja et reste pilote via l'admin : ne pas le recreer en ticket dev.
-- `ANIM-DOMINO` est livre ; `ANIM-DOMINO-POLISH` et `ANIM-DOMINO-DISTRIB` restent des extensions optionnelles suivies ici.
-- Les contenus boutique et chat pilotables via l'admin (`cosmetiques`, `Merci`, phrases MDC) sortent du backlog dev et se gerent en configuration.
+- `OTP-INSCRIPTION`, `REFACTOR-GAMESCREEN`, `REFERRAL-SYSTEM` et `GOD-MODE` sont différés volontairement après communication grand public.
+- `ECO-DIAMOND-REDUCE` est livré (1 diamant par victoire de match, 0 pour les perdants) — archivé dans `DONE.md` 2026-06-05.
+- `UX-OPPONENT-DOMINOS` est livré — archivé dans `DONE.md` 2026-06-07.
+- `ECO-REBALANCE` et `ADS-REWARD` sont livrés.
+- `ANIM-DOMINO` est livré ; `ANIM-DOMINO-DISTRIB` reste une extension optionnelle.
+- Les contenus boutique et chat pilotables via l'admin (`cosmetiques`, phrases MDC) se gèrent en configuration, pas en ticket dev.
 
 ---
 
