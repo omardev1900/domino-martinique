@@ -78,7 +78,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                     >
                         {/* Barre dominos à GAUCHE du bloc avatar (côté centre écran) pour top-right */}
                         <OpponentHandBar
-                            handSize={opponents[0].handSize}
+                            handSize={isPlaying ? opponents[0].handSize : 0}
                             position="top-right"
                             screenWidth={screenWidth}
                             avatarContainerHeight={65}
@@ -150,7 +150,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                         />
                         {/* Barre dominos à DROITE du bloc avatar (côté centre écran) pour top-left */}
                         <OpponentHandBar
-                            handSize={opponents[1].handSize}
+                            handSize={isPlaying ? opponents[1].handSize : 0}
                             position="top-left"
                             screenWidth={screenWidth}
                             avatarContainerHeight={65}
