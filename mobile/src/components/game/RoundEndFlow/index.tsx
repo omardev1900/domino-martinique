@@ -12,11 +12,12 @@ interface RoundEndFlowProps {
     visible: boolean;
     onDismiss: () => void;
     localPlayerId: string;
+    opponents: Player[];
 }
 
 type FlowPhase = 'idle' | 'dimming' | 'reveal' | 'counting' | 'result';
 
-export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, onDismiss, localPlayerId }) => {
+export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, onDismiss, localPlayerId, opponents }) => {
     const [phase, setPhase] = useState<FlowPhase>('idle');
     const [countsCompleted, setCountsCompleted] = useState(0);
 
@@ -86,7 +87,6 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
     if (!visible || phase === 'idle') return null;
 
     const localPlayer = gameState.players.find(p => p.id === localPlayerId);
-    const opponents = gameState.players.filter(p => p.id !== localPlayerId);
 
     return (
         <View style={StyleSheet.absoluteFillObject} pointerEvents={phase === 'result' ? 'auto' : 'none'}>

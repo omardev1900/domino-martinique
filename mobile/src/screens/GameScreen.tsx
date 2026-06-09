@@ -1990,6 +1990,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     visible={showRoundResult || !!isCurrentBoudeResultVisible}
                     onDismiss={handleDismissRoundResult}
                     localPlayerId={localPlayerId}
+                    opponents={opponents}
                 />
             )}
 
