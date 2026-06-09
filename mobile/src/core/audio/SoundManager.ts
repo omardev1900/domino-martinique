@@ -5,7 +5,7 @@ import { LogService } from '../services/LogService';
 
 type MusicContext = 'appActive' | 'inGame';
 type LegacyMusicContext = 'bgm1' | 'bgm2' | 'bgm3' | 'mainMenu' | 'gameNormal' | 'gameIntense';
-type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | MusicContext | 'end' | 'toktok' | 'timer' | 'end_time' | 'leagueJingle' | 'applause' | 'roundEnd' | 'mancheEnd' | 'matchEnd' | 'uhoh';
+type SoundName = 'clack1' | 'clack2' | 'clack3' | 'notify' | 'win' | 'lose' | 'shuffle' | MusicContext | 'end' | 'toktok' | 'timer' | 'end_time' | 'leagueJingle' | 'applause' | 'roundEnd' | 'mancheEnd' | 'matchEnd' | 'uhoh' | 'bravo';
 type SoundCategory = 'ui' | 'gameplay' | 'stinger_major';
 type SoundPolicy = {
     category: SoundCategory;
@@ -45,6 +45,7 @@ const SOUND_POLICIES: Partial<Record<SoundName, SoundPolicy>> = {
     leagueJingle: { category: 'stinger_major', cooldownMs: 1800, ducksMusic: true, duckFactor: 0.18, duckDurationMs: 2200, exclusiveGroup: 'major_stinger', exclusiveGroupCooldownMs: 2400, majorStingerLockMs: 2200 },
     applause: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.22, duckDurationMs: 1800, exclusiveGroup: 'celebration_tail', exclusiveGroupCooldownMs: 1800, majorStingerLockMs: 1800 },
     uhoh: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.22, duckDurationMs: 1800, exclusiveGroup: 'celebration_tail', exclusiveGroupCooldownMs: 1800, majorStingerLockMs: 1800 },
+    bravo: { category: 'stinger_major', cooldownMs: 1400, ducksMusic: true, duckFactor: 0.22, duckDurationMs: 1800, exclusiveGroup: 'celebration_tail', exclusiveGroupCooldownMs: 1800, majorStingerLockMs: 1800 },
 };
 
 const DEFAULT_SOUND_POLICY: SoundPolicy = {
@@ -70,6 +71,7 @@ const SOUND_MIX_GAINS: Partial<Record<SoundName, number>> = {
     leagueJingle: 0.66,
     applause: 0.5,
     uhoh: 0.6,
+    bravo: 0.6,
 };
 
 function normalizeMusicContext(value: string): MusicContext | null {
@@ -85,7 +87,7 @@ class SoundManager {
         notify: null, win: null, lose: null,
         shuffle: null, appActive: null, inGame: null,
         end: null, toktok: null,
-        timer: null, end_time: null, leagueJingle: null, applause: null, roundEnd: null, mancheEnd: null, matchEnd: null, uhoh: null,
+        timer: null, end_time: null, leagueJingle: null, applause: null, roundEnd: null, mancheEnd: null, matchEnd: null, uhoh: null, bravo: null,
     };
 
     private currentMusic: AudioPlayer | null = null;
@@ -195,6 +197,7 @@ class SoundManager {
                 mancheEnd: require('@/assets/sounds/stingers/stinger-manche-end.mp3'),
                 matchEnd: require('@/assets/sounds/stingers/stinger-match-end.mp3'),
                 uhoh: require('@/assets/sounds/sfx/uh-oh.mp3'),
+                bravo: require('@/assets/sounds/sfx/bravo.mp3'),
             };
 
             for (const [key, source] of Object.entries(soundMap)) {

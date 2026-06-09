@@ -13,6 +13,7 @@ import Animated, {
 import { Image } from 'expo-image';
 import { Player } from '../../../core/types';
 import { getAvatarImage, AvatarId } from '../../../core/avatars';
+import SoundManager from '../../../core/audio/SoundManager';
 
 interface WinnerHighlightProps {
     winner: Player | null;
@@ -41,6 +42,12 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
             );
         }
     }, [visible, winner, reducedMotion]);
+
+    useEffect(() => {
+        if (visible && winner) {
+            SoundManager.playSound('bravo');
+        }
+    }, [visible, !!winner]);
 
     const pulseStyle = useAnimatedStyle(() => ({
         transform: [{ scale: pulseScale.value }]
