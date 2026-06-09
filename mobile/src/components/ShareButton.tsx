@@ -44,11 +44,12 @@ interface ShareTextButtonProps {
     cardContent?: React.ReactNode;
     iconOnly?: boolean;
     buttonStyle?: any;
+    wrapperStyle?: any;
     iconColor?: string;
     iconSize?: number;
 }
 
-export function ShareTextButton({ text, label = 'Partager', cardContent, iconOnly = false, buttonStyle, iconColor = "#1A0E2E", iconSize = 18 }: ShareTextButtonProps) {
+export function ShareTextButton({ text, label = 'Partager', cardContent, iconOnly = false, buttonStyle, wrapperStyle, iconColor = "#1A0E2E", iconSize = 18 }: ShareTextButtonProps) {
     const viewShotRef = useRef<ViewShot>(null);
     const [sharing, setSharing] = useState(false);
 
@@ -80,7 +81,7 @@ export function ShareTextButton({ text, label = 'Partager', cardContent, iconOnl
     };
 
     return (
-        <View style={styles.shareBtnWrapper}>
+        <View style={[styles.shareBtnWrapper, wrapperStyle]}>
             {cardContent && (
                 <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }} style={styles.offscreen}>
                     {cardContent}

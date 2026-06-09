@@ -48,6 +48,13 @@ export default function StoreScreen() {
         }
     };
 
+    useFocusEffect(
+        useCallback(() => {
+            loadData();
+        }, [])
+    );
+
+
     const dynamicTabs = useMemo(() => {
         const types = Array.from(new Set(catalog.map(item => item.type)));
         const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -186,7 +193,7 @@ export default function StoreScreen() {
             if (!playerEconomy) return;
             const updateTimer = () => {
                 const lastAd = playerEconomy.lastStoreAdTimestamp || 0;
-                const diff = 180000 - (Date.now() - lastAd); // cooldown 3 minutes
+                const diff = 120000 - (Date.now() - lastAd); // cooldown 2 minutes
                 setRemainingSeconds(diff > 0 ? Math.ceil(diff / 1000) : 0);
             };
             updateTimer();

@@ -287,14 +287,8 @@ export default function HomeScreen() {
         >
             {/* Header Area */}
             <View style={[styles.header, { paddingTop: insets.top || 20 }, USE_NEW_SIDEBAR && styles.headerCentered]}>
-                {/* Top Left: Invite friends (Visible on all devices) */}
+                {/* Top Left: Help (Visible on all devices) */}
                 <View style={[styles.headerTopLeft, { top: (insets.top || 20) + 12 }]}>
-                    <ShareTextButton 
-                        text="Rejoins-moi sur Domino Martiniquais pour une petite partie ! Télécharge le jeu ici : https://play.domino-martinique.online/"
-                        label="Inviter"
-                        iconSize={14}
-                        buttonStyle={styles.headerShareBtn}
-                    />
                     {!USE_NEW_SIDEBAR && (
                         <TouchableOpacity
                             style={styles.helpButton}
@@ -402,19 +396,8 @@ export default function HomeScreen() {
                 ) : null}
 
                 <View style={styles.topCardsRow}>
-                    {/* 1. Bloc Niveau Cochon - ENLARGED AGAIN */}
-                    {user && (
-                        <View style={[styles.topCardWrapper, { flex: 1.5 }]}>
-                            <LeagueProgressWidget 
-                                points={cochonsGiven} 
-                                onInfoPress={() => router.push('/ligue-cochons')}
-                                style={styles.leagueWidgetCompact}
-                            />
-                        </View>
-                    )}
-
-                    {/* 2. Nouveau bloc Actualités - CAROUSEL */}
-                    <Animated.View entering={FadeInUp.delay(200).duration(500)} style={[styles.topCardWrapper, { flex: 0.9 }]}>
+                    {/* 1. Nouveau bloc Actualités - CAROUSEL */}
+                    <Animated.View entering={FadeInUp.delay(200).duration(500)} style={[styles.topCardWrapper, { flex: 1.2 }]}>
                         <TouchableOpacity 
                             style={styles.newsContainerCompact}
                             onPress={() => router.push('/news/history')}
@@ -474,23 +457,70 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </Animated.View>
 
-                    {/* 3. Bouton Principal JOUER - REDUCED AGAIN */}
-                    <Animated.View entering={FadeInUp.delay(400).duration(500)} style={[styles.topCardWrapper, { flex: 0.6 }]}>
-                        <PremiumButton
-                            style={styles.playCardCompact}
-                            onPress={() => router.push('/game-modes')}
-                            soundName="notify"
-                        >
-                            <LinearGradient
-                                colors={['#FFD700', '#FF8C00']}
-                                style={styles.playGradientCompact}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
+                    {/* 2. Bloc Niveau Cochon - ENLARGED AGAIN */}
+                    {user && (
+                        <View style={[styles.topCardWrapper, { flex: 1.4 }]}>
+                            <LeagueProgressWidget 
+                                points={cochonsGiven} 
+                                onInfoPress={() => router.push('/ligue-cochons')}
+                                style={styles.leagueWidgetCompact}
+                            />
+                        </View>
+                    )}
+
+                    {/* 3. Section Action (Inviter + Jouer) */}
+                    <Animated.View entering={FadeInUp.delay(400).duration(500)} style={[styles.topCardWrapper, { flex: 0.4 }]}>
+                        <View style={{ flex: 1, flexDirection: 'column', gap: 8 }}>
+                            {/* Bouton INVITER (haut) */}
+                            <ShareTextButton 
+                                text="Rejoins-moi sur Domino Martiniquais pour une petite partie ! Télécharge le jeu ici : https://play.domino-martinique.online/"
+                                label="INVITER"
+                                iconSize={24}
+                                iconColor="#1A0E2E"
+                                wrapperStyle={{ flex: 1, alignSelf: 'stretch' }}
+                                buttonStyle={{
+                                    flex: 1,
+                                    width: '100%',
+                                    borderRadius: 12,
+                                    backgroundColor: '#42A5F5',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexDirection: 'column',
+                                    gap: 2,
+                                    elevation: 4,
+                                    shadowColor: '#42A5F5',
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.3,
+                                    shadowRadius: 3,
+                                }}
+                            />
+
+                            {/* Bouton JOUER (bas) */}
+                            <PremiumButton
+                                style={{
+                                    flex: 1,
+                                    borderRadius: 12,
+                                    overflow: 'hidden',
+                                    elevation: 8,
+                                    shadowColor: '#FF9800',
+                                    shadowOffset: { width: 0, height: 4 },
+                                    shadowOpacity: 0.4,
+                                    shadowRadius: 5,
+                                }}
+                                onPress={() => router.push('/game-modes')}
+                                soundName="notify"
                             >
-                                <Ionicons name="game-controller" size={34} color="#1A0E2E" />
-                                <Text style={styles.playTextCompact}>JOUER</Text>
-                            </LinearGradient>
-                        </PremiumButton>
+                                <LinearGradient
+                                    colors={['#FFD700', '#FF8C00']}
+                                    style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 }}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    <Ionicons name="game-controller" size={24} color="#1A0E2E" />
+                                    <Text style={{ color: '#1A0E2E', fontSize: 13, fontWeight: '900', letterSpacing: 1 }}>JOUER</Text>
+                                </LinearGradient>
+                            </PremiumButton>
+                        </View>
                     </Animated.View>
                 </View>
             </ScrollView>
