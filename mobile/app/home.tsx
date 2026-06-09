@@ -43,6 +43,10 @@ export default function HomeScreen() {
     const insets = useSafeAreaInsets();
     const { height } = useWindowDimensions();
     const [user, setUser] = useState<PlayerProfile | null>(null);
+    const dailyClaimTriggerRef = useRef<(() => void) | null>(null);
+    const [showHelp, setShowHelp] = useState(false);
+    const [newsList, setNewsList] = useState<NewsItem[]>([]);
+    const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
     const [reconnectRoomId, setReconnectRoomId] = useState<string | null>(null);
     const [hostedWaitingRoomId, setHostedWaitingRoomId] = useState<string | null>(null);
     const [economyRefresh, setEconomyRefresh] = useState(0);
