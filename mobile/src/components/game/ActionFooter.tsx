@@ -69,7 +69,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                 )}
 
                 {showSideSelection && (
-                    <View style={styles.sideSelectionContainer}>
+                    <View style={styles.sideSelectionContainer} pointerEvents="box-none">
                         <TouchableOpacity
                             style={[styles.sideButton, styles.sideButtonLeft]}
                             onPress={() => onSelectSide?.('left')}

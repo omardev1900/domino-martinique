@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { act, render, waitFor } from '@testing-library/react-native';
 import GameScreen from '../GameScreen';
 import { MatchReward } from '../../core/economy.types';
@@ -73,9 +73,6 @@ jest.mock('../../components/UnifiedResultOverlay', () => ({
 }));
 jest.mock('../../components/QuickChat', () => ({
     QuickChat: () => null,
-}));
-jest.mock('../../components/game/RoundResultCard', () => ({
-    RoundResultCard: (props: any) => mockRoundResultCard(props),
 }));
 jest.mock('../../components/FlyingDomino', () => ({
     FlyingDomino: () => null,

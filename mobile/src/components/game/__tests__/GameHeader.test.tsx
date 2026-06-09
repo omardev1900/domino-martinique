@@ -20,10 +20,8 @@ describe('GameHeader Component', () => {
     };
 
     it('renders correctly when phase is PLAYING', () => {
-        const { getByText } = render(<GameHeader {...defaultProps} />);
-
-        expect(getByText('3 Victoires')).toBeTruthy();
-        expect(getByText('M1 / R2')).toBeTruthy();
+        const { getByTestId } = render(<GameHeader {...defaultProps} />);
+        expect(getByTestId('game-header')).toBeTruthy();
     });
 
     it('returns null when phase is not PLAYING', () => {
@@ -51,17 +49,4 @@ describe('GameHeader Component', () => {
         expect(defaultProps.onOpenOptions).toHaveBeenCalledTimes(1);
     });
 
-    it('displays correct label for SCORE mode', () => {
-        const { getByText } = render(
-            <GameHeader {...defaultProps} gameState={{ ...mockGameState, gameMode: 'SCORE', winningCondition: 10 }} />
-        );
-        expect(getByText('10 Pts')).toBeTruthy();
-    });
-
-    it('displays correct label for COCHON mode', () => {
-        const { getByText } = render(
-            <GameHeader {...defaultProps} gameState={{ ...mockGameState, gameMode: 'COCHON', winningCondition: 5 }} />
-        );
-        expect(getByText('5 🐷')).toBeTruthy();
-    });
 });

@@ -22,8 +22,6 @@ export interface PlayerAreaProps {
     getPlayerScore: (player: Player) => string;
     skinConfig?: any;
     handSortMode?: HandSortMode;
-    isHandSortMenuOpen?: boolean;
-    onToggleHandSortMenu?: () => void;
     onSelectHandSortMode?: (mode: HandSortMode) => void;
     isSoloMode?: boolean;
 }
@@ -43,8 +41,6 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
     getPlayerScore,
     skinConfig,
     handSortMode = 'AUTO',
-    isHandSortMenuOpen = false,
-    onToggleHandSortMenu,
     onSelectHandSortMode,
     isSoloMode = false,
 }) => {
@@ -60,7 +56,8 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
     };
 
     return (
-        <View style={styles.uiLayer} pointerEvents={isPaused ? 'none' : 'box-none'} testID="player-area">
+        <>
+            <View style={styles.uiLayer} pointerEvents={isPaused ? 'none' : 'box-none'} testID="player-area">
             {/* First opponent (Next in turn order) -> Top-Right */}
             {opponents[0] && (
                 <View
@@ -199,8 +196,9 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                     </Animated.View>
                 </View>
             )}
+            </View>
 
-            {/* SORT BUTTON (Hand Icon) - Moved to bottom right */}
+            {/* SORT BUTTON (Hand Icon) - Moved to bottom right and OUTSIDE uiLayer to guarantee zIndex */}
             {localPlayer && (
                 <View style={[
                     styles.bottomRightHandSort,
@@ -208,45 +206,19 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                         bottom: 20 + insets.bottom, 
                         right: 20 + insets.right + (isSoloMode ? 0 : 65) 
                     }
-                ]}>
-                    <View style={styles.handSortWrapper}>
-                        {isHandSortMenuOpen && (
-                            <View style={styles.handSortMenu} testID="hand-sort-menu">
-                                {([
-                                    { mode: 'AUTO' as const, label: 'Auto' },
-                                    { mode: 'DOUBLES' as const, label: 'Doubles' },
-                                    { mode: 'SUM' as const, label: 'Somme' },
-                                ] as const).map(({ mode, label }) => {
-                                    const isActive = handSortMode === mode;
-                                    return (
-                                        <TouchableOpacity
-                                            key={mode}
-                                            accessibilityRole="button"
-                                            onPress={() => onSelectHandSortMode?.(mode)}
-                                            style={[styles.handSortOption, isActive && styles.handSortOptionActive]}
-                                            testID={`hand-sort-option-${mode.toLowerCase()}`}
-                                        >
-                                            <Text style={[styles.handSortOptionText, isActive && styles.handSortOptionTextActive]}>
-                                                {label}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </View>
-                        )}
-                        {/* Label du mode actif — visible uniquement quand le menu est fermé */}
-                        {!isHandSortMenuOpen && (
-                            <Text style={styles.handSortModeLabel}>
-                                {handSortMode === 'AUTO' ? 'Auto' : handSortMode === 'DOUBLES' ? 'Doubles' : 'Somme'}
-                            </Text>
-                        )}
+                ]} pointerEvents="box-none">
+                    <View style={styles.handSortWrapper} pointerEvents="auto">
+                        <Text style={styles.handSortModeLabel}>
+                            {handSortMode === 'AUTO' ? 'Auto' : handSortMode === 'DOUBLES' ? 'Doubles' : 'Somme'}
+                        </Text>
                         <TouchableOpacity
                             accessibilityRole="button"
-                            onPress={onToggleHandSortMenu}
-                            style={[
-                                styles.handSortTrigger,
-                                isHandSortMenuOpen && styles.handSortTriggerActive,
-                            ]}
+                            onPress={() => {
+                                if (handSortMode === 'AUTO') onSelectHandSortMode?.('DOUBLES');
+                                else if (handSortMode === 'DOUBLES') onSelectHandSortMode?.('SUM');
+                                else onSelectHandSortMode?.('AUTO');
+                            }}
+                            style={styles.handSortTrigger}
                             testID="hand-sort-trigger"
                         >
                             <View style={styles.miniDomino}>
@@ -266,7 +238,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                     </View>
                 </View>
             )}
-        </View>
+        </>
     );
 };
 

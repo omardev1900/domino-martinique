@@ -70,18 +70,17 @@ describe('PlayerArea Component', () => {
         expect(getByTestId('hand-sort-trigger')).toBeTruthy();
     });
 
-    it('shows hand sort options and delegates the selection callback', () => {
+    it('cycles hand sort options when trigger is pressed', () => {
         const onSelectHandSortMode = jest.fn();
         const { getByTestId } = render(
             <PlayerArea
                 {...defaultProps}
-                isHandSortMenuOpen={true}
                 handSortMode="AUTO"
                 onSelectHandSortMode={onSelectHandSortMode}
             />
         );
 
-        fireEvent.press(getByTestId('hand-sort-option-sum'));
-        expect(onSelectHandSortMode).toHaveBeenCalledWith('SUM');
+        fireEvent.press(getByTestId('hand-sort-trigger'));
+        expect(onSelectHandSortMode).toHaveBeenCalledWith('DOUBLES');
     });
 });

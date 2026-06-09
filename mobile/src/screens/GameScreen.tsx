@@ -709,7 +709,6 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const [playerDisplayName, setPlayerDisplayName] = useState<string>('Moi');
     const [playerAvatarId, setPlayerAvatarId] = useState<string | undefined>('avatar_01');
     const [handSortMode, setHandSortMode] = useState<HandSortMode>('AUTO');
-    const [isHandSortMenuOpen, setIsHandSortMenuOpen] = useState(false);
     const [playerSkinId, setPlayerSkinId] = useState<string | undefined>(undefined);
     const [playerSkinConfig, setPlayerSkinConfig] = useState<SkinConfig | undefined>(undefined);
     const [profileLoaded, setProfileLoaded] = useState(false);
@@ -2081,11 +2080,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 getPlayerScore={getPlayerScore as any}
                 skinConfig={playerSkinConfig}
                 handSortMode={handSortMode}
-                isHandSortMenuOpen={isHandSortMenuOpen}
-                onToggleHandSortMenu={() => setIsHandSortMenuOpen(prev => !prev)}
                 onSelectHandSortMode={(mode) => {
                     setHandSortMode(mode);
-                    setIsHandSortMenuOpen(false);
                 }}
                 isSoloMode={isSoloMode}
             />
