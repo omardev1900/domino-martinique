@@ -79,6 +79,7 @@ export const MatchRewardModal: React.FC<MatchRewardModalProps> = ({ visible, amo
                         <AdRewardButton
                             coinsAmount={amount}
                             onClaim={async () => {
+                                SoundManager.playSound('win');
                                 await onClaim();
                                 setTimeout(onClose, 2000); // Ferme automatiquement après l'animation de succès
                             }}

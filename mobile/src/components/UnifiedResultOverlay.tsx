@@ -584,13 +584,13 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                 {isMatchOver && showHistory ? (
                     <>
                         <View style={styles.historyViewHeader}>
+                            <Text style={styles.historyViewTitle}>Détails des scores</Text>
                             <TouchableOpacity
                                 onPress={() => setShowHistory(false)}
-                                style={styles.backBtn}
-                                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                                style={styles.historyCloseBtn}
+                                hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}
                             >
-                                <Ionicons name="arrow-back" size={18} color="rgba(255,255,255,0.8)" />
-                                <Text style={styles.backBtnText}>Retour</Text>
+                                <Ionicons name="close-circle" size={32} color="rgba(255,255,255,0.8)" />
                             </TouchableOpacity>
                         </View>
                         {renderHistoryContent()}
@@ -1009,15 +1009,8 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255,255,255,0.1)',
         marginBottom: 8,
     },
-    backBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        width: 72,
-    },
-    backBtnText: {
-        color: 'rgba(255,255,255,0.65)',
-        fontSize: 13,
+    historyCloseBtn: {
+        padding: 4,
     },
     historyViewTitle: {
         flex: 1,
