@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Player, Domino } from '../../../core/types';
 import { DominoTile } from '../../DominoTile';
 import RollingNumber from '../../RollingNumber';
@@ -20,6 +21,7 @@ export const PlayerRevealBlock: React.FC<PlayerRevealBlockProps> = ({
 }) => {
     const reducedMotion = useReducedMotion();
     const { width } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
     const isCompact = width < 430;
     
     const [currentScore, setCurrentScore] = useState(0);
@@ -50,9 +52,9 @@ export const PlayerRevealBlock: React.FC<PlayerRevealBlockProps> = ({
     return (
         <View style={[
             styles.container,
-            isTopRight && styles.containerTopRight,
-            isTopLeft && styles.containerTopLeft,
-            isBottom && styles.containerBottomLeft,
+            isTopRight && { top: 20, right: Math.max(insets.right + 10, 10) + 70, alignItems: 'flex-end' },
+            isTopLeft && { top: 20, left: Math.max(insets.left + 10, 10) + 70, alignItems: 'flex-start' },
+            isBottom && { bottom: 80 + insets.bottom, left: 20 + insets.left, alignItems: 'flex-start' },
         ]} pointerEvents="none">
             
             <View style={[
@@ -97,21 +99,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         zIndex: 1450,
         alignItems: 'center',
-    },
-    containerTopRight: {
-        top: 20, // Relative to the wrapper/anchor
-        right: 80, // Next to avatar
-        alignItems: 'flex-end',
-    },
-    containerTopLeft: {
-        top: 20,
-        left: 80,
-        alignItems: 'flex-start',
-    },
-    containerBottomLeft: {
-        bottom: 80, // Above local player avatar area
-        left: 20,
-        alignItems: 'flex-start',
     },
     handRow: {
         flexDirection: 'row',

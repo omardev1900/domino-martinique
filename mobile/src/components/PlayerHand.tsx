@@ -1,7 +1,8 @@
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Domino, DominoSide } from '../core/types';
 import { DominoTile } from './DominoTile';
 import { checkValidMove } from '../core/LogicEngine';
@@ -40,6 +41,13 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
 }) => {
     const tileRefs = React.useRef<{ [key: string]: View | null }>({});
     const pressedDominoIdRef = React.useRef<string | null>(null);
+    
+    const { width } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
+    const isCompact = width < 430;
+    const dominoSize = isCompact ? 32 : 38;
+    const gapSize = isCompact ? 4 : 10;
+    const paddingLeftAmount = isCompact ? Math.max(insets.left + 80, 20) : 20;
 
     React.useEffect(() => {
         pressedDominoIdRef.current = null;
@@ -103,7 +111,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[styles.scrollContent, { gap: gapSize, paddingLeft: paddingLeftAmount, paddingRight: Math.max(insets.right + 20, 20) }]}
                 style={styles.scrollView}
                 pointerEvents={isLocked ? 'none' : 'auto'}
             >
@@ -142,7 +150,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                                 <DominoTile
                                     left={domino.left}
                                     right={domino.right}
-                                    size={38}
+                                    size={dominoSize}
                                     orientation="vertical"
                                     onPressInAction={() => handleTilePress(domino)}
                                     disabled={!canPlay || disabled}
@@ -180,10 +188,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         flexGrow: 1,
-        paddingHorizontal: 20,
         paddingTop: 35, // ++ Increased: make room for elevated domino (-25px) without clipping
         paddingBottom: 10,
-        gap: 10, // ++ Slightly more breathing room between tiles
         overflow: 'visible',
     },
     tileWrapper: {
