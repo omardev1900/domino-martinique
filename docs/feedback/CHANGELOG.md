@@ -19,6 +19,8 @@
 - **Accueil (UI)** — Rééquilibrage des largeurs de la section d'en-tête (Ligue des Cochons, Actualités et bouton Jouer) et inversion des positions : la section Actualités est désormais affichée en premier (à gauche), suivie de la Ligue des Cochons. De plus, le bouton central de jeu est maintenant divisé en deux boutons superposés : "Inviter" (en haut) et "Jouer" (en bas).
 
 ### Corrigé
+- **Salle d'attente Multijoueur (UI)** — L'écran d'attente (Lobby) a été optimisé pour les petits écrans : l'en-tête (pièces/diamants) est désormais parfaitement centré, et les cartes des joueurs sont recentrées pour ne plus chevaucher avec le bouton "Attendre..." ou le bloc des règles de la table.
+- **Fin de round Multijoueur (Bug)** — Correction d'un bug d'affichage en mode Multijoueur où, à la fin d'une manche, les dominos restants n'apparaissaient pas en face du bon adversaire ou s'affichaient du côté du vainqueur. L'ordre des adversaires autour de la table est désormais respecté.
 - **Affichage (UI)** — Correction du chevauchement de l'avatar avec la main de dominos (en cours de jeu et en fin de round) sur les petits écrans avec encoche/poinçon. La taille des dominos de la main est dynamiquement réduite sur les petits écrans pour un confort de jeu optimal et pour éviter l'obligation de scroller horizontalement.
 - **Sonorisation (Audio)** — Suppression du bruit d'applaudissements qui se déclenchait de manière inappropriée lorsqu'une manche se terminait sur un "Chiré" (égalité de blocage).
 - **Boutique (Bug critique)** — Correction de la page Boutique (`/store`) qui restait bloquée sur un chargement infini à cause d'une absence d'initialisation des données au montage de la page.

@@ -227,46 +227,56 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
             >
             <Animated.View entering={FadeIn.delay(100)} style={styles.header}>
                 <View style={styles.headerLeft}>
+                    {/* Left side empty to balance header and avoid option overlap */}
+                </View>
+                <View style={styles.headerCenter}>
                     <EconomyHeader />
                 </View>
                 <View style={styles.headerRight}>
-                    <PremiumButton style={styles.shareIconButton} onPress={shareToWhatsApp} soundName="notify">
-                        <Ionicons name="logo-whatsapp" size={24} color="#FFF" />
-                    </PremiumButton>
-                    <View style={styles.roomInfoContainer}>
-                        <Text style={styles.roomCode}>Code : {roomData.roomId}</Text>
+                    <View style={styles.headerRightContent}>
+                        <PremiumButton style={styles.shareIconButton} onPress={shareToWhatsApp} soundName="notify">
+                            <Ionicons name="logo-whatsapp" size={24} color="#FFF" />
+                        </PremiumButton>
+                        <View style={styles.roomInfoContainer}>
+                            <Text style={styles.roomCode}>Code : {roomData.roomId}</Text>
+                        </View>
                     </View>
                 </View>
             </Animated.View>
 
-            <View style={styles.mainContent}>
-                {/* Game Options - Left Side 2x2 Grid */}
-                <Animated.View entering={FadeIn.delay(400)} style={styles.optionsSection}>
-                    <Text style={styles.sectionTitle}>TABLE</Text>
-                    <View style={styles.optionsGrid}>
-                        <View style={styles.optionChip}>
-                            <Text style={styles.optionChipLabel}>Mode</Text>
-                            <Text style={styles.optionChipValue}>{MODE_LABELS[gameMode] || gameMode}</Text>
+            <Animated.ScrollView 
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+            >
+                <View style={styles.mainContent}>
+                    {/* Game Options - Absolute left */}
+                    <Animated.View entering={FadeIn.delay(400)} style={styles.optionsSection}>
+                        <Text style={styles.sectionTitle}>TABLE</Text>
+                        <View style={styles.optionsGrid}>
+                            <View style={styles.optionChip}>
+                                <Text style={styles.optionChipLabel}>Mode</Text>
+                                <Text style={styles.optionChipValue}>{MODE_LABELS[gameMode] || gameMode}</Text>
+                            </View>
+                            <View style={styles.optionChip}>
+                                <Text style={styles.optionChipLabel}>Objectif</Text>
+                                <Text style={styles.optionChipValue}>{winningCondition} {MODE_UNIT_LABELS[gameMode]}</Text>
+                            </View>
+                            <View style={styles.optionChip}>
+                                <Text style={styles.optionChipLabel}>Tour</Text>
+                                <Text style={styles.optionChipValue}>{turnDuration}s</Text>
+                            </View>
                         </View>
-                        <View style={styles.optionChip}>
-                            <Text style={styles.optionChipLabel}>Objectif</Text>
-                            <Text style={styles.optionChipValue}>{winningCondition} {MODE_UNIT_LABELS[gameMode]}</Text>
-                        </View>
-                        <View style={styles.optionChip}>
-                            <Text style={styles.optionChipLabel}>Tour</Text>
-                            <Text style={styles.optionChipValue}>{turnDuration}s</Text>
-                        </View>
+                    </Animated.View>
+
+                    {/* Player Cards - Right/Center */}
+                    <View style={styles.playersContainer}>
+                        {slots.map((slot, index) => renderPlayerCard(slot, index))}
                     </View>
-                </Animated.View>
-
-                {/* Player Cards - Right/Center */}
-                <View style={styles.playersContainer}>
-                    {slots.map((slot, index) => renderPlayerCard(slot, index))}
                 </View>
-            </View>
 
-            {/* Action Button - Bottom */}
-            <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.footer}>
+                {/* Action Button - Bottom */}
+                <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.footer}>
                 {isHost ? (
                     <>
                         <PremiumButton
@@ -316,8 +326,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                 : 'En attente du hote...'}
                         </Text>
                     </View>
-                )}
-            </Animated.View>
+            </Animated.ScrollView>
         </LinearGradient>
         <BotSelectionModal
             visible={botModalVisible}
@@ -337,13 +346,21 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 30,
+        alignItems: 'flex-start',
+        marginBottom: 10,
+        zIndex: 50,
     },
     headerLeft: {
         flex: 1,
     },
+    headerCenter: {
+        alignItems: 'center',
+    },
     headerRight: {
+        flex: 1,
+        alignItems: 'flex-end',
+    },
+    headerRightContent: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 15,
@@ -382,15 +399,21 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
     },
     // ─── Main Content ───────────────────────────────────────────
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingBottom: 20,
+    },
     mainContent: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 20,
+        justifyContent: 'center',
+        minHeight: 180,
     },
     // ─── Player Cards (Reduced -20%) ────────────────────────────
     playersContainer: {
-        flex: 3,
+        flex: 1,
         flexDirection: 'row',
         justifyContent: 'center',
         gap: 10,
@@ -458,13 +481,15 @@ const styles = StyleSheet.create({
     },
     // ─── Options Section (2x2 Grid) ─────────────────────────────
     optionsSection: {
-        flex: 1.5,
+        position: 'absolute',
+        left: 0,
+        zIndex: 10,
         backgroundColor: 'rgba(0,0,0,0.2)',
         borderRadius: 16,
         padding: 10,
         borderWidth: 1,
         borderColor: 'rgba(255,215,0,0.15)',
-        maxWidth: 160,
+        width: 140,
         justifyContent: 'center',
     },
     sectionTitle: {
@@ -503,6 +528,7 @@ const styles = StyleSheet.create({
     footer: {
         marginTop: 20,
         alignItems: 'center',
+        zIndex: 20, // Ensure button stays above cards if overlap occurs
     },
     actionButton: {
         width: '100%',

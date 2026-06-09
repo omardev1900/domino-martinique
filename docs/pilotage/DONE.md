@@ -4,6 +4,11 @@
 
 ### 2026-06-09
 
+- **[UX-LOBBY-MULTI-LAYOUT]** : Refonte du layout de la salle d'attente Multijoueur (`LobbyScreen`) pour corriger les problèmes d'alignement et de chevauchement sur les petits écrans :
+  - **Centrage de l'économie** : L'en-tête (coins/diamants) est désormais parfaitement centré en haut de l'écran.
+  - **Options de table** : Le bloc des règles (Mode, Objectif, Tour) est positionné en absolu à gauche pour ne plus pousser les cartes des joueurs.
+  - **Cartes Joueurs** : Les cartes des joueurs sont désormais parfaitement centrées par rapport à l'écran (et au bouton) et gérées dans un `ScrollView` pour éviter les chevauchements.
+- **[BUG-MULTI-REVEAL-DOMINOS]** : Correction de l'affichage erroné des dominos restants chez le vainqueur (ou le mauvais joueur) à la fin d'un round en mode Multijoueur. L'ordre anti-horaire des adversaires est maintenant strictement respecté lors de la distribution des mains face visible (`RoundEndFlow` reçoit désormais l'array complet `opponents` synchronisé avec la disposition à table).
 - **[UX-AVATAR-DOMINO-OVERLAP]** : Correction du chevauchement de l'avatar avec les dominos en fin de round (PlayerRevealBlock) et de la main du joueur local (PlayerHand) sur les petits écrans en utilisant dynamiquement `useSafeAreaInsets` et `useWindowDimensions`.
 - **[UX-ADS-REDUCE]** : Suppression de l'interstitiel publicitaire à la fin de chaque round (PARTIE_END) pour limiter l'excès de publicités, tout en les conservant en fin de manche (en solo) et en fin de match complet.
 - **[UX-MATCH-END-TABLE]** : Maintien du plateau de jeu et des dominos affichés en arrière-plan sous les résultats à la fin d'un match (le plateau n'est plus démonté lors du passage en phase MATCH_END).
