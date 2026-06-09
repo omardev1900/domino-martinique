@@ -1029,23 +1029,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             pendingRoundResultTransition.current = () => {
-                if (isSoloMode && isAdMobLoaded) {
-                    isAdVisibleRef.current = true;
-                    setIsAdVisible(true);
-                    setTimeout(() => {
-                        try {
-                            showAdMob();
-                        } catch (e) {
-                            LogService.error('GameScreen', 'Failed to show AdMob (PARTIE_END)', e);
-                            isAdVisibleRef.current = false;
-                            setIsAdVisible(false);
-                            partieEndContinueRef.current();
-                        }
-                    }, 50);
-                    pendingPhaseTransitionRef.current = () => partieEndContinueRef.current();
-                } else {
-                    partieEndContinueRef.current();
-                }
+                partieEndContinueRef.current();
             };
             roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
             return () => {
@@ -1887,18 +1871,16 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
 
 
-                {gameState?.phase !== 'MATCH_END' && (
-                    <GameTable
-                        ref={tableRef}
-                        key={layoutKey}
-                        gameState={gameState}
-                        theme={tableTheme}
-                        pendingDomino={pendingDomino}
-                        onSideSelect={wrappedConfirmSidePlay}
-                        skinConfig={playerSkinConfig}
-                        hiddenDominoId={effectiveHiddenDominoId}
-                    />
-                )}
+                <GameTable
+                    ref={tableRef}
+                    key={layoutKey}
+                    gameState={gameState}
+                    theme={tableTheme}
+                    pendingDomino={pendingDomino}
+                    onSideSelect={wrappedConfirmSidePlay}
+                    skinConfig={playerSkinConfig}
+                    hiddenDominoId={effectiveHiddenDominoId}
+                />
 
 
                 {/* QUICK CHAT UI */}
