@@ -4,6 +4,9 @@
 
 ### 2026-06-09
 
+- **[UX-AVATAR-DOMINO-OVERLAP]** : Correction du chevauchement de l'avatar avec les dominos en fin de round (PlayerRevealBlock) et de la main du joueur local (PlayerHand) sur les petits écrans en utilisant dynamiquement `useSafeAreaInsets` et `useWindowDimensions`.
+- **[UX-ADS-REDUCE]** : Suppression de l'interstitiel publicitaire à la fin de chaque round (PARTIE_END) pour limiter l'excès de publicités, tout en les conservant en fin de manche (en solo) et en fin de match complet.
+- **[UX-MATCH-END-TABLE]** : Maintien du plateau de jeu et des dominos affichés en arrière-plan sous les résultats à la fin d'un match (le plateau n'est plus démonté lors du passage en phase MATCH_END).
 - **[ADMOB-REAL-IDS]** : Refonte de la logique publicitaire pour basculer exclusivement sur Google AdMob. Intégration des vrais IDs de production. Suppression des publicités in-game entre les manches lors des parties multijoueurs (limitées à la fin de match uniquement).
 - **[UX-ENDROUND-POLISH]** : Finalisation du peaufinage UX des écrans de jeu et modales de fin :
   - **Bouton de tri** : Transformation du menu déroulant en icône cliquable avec cycle rapide (`Auto` → `Doubles` → `Somme`) et correction du blocage de clic sous iOS/Web par les conteneurs superposés (`PlayerArea` remontée avec `zIndex: 60`).
@@ -12,6 +15,10 @@
   - **Son CHIRÉ** : Suppression des applaudissements inappropriés lors d'une fin de manche de type "Chiré".
   - **Retour d'historique** : Remplacement du bouton textuel "Retour" capricieux par une icône X encerclée avec une grande zone tactile (`hitSlop: 20`) dans les détails des scores de fin de match.
   - **Bonus de match** : Ajout d'un son de succès au moment de la réclamation d'une publicité récompensée en fin de match, juste avant l'animation.
+- **[BUG-STORE-LOADING]** : Résolution du chargement infini sur la page Boutique (`/store`) en ajoutant `useFocusEffect` pour déclencher `loadData()` au montage du composant.
+- **[ECO-STORE-AD]** : Réduction du temps d'attente (cooldown) pour visionner une publicité dans la boutique de 3 minutes (180000ms) à 2 minutes (120000ms).
+- **[UI-HOME-LAYOUT]** : Rééquilibrage des ratios de largeur (flex) sur la page d'accueil (Ligue : 1.4, Actus : 1.2, Jouer : 0.4) et inversion de l'ordre d'affichage (Actualités puis Ligue).
+- **[UI-HOME-BUTTONS]** : Refonte de la section Action (Jouer) en un conteneur vertical contenant deux boutons superposés : "Inviter" (en haut, bleu) et "Jouer" (en bas, doré). L'ancien bouton Inviter du header a été supprimé pour éviter la redondance.
 
 ### 2026-06-08
 

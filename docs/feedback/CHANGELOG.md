@@ -7,15 +7,21 @@
 ## [2.5.19] - 2026-06-09
 
 ### Amélioré
+- **Expérience publicitaire (UX)** — Suppression de la publicité vidéo à la fin de chaque round (`PARTIE_END`) afin de réduire la pression publicitaire en cours de partie. Les publicités sont maintenues uniquement à la fin des manches (en Solo) et à la fin des matchs complets.
+- **Visibilité en fin de match (UI)** — Le plateau de jeu et les dominos restent désormais visibles en arrière-plan à la fin d'un match complet, alors qu'ils disparaissaient auparavant sous les écrans de résultats.
 - **Publicités (Monétisation)** — Migration complète vers Google AdMob avec les véritables identifiants. Pour le mode Multijoueur, les publicités entre les manches ont été supprimées afin de fluidifier l'expérience (elles n'apparaissent désormais qu'à la fin d'un match).
 - **Bouton de tri des dominos (UX)** — Le menu déroulant a été remplacé par une simple icône réactive au clic. Un seul appui suffit désormais pour cycler entre les modes de tri (`Auto`, `Doubles`, `Somme`). Le bouton reste désormais toujours réactif même lorsqu'un domino est sélectionné pour être joué.
 - **Détails des scores (UI)** — Le bouton texte "Retour" a été remplacé par une icône de fermeture clairement visible (croix encerclée) avec une zone tactile considérablement élargie pour fermer plus facilement l'historique de match.
 - **Récompense de fin de match (Audio)** — Un son gratifiant accompagne désormais le moment précis où vous réclamez la récompense liée à une publicité de fin de partie.
 - **Clarté du plateau en fin de round (UX)** — Lorsqu'une manche se termine, les petits rectangles blancs représentant les dominos restants des adversaires sont désormais masqués afin d'alléger l'écran de résultat.
 - **Zoom adaptatif du plateau (UI)** — Le plateau de jeu dézoome désormais de manière plus agressive lorsque les chaînes de dominos deviennent longues, évitant ainsi tout risque de chevauchement visuel avec les blocs de statistiques des adversaires situés sur les bords de l'écran.
+- **Délai pub Boutique** — Le délai d'attente (cooldown) pour visionner une publicité dans la boutique et gagner des pièces est passé de 3 minutes à 2 minutes.
+- **Accueil (UI)** — Rééquilibrage des largeurs de la section d'en-tête (Ligue des Cochons, Actualités et bouton Jouer) et inversion des positions : la section Actualités est désormais affichée en premier (à gauche), suivie de la Ligue des Cochons. De plus, le bouton central de jeu est maintenant divisé en deux boutons superposés : "Inviter" (en haut) et "Jouer" (en bas).
 
 ### Corrigé
+- **Affichage (UI)** — Correction du chevauchement de l'avatar avec la main de dominos (en cours de jeu et en fin de round) sur les petits écrans avec encoche/poinçon. La taille des dominos de la main est dynamiquement réduite sur les petits écrans pour un confort de jeu optimal et pour éviter l'obligation de scroller horizontalement.
 - **Sonorisation (Audio)** — Suppression du bruit d'applaudissements qui se déclenchait de manière inappropriée lorsqu'une manche se terminait sur un "Chiré" (égalité de blocage).
+- **Boutique (Bug critique)** — Correction de la page Boutique (`/store`) qui restait bloquée sur un chargement infini à cause d'une absence d'initialisation des données au montage de la page.
 
 ---
 
