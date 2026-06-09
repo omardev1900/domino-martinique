@@ -85,7 +85,7 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "androidAppId": "ca-app-pub-6342220391756861~3151159550",
           "iosAppId": "ca-app-pub-3940256099942544~1458002511",
           "userTrackingUsageDescription": "Cette application utilise vos données pour vous proposer des annonces publicitaires personnalisées."
         }

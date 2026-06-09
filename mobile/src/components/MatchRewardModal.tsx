@@ -83,7 +83,6 @@ export const MatchRewardModal: React.FC<MatchRewardModalProps> = ({ visible, amo
                                 await onClaim();
                                 setTimeout(onClose, 2000); // Ferme automatiquement après l'animation de succès
                             }}
-                            placement="END_OF_MATCH"
                             enterDelay={0}
                             variant="prominent"
                         />

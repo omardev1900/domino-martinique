@@ -12,9 +12,7 @@ import { StoreItemPreview } from '../src/components/store/StoreItemPreview';
 import { economyService } from '../src/core/services/economy.service';
 import { storeService } from '../src/core/services/store.service';
 import { StoreItem, StoreItemType, PlayerInventory } from '../src/core/store.types';
-import { adService } from '../src/core/services/ad.service';
-import { Ad } from '../src/core/ad.types';
-import { AdBannerModal } from '../src/components/AdBannerModal';
+import { useRewardedAd, AdMobIds } from '../src/core/services/AdMobAdapter';
 import { authService } from '../src/core/services/auth.service';
 import { DailyRewardModal } from '../src/components/DailyRewardModal';
 
@@ -64,58 +62,56 @@ export default function StoreScreen() {
         return tabs;
     }, [catalog]);
 
-    const [adToShow, setAdToShow] = useState<Ad | null>(null);
-    const adTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const { isLoaded, isClosed, isEarnedReward, load, show } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
     const [pendingStoreAdReward, setPendingStoreAdReward] = useState(false);
     const [isProcessingAd, setIsProcessingAd] = useState(false);
     const [showVideoReward, setShowVideoReward] = useState(false);
 
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    useEffect(() => {
+        if (isClosed) {
+            if (isEarnedReward && pendingStoreAdReward) {
+                const claim = async () => {
+                    const user = await authService.getCurrentUser();
+                    await economyService.claimStoreAdReward(user?.uid);
+                    setEconomyRefresh(prev => prev + 1);
+                    await loadData();
+                    setShowVideoReward(true);
+                };
+                claim();
+            }
+            setPendingStoreAdReward(false);
+            setIsProcessingAd(false);
+            load(); // preload next
+        }
+    }, [isClosed, isEarnedReward, load, pendingStoreAdReward]);
+
     const handleWatchStoreAd = async () => {
         setIsProcessingAd(true);
-        try {
-            const ad = await adService.getAdForPlacement('END_OF_MATCH', 'REWARDED');
-            if (ad) {
-                setPendingStoreAdReward(true);
-                setAdToShow(ad);
-            } else {
-                const user = await authService.getCurrentUser();
-                await economyService.claimStoreAdReward(user?.uid);
-                setEconomyRefresh(prev => prev + 1);
-                await loadData();
-                setShowVideoReward(true);
-            }
-        } catch (e) {
-            console.error('Erreur lancement pub store', e);
-        } finally {
-            setIsProcessingAd(false);
-        }
-    };
-
-    const handleAdClose = async () => {
-        setAdToShow(null);
-        if (pendingStoreAdReward) {
-            setPendingStoreAdReward(false);
+        if (Platform.OS === 'web') {
             const user = await authService.getCurrentUser();
             await economyService.claimStoreAdReward(user?.uid);
             setEconomyRefresh(prev => prev + 1);
             await loadData();
             setShowVideoReward(true);
+            setIsProcessingAd(false);
+        } else if (isLoaded) {
+            setPendingStoreAdReward(true);
+            show();
+        } else {
+            // Fallback si la pub n'est pas chargée
+            const user = await authService.getCurrentUser();
+            await economyService.claimStoreAdReward(user?.uid);
+            setEconomyRefresh(prev => prev + 1);
+            await loadData();
+            setShowVideoReward(true);
+            setIsProcessingAd(false);
+            load(); // retenter le chargement
         }
     };
-
-    useFocusEffect(
-        useCallback(() => {
-            loadData();
-            adService.getAdForPlacement('STORE').then(ad => {
-                if (ad) {
-                    adTimeoutRef.current = setTimeout(() => setAdToShow(ad), 2000);
-                }
-            });
-            return () => {
-                if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
-            };
-        }, [])
-    );
 
     const handlePurchase = async (item: StoreItem) => {
         const processPurchase = async () => {
@@ -420,7 +416,6 @@ export default function StoreScreen() {
                     )}
                 </ScrollView>
             )}
-            <AdBannerModal ad={adToShow} onClose={handleAdClose} />
         </SafeAreaView>
     );
 }

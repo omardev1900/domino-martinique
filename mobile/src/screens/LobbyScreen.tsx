@@ -11,6 +11,7 @@ import { EconomyHeader } from '../components/EconomyHeader';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { GradeBadge } from '../components/GradeBadge';
 import { LEAGUE_FRAMES_ENABLED, LEAGUE_GRADE_COLORS } from '../core/economy.constants';
+import { LeagueGrade } from '../core/economy.types';
 import { addBotToWaitingRoom, leaveRoom } from '../core/services/firebase';
 import { BotSelectionModal } from '../components/BotSelectionModal';
 import { BotDifficulty } from '../core/services/bot.service';

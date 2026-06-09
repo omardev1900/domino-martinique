@@ -622,7 +622,7 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
         turnId: 0, // Reset strict du turnId pour ce tour 1
         roundNumber: isMancheEnd ? 1 : (activeState.roundNumber || 0) + 1,
         mancheNumber: isMancheEnd ? (activeState.mancheNumber || 1) + 1 : (activeState.mancheNumber || 1),
-        tiedPlayerIds: null, // FIX R2-B2: Use null instead of undefined to ensure Firestore correctly unsets it
+        tiedPlayerIds: undefined, // FIX R2-B2: Use undefined instead of null
         boudePlayerId: null,      // R2-B8 : réinitialiser le badge Boudé à chaque nouveau round
     };
 };

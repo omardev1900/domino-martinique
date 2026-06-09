@@ -2,6 +2,16 @@
 
 ## Juin 2026
 
+### 2026-06-09
+
+- **[UX-ENDROUND-POLISH]** : Finalisation du peaufinage UX des écrans de jeu et modales de fin :
+  - **Bouton de tri** : Transformation du menu déroulant en icône cliquable avec cycle rapide (`Auto` → `Doubles` → `Somme`) et correction du blocage de clic sous iOS/Web par les conteneurs superposés (`PlayerArea` remontée avec `zIndex: 60`).
+  - **Masquage mains adverses** : Les rectangles blancs de la main adverse sont désormais masqués lors de la phase de fin de round.
+  - **Chevauchement plateau** : Augmentation de la marge de sécurité (`safeXPadd` / `safeYPadd`) dans le calcul d'échelle du GameTable pour forcer le plateau à se dézoomer avant de toucher les statistiques adverses sur les bords.
+  - **Son CHIRÉ** : Suppression des applaudissements inappropriés lors d'une fin de manche de type "Chiré".
+  - **Retour d'historique** : Remplacement du bouton textuel "Retour" capricieux par une icône X encerclée avec une grande zone tactile (`hitSlop: 20`) dans les détails des scores de fin de match.
+  - **Bonus de match** : Ajout d'un son de succès au moment de la réclamation d'une publicité récompensée en fin de match, juste avant l'animation.
+
 ### 2026-06-08
 
 - **[UX-ROUND-END]** : Refonte et polish de l'écran de fin de round.

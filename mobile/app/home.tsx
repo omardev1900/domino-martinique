@@ -31,9 +31,7 @@ import { HelpOverlay } from '../src/components/HelpOverlay';
 import { LeagueProgressWidget } from '../src/components/LeagueProgressWidget';
 import { ShareTextButton } from '../src/components/ShareButton';
 import { NewsService, NewsItem } from '../src/core/services/news.service';
-import { adService } from '../src/core/services/ad.service';
-import { Ad } from '../src/core/ad.types';
-import { AdBannerModal } from '../src/components/AdBannerModal';
+import { useRewardedAd, AdMobIds } from '../src/core/services/AdMobAdapter';
 import { USE_NEW_SIDEBAR } from '../src/core/config/navigation.config';
 import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../src/core/leagueProgress';
 import { deleteWaitingRoomIfOwner, findActiveRoomForUser, findHostedWaitingRoom } from '../src/core/services/firebase';
@@ -53,15 +51,22 @@ export default function HomeScreen() {
     const [showDailyReward, setShowDailyReward] = useState(false);
     const [showWelcomeReward, setShowWelcomeReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
-    // Pub à rejouer après le clic "Voir une pub" dans le modal cadeau
-    const [dailyAdToShow, setDailyAdToShow] = useState<Ad | null>(null);
-    // Ref vers la fonction d'animation de claim dans DailyRewardModal
-    const dailyClaimTriggerRef = useRef<(() => void) | null>(null);
-    const [newsList, setNewsList] = useState<NewsItem[]>([]);
-    const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
-    const [showHelp, setShowHelp] = useState(false);
-    const [adToShow, setAdToShow] = useState<Ad | null>(null);
-    const [pendingDailyReward, setPendingDailyReward] = useState(false);
+    const [isProcessingRewardAd, setIsProcessingRewardAd] = useState(false);
+    const { isLoaded: isRewardLoaded, isClosed: isRewardClosed, isEarnedReward, load: loadReward, show: showReward } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
+
+    useEffect(() => {
+        loadReward();
+    }, [loadReward]);
+
+    useEffect(() => {
+        if (isRewardClosed) {
+            if (isEarnedReward && isProcessingRewardAd) {
+                dailyClaimTriggerRef.current?.();
+            }
+            setIsProcessingRewardAd(false);
+            loadReward(); // preload next
+        }
+    }, [isRewardClosed, isEarnedReward, loadReward, isProcessingRewardAd]);
 
     // Ref pour l'unsubscribe du listener Firestore — nettoyé au démontage du composant
     const economyListenerRef = useRef<(() => void) | null>(null);
@@ -99,10 +104,7 @@ export default function HomeScreen() {
         };
     }, [refreshMonthlyLeague]);
 
-    // Délai avant l'affichage de la pub HOME — laisse l'utilisateur respirer sur l'accueil
-    // avant d'être interrompu. Annulé si le composant perd le focus pendant l'attente.
-    const HOME_AD_DELAY_MS = 3500;
-    const homeAdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
     // Au focus : sync stats + pub HOME (avant cadeau) + vérification cadeau quotidien + news.
     // Aucune écriture economy ici — le listener onSnapshot s'en charge.
@@ -147,44 +149,18 @@ export default function HomeScreen() {
 
                     // 3. Évaluation des cadeaux (base serveur fiable)
                     const isNewAccount = !(await economyService.hasClaimedWelcomeGift());
-
-                    // La pub HOME s'affiche AVANT les cadeaux (spec R2-M7)
-                    const [ad, dailyAvailable] = await Promise.all([
-                        adService.getAdForPlacement('HOME'),
-                        economyService.isDailyRewardAvailable(),
-                    ]);
+                    const dailyAvailable = await economyService.isDailyRewardAvailable();
                     if (cancelled) return;
 
                     if (isNewAccount) {
-                        if (ad) {
-                            setPendingDailyReward(true); // On réutilise le pending pour afficher le cadeau après
-                            homeAdTimeoutRef.current = setTimeout(() => {
-                                setAdToShow(ad);
-                            }, HOME_AD_DELAY_MS);
-                        } else {
-                            setTimeout(() => {
-                                if (!cancelled) setShowWelcomeReward(true);
-                            }, 1000);
-                        }
+                        setTimeout(() => {
+                            if (!cancelled) setShowWelcomeReward(true);
+                        }, 1000);
                     } else if (dailyAvailable) {
-                        const amount = ad?.isDailyReward && ad.rewardAmount ? ad.rewardAmount : DAILY_REWARD_COINS;
-                        setDailyRewardAmount(amount);
-                        if (ad) {
-                            // Pub admin d'abord → cadeau après fermeture (spec R2-M7)
-                            setPendingDailyReward(true);
-                            homeAdTimeoutRef.current = setTimeout(() => {
-                                setAdToShow(ad);
-                            }, HOME_AD_DELAY_MS);
-                        } else {
-                            // Pas de pub admin → popup cadeau directement
-                            setTimeout(() => {
-                                if (!cancelled) setShowDailyReward(true);
-                            }, 500);
-                        }
-                    } else if (ad) {
-                        homeAdTimeoutRef.current = setTimeout(() => {
-                            setAdToShow(ad);
-                        }, HOME_AD_DELAY_MS);
+                        setDailyRewardAmount(DAILY_REWARD_COINS);
+                        setTimeout(() => {
+                            if (!cancelled) setShowDailyReward(true);
+                        }, 500);
                     }
                 }
             });
@@ -192,10 +168,7 @@ export default function HomeScreen() {
 
             return () => {
                 cancelled = true;
-                if (homeAdTimeoutRef.current) {
-                    clearTimeout(homeAdTimeoutRef.current);
-                    homeAdTimeoutRef.current = null;
-                }
+
             };
         }, [refreshMonthlyLeague])
     );
@@ -220,7 +193,6 @@ export default function HomeScreen() {
         // [R3-B9] FIX : claimDailyRewardNow() évite la race condition avec le listener Firestore
         await economyService.claimDailyRewardNow(user?.uid, undefined, dailyRewardAmount);
         setShowDailyReward(false);
-        setDailyAdToShow(null);
         setEconomyRefresh(v => v + 1);
     };
 
@@ -246,37 +218,17 @@ export default function HomeScreen() {
 
     // Appelé quand le joueur clique "Voir une pub → +300 🪙" dans le modal cadeau
     const handleWatchAdForReward = async () => {
-        // Priorité : pub marquée "Cadeau du jour" par l'admin, sinon n'importe quelle pub active
-        const ad = await adService.getDailyRewardAd();
-        if (ad) {
-            setDailyAdToShow(ad);
-        } else {
-            // Aucune pub disponible → crédit direct (fallback)
+        setIsProcessingRewardAd(true);
+        if (Platform.OS === 'web') {
             dailyClaimTriggerRef.current?.();
-        }
-    };
-
-    // Fermeture de la pub jouée depuis le modal cadeau → déclenche l'animation de compteur
-    const handleDailyAdClose = () => {
-        setDailyAdToShow(null);
-        dailyClaimTriggerRef.current?.();
-    };
-
-    // Fermeture de la pub admin programmée (non liée au cadeau)
-    const handleAdClose = async () => {
-        setAdToShow(null);
-        if (pendingDailyReward) {
-            setPendingDailyReward(false);
-            const isNewAccount = !(await economyService.hasClaimedWelcomeGift());
-            if (isNewAccount) {
-                setTimeout(() => {
-                    setShowWelcomeReward(true);
-                }, 1000);
-            } else {
-                setTimeout(() => {
-                    setShowDailyReward(true);
-                }, 500);
-            }
+            setIsProcessingRewardAd(false);
+        } else if (isRewardLoaded) {
+            showReward();
+        } else {
+            // Fallback si la pub n'est pas chargée
+            dailyClaimTriggerRef.current?.();
+            setIsProcessingRewardAd(false);
+            loadReward(); // retenter
         }
     };
 
@@ -545,8 +497,7 @@ export default function HomeScreen() {
                 onClose={() => setShowHelp(false)} 
             />
 
-            {/* Pub HOME admin — s'affiche avant le cadeau quotidien (spec R2-M7) */}
-            <AdBannerModal ad={adToShow} onClose={handleAdClose} />
+
 
             {/* Welcome Reward Modal — Nouveau joueur */}
             <DailyRewardModal
@@ -568,8 +519,7 @@ export default function HomeScreen() {
                 claimTriggerRef={dailyClaimTriggerRef}
             />
 
-            {/* Pub jouée après clic "Voir une pub" dans le modal cadeau — indépendante de la pub admin */}
-            <AdBannerModal ad={dailyAdToShow} onClose={handleDailyAdClose} />
+
 
             {/* Reconnection Modal */}
             <Modal

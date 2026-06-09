@@ -77,9 +77,7 @@ jest.mock('../../components/QuickChat', () => ({
 jest.mock('../../components/FlyingDomino', () => ({
     FlyingDomino: () => null,
 }));
-jest.mock('../../components/AdBannerModal', () => ({
-    AdBannerModal: () => null,
-}));
+
 jest.mock('../../components/RewardOverlay', () => ({
     RewardOverlay: (props: any) => mockRewardOverlay(props),
 }));
@@ -316,11 +314,7 @@ jest.mock('../../core/RewardEngine', () => ({
     },
 }));
 
-jest.mock('../../core/services/ad.service', () => ({
-    adService: {
-        getAdForPlacement: jest.fn().mockResolvedValue(null),
-    },
-}));
+
 
 describe('GameScreen grade-up flow', () => {
     afterEach(() => {

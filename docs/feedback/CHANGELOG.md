@@ -4,6 +4,20 @@
 
 ---
 
+## [2.5.19] - 2026-06-09
+
+### Amélioré
+- **Bouton de tri des dominos (UX)** — Le menu déroulant a été remplacé par une simple icône réactive au clic. Un seul appui suffit désormais pour cycler entre les modes de tri (`Auto`, `Doubles`, `Somme`). Le bouton reste désormais toujours réactif même lorsqu'un domino est sélectionné pour être joué.
+- **Détails des scores (UI)** — Le bouton texte "Retour" a été remplacé par une icône de fermeture clairement visible (croix encerclée) avec une zone tactile considérablement élargie pour fermer plus facilement l'historique de match.
+- **Récompense de fin de match (Audio)** — Un son gratifiant accompagne désormais le moment précis où vous réclamez la récompense liée à une publicité de fin de partie.
+- **Clarté du plateau en fin de round (UX)** — Lorsqu'une manche se termine, les petits rectangles blancs représentant les dominos restants des adversaires sont désormais masqués afin d'alléger l'écran de résultat.
+- **Zoom adaptatif du plateau (UI)** — Le plateau de jeu dézoome désormais de manière plus agressive lorsque les chaînes de dominos deviennent longues, évitant ainsi tout risque de chevauchement visuel avec les blocs de statistiques des adversaires situés sur les bords de l'écran.
+
+### Corrigé
+- **Sonorisation (Audio)** — Suppression du bruit d'applaudissements qui se déclenchait de manière inappropriée lorsqu'une manche se terminait sur un "Chiré" (égalité de blocage).
+
+---
+
 ## [2.5.18] - 2026-06-08
 
 ### Amélioré

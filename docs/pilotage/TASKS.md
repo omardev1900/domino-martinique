@@ -24,7 +24,6 @@ les points bloquants avant la communication officielle.
 |---|---|---|---|
 | **ADMOB-REAL-IDS** | Remplacer les IDs de test AdMob par les vrais IDs de production (Banner, Interstitiel, Rewarded) dans `.env` et vérifier le waterfall admin → AdMob → fallback. | 🔴 Haute | Prêt |
 | **IAP-PAYMENTS** | Intégrer les achats in-app (Google Play Billing) pour : Option « Sans Publicité » et packs de Coins / Cosmétiques. | 🔴 Haute | Prêt |
-| **UX-ENDROUND-POLISH** | Finaliser le peaufinage UX des écrans de fin de round, de manche et de match : enchaînements fluides, responsive mobile, aucun chevauchement visuel résiduel. | 🔴 Haute | En cours |
 | **UX-MULTI-PENALITE** | Différencier abandon volontaire et déconnexion (`SURRENDERED` vs `DISCONNECTED`) : abandon = dernier même si le bot gagne. | 🟡 Moyenne | Prêt |
 
 ---

@@ -20,9 +20,6 @@ import React, { useState } from 'react';
 import { TouchableOpacity, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { adService } from '../core/services/ad.service';
-import { Ad, AdPlacement } from '../core/ad.types';
-import { AdBannerModal } from './AdBannerModal';
 import { useRewardedAd, TestIds, AdMobIds } from '../core/services/AdMobAdapter';
 import { Platform } from 'react-native';
 
@@ -42,8 +39,6 @@ export interface AdRewardButtonProps {
     variant?: 'default' | 'prominent';
     /** Délai d'entrée pour l'animation (ms). Défaut : 0. */
     enterDelay?: number;
-    /** Emplacement de la pub (ex: END_OF_MATCH_MULTI) pour cibler la bonne campagne Admin */
-    placement?: AdPlacement;
 }
 
 export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
@@ -53,11 +48,9 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
     disabled = false,
     variant = 'default',
     enterDelay = 0,
-    placement,
 }) => {
     const [claimed, setClaimed] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [adToShow, setAdToShow] = useState<Ad | null>(null);
 
     // Google AdMob Rewarded
     const { isLoaded: isAdMobLoaded, isClosed: isAdMobClosed, isEarnedReward, load: loadAdMob, show: showAdMob } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
@@ -92,28 +85,11 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
         if (claimed || loading || disabled) return;
         setLoading(true);
         try {
-            if (placement) {
-                // Priority Admin Ad
-                const priorityAd = await adService.getAdForPlacement(placement, 'REWARDED', true);
-                if (priorityAd) {
-                    setAdToShow(priorityAd);
-                    return; 
-                }
-
-                // Fallback 1: AdMob
-                if (isAdMobLoaded && Platform.OS !== 'web') {
-                    showAdMob();
-                    return;
-                }
-
-                // Fallback 2: Admin Standard Ad
-                const fallbackAd = await adService.getAdForPlacement(placement, 'REWARDED', false);
-                if (fallbackAd) {
-                    setAdToShow(fallbackAd);
-                    return;
-                }
+            if (isAdMobLoaded && Platform.OS !== 'web') {
+                showAdMob();
+                return;
             }
-            // Pas de pub (ou pas de placement défini), on crédite directement
+            // Pas de pub chargée (ou sur Web), on crédite directement en fallback
             await onClaim();
             setClaimed(true);
             setLoading(false);
@@ -121,18 +97,6 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
             console.error("Erreur chargement pub :", e);
             await onClaim();
             setClaimed(true);
-            setLoading(false);
-        }
-    };
-
-    const handleAdClose = async () => {
-        setAdToShow(null);
-        try {
-            await onClaim();
-            setClaimed(true);
-        } catch (e) {
-            console.error("Erreur après visionnage pub Admin :", e);
-        } finally {
             setLoading(false);
         }
     };
@@ -184,8 +148,6 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
                     color={isProminent ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.75)'}
                 />
             </TouchableOpacity>
-
-            <AdBannerModal ad={adToShow} onClose={handleAdClose} />
         </Animated.View>
     );
 };

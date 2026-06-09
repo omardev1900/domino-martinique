@@ -13,7 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { GameState, Player } from '@/core/types';
-import { AdPlacement } from '../core/ad.types';
+
 import SoundManager from '../core/audio/SoundManager';
 import { MatchReward } from '@/core/economy.types';
 import { LEAGUE_LABELS, AD_REWARD_COINS } from '@/core/economy.constants';
