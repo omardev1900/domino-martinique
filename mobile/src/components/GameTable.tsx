@@ -325,8 +325,8 @@ export const GameTable = React.forwardRef<GameTableRef, GameTableProps>((
         },
     }), [placedTiles]);
 
-    const safeXPadd = isLandscape ? 100 : 100; // Zone moins restrictive pour laisser respirer la largeur
-    const safeYPadd = isLandscape ? 80 : 140; // Espace supplémentaire en haut pour les avatars du haut
+    const safeXPadd = isLandscape ? 200 : 180; // Zone plus restrictive pour éviter les blocs avatars sur les côtés
+    const safeYPadd = isLandscape ? 120 : 180; // Espace supplémentaire en haut et bas pour les avatars
 
     const availW = screenWidth - safeXPadd;
 
