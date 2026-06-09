@@ -14,9 +14,6 @@ import { economyService } from '../src/core/services/economy.service';
 import { statsService } from '../src/core/services/stats.service';
 import { getAvatarImage } from '../src/core/avatars';
 import { PlayerProfile } from '../src/core/types';
-import { adService } from '../src/core/services/ad.service';
-import { Ad } from '../src/core/ad.types';
-import { AdBannerModal } from '../src/components/AdBannerModal';
 import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 
@@ -34,19 +31,10 @@ export default function LeaderboardScreen() {
     const [playerLocalScore, setPlayerLocalScore] = useState<number>(0);
 
     const unsubscribeRef = useRef<(() => void) | null>(null);
-    const [adToShow, setAdToShow] = useState<Ad | null>(null);
-    const adTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useFocusEffect(
         useCallback(() => {
-            adService.getAdForPlacement('LEADERBOARD').then(ad => {
-                if (ad) {
-                    adTimeoutRef.current = setTimeout(() => setAdToShow(ad), 2000);
-                }
-            });
-            return () => {
-                if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
-            };
+
         }, [])
     );
 
@@ -329,7 +317,6 @@ export default function LeaderboardScreen() {
                     </View>
                 </View>
             )}
-            <AdBannerModal ad={adToShow} onClose={() => setAdToShow(null)} />
             <Toast />
         </LinearGradient>
     );

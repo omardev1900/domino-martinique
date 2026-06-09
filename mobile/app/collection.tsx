@@ -10,9 +10,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { StoreItemPreview } from '../src/components/store/StoreItemPreview';
 import { storeService } from '../src/core/services/store.service';
 import { StoreItem, StoreItemType, PlayerInventory } from '../src/core/store.types';
-import { adService } from '../src/core/services/ad.service';
-import { Ad } from '../src/core/ad.types';
-import { AdBannerModal } from '../src/components/AdBannerModal';
 
 type TabType = 'ALL' | StoreItemType;
 
@@ -57,20 +54,11 @@ export default function CollectionScreen() {
         return tabs;
     }, [ownedItems]);
 
-    const [adToShow, setAdToShow] = useState<Ad | null>(null);
-    const adTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useFocusEffect(
         useCallback(() => {
             loadData();
-            adService.getAdForPlacement('COLLECTION').then(ad => {
-                if (ad) {
-                    adTimeoutRef.current = setTimeout(() => setAdToShow(ad), 2000);
-                }
-            });
-            return () => {
-                if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
-            };
+
         }, [])
     );
 
@@ -230,7 +218,6 @@ export default function CollectionScreen() {
                     })}
                 </ScrollView>
             )}
-            <AdBannerModal ad={adToShow} onClose={() => setAdToShow(null)} />
         </SafeAreaView>
     );
 }

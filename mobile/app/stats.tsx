@@ -9,9 +9,6 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-na
 
 import { statsService, MatchRecord, PlayerStats } from '../src/core/services/stats.service';
 import { MatchHistory } from '../src/components/MatchHistory';
-import { adService } from '../src/core/services/ad.service';
-import { Ad } from '../src/core/ad.types';
-import { AdBannerModal } from '../src/components/AdBannerModal';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -156,20 +153,11 @@ export default function StatsScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [historyModalVisible, setHistoryModalVisible] = useState(false);
     const [activeMode, setActiveMode] = useState<StatsMode>('MONTHLY');
-    const [adToShow, setAdToShow] = useState<Ad | null>(null);
-    const adTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useFocusEffect(
         useCallback(() => {
             loadPlayerStats();
-            adService.getAdForPlacement('STATS').then(ad => {
-                if (ad) {
-                    adTimeoutRef.current = setTimeout(() => setAdToShow(ad), 2000);
-                }
-            });
-            return () => {
-                if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
-            };
+
         }, [])
     );
 
@@ -400,7 +388,6 @@ export default function StatsScreen() {
                     </View>
                 </View>
             </Modal>
-            <AdBannerModal ad={adToShow} onClose={() => setAdToShow(null)} />
         </View>
     );
 }

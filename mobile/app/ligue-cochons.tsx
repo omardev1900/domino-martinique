@@ -5,26 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { LeagueHubView, LeagueHubTabType } from '../src/components/LeagueHubView';
-import { adService } from '../src/core/services/ad.service';
-import { Ad } from '../src/core/ad.types';
-import { AdBannerModal } from '../src/components/AdBannerModal';
 
 export default function LigueCochonsScreen() {
     const insets = useSafeAreaInsets();
-    const [adToShow, setAdToShow] = useState<Ad | null>(null);
     const [activeTab, setActiveTab] = useState<LeagueHubTabType>('MA_LIGUE');
-    const adTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useFocusEffect(
         useCallback(() => {
-            adService.getAdForPlacement('LIGUE').then(ad => {
-                if (ad) {
-                    adTimeoutRef.current = setTimeout(() => setAdToShow(ad), 2000);
-                }
-            });
-            return () => {
-                if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
-            };
+
         }, [])
     );
 
@@ -59,7 +47,6 @@ export default function LigueCochonsScreen() {
             <View style={[styles.content, { paddingBottom: insets.bottom + 16 }]}>
                 <LeagueHubView activeTab={activeTab} onActiveTabChange={setActiveTab} hidePrimaryTabs />
             </View>
-            <AdBannerModal ad={adToShow} onClose={() => setAdToShow(null)} />
         </LinearGradient>
     );
 }
