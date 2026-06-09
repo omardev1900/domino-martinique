@@ -2,9 +2,6 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import GameScreen from '../../src/screens/GameScreen';
-import { AdBannerModal } from '../../src/components/AdBannerModal';
-import { adService } from '../../src/core/services/ad.service';
-import { Ad } from '../../src/core/ad.types';
 import { authService } from '../../src/core/services/auth.service';
 
 export default function GameRoute() {
@@ -21,17 +18,8 @@ export default function GameRoute() {
         tableTier?: string; // 🪙 Table tier pour le calcul du buy-in et des rewards
     }>();
 
-    const [adToShow, setAdToShow] = useState<Ad | null>(null);
     const [resolvedUserId, setResolvedUserId] = useState<string | null>(params.userId ?? null);
     const [isResolvingUserId, setIsResolvingUserId] = useState(!params.userId);
-
-    useEffect(() => {
-        if (params.mode !== 'solo') {
-            adService.getAdForPlacement('BEFORE_MULTI').then(ad => {
-                if (ad) setAdToShow(ad);
-            });
-        }
-    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -75,21 +63,18 @@ export default function GameRoute() {
     }
 
     return (
-        <>
-            <GameScreen
-                gameId={params.id}
-                userId={resolvedUserId ?? undefined}
-                authUid={params.authUid}
-                mode={params.mode as 'solo' | 'multiplayer' | undefined}
-                difficulty={params.difficulty as any}
-                gameMode={params.gameMode as any}
-                winningCondition={params.winningCondition ? Number(params.winningCondition) : undefined}
-                turnDuration={params.turnDuration ? Number(params.turnDuration) : undefined}
-                startingHandSize={params.startingHandSize ? Number(params.startingHandSize) : undefined}
-                tableTier={params.tableTier}
-            />
-            <AdBannerModal ad={adToShow} onClose={() => setAdToShow(null)} />
-        </>
+        <GameScreen
+            gameId={params.id}
+            userId={resolvedUserId ?? undefined}
+            authUid={params.authUid}
+            mode={params.mode as 'solo' | 'multiplayer' | undefined}
+            difficulty={params.difficulty as any}
+            gameMode={params.gameMode as any}
+            winningCondition={params.winningCondition ? Number(params.winningCondition) : undefined}
+            turnDuration={params.turnDuration ? Number(params.turnDuration) : undefined}
+            startingHandSize={params.startingHandSize ? Number(params.startingHandSize) : undefined}
+            tableTier={params.tableTier}
+        />
     );
 }
 

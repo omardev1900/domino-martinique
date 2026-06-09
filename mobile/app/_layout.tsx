@@ -28,7 +28,6 @@ import { SoloResumeModal } from '@/components/SoloResumeModal';
 import { useSoloResume } from '@/hooks/useSoloResume';
 import { MultiResumeModal } from '@/components/MultiResumeModal';
 import { useMultiResume } from '@/hooks/useMultiResume';
-import { adService } from '@/core/services/ad.service';
 import { authService } from '@/core/services/auth.service';
 import { db, auth, findActiveRoomForUser, signalPlayerOnline, setUserActiveRoom } from '@/core/services/firebase';
 import { Sidebar } from '@/components/Sidebar';
@@ -202,9 +201,7 @@ export default Sentry.wrap(function RootLayout() {
         await SettingsManager.loadSettings();
 
         // Réinitialise les cooldowns de session pub + charge les pubs actives (fire-and-forget)
-        await adService.resetSessionCooldowns();
-        adService.preload();
-
+        
         // Enregistre le token FCM pour les notifications push
         registerPushToken();
 
