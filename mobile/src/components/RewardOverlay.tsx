@@ -6,7 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import { MatchReward, RewardBreakdown, LeagueFrameId } from '../core/economy.types';
 import { LEAGUE_LABELS, LEAGUE_ICONS, LEAGUE_GRADE_COLORS, MAX_LEVEL, LEAGUE_FRAME_GRADE_ORDER, LEAGUE_FRAME_THRESHOLDS, LEAGUE_FRAMES_ENABLED } from '../core/economy.constants';
-import { xpRequiredForLevel } from '../core/RewardEngine';
+import { xpRequiredForLevel, getLevelUpChest } from '../core/RewardEngine';
+import { LevelUpOverlay } from './LevelUpOverlay';
 import SoundManager from '../core/audio/SoundManager';
 import { AvatarFrame } from './AvatarFrame';
 import { ShareImageButton, GradeShareCard, buildGradeShareText } from './ShareButton';
@@ -93,6 +94,9 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
     const [showGradeUpModal, setShowGradeUpModal] = useState(false);
     const [gradeUpApplausePlayed, setGradeUpApplausePlayed] = useState(false);
 
+    const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+    const [levelUpDismissed, setLevelUpDismissed] = useState(false);
+
     // Animation flottante pour le cadre (Déplacée au niveau racine absolu, avant tout return conditionnel !)
     const floatingStyle = useAnimatedStyle(() => {
         return {
@@ -103,22 +107,34 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
     });
 
     useEffect(() => {
-        if (LEAGUE_FRAMES_ENABLED && visible && reward && reward.newlyUnlockedFrames && reward.newlyUnlockedFrames.length > 0) {
-            const timer = setTimeout(() => setShowFrameModal(true), 1500);
+        if (visible && reward?.leveledUp && !levelUpDismissed) {
+             const timer = setTimeout(() => setShowLevelUpModal(true), 1500);
+             return () => clearTimeout(timer);
+        } else {
+             setShowLevelUpModal(false);
+        }
+    }, [visible, reward, levelUpDismissed]);
+
+    const canShowLeagueModals = !reward?.leveledUp || levelUpDismissed;
+
+    useEffect(() => {
+        if (canShowLeagueModals && LEAGUE_FRAMES_ENABLED && visible && reward && reward.newlyUnlockedFrames && reward.newlyUnlockedFrames.length > 0) {
+            const timer = setTimeout(() => setShowFrameModal(true), reward.leveledUp ? 500 : 1500);
             return () => clearTimeout(timer);
         } else {
             setShowFrameModal(false);
         }
-    }, [visible, reward]);
+    }, [visible, reward, canShowLeagueModals]);
 
     useEffect(() => {
         // Modale grade-up uniquement si gradeUp sans nouveau cadre (sinon le cadre affiche déjà les félicitations)
-        if (visible && reward && (reward.gradeUp || (reward.frameCoinsBonus ?? 0) > 0) && (!LEAGUE_FRAMES_ENABLED || !(reward.newlyUnlockedFrames?.length > 0))) {
-            setShowGradeUpModal(true);
+        if (canShowLeagueModals && visible && reward && (reward.gradeUp || (reward.frameCoinsBonus ?? 0) > 0) && (!LEAGUE_FRAMES_ENABLED || !(reward.newlyUnlockedFrames?.length > 0))) {
+            const timer = setTimeout(() => setShowGradeUpModal(true), reward.leveledUp ? 500 : 100);
+            return () => clearTimeout(timer);
         } else {
             setShowGradeUpModal(false);
         }
-    }, [visible, reward]);
+    }, [visible, reward, canShowLeagueModals]);
 
     useEffect(() => {
         if (!showGradeUpModal) return;
@@ -554,6 +570,17 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
                         </Animated.View>
                     </View>
                 </Modal>
+            )}
+
+            {/* Modale Passage de Niveau */}
+            {reward && reward.leveledUp && (
+                <LevelUpOverlay
+                    visible={showLevelUpModal}
+                    level={reward.newLevel}
+                    coins={getLevelUpChest(reward.newLevel)?.coinsReward || 50}
+                    diamonds={getLevelUpChest(reward.newLevel)?.diamondReward || 0}
+                    onClose={() => setLevelUpDismissed(true)}
+                />
             )}
         </Animated.View>
     );

@@ -290,7 +290,8 @@ export default Sentry.wrap(function RootLayout() {
       pathname === '/stats' ||
       pathname === '/store' ||
       pathname === '/collection' ||
-      pathname === '/debug-ligue';
+      pathname === '/debug-ligue' ||
+      pathname === '/debug-level';
     if (shouldStaySilent) {
       SoundManager.stopMusic();
       return;
