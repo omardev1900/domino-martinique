@@ -115,11 +115,11 @@ export const MAX_LEVEL = 100;
  */
 export const LEVEL_UP_CHESTS: LevelUpChest[] = [
     { level: 1, coinsReward: 200, diamondReward: 0 },
-    { level: 5, coinsReward: 500, diamondReward: 1 },
-    { level: 10, coinsReward: 1000, diamondReward: 2 },
-    { level: 20, coinsReward: 2500, diamondReward: 3 },
-    { level: 50, coinsReward: 10000, diamondReward: 5 },
-    { level: 100, coinsReward: 50000, diamondReward: 10 },
+    { level: 5, coinsReward: 500, diamondReward: 0 },
+    { level: 10, coinsReward: 1000, diamondReward: 1 },
+    { level: 20, coinsReward: 2000, diamondReward: 2 },
+    { level: 50, coinsReward: 5000, diamondReward: 5 },
+    { level: 100, coinsReward: 10000, diamondReward: 10 },
 ];
 
 /** Bonus de coins au passage de chaque niveau (si pas dans LEVEL_UP_CHESTS) */

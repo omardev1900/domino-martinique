@@ -428,32 +428,30 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
             {/* ── Navigation haut : Actions (gauche) + Mode/Objectif (centre) + Détails (droite) ── */}
             <View style={styles.matchTopNav}>
                 <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <View style={{ alignItems: 'center' }}>
-                        <TouchableOpacity
-                            style={styles.quitBtn}
-                            onPress={onContinue}
-                            activeOpacity={0.85}
-                            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                            accessibilityLabel="Retour à l'accueil"
-                        >
+                    <TouchableOpacity 
+                        style={{ alignItems: 'center' }}
+                        onPress={onContinue}
+                        activeOpacity={0.7}
+                        accessibilityLabel="Retour à l'accueil"
+                    >
+                        <View style={styles.quitBtn}>
                             <Ionicons name="home" size={22} color="#FFF" />
-                        </TouchableOpacity>
+                        </View>
                         <Text style={styles.topNavActionText}>Accueil</Text>
-                    </View>
+                    </TouchableOpacity>
 
                     {isSoloMode && onReplay && (
-                        <View style={{ alignItems: 'center' }}>
-                            <TouchableOpacity
-                                style={[styles.quitBtn, { backgroundColor: 'rgba(255, 215, 0, 0.15)', borderColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 1 }]}
-                                onPress={onReplay}
-                                activeOpacity={0.85}
-                                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                                accessibilityLabel="Rejouer"
-                            >
+                        <TouchableOpacity 
+                            style={{ alignItems: 'center' }}
+                            onPress={onReplay}
+                            activeOpacity={0.7}
+                            accessibilityLabel="Rejouer"
+                        >
+                            <View style={[styles.quitBtn, { backgroundColor: 'rgba(255, 215, 0, 0.15)', borderColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 1 }]}>
                                 <Ionicons name="refresh" size={22} color="#FFD700" />
-                            </TouchableOpacity>
+                            </View>
                             <Text style={styles.topNavActionText}>Rejouer</Text>
-                        </View>
+                        </TouchableOpacity>
                     )}
 
                     {isMeWinner && isMatchOver && (() => {
@@ -485,18 +483,17 @@ export const UnifiedResultOverlay: React.FC<UnifiedResultOverlayProps> = ({
                     {getMatchModeLabel()}
                 </Text>
 
-                <View style={{ alignItems: 'center' }}>
-                    <TouchableOpacity
-                        style={[styles.quitBtn, { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.3)', borderWidth: 1 }]}
-                        onPress={() => setShowHistory(true)}
-                        activeOpacity={0.85}
-                        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                        accessibilityLabel="Détails"
-                    >
+                <TouchableOpacity 
+                    style={{ alignItems: 'center' }}
+                    onPress={() => setShowHistory(true)}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Détails"
+                >
+                    <View style={[styles.quitBtn, { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.3)', borderWidth: 1 }]}>
                         <Ionicons name="list" size={22} color="#FFF" />
-                    </TouchableOpacity>
+                    </View>
                     <Text style={styles.topNavActionText}>Détails</Text>
-                </View>
+                </TouchableOpacity>
             </View>
 
             {renderPodiumCards(true)}

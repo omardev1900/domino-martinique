@@ -45,7 +45,10 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
 
     useEffect(() => {
         if (visible && winner) {
-            SoundManager.playSound('bravo');
+            const timer = setTimeout(() => {
+                SoundManager.playSound('bravo');
+            }, 800);
+            return () => clearTimeout(timer);
         }
     }, [visible, !!winner]);
 

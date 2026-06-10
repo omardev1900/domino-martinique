@@ -1737,10 +1737,11 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
     const interceptOverlayContinue = useCallback(() => {
         // La navigation définitive quand l'overlay (qui gère déjà Scores / Historique / Gains) est fermé.
-        setScoreOverlayPhase(null);
         if (gameState?.phase === 'MATCH_END') {
+             // On ne masque pas l'overlay tout de suite, cela évite d'afficher le plateau nu en attendant la navigation
              handleLeaveRoom(); // Quitte la salle définitivement après la fin du match complet
         } else {
+             setScoreOverlayPhase(null);
              handleOverlayContinue(); // Continue vers la prochaine manche
         }
     }, [gameState?.phase, handleLeaveRoom, handleOverlayContinue]);

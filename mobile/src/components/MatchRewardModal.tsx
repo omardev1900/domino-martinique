@@ -117,9 +117,9 @@ const styles = StyleSheet.create({
     },
     closeBtn: {
         position: 'absolute',
-        top: 12,
-        right: 12,
-        padding: 8,
+        top: 8,
+        right: 8,
+        padding: 16,
         zIndex: 10,
     },
     iconContainer: {
