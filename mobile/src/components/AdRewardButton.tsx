@@ -53,7 +53,7 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
     const [loading, setLoading] = useState(false);
 
     // Google AdMob Rewarded
-    const { isLoaded: isAdMobLoaded, isClosed: isAdMobClosed, isEarnedReward, load: loadAdMob, show: showAdMob } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
+    const { isLoaded: isAdMobLoaded, isClosed: isAdMobClosed, isEarnedReward, error: rewardError, load: loadAdMob, show: showAdMob } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
 
     React.useEffect(() => {
         if (Platform.OS !== 'web') {
@@ -95,8 +95,8 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
                 Alert.alert("Information", "Les publicités ne sont disponibles que sur mobile.");
             } else {
                 Alert.alert(
-                    "Publicité non disponible", 
-                    "Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants."
+                    "Publicité indisponible",
+                    `Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants.\n\n(Info: ${rewardError ? rewardError.message : 'Chargement en cours'})`
                 );
                 loadAdMob(); // Tente de recharger
             }

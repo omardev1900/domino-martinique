@@ -57,7 +57,7 @@ export default function HomeScreen() {
     const [showWelcomeReward, setShowWelcomeReward] = useState(false);
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
     const [isProcessingRewardAd, setIsProcessingRewardAd] = useState(false);
-    const { isLoaded: isRewardLoaded, isClosed: isRewardClosed, isEarnedReward, load: loadReward, show: showReward } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
+    const { isLoaded: isRewardLoaded, isClosed: isRewardClosed, isEarnedReward, error: rewardError, load: loadReward, show: showReward } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
     const { isLoaded: isAppOpenLoaded, load: loadAppOpen, show: showAppOpen } = useAppOpenAd(AdMobIds.APP_OPEN);
 
     // Initialiser la pub d'ouverture d'app (une seule fois par session)
@@ -252,7 +252,7 @@ export default function HomeScreen() {
             setIsProcessingRewardAd(false);
             Alert.alert(
                 "Publicité indisponible",
-                "Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants."
+                `Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants.\n\n(Info: ${rewardError ? rewardError.message : 'Chargement en cours'})`
             );
             loadReward(); // retenter
         }

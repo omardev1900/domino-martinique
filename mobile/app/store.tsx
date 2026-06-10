@@ -15,6 +15,7 @@ import { StoreItem, StoreItemType, PlayerInventory } from '../src/core/store.typ
 import { useRewardedAd, AdMobIds } from '../src/core/services/AdMobAdapter';
 import { authService } from '../src/core/services/auth.service';
 import { DailyRewardModal } from '../src/components/DailyRewardModal';
+import { RewardOverlay } from '../src/components/RewardOverlay';
 
 type TabType = 'ALL' | StoreItemType;
 
@@ -69,10 +70,10 @@ export default function StoreScreen() {
         return tabs;
     }, [catalog]);
 
-    const { isLoaded, isClosed, isEarnedReward, load, show } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
+    const { isLoaded, isClosed, isEarnedReward, error: rewardError, load, show } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
     const [pendingStoreAdReward, setPendingStoreAdReward] = useState(false);
     const [isProcessingAd, setIsProcessingAd] = useState(false);
-    const [showVideoReward, setShowVideoReward] = useState(false);
+    const [showRewardOverlay, setShowRewardOverlay] = useState(false);
 
     useEffect(() => {
         load();
@@ -86,7 +87,7 @@ export default function StoreScreen() {
                     await economyService.claimStoreAdReward(user?.uid);
                     setEconomyRefresh(prev => prev + 1);
                     await loadData();
-                    setShowVideoReward(true);
+                    setShowRewardOverlay(true);
                 };
                 claim();
             }
@@ -109,7 +110,7 @@ export default function StoreScreen() {
             setIsProcessingAd(false);
             Alert.alert(
                 "Publicité indisponible",
-                "Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants."
+                `Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants.\n\n(Info: ${rewardError ? rewardError.message : 'Chargement en cours'})`
             );
             load(); // retenter le chargement
         }
@@ -373,13 +374,22 @@ export default function StoreScreen() {
                 onEquip={() => purchaseSuccessItem && handleEquip(purchaseSuccessItem.id)}
             />
 
-            <DailyRewardModal
-                visible={showVideoReward}
-                amount={100}
-                isStoreAd={true}
-                onClaim={() => setShowVideoReward(false)}
-                onWatchAd={() => setShowVideoReward(false)}
-            /> 
+            <RewardOverlay
+                visible={showRewardOverlay}
+                reward={{
+                    coinsEarned: 100, // Le montant fixé de la récompense boutique
+                    xpEarned: 0,
+                    leaguePointsEarned: 0,
+                    diamondsEarned: 0,
+                    previousLevel: 0,
+                    newLevel: 0,
+                    leveledUp: false,
+                    newLeaguePoints: 0,
+                    breakdown: [{ id: 'store_ad', label: 'Récompense publicitaire', coins: 100, xp: 0, leaguePoints: 0, diamonds: 0 }]
+                }}
+                isWinner={false}
+                onContinue={() => setShowRewardOverlay(false)}
+            />
             
             {loading ? (
                 <View style={styles.centerContainer}>

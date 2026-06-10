@@ -140,6 +140,16 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
         }
     }, [showGradeUpModal]);
 
+    // Son pour les pièces de monnaie s'il n'y a pas de gradeUp (ex: pub boutique)
+    useEffect(() => {
+        if (visible && reward && reward.coinsEarned > 0 && !showGradeUpModal) {
+            const timer = setTimeout(() => {
+                SoundManager.playSound('notify'); // Son "ching" ou notification
+            }, 600);
+            return () => clearTimeout(timer);
+        }
+    }, [visible, reward, showGradeUpModal]);
+
     if (!visible || !reward) return null;
 
     const isLevelUp = reward.leveledUp;
@@ -241,15 +251,17 @@ export function RewardOverlay({ visible, reward, isWinner, onContinue, playerNam
                             </LinearGradient>
                         </Animated.View>
 
-                        <Animated.View entering={FadeInDown.delay(1200)} style={styles.totalBox}>
-                            <LinearGradient colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
-                                <View style={{ marginBottom: 4, height: 32, justifyContent: 'center' }}>
-                                    <XPIcon size={30} />
-                                </View>
-                                <RollingNumber value={reward.xpEarned} prefix="+" style={styles.totalValue} />
-                                <Text style={styles.totalLabel}>XP</Text>
-                            </LinearGradient>
-                        </Animated.View>
+                        {reward.xpEarned > 0 && (
+                            <Animated.View entering={FadeInDown.delay(1200)} style={styles.totalBox}>
+                                <LinearGradient colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.5)']} style={styles.totalBoxGradient}>
+                                    <View style={{ marginBottom: 4, height: 32, justifyContent: 'center' }}>
+                                        <XPIcon size={30} />
+                                    </View>
+                                    <RollingNumber value={reward.xpEarned} prefix="+" style={styles.totalValue} />
+                                    <Text style={styles.totalLabel}>XP</Text>
+                                </LinearGradient>
+                            </Animated.View>
+                        )}
 
                         {reward.diamondsEarned > 0 && (
                             <Animated.View entering={FadeInDown.delay(1400)} style={styles.totalBox}>

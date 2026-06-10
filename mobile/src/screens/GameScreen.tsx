@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as Sentry from '@sentry/react-native';
+import { useKeepAwake } from 'expo-keep-awake';
 import { GameTable , GameTableRef } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerAvatar } from '../components/PlayerAvatar';
@@ -74,6 +75,9 @@ interface GameScreenProps {
 }
 
 export default function GameScreen({ gameId, userId, authUid, mode, difficulty, gameMode, winningCondition, turnDuration, startingHandSize: propStartingHandSize, tableTier: propTableTier }: GameScreenProps) {
+    // 🔥 Empêche le téléphone de s'éteindre pendant la partie !
+    useKeepAwake();
+
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const isLandscape = width > height;
