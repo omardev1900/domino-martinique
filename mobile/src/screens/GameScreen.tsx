@@ -25,6 +25,7 @@ import { UnifiedResultOverlay } from '../components/UnifiedResultOverlay';
 import { QuickChat } from '../components/QuickChat';
 import { RoundEndFlow } from '../components/game/RoundEndFlow';
 import { MancheEndFlow } from '../components/game/MancheEndFlow';
+import { BoardDimmer } from '../components/game/RoundEndFlow/BoardDimmer';
 import { RewardOverlay } from '../components/RewardOverlay';
 import { MatchRewardModal } from '../components/MatchRewardModal';
 
@@ -1971,6 +1972,15 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     </View>
                 </View>
             )}
+
+            {/* ✅ BoardDimmer Global pour assombrir le plateau sans affecter les textes */}
+            <BoardDimmer 
+                visible={
+                    (showScoreOverlay && gameState?.phase === 'MANCHE_END') ||
+                    showRoundResult || 
+                    !!isCurrentBoudeResultVisible
+                } 
+            />
 
             {/* ✅ MancheEndFlow — résumé de la manche */}
             {(showScoreOverlay && gameState?.phase === 'MANCHE_END') && (

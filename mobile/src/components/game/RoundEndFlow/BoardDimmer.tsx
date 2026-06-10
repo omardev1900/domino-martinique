@@ -11,7 +11,7 @@ export const BoardDimmer: React.FC<BoardDimmerProps> = ({ visible }) => {
 
     useEffect(() => {
         if (visible) {
-            opacity.value = withTiming(0.72, { duration: 400 });
+            opacity.value = withTiming(0.45, { duration: 400 });
         } else {
             opacity.value = withTiming(0, { duration: 300 });
         }

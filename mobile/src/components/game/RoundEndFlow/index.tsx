@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { GameState, Player, Domino } from '../../../core/types';
 import SoundManager from '../../../core/audio/SoundManager';
-import { BoardDimmer } from './BoardDimmer';
 import { RoundEndBanner } from './RoundEndBanner';
 import { PlayerRevealBlock } from './PlayerRevealBlock';
 import { WinnerHighlight } from './WinnerHighlight';
@@ -90,7 +89,6 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
 
     return (
         <View style={[StyleSheet.absoluteFillObject, { zIndex: 1000, elevation: 1000 }]} pointerEvents={phase === 'result' ? 'auto' : 'none'}>
-            <BoardDimmer visible={phase !== 'idle'} />
             
             {/* TEMPORAIRE : Masqué pour test de l'affichage sans bannière */}
             <RoundEndBanner isBoude={isBoude} visible={false} />

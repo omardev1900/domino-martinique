@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, ZoomIn, FadeInUp, useReducedMotion } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { GameState } from '../../../core/types';
 import SoundManager from '../../../core/audio/SoundManager';
-import { BoardDimmer } from '../RoundEndFlow/BoardDimmer';
 import { getAvatarImage, AvatarId } from '../../../core/avatars';
 import { calculateHandPoints } from '../../../core/ScoringEngine';
 
@@ -25,6 +24,9 @@ export const MancheEndFlow: React.FC<MancheEndFlowProps> = ({
     isHost,
 }) => {
     const reducedMotion = useReducedMotion();
+    const { height } = useWindowDimensions();
+    const isCompact = height < 500;
+    
     const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState<number | null>(null);
     const AUTO_ADVANCE_MS = 2800;
 
@@ -99,8 +101,6 @@ export const MancheEndFlow: React.FC<MancheEndFlowProps> = ({
 
     return (
         <View style={styles.container} pointerEvents="box-none">
-            <BoardDimmer visible={true} />
-
             <Animated.View style={styles.content} entering={reducedMotion ? undefined : FadeIn.duration(400)}>
                 {/* Header Animé */}
                 <Animated.View entering={reducedMotion ? undefined : ZoomIn.duration(400).springify().damping(14)} style={styles.titlePill}>
@@ -112,16 +112,16 @@ export const MancheEndFlow: React.FC<MancheEndFlowProps> = ({
 
                 {/* Avatar du vainqueur (si existant et différent de Chiré/Cochon) */}
                 {winner && mancheResult !== 'CHIRE' && (
-                    <Animated.View entering={reducedMotion ? undefined : FadeInUp.delay(200).duration(400).springify()} style={styles.heroContainer}>
+                    <Animated.View entering={reducedMotion ? undefined : FadeInUp.delay(200).duration(400).springify()} style={[styles.heroContainer, isCompact && { marginTop: 20 }]}>
                         <View style={styles.avatarWrapper}>
                             <Image
                                 source={getAvatarImage((winner.avatarId as AvatarId) || 'avatar_default')}
-                                style={styles.avatar}
+                                style={[styles.avatar, isCompact && { width: 90, height: 90, borderRadius: 45 }]}
                                 contentFit="cover"
                             />
-                            {mancheResult !== 'BOUDE' && <Text style={styles.crown}>👑</Text>}
+                            {mancheResult !== 'BOUDE' && <Text style={[styles.crown, isCompact && { fontSize: 35, top: -15, left: -10 }]}>👑</Text>}
                         </View>
-                        <Text style={[styles.winnerName, winner.id === localPlayerId && styles.localWinnerName]}>
+                        <Text style={[styles.winnerName, winner.id === localPlayerId && styles.localWinnerName, isCompact && { fontSize: 18, marginTop: 10 }]}>
                             {winner.id === localPlayerId ? 'Vous avez gagné !' : winner.name}
                         </Text>
                     </Animated.View>
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
         paddingVertical: 40,
     },
     titlePill: {
-        marginTop: 60,
+        marginTop: 10,
         backgroundColor: 'rgba(0,0,0,0.6)',
         paddingHorizontal: 30,
         paddingVertical: 15,
@@ -192,15 +192,15 @@ const styles = StyleSheet.create({
     },
     titleChire: {
         color: '#FF6B6B',
-        textShadowColor: 'rgba(255, 107, 107, 0.5)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: 1, height: 2 },
+        textShadowRadius: 2,
     },
     titleCochon: {
         color: '#FF9800',
-        textShadowColor: 'rgba(255, 152, 0, 0.5)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: 1, height: 2 },
+        textShadowRadius: 2,
     },
     titleSub: {
         fontSize: 14,
