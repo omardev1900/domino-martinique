@@ -2,6 +2,16 @@
 
 > Journal des changements notables, classés par date (plus récent en premier).
 
+## [2.5.20] - 2026-06-10
+
+### Ajouté
+- **Publicités (Monétisation)** — Intégration d'une publicité vidéo au lancement de l'application (App Open Ad) et d'un interstitiel optionnel juste avant de démarrer une partie en mode Solo.
+
+### Amélioré
+- **Clarté de l'écran de fin de manche (UX)** — Le plateau de jeu s'assombrit désormais correctement sous les textes de résultats (Chiré / Cochon) sans affecter la netteté de la typographie (suppression de l'effet de flou sur les textes).
+- **Affichage sur petits écrans (UI)** — L'avatar du joueur a été légèrement décalé pour éviter qu'il ne chevauche la main de dominos à la fin d'un round de jeu.
+- **Récompenses Publicitaires (Économie)** — Resserrement de la logique des publicités récompensées (Boutique et Cadeau du Jour). Si aucune publicité n'est chargée ou disponible, le joueur reçoit désormais un message d'information au lieu de recevoir la récompense gratuitement, assurant un meilleur équilibre de l'économie.
+
 ---
 
 ## [2.5.19] - 2026-06-09

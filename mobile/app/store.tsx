@@ -99,23 +99,18 @@ export default function StoreScreen() {
     const handleWatchStoreAd = async () => {
         setIsProcessingAd(true);
         if (Platform.OS === 'web') {
-            const user = await authService.getCurrentUser();
-            await economyService.claimStoreAdReward(user?.uid);
-            setEconomyRefresh(prev => prev + 1);
-            await loadData();
-            setShowVideoReward(true);
+            Alert.alert("Information", "Les publicités ne sont disponibles que sur mobile.");
             setIsProcessingAd(false);
         } else if (isLoaded) {
             setPendingStoreAdReward(true);
             show();
         } else {
-            // Fallback si la pub n'est pas chargée
-            const user = await authService.getCurrentUser();
-            await economyService.claimStoreAdReward(user?.uid);
-            setEconomyRefresh(prev => prev + 1);
-            await loadData();
-            setShowVideoReward(true);
+            // Pub non chargée
             setIsProcessingAd(false);
+            Alert.alert(
+                "Publicité indisponible",
+                "Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants."
+            );
             load(); // retenter le chargement
         }
     };

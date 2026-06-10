@@ -18,6 +18,7 @@
 | **MULTI-PENALITE-ABANDON** | Différencier abandon volontaire et déconnexion (`SURRENDERED` vs `DISCONNECTED`). À la fin, le joueur en abandon volontaire perd tout et finit dernier, même si son bot gagne. | 🟡 Moyenne | ~0,5 j |
 | **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression. | 🟡 Moyenne | — |
 | **ECO-ADS-COINS-TUNING** | Définir la récompense coins du visionnage pub volontaire post-match. | 🟡 Moyenne | — |
+| **TIME-PENALTY-COINS** | Prélever des coins si temps épuisé et bot joue à la place du joueur et afficher message "- 10 coins" par exemple. | 🟡 Moyenne | ~0,5 j |
 
 ---
 

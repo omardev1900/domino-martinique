@@ -31,12 +31,13 @@ import { HelpOverlay } from '../src/components/HelpOverlay';
 import { LeagueProgressWidget } from '../src/components/LeagueProgressWidget';
 import { ShareTextButton } from '../src/components/ShareButton';
 import { NewsService, NewsItem } from '../src/core/services/news.service';
-import { useRewardedAd, AdMobIds } from '../src/core/services/AdMobAdapter';
+import { useRewardedAd, useAppOpenAd, AdMobIds } from '../src/core/services/AdMobAdapter';
 import { USE_NEW_SIDEBAR } from '../src/core/config/navigation.config';
 import { getLeagueProgress, getMonthlyCochonsFromHistory } from '../src/core/leagueProgress';
 import { deleteWaitingRoomIfOwner, findActiveRoomForUser, findHostedWaitingRoom } from '../src/core/services/firebase';
 import { PremiumButton } from '../src/components/common/PremiumButton';
 
+let hasShownAppOpenAd = false;
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -57,7 +58,25 @@ export default function HomeScreen() {
     const [dailyRewardAmount, setDailyRewardAmount] = useState(0);
     const [isProcessingRewardAd, setIsProcessingRewardAd] = useState(false);
     const { isLoaded: isRewardLoaded, isClosed: isRewardClosed, isEarnedReward, load: loadReward, show: showReward } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
+    const { isLoaded: isAppOpenLoaded, load: loadAppOpen, show: showAppOpen } = useAppOpenAd(AdMobIds.APP_OPEN);
 
+    // Initialiser la pub d'ouverture d'app (une seule fois par session)
+    useEffect(() => {
+        if (Platform.OS !== 'web' && !hasShownAppOpenAd) {
+            loadAppOpen();
+        }
+    }, [loadAppOpen]);
+
+    useEffect(() => {
+        if (isAppOpenLoaded && !hasShownAppOpenAd) {
+            hasShownAppOpenAd = true;
+            try {
+                showAppOpen();
+            } catch (error) {
+                console.warn('Erreur affichage pub App Open:', error);
+            }
+        }
+    }, [isAppOpenLoaded, showAppOpen]);
     useEffect(() => {
         loadReward();
     }, [loadReward]);
@@ -224,14 +243,17 @@ export default function HomeScreen() {
     const handleWatchAdForReward = async () => {
         setIsProcessingRewardAd(true);
         if (Platform.OS === 'web') {
-            dailyClaimTriggerRef.current?.();
+            Alert.alert("Information", "Les publicités ne sont disponibles que sur l'application mobile.");
             setIsProcessingRewardAd(false);
         } else if (isRewardLoaded) {
             showReward();
         } else {
-            // Fallback si la pub n'est pas chargée
-            dailyClaimTriggerRef.current?.();
+            // Pub non chargée
             setIsProcessingRewardAd(false);
+            Alert.alert(
+                "Publicité indisponible",
+                "Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants."
+            );
             loadReward(); // retenter
         }
     };

@@ -17,6 +17,13 @@ export const useInterstitialAd = (id: string) => ({
     show: () => {}
 });
 
+export const useAppOpenAd = (id: string) => ({
+    isLoaded: false,
+    isClosed: false,
+    load: () => {},
+    show: () => {}
+});
+
 export const TestIds = {
     REWARDED: 'web-rewarded',
     INTERSTITIAL: 'web-interstitial',

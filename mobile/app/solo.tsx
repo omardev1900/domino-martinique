@@ -17,6 +17,7 @@ import { TableTier } from '../src/core/economy.types';
 import { EconomyHeader } from '../src/components/EconomyHeader';
 import { findActiveRoomForUser } from '../src/core/services/firebase';
 import { BotDifficulty, getFloorLevel, isLevelAllowed } from '../src/core/services/bot.service';
+import { useInterstitialAd, AdMobIds } from '../src/core/services/AdMobAdapter';
 
 type Difficulty = BotDifficulty;
 type GameMode = 'MANCHE' | 'SCORE' | 'COCHON' | 'VICTOIRE';
@@ -52,6 +53,22 @@ export default function SoloScreen() {
     const [economyRefresh, setEconomyRefresh] = useState(0);
     const [debitFeedback, setDebitFeedback] = useState<string | null>(null);
     const [uiStep, setUiStep] = useState<'MODE' | 'CONFIG'>('MODE');
+    const [pendingGameStart, setPendingGameStart] = useState(false);
+
+    const { isLoaded: isAdLoaded, isClosed: isAdClosed, load: loadAd, show: showAd } = useInterstitialAd(AdMobIds.INTERSTITIAL_LIGUE);
+
+    React.useEffect(() => {
+        if (Platform.OS !== 'web') {
+            loadAd();
+        }
+    }, [loadAd]);
+
+    React.useEffect(() => {
+        if (pendingGameStart && isAdClosed) {
+            setPendingGameStart(false);
+            executeGameLaunch();
+        }
+    }, [pendingGameStart, isAdClosed]);
 
     // --- Calculs de Scaling Dynamique (4 colonnes) ---
     const HORIZONTAL_PADDING = 48; // mainWrapper paddingHorizontal (24 * 2)
@@ -84,7 +101,22 @@ export default function SoloScreen() {
         router.replace('/home');
     };
 
-    const startGame = async () => {
+    const handleStartGame = async () => {
+        if (isAdLoaded && Platform.OS !== 'web') {
+            setPendingGameStart(true);
+            try {
+                showAd();
+            } catch (e) {
+                console.warn('Erreur affichage interstitiel', e);
+                setPendingGameStart(false);
+                await executeGameLaunch();
+            }
+        } else {
+            await executeGameLaunch();
+        }
+    };
+
+    const executeGameLaunch = async () => {
         if (!user?.uid || user.uid.startsWith('guest_')) {
             Alert.alert(
                 'Connexion requise',
@@ -256,7 +288,7 @@ export default function SoloScreen() {
                                         ['#FFA000', '#FFD54F']
                                     }
                                     onBack={() => setUiStep('MODE')}
-                                    onActionPress={startGame}
+                                    onActionPress={handleStartGame}
                                     actionCost={TABLE_CONFIGS[tableTier].buyIn}
                                 />
 

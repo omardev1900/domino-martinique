@@ -2,6 +2,13 @@
 
 ## Juin 2026
 
+### 2026-06-10
+
+- **[UX-ROUND-END-OVERLAP]** : Correction du chevauchement de l'avatar avec les dominos en fin de round. Décalage de l'avatar et du bloc de dominos.
+- **[UX-BOARD-DIMMER]** : Amélioration de l'écran de fin de manche (Chiré / Cochon). Centralisation du `BoardDimmer` pour assombrir uniquement le plateau et garder les textes nets. Remplacement du `textShadow` flou par une ombre nette. Réduction de la taille pour éviter les dépassements d'écran.
+- **[ADMOB-INTEGRATION-V2]** : Ajout d'une publicité `AppOpenAd` au lancement de l'application et d'un `InterstitialAd` avant de démarrer une partie en mode Solo.
+- **[ADMOB-STRICT-REWARD]** : Suppression des fallbacks automatiques dans la boutique et le cadeau du jour. Les joueurs ne reçoivent plus de pièces gratuitement si la publicité ne se charge pas. Ajout d'alertes natives pour informer de l'indisponibilité des publicités.
+
 ### 2026-06-09
 
 - **[UX-LOBBY-MULTI-LAYOUT]** : Refonte du layout de la salle d'attente Multijoueur (`LobbyScreen`) pour corriger les problèmes d'alignement et de chevauchement sur les petits écrans :

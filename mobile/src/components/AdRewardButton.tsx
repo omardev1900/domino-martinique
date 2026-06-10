@@ -21,7 +21,7 @@ import { TouchableOpacity, View, Text, StyleSheet, ActivityIndicator } from 'rea
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useRewardedAd, TestIds, AdMobIds } from '../core/services/AdMobAdapter';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 
 export interface AdRewardButtonProps {
     /** Montant crédité après la pub (affiché dans le bouton). */
@@ -89,15 +89,21 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
                 showAdMob();
                 return;
             }
-            // Pas de pub chargée (ou sur Web), on crédite directement en fallback
-            await onClaim();
-            setClaimed(true);
+            
             setLoading(false);
+            if (Platform.OS === 'web') {
+                Alert.alert("Information", "Les publicités ne sont disponibles que sur mobile.");
+            } else {
+                Alert.alert(
+                    "Publicité non disponible", 
+                    "Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants."
+                );
+                loadAdMob(); // Tente de recharger
+            }
         } catch (e) {
             console.error("Erreur chargement pub :", e);
-            await onClaim();
-            setClaimed(true);
             setLoading(false);
+            Alert.alert("Erreur", "Une erreur est survenue lors du chargement de la publicité.");
         }
     };
 
