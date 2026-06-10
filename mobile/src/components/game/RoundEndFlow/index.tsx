@@ -89,7 +89,7 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
     const localPlayer = gameState.players.find(p => p.id === localPlayerId);
 
     return (
-        <View style={StyleSheet.absoluteFillObject} pointerEvents={phase === 'result' ? 'auto' : 'none'}>
+        <View style={[StyleSheet.absoluteFillObject, { zIndex: 1000, elevation: 1000 }]} pointerEvents={phase === 'result' ? 'auto' : 'none'}>
             <BoardDimmer visible={phase !== 'idle'} />
             
             {/* TEMPORAIRE : Masqué pour test de l'affichage sans bannière */}

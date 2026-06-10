@@ -54,7 +54,7 @@ export const PlayerRevealBlock: React.FC<PlayerRevealBlockProps> = ({
             styles.container,
             isTopRight && { top: 20, right: Math.max(insets.right + 10, 10) + 70, alignItems: 'flex-end' },
             isTopLeft && { top: 20, left: Math.max(insets.left + 10, 10) + 70, alignItems: 'flex-start' },
-            isBottom && { bottom: 80 + insets.bottom, left: 20 + insets.left, alignItems: 'flex-start' },
+            isBottom && { bottom: Math.max(insets.bottom + 10, 20), left: Math.max(insets.left + 10, 10) + 110, alignItems: 'flex-start' },
         ]} pointerEvents="none">
             
             <View style={[
