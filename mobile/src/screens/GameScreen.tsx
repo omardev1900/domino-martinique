@@ -1049,24 +1049,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 setScoreOverlayPhase(null);
                 setShowRoundResult(false);
                 
-                // On passe directement à l'overlay de manche (ou pub) car la carte a déjà été montrée via BOUDE
-                if (isSoloMode && isAdMobLoaded) {
-                    isAdVisibleRef.current = true;
-                    setIsAdVisible(true);
-                    setTimeout(() => {
-                        try {
-                            showAdMob();
-                        } catch (e) {
-                            LogService.error('GameScreen', 'Failed to show AdMob (MANCHE_END)', e);
-                            isAdVisibleRef.current = false;
-                            setIsAdVisible(false);
-                            setScoreOverlayPhase('MANCHE_END');
-                        }
-                    }, 50);
-                    pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MANCHE_END');
-                } else {
-                    setScoreOverlayPhase('MANCHE_END');
-                }
+                setScoreOverlayPhase('MANCHE_END');
                 return;
             }
 
@@ -1075,23 +1058,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             setRoundResultSnapshot(gameState);
             setShowRoundResult(true);
             pendingRoundResultTransition.current = () => {
-                if (isSoloMode && isAdMobLoaded) {
-                    isAdVisibleRef.current = true;
-                    setIsAdVisible(true);
-                    setTimeout(() => {
-                        try {
-                            showAdMob();
-                        } catch (e) {
-                            LogService.error('GameScreen', 'Failed to show AdMob (MANCHE_END)', e);
-                            isAdVisibleRef.current = false;
-                            setIsAdVisible(false);
-                            setScoreOverlayPhase('MANCHE_END');
-                        }
-                    }, 50);
-                    pendingPhaseTransitionRef.current = () => setScoreOverlayPhase('MANCHE_END');
-                } else {
-                    setScoreOverlayPhase('MANCHE_END');
-                }
+                setScoreOverlayPhase('MANCHE_END');
             };
             roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
             return () => {
