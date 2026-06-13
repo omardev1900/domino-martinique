@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.dominomartinique.mobile",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 12,
       "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false,
