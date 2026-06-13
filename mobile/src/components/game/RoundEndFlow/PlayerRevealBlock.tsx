@@ -31,10 +31,10 @@ export const PlayerRevealBlock: React.FC<PlayerRevealBlockProps> = ({
     useEffect(() => {
         if (phase === 'counting') {
             setCurrentScore(handScore);
-            // Simulate count duration
+            // Simulate count duration (Accélérée)
             const timer = setTimeout(() => {
                 onCountComplete?.();
-            }, 3000);
+            }, 1200);
             return () => clearTimeout(timer);
         } else if (phase === 'idle' || phase === 'dimming') {
             setCurrentScore(0);
@@ -85,7 +85,7 @@ export const PlayerRevealBlock: React.FC<PlayerRevealBlockProps> = ({
                     <RollingNumber 
                         value={currentScore} 
                         style={styles.scoreText} 
-                        duration={3000} 
+                        duration={1200} 
                     />
                     <Animated.Text style={styles.ptsText}> pts</Animated.Text>
                 </View>

@@ -53,21 +53,21 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
                 }
             }
 
-            // Timeline
+            // Timeline (Accélérée)
             setTimeout(() => {
                 setPhase('reveal');
                 // Simulate clack sounds
                 const totalDominoes = gameState.players.reduce((sum, p) => sum + p.hand.length, 0);
                 const clacks = Math.min(totalDominoes, 5);
                 for (let i = 0; i < clacks; i++) {
-                    setTimeout(() => SoundManager.playSound(`clack${(i % 3) + 1}` as any), i * 150);
+                    setTimeout(() => SoundManager.playSound(`clack${(i % 3) + 1}` as any), i * 100);
                 }
 
                 setTimeout(() => {
                     setPhase('counting');
-                }, 1200);
+                }, 800);
 
-            }, 1500);
+            }, 600);
         }
     }, [visible]); // Seulement dépendre de visible pour la phase initiale
 
@@ -88,7 +88,7 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
     const localPlayer = gameState.players.find(p => p.id === localPlayerId);
 
     return (
-        <View style={[StyleSheet.absoluteFillObject, { zIndex: 1000, elevation: 1000 }]} pointerEvents={phase === 'result' ? 'auto' : 'none'}>
+        <View style={[StyleSheet.absoluteFillObject, { zIndex: 1000, elevation: 1000 }]} pointerEvents="box-none">
             
             {/* TEMPORAIRE : Masqué pour test de l'affichage sans bannière */}
             <RoundEndBanner isBoude={isBoude} visible={false} />

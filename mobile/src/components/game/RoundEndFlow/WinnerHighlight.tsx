@@ -79,7 +79,7 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
                         Le round est annulé et va recommencer.
                     </Animated.Text>
 
-                    <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(1000)} style={styles.buttonContainer}>
+                    <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(600)} style={styles.buttonContainer}>
                         <TouchableOpacity 
                             style={styles.continueButton} 
                             onPress={onContinue}
@@ -118,7 +118,7 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
                         </Text>
                     </Animated.View>
 
-                    <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(1000)} style={styles.buttonContainer}>
+                    <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(600)} style={styles.buttonContainer}>
                         <TouchableOpacity 
                             style={styles.continueButton} 
                             onPress={onContinue}
