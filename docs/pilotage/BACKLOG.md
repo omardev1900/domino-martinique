@@ -3,7 +3,7 @@
 > Ce fichier contient les sujets connus mais non encore planifiés.
 > Dès qu'une tâche devient prioritaire et décidée, elle sort du backlog pour aller dans `TASKS.md`.
 
-**Dernière mise à jour :** 2026-06-09
+**Dernière mise à jour :** 2026-07-02
 
 ---
 

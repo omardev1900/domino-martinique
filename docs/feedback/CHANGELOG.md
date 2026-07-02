@@ -2,6 +2,13 @@
 
 > Journal des changements notables, classés par date (plus récent en premier).
 
+## [2.5.21] - 2026-07-02
+
+### Ajouté
+- **Filet de sécurité économique (Récompenses)** — Si une publicité AdMob ne se charge pas dans un délai de 8 secondes (pour le Cadeau du Jour ou le bonus de fin de match), vous recevrez tout de même votre récompense automatiquement ! Sur la version Web, la récompense est dorénavant instantanée.
+
+---
+
 ## [2.5.20] - 2026-06-10
 
 ### Ajouté

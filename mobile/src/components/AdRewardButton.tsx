@@ -52,6 +52,10 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
     const [claimed, setClaimed] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    const AD_FALLBACK_TIMEOUT_MS = 8000;
+    const fallbackTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isWaitingRef = React.useRef(false);
+
     // Google AdMob Rewarded
     const { isLoaded: isAdMobLoaded, isClosed: isAdMobClosed, isEarnedReward, error: rewardError, load: loadAdMob, show: showAdMob } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
 
@@ -63,6 +67,11 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
 
     React.useEffect(() => {
         if (isAdMobClosed) {
+            isWaitingRef.current = false;
+            if (fallbackTimerRef.current) {
+                clearTimeout(fallbackTimerRef.current);
+                fallbackTimerRef.current = null;
+            }
             const processReward = async () => {
                 if (isEarnedReward) {
                     try {
@@ -85,21 +94,32 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
         if (claimed || loading || disabled) return;
         setLoading(true);
         try {
-            if (isAdMobLoaded && Platform.OS !== 'web') {
+            if (Platform.OS === 'web') {
+                await onClaim();
+                setClaimed(true);
+                setLoading(false);
+                return;
+            }
+
+            if (isAdMobLoaded) {
                 showAdMob();
                 return;
             }
             
-            setLoading(false);
-            if (Platform.OS === 'web') {
-                Alert.alert("Information", "Les publicités ne sont disponibles que sur mobile.");
-            } else {
-                Alert.alert(
-                    "Publicité indisponible",
-                    `Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants.\n\n(Info: ${rewardError ? rewardError.message : 'Chargement en cours'})`
-                );
-                loadAdMob(); // Tente de recharger
-            }
+            loadAdMob();
+            isWaitingRef.current = true;
+            fallbackTimerRef.current = setTimeout(async () => {
+                if (isWaitingRef.current) {
+                    isWaitingRef.current = false;
+                    try {
+                        await onClaim();
+                        setClaimed(true);
+                    } catch (e) {
+                        console.error("Erreur fallback pub :", e);
+                    }
+                    setLoading(false);
+                }
+            }, AD_FALLBACK_TIMEOUT_MS);
         } catch (e) {
             console.error("Erreur chargement pub :", e);
             setLoading(false);

@@ -1,5 +1,11 @@
 > Convention : classement par date descendante (plus recent en haut), date au format AAAA-MM-JJ.
 
+## Juillet 2026
+
+### 2026-07-02
+
+- **[ECO-AD-FALLBACK]** : Filet de sécurité ajouté pour palier à l'indisponibilité des publicités AdMob. En cas de non-chargement d'une publicité après un délai de 8 secondes, la récompense est automatiquement créditée à l'utilisateur (Cadeau du Jour et `AdRewardButton`). Si le joueur est sur Web, le fallback est immédiat.
+
 ## Juin 2026
 
 ### 2026-06-10

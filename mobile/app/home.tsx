@@ -60,6 +60,14 @@ export default function HomeScreen() {
     const { isLoaded: isRewardLoaded, isClosed: isRewardClosed, isEarnedReward, error: rewardError, load: loadReward, show: showReward } = useRewardedAd(AdMobIds.REWARDED_FIN_PARTIE);
     const { isLoaded: isAppOpenLoaded, load: loadAppOpen, show: showAppOpen } = useAppOpenAd(AdMobIds.APP_OPEN);
 
+    const AD_FALLBACK_TIMEOUT_MS = 8000;
+    const adFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isProcessingRewardAdRef = useRef(false);
+
+    useEffect(() => {
+        isProcessingRewardAdRef.current = isProcessingRewardAd;
+    }, [isProcessingRewardAd]);
+
     // Initialiser la pub d'ouverture d'app (une seule fois par session)
     useEffect(() => {
         if (Platform.OS !== 'web' && !hasShownAppOpenAd) {
@@ -83,6 +91,10 @@ export default function HomeScreen() {
 
     useEffect(() => {
         if (isRewardClosed) {
+            if (adFallbackTimerRef.current) {
+                clearTimeout(adFallbackTimerRef.current);
+                adFallbackTimerRef.current = null;
+            }
             if (isEarnedReward && isProcessingRewardAd) {
                 dailyClaimTriggerRef.current?.();
             }
@@ -239,23 +251,38 @@ export default function HomeScreen() {
         }
     };
 
+    // Helper pour le fallback
+    const _grantDailyRewardFallback = async () => {
+        if (adFallbackTimerRef.current) {
+            clearTimeout(adFallbackTimerRef.current);
+            adFallbackTimerRef.current = null;
+        }
+        dailyClaimTriggerRef.current?.();
+        setIsProcessingRewardAd(false);
+    };
+
     // Appelé quand le joueur clique "Voir une pub → +300 🪙" dans le modal cadeau
     const handleWatchAdForReward = async () => {
+        if (isProcessingRewardAd) return;
         setIsProcessingRewardAd(true);
+        
         if (Platform.OS === 'web') {
-            Alert.alert("Information", "Les publicités ne sont disponibles que sur l'application mobile.");
-            setIsProcessingRewardAd(false);
-        } else if (isRewardLoaded) {
-            showReward();
-        } else {
-            // Pub non chargée
-            setIsProcessingRewardAd(false);
-            Alert.alert(
-                "Publicité indisponible",
-                `Aucune publicité n'est prête pour le moment. Veuillez réessayer dans quelques instants.\n\n(Info: ${rewardError ? rewardError.message : 'Chargement en cours'})`
-            );
-            loadReward(); // retenter
+            await _grantDailyRewardFallback();
+            return;
         }
+        
+        if (isRewardLoaded) {
+            showReward();
+            return;
+        }
+        
+        loadReward(); // retenter
+        const fallbackTimer = setTimeout(async () => {
+            if (isProcessingRewardAdRef.current) {
+                await _grantDailyRewardFallback();
+            }
+        }, AD_FALLBACK_TIMEOUT_MS);
+        adFallbackTimerRef.current = fallbackTimer;
     };
 
     const handleReconnect = useCallback(() => {
