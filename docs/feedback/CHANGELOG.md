@@ -2,6 +2,30 @@
 
 > Journal des changements notables, classés par date (plus récent en premier).
 
+## [2.5.23] - 2026-07-08
+
+### Modifié
+- **Fluide et rapide en fin de manche** — Le bouton "Continuer" est désormais interactif plus rapidement après la fin d'une manche. En cas de victoire par pose du dernier domino, l'écran de résultat s'affiche instantanément. Pour les fins "boudées", le bouton "Continuer" est cliquable avant la fin du comptage et permet d'accélérer l'animation.
+- **Interface de sélection de mode (UI/UX)** — Le design des cartes de sélection du mode de jeu (Cochon, Score, Manches) a été unifié et modernisé pour offrir la même expérience premium en mode Solo et Multijoueur. Les cartes sont désormais parfaitement centrées avec une icône plus grande, un fond dégradé complet et une animation au clic.
+- **Modes de jeu** — Le mode "Victoire" a été retiré de la sélection lors de la création d'une partie (Solo et Multijoueur) pour simplifier l'interface. Les parties existantes dans ce mode restent jouables, mais le mode par défaut est désormais "Cochon".
+- **Corrections UX post-livraison** — Le bouton "Continuer" est désormais cliquable immédiatement et passe l'animation en cas de fin boudée ou égalité. Les cartes de modes de jeu sont alignées horizontalement et la suppression de table demande confirmation.
+
+---
+
+## [2.5.22] - 2026-07-07
+
+### Corrigé
+- **Multijoueur — Blocage "Boudé"** — résolution du bug où une partie pouvait rester figée indéfiniment si un joueur était "boudé" ; un watchdog prend le relais pour faire passer le tour automatiquement au bout de 8 secondes.
+- **Multijoueur — Persistance badge "Boudé"** — le badge "Boudé" ne reste plus affiché à l'écran de manière persistante après la fin d'un round.
+- **Multijoueur — Timer Overtime** — le timer (overtime) s'arrête correctement en fin de round, sans se poursuivre sur les écrans de fin.
+- **Mode Score — Fin de match** — correction de la vérification de victoire pour garantir que le match se termine correctement lorsqu'un joueur atteint le score requis en fin de round.
+- **Réseau — Overlay de reconnexion** — remplacement de l'écran d'erreur par un overlay non bloquant et esthétique lors d'une déconnexion ou perte de salle.
+- **Audio — Double son "boudé"** — le son "toktok" n'est plus joué en double lors d'un passage automatique de tour.
+- **Multijoueur — Reconnexion** — optimisation du système de détection des parties en cours, permettant à un joueur déconnecté de rejoindre sa table automatiquement sans devoir ressaisir le code d'invitation.
+- **Classement (UI)** — correction d'un crash rare (`LEAGUE_GRADE_COLORS`) lors de l'affichage de certaines couleurs de grades.
+
+---
+
 ## [2.5.21] - 2026-07-02
 
 ### Ajouté

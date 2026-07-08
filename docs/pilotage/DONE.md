@@ -2,6 +2,24 @@
 
 ## Juillet 2026
 
+### 2026-07-08
+
+- **[UX-PARTIE-END-SKIP]** : Bouton "Continuer" immédiat en fin de round : skip animation en victoire normale, bouton actif dès "reveal" en boudé, clic pendant comptage saute aux totaux.
+
+- **[UX-GAMEMODE-CARDS]** : Refonte UI sélection de mode : composant `GameModeCard` unifié (Icône + Titre + Description, centré, dégradé), réutilisé identiquement en solo et multi.
+- **[HIDE-VICTOIRE]** : Masquer complètement le mode "Victoire" de l'UI (solo et multi / lobby). Conserver la logique backend. Changer le mode par défaut du lobby (`'VICTOIRE'` → `'COCHON'`).
+
+### 2026-07-07
+
+- **[FIX-MULTI-01]** : Watchdog anti-boucle boudé infinie (useAutoPass.ts)
+- **[FIX-MULTI-02]** : Badge boudé persistant — guard phase === PLAYING (GameScreen.tsx)
+- **[FIX-MULTI-03]** : Timer overtime continue après fin de round multi (useGameTimers.ts)
+- **[FIX-MULTI-04]** : Mode Score : vérifier fin de match aussi en fin de round (ScoringEngine.ts)
+- **[FIX-MULTI-05]** : Overlay reconnexion au lieu d'Alert brute (useGameSync.ts, GameScreen.tsx)
+- **[FIX-MULTI-06]** : Supprimer double son "boudé" (useActionDispatcher.ts)
+- **[FIX-MULTI-07]** : Améliorer détection room active + index Firestore (firebase.ts, firestore.indexes.json)
+- **[FIX-MULTI-08]** : Crash LEAGUE_GRADE_COLORS (Sentry S-1)
+
 ### 2026-07-02
 
 - **[ECO-AD-FALLBACK]** : Filet de sécurité ajouté pour palier à l'indisponibilité des publicités AdMob. En cas de non-chargement d'une publicité après un délai de 8 secondes, la récompense est automatiquement créditée à l'utilisateur (Cadeau du Jour et `AdRewardButton`). Si le joueur est sur Web, le fallback est immédiat.

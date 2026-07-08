@@ -5,6 +5,11 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "emulators": {
+    "firestore": {
+      "port": 8081
+    }
+  },
   "functions": [
     {
       "source": "functions",

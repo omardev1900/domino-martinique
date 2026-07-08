@@ -5,26 +5,38 @@
 >
 > **Flux obligatoire :** `BACKLOG.md` -> `TASKS.md` -> `DONE.md`
 
-**Dernière mise à jour :** 2026-06-09
-**Sprint actuel :** Mise à jour Grand Public
+**Dernière mise à jour :** 2026-07-08
+**Sprint actuel :** UX & Polish Post-Bugs
 
 ---
 
 ## Contexte
 
-L'app est publiée sur le Google Play Store mais pas encore communiquée au grand public.
-L'objectif de ce sprint est de livrer une mise à jour solide et distribuable qui finalise
-les points bloquants avant la communication officielle.
+Le sprint de corrections bugs multijoueur (FIX-MULTI-01 à 08) est terminé et archivé dans `DONE.md`.
+Ce sprint couvre les améliorations UX issues des retours client.
 
 ---
 
-## Sprint — Mise à jour Grand Public
+## Sprint actuel — UX & Polish
+
+| Ticket | Description | Priorité | Statut | Spec |
+|---|---|---|---|---|
+
+### Ordre d'exécution recommandé
+(Tous les tickets sont terminés)
+
+
+
+
+
+---
+
+## Sprint précédent (différé, non supprimé)
 
 | Ticket | Description | Priorité | Statut |
 |---|---|---|---|
-
-| **IAP-PAYMENTS** | Intégrer les achats in-app (Google Play Billing) pour : Option « Sans Publicité » et packs de Coins / Cosmétiques. | 🔴 Haute | Prêt |
-| **UX-MULTI-PENALITE** | Différencier abandon volontaire et déconnexion (`SURRENDERED` vs `DISCONNECTED`) : abandon = dernier même si le bot gagne. | 🟡 Moyenne | Prêt |
+| **IAP-PAYMENTS** | Intégrer les achats in-app (Google Play Billing) pour : Option « Sans Publicité » et packs de Coins / Cosmétiques. | 🔴 Haute | Différé |
+| **UX-MULTI-PENALITE** | Différencier abandon volontaire et déconnexion (`SURRENDERED` vs `DISCONNECTED`) : abandon = dernier même si le bot gagne. | 🟡 Moyenne | Différé |
 
 ---
 
@@ -39,6 +51,7 @@ les points bloquants avant la communication officielle.
 
 ## Liens utiles
 
+- Spec technique fixes : `docs/specs/MULTI_BUGS_FIX_SPEC.md`
 - Archive : `docs/pilotage/DONE.md`
 - Backlog non planifié : `docs/pilotage/BACKLOG.md`
 - Roadmap produit : `docs/ROADMAP.md`

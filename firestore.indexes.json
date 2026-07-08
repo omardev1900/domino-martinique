@@ -9,6 +9,14 @@
       ]
     },
     {
+      "collectionGroup": "rooms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "playerIds", "arrayConfig": "CONTAINS" }
+      ]
+    },
+    {
       "collectionGroup": "users_monthly_stats",
       "queryScope": "COLLECTION",
       "fields": [
