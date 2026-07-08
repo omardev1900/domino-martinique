@@ -16,6 +16,9 @@ docs/
 .kotlin/
 *.orig.*
 *.jks
+# Exception : le keystore upload Google Play est versionné intentionnellement
+# (c'est la clé d'UPLOAD uniquement — la clé de signature finale reste chez Google)
+!upload-keystore.jks
 *.p8
 *.p12
 *.key
