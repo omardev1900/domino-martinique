@@ -11,6 +11,7 @@ interface PlayerRevealBlockProps {
     position: 'top-left' | 'top-right' | 'bottom';
     phase: 'idle' | 'dimming' | 'reveal' | 'counting' | 'result';
     onCountComplete?: () => void;
+    skipCounting?: boolean;
 }
 
 export const PlayerRevealBlock: React.FC<PlayerRevealBlockProps> = ({
@@ -18,6 +19,7 @@ export const PlayerRevealBlock: React.FC<PlayerRevealBlockProps> = ({
     position,
     phase,
     onCountComplete,
+    skipCounting
 }) => {
     const reducedMotion = useReducedMotion();
     const { width } = useWindowDimensions();
@@ -29,7 +31,9 @@ export const PlayerRevealBlock: React.FC<PlayerRevealBlockProps> = ({
     const handScore = player.hand.reduce((s, d) => s + d.left + d.right, 0);
 
     useEffect(() => {
-        if (phase === 'counting') {
+        if (skipCounting) {
+            setCurrentScore(handScore);
+        } else if (phase === 'counting') {
             setCurrentScore(handScore);
             // Simulate count duration (Accélérée)
             const timer = setTimeout(() => {
@@ -39,7 +43,7 @@ export const PlayerRevealBlock: React.FC<PlayerRevealBlockProps> = ({
         } else if (phase === 'idle' || phase === 'dimming') {
             setCurrentScore(0);
         }
-    }, [phase, handScore, onCountComplete]);
+    }, [phase, handScore, onCountComplete, skipCounting]);
 
     if (phase === 'idle' || phase === 'dimming') return null;
 

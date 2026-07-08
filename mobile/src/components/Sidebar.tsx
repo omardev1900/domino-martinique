@@ -71,7 +71,7 @@ export const Sidebar: React.FC = () => {
     }, []);
 
     const gradeColor = leagueGrade
-        ? LEAGUE_GRADE_COLORS[leagueGrade]
+        ? (typeof LEAGUE_GRADE_COLORS !== 'undefined' ? LEAGUE_GRADE_COLORS[leagueGrade] : '#888888')
         : 'rgba(255,255,255,0.3)';
 
     const isActive = (route: string) => {

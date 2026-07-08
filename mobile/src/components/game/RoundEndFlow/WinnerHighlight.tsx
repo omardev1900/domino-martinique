@@ -79,7 +79,7 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
                         Le round est annulé et va recommencer.
                     </Animated.Text>
 
-                    <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(600)} style={styles.buttonContainer}>
+                    <View style={[styles.buttonContainer, { marginTop: 40 }]}>
                         <TouchableOpacity 
                             style={styles.continueButton} 
                             onPress={onContinue}
@@ -87,7 +87,7 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
                         >
                             <Text style={styles.continueText}>Continuer</Text>
                         </TouchableOpacity>
-                    </Animated.View>
+                    </View>
                 </View>
             ) : winner ? (
                 <View style={styles.centerBox}>
@@ -118,7 +118,7 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
                         </Text>
                     </Animated.View>
 
-                    <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(600)} style={styles.buttonContainer}>
+                    <View style={[styles.buttonContainer, { marginTop: 40 }]}>
                         <TouchableOpacity 
                             style={styles.continueButton} 
                             onPress={onContinue}
@@ -126,7 +126,7 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
                         >
                             <Text style={styles.continueText}>Continuer</Text>
                         </TouchableOpacity>
-                    </Animated.View>
+                    </View>
                 </View>
             ) : null}
         </Animated.View>
@@ -203,6 +203,13 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(74,144,226,0.5)',
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 15,
+    },
+    tieSubtext: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.75)',
+        textAlign: 'center',
+        marginTop: 8,
+        paddingHorizontal: 20,
     },
     buttonContainer: {
         marginTop: 40,

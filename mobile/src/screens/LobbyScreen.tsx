@@ -57,6 +57,25 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
         leaveRoom(roomData.roomId, botUid);
     };
 
+    const handleDeleteRoom = () => {
+        if (!onDeleteRoom) return;
+        
+        if (Platform.OS === 'web') {
+            if (window.confirm("Voulez-vous vraiment supprimer cette table ?")) {
+                onDeleteRoom();
+            }
+        } else {
+            Alert.alert(
+                "Supprimer la table",
+                "Voulez-vous vraiment supprimer cette table ?",
+                [
+                    { text: "Annuler", style: "cancel" },
+                    { text: "Supprimer", style: "destructive", onPress: () => onDeleteRoom() }
+                ]
+            );
+        }
+    };
+
     // Give focus to root on mount (useful returning from game overlays)
     useEffect(() => {
         if (Platform.OS === 'web') {
@@ -175,7 +194,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                                     { overflow: 'hidden', marginBottom: 0 },
                                     slot.player?.leagueGrade && !slot.isCurrentUser && {
                                         borderWidth: 2,
-                                        borderColor: LEAGUE_GRADE_COLORS[slot.player.leagueGrade as LeagueGrade],
+                                        borderColor: typeof LEAGUE_GRADE_COLORS !== 'undefined' ? LEAGUE_GRADE_COLORS[slot.player.leagueGrade as LeagueGrade] : '#888888',
                                     },
                                 ]}>
                                     <Image
@@ -278,46 +297,49 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({ roomData, currentUserI
                 {/* Action Button - Bottom */}
                 <Animated.View entering={FadeInUp.delay(600).duration(500)} style={styles.footer}>
                 {isHost ? (
-                    <>
-                        <PremiumButton
-                            style={[styles.actionButton, !canStart && styles.actionButtonDisabled]}
-                            onPress={() => {
-                                if (canStart && !hasAutoStarted.current) {
-                                    hasAutoStarted.current = true;
-                                    onStartGame();
-                                }
-                            }}
-                            disabled={!canStart}
-                            soundName="notify"
-                        >
-                            <LinearGradient
-                                colors={canStart ? ['#4CAF50', '#2E7D32'] : ['#555', '#333']}
-                                style={styles.buttonGradient}
+                    <View style={styles.hostActionsContainer}>
+                        <View style={styles.hostActionsRow}>
+                            <PremiumButton
+                                style={[styles.actionButton, !canStart && styles.actionButtonDisabled]}
+                                onPress={() => {
+                                    if (canStart && !hasAutoStarted.current) {
+                                        hasAutoStarted.current = true;
+                                        onStartGame();
+                                    }
+                                }}
+                                disabled={!canStart}
+                                soundName="notify"
                             >
-                                <Text style={styles.actionButtonText}>
-                                    {autoStartCountdown !== null
-                                        ? `DÉMARRAGE DANS ${autoStartCountdown}...`
-                                        : canStart
-                                            ? 'JOUER'
-                                            : `ATTENDRE ${3 - roomData.players.length} PLUS`}
-                                </Text>
-                            </LinearGradient>
-                        </PremiumButton>
+                                <LinearGradient
+                                    colors={canStart ? ['#4CAF50', '#2E7D32'] : ['#555', '#333']}
+                                    style={styles.buttonGradient}
+                                >
+                                    <Text style={styles.actionButtonText} adjustsFontSizeToFit numberOfLines={1}>
+                                        {autoStartCountdown !== null
+                                            ? `DÉMARRAGE DANS ${autoStartCountdown}...`
+                                            : canStart
+                                                ? 'JOUER'
+                                                : `ATTENDRE ${3 - roomData.players.length} PLUS`}
+                                    </Text>
+                                </LinearGradient>
+                            </PremiumButton>
+
+                            {canDeleteWaitingRoom && onDeleteRoom ? (
+                                <PremiumButton
+                                    style={styles.deleteRoomButton}
+                                    onPress={handleDeleteRoom}
+                                    soundName="clack1"
+                                >
+                                    <Ionicons name="trash-outline" size={24} color="#FF8A65" />
+                                </PremiumButton>
+                            ) : null}
+                        </View>
                         {autoStartCountdown !== null && (
                             <Text style={styles.autoStartHint}>
                                 Appuyez pour démarrer immédiatement
                             </Text>
                         )}
-                        {canDeleteWaitingRoom && onDeleteRoom ? (
-                            <PremiumButton
-                                style={styles.deleteRoomButton}
-                                onPress={onDeleteRoom}
-                                soundName="clack1"
-                            >
-                                <Text style={styles.deleteRoomButtonText}>Supprimer la table</Text>
-                            </PremiumButton>
-                        ) : null}
-                    </>
+                    </View>
                 ) : (
                     <View style={styles.waitingContainer}>
                         <Text style={styles.waitingText}>
@@ -532,9 +554,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 20, // Ensure button stays above cards if overlap occurs
     },
-    actionButton: {
+    hostActionsContainer: {
         width: '100%',
         maxWidth: 400,
+        alignItems: 'center',
+    },
+    hostActionsRow: {
+        flexDirection: 'row',
+        width: '100%',
+        gap: 12,
+        alignItems: 'stretch',
+    },
+    actionButton: {
+        flex: 1,
         borderRadius: 16,
         overflow: 'hidden',
         elevation: 6,
@@ -580,6 +612,8 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 24,
         alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
     },
     actionButtonText: {
         color: '#FFF',
@@ -593,11 +627,7 @@ const styles = StyleSheet.create({
         marginTop: 6,
     },
     deleteRoomButton: {
-        marginTop: 12,
-        alignSelf: 'center',
-        minWidth: 180,
-        paddingHorizontal: 18,
-        paddingVertical: 12,
+        width: 56,
         borderRadius: 16,
         backgroundColor: 'rgba(255,255,255,0.08)',
         borderWidth: 1,

@@ -19,7 +19,6 @@ import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { SoloResumeInfo } from '../hooks/useSoloResume';
 
 const GAME_MODE_LABEL: Record<string, string> = {
-    VICTOIRE: 'Victoire',
     SCORE: 'Score',
     COCHON: 'Cochons 🐷',
     MANCHE: 'Manches',

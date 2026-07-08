@@ -76,7 +76,7 @@ export default function LobbyScreen() {
     const [isPrivateRoom, setIsPrivateRoom] = useState(false);
     const [roomNameInput, setRoomNameInput] = useState('');
     const [roomError, setRoomError] = useState<string | null>(null);
-    const [gameMode, setGameMode] = useState<GameMode>('VICTOIRE');
+    const [gameMode, setGameMode] = useState<GameMode>('COCHON');
     const [winningCondition, setWinningCondition] = useState(__DEV__ ? 1 : 10);
     const [turnDuration, setTurnDuration] = useState(TURN_DURATION_SECONDS);
     const [startingHandSize, setStartingHandSize] = useState(HAND_SIZE);
@@ -440,16 +440,7 @@ export default function LobbyScreen() {
 
             {uiStep === 'MODE' ? (
                 <View style={styles.stepContainer}>
-                    <View style={styles.modesVerticalList}>
-                        <GameModeCard
-                            id="VICTOIRE"
-                            title="Victoire"
-                            description="Le premier à gagner un nombre défini de rounds."
-                            icon="🏆"
-                            colors={['#388E3C', '#66BB6A']}
-                            onPress={() => { setGameMode('VICTOIRE'); setWinningCondition(__DEV__ ? 1 : 10); setUiStep('CONFIG'); }}
-                            delay={100}
-                        />
+                    <View style={styles.modesGrid}>
                         <GameModeCard
                             id="SCORE"
                             title="Score"
@@ -457,7 +448,7 @@ export default function LobbyScreen() {
                             icon="🎯"
                             colors={['#0288D1', '#26C6DA']}
                             onPress={() => { setGameMode('SCORE'); setWinningCondition(__DEV__ ? 1 : 15); setUiStep('CONFIG'); }}
-                            delay={200}
+                            delay={100}
                         />
                         <GameModeCard
                             id="COCHON"
@@ -466,7 +457,7 @@ export default function LobbyScreen() {
                             icon="🐷"
                             colors={['#EC407A', '#FF7043']}
                             onPress={() => { setGameMode('COCHON'); setWinningCondition(__DEV__ ? 1 : 5); setUiStep('CONFIG'); }}
-                            delay={300}
+                            delay={200}
                         />
                         <GameModeCard
                             id="MANCHE"
@@ -475,7 +466,7 @@ export default function LobbyScreen() {
                             icon="🎲"
                             colors={['#FFA000', '#FFD54F']}
                             onPress={() => { setGameMode('MANCHE'); setWinningCondition(__DEV__ ? 1 : 10); setUiStep('CONFIG'); }}
-                            delay={400}
+                            delay={300}
                         />                        
                     </View>
                 </View>
@@ -801,9 +792,11 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
-    modesVerticalList: {
-        width: '100%',
+    modesGrid: {
+        flexDirection: 'row',
+        gap: 10,
         paddingHorizontal: 4,
+        alignItems: 'stretch',
     },
     scrollHint: {
         flexDirection: 'row',

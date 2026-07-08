@@ -21,7 +21,7 @@ export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ poin
     const currentGrade = progress.grade;
     const nextGrade = progress.nextGrade;
 
-    const gradeColor = currentGrade ? LEAGUE_GRADE_COLORS[currentGrade] : '#888';
+    const gradeColor = currentGrade && typeof LEAGUE_GRADE_COLORS !== 'undefined' ? LEAGUE_GRADE_COLORS[currentGrade] : '#888';
     const gradeIcon = currentGrade ? LEAGUE_ICONS[currentGrade] : '🔰';
     const gradeLabel = currentGrade ? LEAGUE_LABELS[currentGrade] : 'Sans grade';
 
@@ -71,7 +71,7 @@ export const LeagueProgressWidget: React.FC<LeagueProgressWidgetProps> = ({ poin
                         <Text style={styles.nextLabel}>Prochain</Text>
                         <View style={styles.nextRight}>
                             <Text style={styles.nextIcon}>{LEAGUE_ICONS[nextGrade]}</Text>
-                            <Text style={[styles.nextName, { color: LEAGUE_GRADE_COLORS[nextGrade] }]} numberOfLines={1}>
+                            <Text style={[styles.nextName, { color: typeof LEAGUE_GRADE_COLORS !== 'undefined' ? LEAGUE_GRADE_COLORS[nextGrade] : '#888' }]} numberOfLines={1}>
                                 {LEAGUE_LABELS[nextGrade]}
                             </Text>
                             <Text style={styles.nextRemaining}>{progress.remainingToNext} 🐷</Text>

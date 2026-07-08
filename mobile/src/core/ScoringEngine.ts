@@ -193,14 +193,30 @@ export const finalizeRound = (
     // This is used for animations and avatar display in overlays
     newState.firstPlayerOfRound = winnerId;
 
+    let isMatchOver = false;
+
     if (!isChire && !mancheWinner) {
-        // Pas de Chirée, pas de Victoire Manche -> Juste fin de round
-        newState.phase = 'PARTIE_END';
         newState.mancheResult = null;
+
+        // FIX R3-B1 : En Mode Score, vérifier si le seuil est atteint même sans Victoire Manche
+        let roundScoreMatchOver = false;
+        if (newState.gameMode === 'SCORE') {
+            const maxPoints = Math.max(...newState.players.map(p => p.totalPoints || 0));
+            if (maxPoints >= newState.winningCondition) {
+                const leaders = newState.players.filter(p => (p.totalPoints || 0) === maxPoints);
+                if (leaders.length === 1) {
+                    roundScoreMatchOver = true;
+                    isMatchOver = true; // Set higher scope variable for later
+                }
+            }
+        }
+
+        if (!roundScoreMatchOver) {
+            newState.phase = 'PARTIE_END';
+        }
     }
 
     // 3.3 Check Match End
-    let isMatchOver = false;
 
     if (mancheWinner || isChire) {
         if (newState.gameMode === 'SCORE') {

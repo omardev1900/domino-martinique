@@ -24,7 +24,7 @@ interface RewardOverlayProps {
 }
 
 function getGradeTheme(grade: NonNullable<MatchReward['newGrade']>) {
-    const accent = LEAGUE_GRADE_COLORS[grade];
+    const accent = typeof LEAGUE_GRADE_COLORS !== 'undefined' ? LEAGUE_GRADE_COLORS[grade] : '#888888';
     if (grade === 'DEBUTANT') {
         return {
             accent,

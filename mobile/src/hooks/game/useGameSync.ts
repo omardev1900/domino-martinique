@@ -17,6 +17,7 @@ export interface UseGameSyncResult {
     gameState: GameState | null;
     roomData: GameRoom | null;
     isStarting: boolean;
+    connectionError: string | null;
     safeUpdateGameState: (gameId: string, newState: GameState) => Promise<void>;
     setGameState: React.Dispatch<React.SetStateAction<GameState | null>>;
     setIsStarting: React.Dispatch<React.SetStateAction<boolean>>;
@@ -32,6 +33,7 @@ export const useGameSync = ({
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [roomData, setRoomData] = useState<GameRoom | null>(null);
     const [isStarting, setIsStarting] = useState(false);
+    const [connectionError, setConnectionError] = useState<string | null>(null);
 
     // Store latest state for safety
     const gameStateRef = useRef<GameState | null>(null);
@@ -61,6 +63,7 @@ export const useGameSync = ({
         const unsubscribe = onSnapshot(roomRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data() as GameRoom;
+                setConnectionError(null); // Clear error on successful snapshot
                 setRoomData(data);
 
                 if (data.gameState) {
@@ -79,9 +82,14 @@ export const useGameSync = ({
                 LogService.warn('GameSync', '[SYNC] 🗑️ Room document deleted or does not exist');
                 // Handle room destruction
             }
-        }, (error) => {
+        }, (error: any) => {
             LogService.error('useGameSync', 'onSnapshot Error:', error);
             setIsStarting(false);
+            if (error.code === 'not-found') {
+                setConnectionError('Cette partie n\'existe plus. Elle a peut-être expiré.');
+            } else {
+                setConnectionError('Connexion perdue. Tentative de reconnexion...');
+            }
         });
 
         return () => {
@@ -187,6 +195,7 @@ export const useGameSync = ({
         gameState,
         roomData,
         isStarting,
+        connectionError,
         safeUpdateGameState,
         setGameState,
         setIsStarting,

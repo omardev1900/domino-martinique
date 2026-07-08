@@ -82,4 +82,30 @@ export const useAutoPass = ({
             clearTimeout(timer);
         };
     }, [gameState?.turnId, isPaused, localPlayerId, isLocalHost]);
+
+    // --- WATCHDOG ANTI-BOUCLE BOUDÉ (FIX-MULTI-01) ---
+    // Si l'état boudé reste coincé plus de 5 secondes, on force la résolution du tour
+    useEffect(() => {
+        if (!gameState?.boudePlayerId || gameState.phase !== 'PLAYING') return;
+
+        // Seul l'hôte (ou le joueur local en solo) a le droit de forcer le passage pour éviter les conflits
+        if (!isLocalHost) return;
+
+        const capturedTurnId = gameState.turnId;
+        const capturedPlayerId = gameState.boudePlayerId;
+
+        const watchdogTimer = setTimeout(() => {
+            const freshState = gameStateRef.current;
+            // Si on est toujours sur le même tour boudé après 5 secondes, c'est un blocage
+            if (freshState && freshState.turnId === capturedTurnId && freshState.boudePlayerId === capturedPlayerId) {
+                console.warn(`[Watchdog] Blocage boudé détecté pour ${capturedPlayerId} au tour ${capturedTurnId}. Forçage PASS_TURN.`);
+                dispatchRef.current({
+                    type: 'PASS_TURN',
+                    playerId: capturedPlayerId
+                });
+            }
+        }, 5000); // 5 secondes = largement le temps de voir l'animation + latence réseau
+
+        return () => clearTimeout(watchdogTimer);
+    }, [gameState?.boudePlayerId, gameState?.turnId, gameState?.phase, isLocalHost]);
 };

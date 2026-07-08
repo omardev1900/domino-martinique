@@ -60,6 +60,7 @@ import { MatchReward, TableTier } from '../core/economy.types';
 import { TABLE_CONFIGS } from '../core/economy.constants';
 import { SkinConfig } from '../core/store.types';
 import { useInterstitialAd, TestIds, AdMobIds } from '../core/services/AdMobAdapter';
+import { Ionicons } from '@expo/vector-icons';
 
 interface GameScreenProps {
     gameId?: string;
@@ -124,6 +125,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         gameState,
         roomData,
         isStarting,
+        connectionError,
         setIsStarting,
         safeUpdateGameState,
         setGameState,
@@ -1031,7 +1033,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             }
             // PARTIE_END classique (victoire normale)
             setScoreOverlayPhase(null);
-            setRoundResultSnapshot(gameState);
+            const isNormalWin = gameState.players.some(p => p.hand?.length === 0);
+            setRoundResultSnapshot({ ...gameState, _skipAnimation: isNormalWin } as GameState & { _skipAnimation?: boolean });
             setShowRoundResult(true);
             pendingRoundResultTransition.current = () => {
                 partieEndContinueRef.current();
@@ -1055,7 +1058,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
             // Fin de manche : RoundResultCard 5s, PUIS UnifiedResultOverlay
             setScoreOverlayPhase(null);
-            setRoundResultSnapshot(gameState);
+            const isNormalWin = gameState.players.some(p => p.hand?.length === 0);
+            setRoundResultSnapshot({ ...gameState, _skipAnimation: isNormalWin } as GameState & { _skipAnimation?: boolean });
             setShowRoundResult(true);
             pendingRoundResultTransition.current = () => {
                 setScoreOverlayPhase('MANCHE_END');
@@ -1973,6 +1977,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     onDismiss={handleDismissRoundResult}
                     localPlayerId={localPlayerId}
                     opponents={opponents}
+                    skipAnimation={(roundResultSnapshot as any)?._skipAnimation}
                 />
             )}
 
@@ -2048,6 +2053,50 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     </Animated.View>
                 );
             })()}
+            {/* Overlay Reconnexion / Erreur (FIX-MULTI-05) */}
+            {connectionError && (
+                <Animated.View
+                    entering={FadeIn.duration(300)}
+                    exiting={FadeOut.duration(300)}
+                    style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.85)',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 10000,
+                        elevation: 100,
+                    }}
+                >
+                    <View style={{
+                        backgroundColor: '#1E1E1E',
+                        padding: 24,
+                        borderRadius: 16,
+                        borderWidth: 2,
+                        borderColor: '#FF4444',
+                        maxWidth: '80%',
+                        alignItems: 'center',
+                    }}>
+                        <Ionicons name="warning-outline" size={48} color="#FF4444" style={{ marginBottom: 16 }} />
+                        <Text style={{ color: 'white', fontSize: 18, textAlign: 'center', marginBottom: 24, fontWeight: 'bold' }}>
+                            {connectionError}
+                        </Text>
+                        <TouchableOpacity
+                            style={{
+                                backgroundColor: '#FF4444',
+                                paddingHorizontal: 24,
+                                paddingVertical: 12,
+                                borderRadius: 8,
+                            }}
+                            onPress={() => router.replace('/(tabs)')}
+                        >
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+                                Retour à l'accueil
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            )}
 
         </View>
     );

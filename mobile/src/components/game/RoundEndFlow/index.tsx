@@ -12,13 +12,15 @@ interface RoundEndFlowProps {
     onDismiss: () => void;
     localPlayerId: string;
     opponents: Player[];
+    skipAnimation?: boolean;
 }
 
 type FlowPhase = 'idle' | 'dimming' | 'reveal' | 'counting' | 'result';
 
-export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, onDismiss, localPlayerId, opponents }) => {
+export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, onDismiss, localPlayerId, opponents, skipAnimation }) => {
     const [phase, setPhase] = useState<FlowPhase>('idle');
     const [countsCompleted, setCountsCompleted] = useState(0);
+    const [skipCountingNow, setSkipCountingNow] = useState(false);
 
     const isBoude = gameState.phase === 'BOUDE';
 
@@ -39,10 +41,16 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
         if (!visible) {
             setPhase('idle');
             setCountsCompleted(0);
+            setSkipCountingNow(false);
             return;
         }
 
         if (phase === 'idle') {
+            if (skipAnimation) {
+                setPhase('result');
+                return;
+            }
+
             // Démarre la phase 1
             setPhase('dimming');
             if (isBoude) {
@@ -69,7 +77,7 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
 
             }, 600);
         }
-    }, [visible]); // Seulement dépendre de visible pour la phase initiale
+    }, [visible, skipAnimation]);
 
     // Handle counting completion
     const totalPlayersWithDominoes = gameState.players.filter(p => p.hand.length > 0).length;
@@ -77,11 +85,23 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
     useEffect(() => {
         if (phase === 'counting' && countsCompleted >= totalPlayersWithDominoes) {
             setPhase('result');
-            // if (winner && isBoude) {
-            //     SoundManager.playSound('applause');
-            // }
         }
     }, [countsCompleted, phase, winner, totalPlayersWithDominoes]);
+
+    const handleContinuePress = () => {
+        if (phase === 'counting') {
+            // Skip : afficher les totaux immédiatement
+            setSkipCountingNow(true);
+            setPhase('result');
+            // Auto-dismiss après 500ms pour laisser le temps de voir les totaux
+            setTimeout(() => {
+                onDismiss();
+            }, 500);
+        } else {
+            // Phase reveal ou result : fermer directement
+            onDismiss();
+        }
+    };
 
     if (!visible || phase === 'idle') return null;
 
@@ -100,6 +120,7 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
                     position="bottom" 
                     phase={phase} 
                     onCountComplete={() => setCountsCompleted(c => c + 1)} 
+                    skipCounting={skipCountingNow}
                 />
             )}
             {opponents[0] && opponents[0].hand.length > 0 && (
@@ -108,6 +129,7 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
                     position="top-right" 
                     phase={phase} 
                     onCountComplete={() => setCountsCompleted(c => c + 1)} 
+                    skipCounting={skipCountingNow}
                 />
             )}
             {opponents[1] && opponents[1].hand.length > 0 && (
@@ -116,6 +138,7 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
                     position="top-left" 
                     phase={phase} 
                     onCountComplete={() => setCountsCompleted(c => c + 1)} 
+                    skipCounting={skipCountingNow}
                 />
             )}
 
@@ -124,8 +147,8 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
                 isTie={isTie} 
                 isBoude={isBoude}
                 localPlayerId={localPlayerId}
-                visible={(!isBoude && phase !== 'idle') || phase === 'result'} 
-                onContinue={onDismiss} 
+                visible={phase !== 'idle' && phase !== 'dimming'} 
+                onContinue={handleContinuePress} 
             />
         </View>
     );

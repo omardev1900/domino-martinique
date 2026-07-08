@@ -317,7 +317,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
                                 borderWidth: isActive ? 3 : 2,
                                 borderColor: isActive
                                     ? '#FFD700'
-                                    : (!hideLeagueVisuals && player.leagueGrade && LEAGUE_GRADE_COLORS[player.leagueGrade as LeagueGrade])
+                                    : (!hideLeagueVisuals && player.leagueGrade && typeof LEAGUE_GRADE_COLORS !== 'undefined' && LEAGUE_GRADE_COLORS[player.leagueGrade as LeagueGrade])
                                         || '#78909C', // [R3-M2] Gris-bleu visible pour les joueurs sans grade
                                 overflow: 'hidden',
                                 backgroundColor: (showTimerUi && (secondsLeft === 0 || overtime !== null)) ? '#FF0000' : 'rgba(50,50,50,0.9)'

@@ -386,6 +386,15 @@ export const startGame = async (roomId: string, initialGameState: GameState): Pr
             status: RoomStatus.PLAYING,
             gameState: sanitizedGameState
         });
+
+        // Enregistrer la room comme active pour chaque joueur humain (facilite la reconnexion)
+        const playerIds = sanitizedGameState.players
+            .filter((p: any) => p.status === 'HUMAN')
+            .map((p: any) => p.id);
+
+        await Promise.allSettled(
+            playerIds.map((uid: string) => setUserActiveRoom(uid, roomId))
+        );
     } catch (e) {
         LogService.error('Firebase', 'Error starting game:', e);
         throw e;
@@ -695,7 +704,8 @@ export const findActiveRoomForUser = async (userId: string): Promise<string | nu
 
         const q = query(
             collection(db, ROOMS_COLLECTION),
-            where("status", "in", [RoomStatus.PLAYING, RoomStatus.WAITING])
+            where("status", "in", [RoomStatus.PLAYING, RoomStatus.WAITING]),
+            where("playerIds", "array-contains", userId)
         );
 
         const snapshot = await getDocs(q);

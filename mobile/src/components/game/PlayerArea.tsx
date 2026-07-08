@@ -93,7 +93,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             score={getPlayerScore(opponents[0])}
                             ptsScore={getCamionScore(opponents[0]?.id)}
                             position="top-right"
-                            isBoude={boudedPlayerId === opponents[0]?.id}
+                            isBoude={boudedPlayerId === opponents[0]?.id && gameState?.phase === 'PLAYING'}
                             chatContent={playersChat[opponents[0]?.id]}
                             overtime={gameState.currentPlayerId === opponents[0]?.id ? overtime : null}
                             isBotPlaying={gameState.currentPlayerId === opponents[0]?.id ? isBotPlaying : false}
@@ -135,7 +135,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             score={getPlayerScore(opponents[1])}
                             ptsScore={getCamionScore(opponents[1]?.id)}
                             position="top-left"
-                            isBoude={boudedPlayerId === opponents[1]?.id}
+                            isBoude={boudedPlayerId === opponents[1]?.id && gameState?.phase === 'PLAYING'}
                             chatContent={playersChat[opponents[1]?.id]}
                             overtime={gameState.currentPlayerId === opponents[1]?.id ? overtime : null}
                             isBotPlaying={gameState.currentPlayerId === opponents[1]?.id ? isBotPlaying : false}
@@ -183,7 +183,7 @@ export const PlayerArea: React.FC<PlayerAreaProps> = ({
                             score={getPlayerScore(localPlayer)}
                             ptsScore={getCamionScore(localPlayer.id)}
                             position="bottom"
-                            isBoude={boudedPlayerId === localPlayerId}
+                            isBoude={boudedPlayerId === localPlayerId && gameState?.phase === 'PLAYING'}
                             chatContent={playersChat[localPlayerId]}
                             overtime={gameState.currentPlayerId === localPlayerId ? overtime : null}
                             isBotPlaying={gameState.currentPlayerId === localPlayerId ? isBotPlaying : false}

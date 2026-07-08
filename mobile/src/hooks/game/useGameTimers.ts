@@ -125,9 +125,14 @@ export const useGameTimers = ({
         return clearAllTurnTimers;
     }, [gameState?.turnId, gameState?.phase, isPaused, clearAllTurnTimers, activePlayerIsDisconnected]);
 
-    // Décompte Overtime
     useEffect(() => {
         if (overtime === null || isPaused) return;
+
+        // Si la phase a changé pendant l'overtime, annuler immédiatement
+        if (gameState?.phase !== 'PLAYING') {
+            setOvertime(null);
+            return;
+        }
 
         if (overtime > 0) {
             overtimeTimerRef.current = setTimeout(() => {
@@ -149,7 +154,7 @@ export const useGameTimers = ({
         return () => {
             if (overtimeTimerRef.current) clearTimeout(overtimeTimerRef.current);
         };
-    }, [overtime, isPaused, gameState?.currentPlayerId]);
+    }, [overtime, isPaused, gameState?.currentPlayerId, gameState?.phase]);
 
     return {
         timeLeft,
