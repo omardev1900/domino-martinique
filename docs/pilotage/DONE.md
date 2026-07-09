@@ -4,6 +4,8 @@
 
 ### 2026-07-08
 
+- **[FIX-KEYSTORE-SIGNING]** *(v2 — conformité sécurité)* : Architecture de signature Android conforme aux bonnes pratiques officielles (Android/Gradle/Expo). `git rm --cached upload-keystore.jks` ; suppression exception `.gitignore` ; `build.gradle` lecture env vars + Gradle props avec `GradleException` strict (aucun fallback debug) ; `withAndroidSigning.js` réécriture idempotente via marqueur ; `build-release.ps1` validation en 7 blocs (keytool alias + SHA-256) ; `setup-signing.ps1` nouveau script de configuration initiale ; `docs/signing.md` empreintes de référence + procédures (aucun secret).
+
 - **[UX-PARTIE-END-SKIP]** : Bouton "Continuer" immédiat en fin de round : skip animation en victoire normale, bouton actif dès "reveal" en boudé, clic pendant comptage saute aux totaux.
 
 - **[UX-GAMEMODE-CARDS]** : Refonte UI sélection de mode : composant `GameModeCard` unifié (Icône + Titre + Description, centré, dégradé), réutilisé identiquement en solo et multi.

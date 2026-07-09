@@ -229,7 +229,7 @@ export default function PremiumSplashScreen() {
             </Animated.View>
 
             {/* Version info */}
-            <Text style={styles.versionText}>v{APP_VERSION}</Text>
+            <Text style={styles.versionText}>version {APP_VERSION}</Text>
         </LinearGradient>
     );
 }
