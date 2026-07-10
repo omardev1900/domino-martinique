@@ -20,9 +20,11 @@ export default function Home() {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-lg">
-              🎲
-            </div>
+            <img 
+              src="/assets/logo.png" 
+              alt="Logo Domino Martinique" 
+              className="w-10 h-10 object-contain rounded-lg"
+            />
             <span className="font-display text-xl font-bold text-primary hidden sm:inline">
               Domino Martinique
             </span>
@@ -33,9 +35,6 @@ export default function Home() {
             </a>
             <a href="#versions" className="text-sm font-medium hover:text-primary transition-colors">
               Versions
-            </a>
-            <a href="#guide" className="text-sm font-medium hover:text-primary transition-colors">
-              Guide
             </a>
           </nav>
         </div>
@@ -82,15 +81,16 @@ export default function Home() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-              <Button
-                size="lg"
-                className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                disabled
-              >
-                <Download className="w-5 h-5 mr-2" />
-                Télécharger APK (bientôt)
-              </Button>
-              <a href="/mobile">
+              <a href="https://play.google.com/store/apps/details?id=com.dominomartinique.mobile" target="_blank" rel="noopener noreferrer">
+                <Button
+                  size="lg"
+                  className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  Télécharger sur Google Play
+                </Button>
+              </a>
+              <a href="https://play.domino-martinique.online/">
                 <Button
                   variant="outline"
                   size="lg"
@@ -100,14 +100,6 @@ export default function Home() {
                   Jouer en Ligne
                 </Button>
               </a>
-            </div>
-
-            {/* Badge */}
-            <div className="flex justify-center pt-4">
-              <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur px-4 py-2 rounded-full text-sm font-medium text-primary">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                Version Bêta disponible
-              </div>
             </div>
           </div>
         </div>
@@ -150,15 +142,17 @@ export default function Home() {
                   <Smartphone className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-                  Android (APK)
+                  Android
                 </h3>
                 <p className="text-foreground/70 mb-6">
-                  Accédez au dossier sécurisé pour télécharger la dernière version de l'application
+                  Téléchargez l'application officielle depuis le Google Play Store
                 </p>
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl py-3 font-semibold" disabled>
-                  <Download className="w-4 h-4 mr-2" />
-                  Bientôt disponible
-                </Button>
+                <a href="https://play.google.com/store/apps/details?id=com.dominomartinique.mobile" target="_blank" rel="noopener noreferrer">
+                  <Button className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl py-3 font-semibold">
+                    <Download className="w-4 h-4 mr-2" />
+                    Télécharger sur Google Play
+                  </Button>
+                </a>
               </div>
             </div>
 
@@ -179,7 +173,7 @@ export default function Home() {
                 <p className="text-foreground/70 mb-6">
                   Version iOS et Navigateur (Bêta) - Jouez directement sans installation
                 </p>
-                <a href="/mobile">
+                <a href="https://play.domino-martinique.online/">
                   <Button className="w-full bg-secondary hover:bg-secondary/90 text-white rounded-xl py-3 font-semibold">
                     <Play className="w-4 h-4 mr-2" />
                     Jouer Maintenant
@@ -191,70 +185,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Installation Guide Section */}
-      <section id="guide" className="py-20 bg-gradient-to-b from-accent/5 to-background relative">
-        {/* SVG Wavy Divider - Top */}
-        <svg
-          className="absolute top-0 left-0 w-full h-24 text-background"
-          viewBox="0 0 1200 120"
-          preserveAspectRatio="none"
-          style={{ transform: "scaleY(-1)" }}
-        >
-          <path
-            d="M0,50 Q300,0 600,50 T1200,50 L1200,120 L0,120 Z"
-            fill="currentColor"
-          />
-        </svg>
-
-        <div className="container max-w-4xl relative z-10 pt-12">
-          <div className="text-center mb-16">
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-primary mb-4">
-              Guide d'Installation Android
-            </h2>
-            <p className="text-lg text-foreground/70">
-              Suivez ces étapes simples pour installer l'application
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            {[
-              {
-                step: 1,
-                title: "Télécharger le fichier APK",
-                description:
-                  "Cliquez sur le bouton de téléchargement pour obtenir le fichier APK sécurisé",
-              },
-              {
-                step: 2,
-                title: "Autoriser l'installation",
-                description:
-                  "Ouvrez le fichier téléchargé et autorisez l'installation depuis cette source si Android vous le demande",
-              },
-              {
-                step: 3,
-                title: "Installer et Jouer",
-                description:
-                  "Installez l'application et profitez du jeu de domino traditionnel martiniquais",
-              },
-            ].map((item) => (
-              <div
-                key={item.step}
-                className="flex gap-6 p-6 bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 border-l-4 border-primary"
-              >
-                <div className="flex-shrink-0">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white font-bold text-lg">
-                    {item.step}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-foreground mb-2">{item.title}</h3>
-                  <p className="text-foreground/70">{item.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* About Section */}
       <section id="jeu" className="py-20 bg-background">
@@ -328,11 +258,7 @@ export default function Home() {
                     Télécharger
                   </a>
                 </li>
-                <li>
-                  <a href="#guide" className="hover:text-background transition-colors">
-                    Guide d'installation
-                  </a>
-                </li>
+
                 <li>
                   <a href="#jeu" className="hover:text-background transition-colors">
                     À propos
