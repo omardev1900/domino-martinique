@@ -66,7 +66,7 @@ const RELEASE_SIGNING_BLOCK = `
 
 ════════════════════════════════════════════════════════════
 ❌  BUILD INTERROMPU — Credentials de signature absents
-    Propriétés manquantes : ${missing.join(", ")}
+    Propriétés manquantes : \${missing.join(", ")}
 
     → Build local : ajoutez dans ~/.gradle/gradle.properties
           UPLOAD_KEYSTORE_PATH=/chemin/absolu/upload-keystore.jks
