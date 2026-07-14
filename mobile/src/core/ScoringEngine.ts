@@ -42,6 +42,7 @@ export const finalizeRound = (
 ): GameState => {
     // 0. Clone state
     const newState = JSON.parse(JSON.stringify(gameState)) as GameState;
+    newState.stateVersion = (newState.stateVersion || 0) + 1; // FIX-MULTI-P1
 
     if (winnerId === 'TIE') {
         newState.phase = 'BOUDE';
@@ -198,22 +199,7 @@ export const finalizeRound = (
     if (!isChire && !mancheWinner) {
         newState.mancheResult = null;
 
-        // FIX R3-B1 : En Mode Score, vérifier si le seuil est atteint même sans Victoire Manche
-        let roundScoreMatchOver = false;
-        if (newState.gameMode === 'SCORE') {
-            const maxPoints = Math.max(...newState.players.map(p => p.totalPoints || 0));
-            if (maxPoints >= newState.winningCondition) {
-                const leaders = newState.players.filter(p => (p.totalPoints || 0) === maxPoints);
-                if (leaders.length === 1) {
-                    roundScoreMatchOver = true;
-                    isMatchOver = true; // Set higher scope variable for later
-                }
-            }
-        }
-
-        if (!roundScoreMatchOver) {
-            newState.phase = 'PARTIE_END';
-        }
+        newState.phase = 'PARTIE_END';
     }
 
     // 3.3 Check Match End

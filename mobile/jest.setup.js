@@ -138,3 +138,23 @@ jest.mock('react-native/Libraries/Utilities/NativePlatformConstantsIOS', () => {
     };
 });
 jest.mock('react-native-google-mobile-ads', () => ({ MobileAds: () => ({ initialize: jest.fn().mockResolvedValue(null), setRequestConfiguration: jest.fn(), }), BannerAd: 'BannerAd', BannerAdSize: { BANNER: 'BANNER', LARGE_BANNER: 'LARGE_BANNER', MEDIUM_RECTANGLE: 'MEDIUM_RECTANGLE', FULL_BANNER: 'FULL_BANNER', LEADERBOARD: 'LEADERBOARD', }, TestIds: { BANNER: 'ca-app-pub-3940256099942544/6300978111', INTERSTITIAL: 'ca-app-pub-3940256099942544/1033173712', REWARDED: 'ca-app-pub-3940256099942544/5224354917', }, InterstitialAd: { createForAdRequest: jest.fn(() => ({ load: jest.fn(), show: jest.fn(), addAdEventListener: jest.fn(() => jest.fn()), })), }, RewardedAd: { createForAdRequest: jest.fn(() => ({ load: jest.fn(), show: jest.fn(), addAdEventListener: jest.fn(() => jest.fn()), })), }, AdEventType: { LOADED: 'loaded', ERROR: 'error', OPENED: 'opened', CLICKED: 'clicked', CLOSED: 'closed', }, RewardedAdEventType: { LOADED: 'loaded', EARNED_REWARD: 'earned_reward', }, useInterstitialAd: jest.fn(() => ({ isLoaded: false, isClosed: false, load: jest.fn(), show: jest.fn() })), useRewardedAd: jest.fn(() => ({ isLoaded: false, isClosed: false, load: jest.fn(), show: jest.fn() })), }));
+
+jest.mock('react-native-safe-area-context', () => {
+  const React = require('react');
+  const inset = { top: 0, right: 0, bottom: 0, left: 0 };
+  return {
+    SafeAreaProvider: ({ children }) => React.createElement(React.Fragment, null, children),
+    SafeAreaConsumer: ({ children }) => React.createElement(React.Fragment, null, children(inset)),
+    useSafeAreaInsets: jest.fn(() => inset),
+    useSafeAreaFrame: jest.fn(() => ({ x: 0, y: 0, width: 390, height: 844 })),
+  };
+});
+
+require('react-native-reanimated').setUpTests?.();
+jest.mock('react-native-reanimated', () => {
+  const Reanimated = require('react-native-reanimated/mock');
+  return {
+    ...Reanimated,
+    useReducedMotion: jest.fn(() => false),
+  };
+});

@@ -127,11 +127,13 @@ export const useBotDecision = ({
                 return;
             }
 
-            if (freshState.phase !== 'PLAYING' || freshState.currentPlayerId !== currentPlayerId) {
-                logBotTurn('Bot turn cancelled: state moved on.', {
+            const freshPlayer = freshState.players?.find(p => p.id === currentPlayerId);
+            if (freshState.phase !== 'PLAYING' || freshState.currentPlayerId !== currentPlayerId || freshPlayer?.status === 'HUMAN') {
+                logBotTurn('Bot turn cancelled: state moved on or player became HUMAN.', {
                     playerId: currentPlayerId,
                     phase: freshState.phase,
                     currentPlayerId: freshState.currentPlayerId,
+                    playerStatus: freshPlayer?.status,
                     attempt,
                 });
                 return;
@@ -245,6 +247,7 @@ export const useBotDecision = ({
         isPaused,
         localPlayerId,
         isSoloMode,
+        isLocalHost,
         roomData?.createdBy
     ]);
 };

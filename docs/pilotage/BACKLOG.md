@@ -19,6 +19,7 @@
 | **ECO-REWARD-TUNING** | Recalibrer les gains de fin de match et le rythme global de progression. | 🟡 Moyenne | — |
 | **ECO-ADS-COINS-TUNING** | Définir la récompense coins du visionnage pub volontaire post-match. | 🟡 Moyenne | — |
 | **TIME-PENALTY-COINS** | Prélever des coins si temps épuisé et bot joue à la place du joueur et afficher message "- 10 coins" par exemple. | 🟡 Moyenne | ~0,5 j |
+| **FIX-MULTI-P3** | P3 : Finitions de fluidité (setTimeout, délai de grâce) | 🟡 Moyenne | ~0,5 j |
 
 ---
 

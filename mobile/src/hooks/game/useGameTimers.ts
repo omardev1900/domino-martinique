@@ -32,6 +32,7 @@ export const useGameTimers = ({
 
     // Ref qui stocke le turnId capturé AU MOMENT où le chrono démarre.
     const capturedTurnIdRef = useRef<number>(0);
+    const watchdogRetriesRef = useRef<number>(0);
 
     const getTurnAgeMs = useCallback(() => {
         return 0; // Deprecated, kept for interface compatibility if needed
@@ -92,6 +93,7 @@ export const useGameTimers = ({
 
         const currentTurnId = gameState.turnId ?? 0;
         capturedTurnIdRef.current = currentTurnId;
+        watchdogRetriesRef.current = 0;
 
         setTimeLeft(effectiveDuration);
 
@@ -148,6 +150,14 @@ export const useGameTimers = ({
             // L'interface est pilotée par isMyTurn + phase.
             if (currentPlayerId) {
                 onTimeoutRef.current(currentPlayerId, turnIdToSend);
+                
+                watchdogRetriesRef.current += 1;
+                if (watchdogRetriesRef.current <= 3) {
+                    setOvertime(2); // Watchdog loop: try again in 2 seconds
+                } else {
+                    console.error(`[Watchdog] Max retries (3) reached for timeout on turn ${turnIdToSend}. Stopping timer to prevent zombie loop.`);
+                    setOvertime(null);
+                }
             }
         }
 

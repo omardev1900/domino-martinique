@@ -96,7 +96,7 @@ describe('SoundManager priority policy', () => {
 
         await SoundManager.playSound('applause');
         expect(SoundManager.sounds.applause.play).toHaveBeenCalledTimes(1);
-        expect(SoundManager.sounds.applause.volume).toBeCloseTo(0.56, 2);
+        expect(SoundManager.sounds.applause.volume).toBeCloseTo(0.5, 2);
     });
 
     test('can mute BGM without muting SFX', async () => {

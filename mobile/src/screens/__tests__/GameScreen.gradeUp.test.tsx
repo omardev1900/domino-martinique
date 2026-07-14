@@ -8,6 +8,7 @@ jest.setTimeout(15000);
 const mockGameOverlays = jest.fn((props: any) => null as any);
 const mockRewardOverlay = jest.fn((props: any) => null as any);
 const mockRoundResultCard = jest.fn((props: any) => null as any);
+const mockMancheEndFlow = jest.fn((props: any) => null as any);
 const mockPlayerArea = jest.fn((props: any) => null as any);
 const mockActionFooter = jest.fn((props: any) => null as any);
 const mockHandleOverlayContinue = jest.fn();
@@ -39,10 +40,13 @@ jest.mock('@react-navigation/native', () => ({
 
 jest.mock('expo-screen-orientation', () => ({}));
 jest.mock('expo-navigation-bar', () => ({}));
-jest.mock('react-native-safe-area-context', () => ({
-    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-    SafeAreaProvider: ({ children }: any) => children,
-}));
+jest.mock('react-native-safe-area-context', () => {
+    const React = require('react');
+    return {
+        useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+        SafeAreaProvider: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    };
+});
 
 jest.mock('../../components/GameTable', () => ({
     GameTable: () => null,
@@ -58,6 +62,12 @@ jest.mock('../../components/game/GameHeader', () => ({
 }));
 jest.mock('../../components/game/GameOptionsMenu', () => ({
     GameOptionsMenu: () => null,
+}));
+jest.mock('../../components/game/RoundEndFlow', () => ({
+    RoundEndFlow: (props: any) => mockRoundResultCard(props),
+}));
+jest.mock('../../components/game/MancheEndFlow', () => ({
+    MancheEndFlow: (props: any) => mockMancheEndFlow(props),
 }));
 jest.mock('../../components/game/GameOverlays', () => ({
     GameOverlays: (props: any) => mockGameOverlays(props),
@@ -543,14 +553,22 @@ describe('GameScreen grade-up flow', () => {
             await Promise.resolve();
         });
         expect(getLastOverlayProps().showScoreOverlay).toBe(false);
+        expect(getLastRoundResultProps().visible).toBe(true);
+        const getLastMancheEndProps = () => mockMancheEndFlow.mock.calls[mockMancheEndFlow.mock.calls.length - 1][0];
 
+        // Après l'animation (13s), le RoundResultCard disparaît et l'overlay de manche s'affiche
         await act(async () => {
-            jest.advanceTimersByTime(5000);
+            jest.advanceTimersByTime(13000);
             await Promise.resolve();
         });
 
-        expect(getLastOverlayProps().showScoreOverlay).toBe(true);
+        // MancheEndFlow doit être affiché (mocké) pour MANCHE_END
+        expect(mockMancheEndFlow).toHaveBeenCalled();
+        expect(getLastMancheEndProps().visible).toBe(true);
 
+        // -- Partie 2 : MATCH_END --
+        // Maintenant on simule que le joueur clique sur "Continuer" de la manche
+        // et que le backend passe en MATCH_END
         mockCurrentGameState = {
             ...mockCurrentGameState,
             phase: 'MATCH_END',
@@ -577,7 +595,7 @@ describe('GameScreen grade-up flow', () => {
         expect(getLastRoundResultProps().gameState.phase).toBe('MATCH_END');
 
         await act(async () => {
-            jest.advanceTimersByTime(2500);
+            jest.advanceTimersByTime(13000);
             await Promise.resolve();
         });
 
@@ -659,7 +677,7 @@ describe('GameScreen grade-up flow', () => {
         expect(getLastRoundResultProps().visible).toBe(true);
 
         await act(async () => {
-            jest.advanceTimersByTime(6000);
+            jest.advanceTimersByTime(13000);
             await Promise.resolve();
         });
 

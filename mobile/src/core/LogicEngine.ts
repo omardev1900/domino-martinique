@@ -151,6 +151,7 @@ export const dealGame = (playerNames: string[], handSize: number = HAND_SIZE): P
         lastActionTimestamp: Date.now(),
         turnId: 0,
         reDealCount: 0, // ✅ Initialisation (C5)
+        stateVersion: 1, // FIX-MULTI-P1
     };
 };
 
@@ -269,6 +270,7 @@ export const dealGameSolo = (playerId: string, playerName: string, avatarId: str
         startingHandSize: handSize,
         roundNumber: 1,
         mancheNumber: 1,
+        stateVersion: 1, // FIX-MULTI-P1
     };
 };
 
@@ -420,6 +422,7 @@ export const handleTurn = (
     newState.currentPlayerId = newState.players[nextIdx].id;
     newState.turnId = (newState.turnId ?? 0) + 1;
     newState.boudePlayerId = null;
+    newState.stateVersion = (newState.stateVersion || 0) + 1; // FIX-MULTI-P1
 
     return newState;
 };
@@ -475,6 +478,7 @@ export const passTurn = (
         // Jeu bloqué -> On passe en phase BOUDE
         // L'UI se chargera d'afficher l'overlay et d'appeler resolveBoude après 4s
         newState.phase = 'BOUDE';
+        newState.stateVersion = (newState.stateVersion || 0) + 1; // FIX-MULTI-P1
         return newState;
     }
 
@@ -484,6 +488,7 @@ export const passTurn = (
     newState.currentPlayerId = newState.players[nextIdx].id;
     newState.turnId = (newState.turnId ?? 0) + 1;
     newState.boudePlayerId = null;
+    newState.stateVersion = (newState.stateVersion || 0) + 1; // FIX-MULTI-P1
 
     return newState;
 };
@@ -624,6 +629,7 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
         mancheNumber: isMancheEnd ? (activeState.mancheNumber || 1) + 1 : (activeState.mancheNumber || 1),
         tiedPlayerIds: undefined, // FIX R2-B2: Use undefined instead of null
         boudePlayerId: null,      // R2-B8 : réinitialiser le badge Boudé à chaque nouveau round
+        stateVersion: (activeState.stateVersion || 0) + 1, // FIX-MULTI-P1
     };
 };
 

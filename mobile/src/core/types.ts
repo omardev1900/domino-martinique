@@ -76,6 +76,7 @@ export interface GameState {
     reDealCount?: number; // ✅ NOUVEAU : Compteur de redonnes consécutives (C5)
     boudePlayerId?: PlayerId | null; // R2-B1 : joueur actuellement boudé (visible par tous les clients via Firestore)
     tiedPlayerIds?: PlayerId[]; // R2-B2 : joueurs à égalité sur la partie bloquée — forcés à jouer leur plus grand double au prochain round
+    stateVersion?: number; // FIX-MULTI-P1: Incrementé à chaque transition d'état pure pour fiabiliser la transaction Firestore
 }
 
 

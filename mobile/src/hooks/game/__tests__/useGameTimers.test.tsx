@@ -95,7 +95,7 @@ describe('useGameTimers Hook (Component Wrapper)', () => {
         expect(getByTestId('overtime').props.children).toBe(5);
     });
 
-    it('triggers onTimeout when overtime reaches 0', () => {
+    it('triggers onTimeout and watchdog resets overtime to 2', () => {
         const gameState = createMockState({ turnDuration: 1 });
         const { getByTestId } = render(<TestComponent gameState={gameState} onTimeout={mockOnTimeout} />);
 
@@ -111,7 +111,43 @@ describe('useGameTimers Hook (Component Wrapper)', () => {
             });
         }
 
-        expect(getByTestId('overtime').props.children).toBe(0);
+        expect(getByTestId('overtime').props.children).toBe(2);
         expect(mockOnTimeout).toHaveBeenCalledWith('p1', expect.any(Number));
+    });
+
+    it('watchdog stops after 3 retries', () => {
+        const gameState = createMockState({ turnDuration: 1 });
+        const { getByTestId } = render(<TestComponent gameState={gameState} onTimeout={mockOnTimeout} />);
+
+        // Passer le timeLeft
+        act(() => {
+            jest.advanceTimersByTime(1100);
+        });
+
+        // Avancer overtime initial de 5s
+        for(let i = 0; i < 5; i++) {
+            act(() => jest.advanceTimersByTime(1000));
+        }
+
+        expect(getByTestId('overtime').props.children).toBe(2);
+        expect(mockOnTimeout).toHaveBeenCalledTimes(1);
+
+        // Attempt 2 (2 seconds later)
+        act(() => { jest.advanceTimersByTime(1000); });
+        act(() => { jest.advanceTimersByTime(1000); });
+        expect(getByTestId('overtime').props.children).toBe(2);
+        expect(mockOnTimeout).toHaveBeenCalledTimes(2);
+
+        // Attempt 3 (2 seconds later)
+        act(() => { jest.advanceTimersByTime(1000); });
+        act(() => { jest.advanceTimersByTime(1000); });
+        expect(getByTestId('overtime').props.children).toBe(2);
+        expect(mockOnTimeout).toHaveBeenCalledTimes(3);
+
+        // Attempt 4 (2 seconds later) - should stop
+        act(() => { jest.advanceTimersByTime(1000); });
+        act(() => { jest.advanceTimersByTime(1000); });
+        expect(getByTestId('overtime').props.children).toBe('null');
+        expect(mockOnTimeout).toHaveBeenCalledTimes(4);
     });
 });

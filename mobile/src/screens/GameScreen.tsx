@@ -958,6 +958,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const isCurrentBoudeResultVisible = gameState?.phase === 'BOUDE'
         && activeBoudeResultKeyRef.current === `${gameState.gameId}:${gameState.mancheNumber}:${gameState.roundNumber}:${gameState.turnId}`;
 
+
+    // ── GESTION DES PHASES DE JEU ──
     useEffect(() => {
         if (!gameState) return;
         const boudeResultKey = `${gameState.gameId}:${gameState.mancheNumber}:${gameState.roundNumber}:${gameState.turnId}`;
@@ -1031,15 +1033,18 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 partieEndContinueRef.current(); // computeNextRoundState → PLAYING/MANCHE_END
                 return;
             }
-            // PARTIE_END classique (victoire normale)
-            setScoreOverlayPhase(null);
-            const isNormalWin = gameState.players.some(p => p.hand?.length === 0);
-            setRoundResultSnapshot({ ...gameState, _skipAnimation: isNormalWin } as GameState & { _skipAnimation?: boolean });
-            setShowRoundResult(true);
-            pendingRoundResultTransition.current = () => {
-                partieEndContinueRef.current();
-            };
-            roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
+            
+            if (scoreOverlayPhase !== 'PARTIE_END') {
+                // PARTIE_END classique (victoire normale)
+                setScoreOverlayPhase(null);
+                const isNormalWin = gameState.players.some(p => p.hand?.length === 0);
+                setRoundResultSnapshot({ ...gameState, _skipAnimation: isNormalWin } as GameState & { _skipAnimation?: boolean });
+                setShowRoundResult(true);
+                pendingRoundResultTransition.current = () => {
+                    partieEndContinueRef.current();
+                };
+                roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
+            }
             return () => {
                 if (roundResultTimerRef.current) clearTimeout(roundResultTimerRef.current);
             };
@@ -1056,16 +1061,21 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 return;
             }
 
-            // Fin de manche : RoundResultCard 5s, PUIS UnifiedResultOverlay
-            setScoreOverlayPhase(null);
-            const isNormalWin = gameState.players.some(p => p.hand?.length === 0);
-            setRoundResultSnapshot({ ...gameState, _skipAnimation: isNormalWin } as GameState & { _skipAnimation?: boolean });
-            setShowRoundResult(true);
-            pendingRoundResultTransition.current = () => {
-                setScoreOverlayPhase('MANCHE_END');
-            };
-            roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
+            if (scoreOverlayPhase !== 'MANCHE_END') {
+                // Fin de manche : RoundResultCard 5s, PUIS UnifiedResultOverlay
+                setScoreOverlayPhase(null);
+                const isNormalWin = gameState.players.some(p => p.hand?.length === 0);
+                setRoundResultSnapshot({ ...gameState, _skipAnimation: isNormalWin } as GameState & { _skipAnimation?: boolean });
+                setShowRoundResult(true);
+                pendingRoundResultTransition.current = () => {
+
+                    setScoreOverlayPhase('MANCHE_END');
+                };
+
+                roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
+            }
             return () => {
+
                 if (roundResultTimerRef.current) clearTimeout(roundResultTimerRef.current);
             };
         }
@@ -1121,21 +1131,33 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             // FIX: Ne pas afficher RoundResultCard en double si la manche s'est terminée par un BOUDE
             // (UnifiedResultOverlay annonce déjà PARTIE BLOQUÉE)
             if ((gameState.mancheResult as string) === 'BOUDE') {
-                setScoreOverlayPhase(null);
-                setShowRoundResult(false);
-                const timer = setTimeout(triggerMatchEnd, 1000);
-                return () => clearTimeout(timer);
+                if (scoreOverlayPhase !== 'MATCH_END') {
+                    setScoreOverlayPhase(null);
+                    setShowRoundResult(false);
+
+                    const timer = setTimeout(triggerMatchEnd, 1000);
+                    return () => {
+
+                        clearTimeout(timer);
+                    };
+                }
+                return;
             }
 
-            // Fin de match : affichage temporaire du RoundResultCard (5s) PUIS UnifiedResultOverlay
-            setScoreOverlayPhase(null);
-            setRoundResultSnapshot(gameState);
-            setShowRoundResult(true);
-            pendingRoundResultTransition.current = () => {
-                triggerMatchEnd();
-            };
-            roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
+            if (scoreOverlayPhase !== 'MATCH_END') {
+                // Fin de match : affichage temporaire du RoundResultCard (5s) PUIS UnifiedResultOverlay
+                setScoreOverlayPhase(null);
+                setRoundResultSnapshot(gameState);
+                setShowRoundResult(true);
+                pendingRoundResultTransition.current = () => {
+
+                    triggerMatchEnd();
+                };
+
+                roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
+            }
             return () => {
+
                 if (roundResultTimerRef.current) clearTimeout(roundResultTimerRef.current);
             };
         }
@@ -1978,6 +2000,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     localPlayerId={localPlayerId}
                     opponents={opponents}
                     skipAnimation={(roundResultSnapshot as any)?._skipAnimation}
+                    isHost={isLocalHost}
                 />
             )}
 

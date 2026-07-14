@@ -74,6 +74,17 @@ export const useGameSync = ({
                     )) {
                         LogService.info('GameSync', `[SYNC] 📥 Incoming State: Phase=${data.gameState.phase}, TurnId=${data.gameState.turnId}`);
                     }
+
+                    // FIX-MULTI-P1: Filtre de fraîcheur
+                    const currentVersion = gameStateRef.current?.stateVersion ?? 0;
+                    const incomingVersion = data.gameState.stateVersion ?? 0;
+                    
+                    // Si la version entrante est plus ancienne, on ignore (sauf si c'est une vieille partie sans stateVersion)
+                    if (gameStateRef.current && incomingVersion <= currentVersion && incomingVersion !== 0) {
+                        LogService.warn('GameSync', `[SYNC] 🛑 Ignoring stale snapshot: ${incomingVersion} <= ${currentVersion}`);
+                        return;
+                    }
+
                     setGameState(data.gameState);
                 } else {
 
@@ -144,25 +155,32 @@ export const useGameSync = ({
 
                 // Compare progression to avoid split-brain rewrites and clock sync issues
                 let isValidUpdate = false;
+                const newVersion = newState.stateVersion ?? 0;
+                const currentVersion = currentState.stateVersion ?? 0;
 
-                if ((newState.mancheNumber ?? 1) > (currentState.mancheNumber ?? 1)) {
-                    isValidUpdate = true;
-                } else if ((newState.mancheNumber ?? 1) === (currentState.mancheNumber ?? 1) && (newState.roundNumber ?? 1) > (currentState.roundNumber ?? 1)) {
-                    isValidUpdate = true;
-                } else if ((newState.mancheNumber ?? 1) === (currentState.mancheNumber ?? 1) && (newState.roundNumber ?? 1) === (currentState.roundNumber ?? 1)) {
-                    if ((newState.turnId ?? 0) > (currentState.turnId ?? 0)) {
+                if (newVersion > currentVersion) {
+                    isValidUpdate = true; // FIX-MULTI-P1: Validation forte par stateVersion
+                } else if (newVersion === 0) {
+                    // Fallback rétrocompatibilité pour les clients non mis à jour
+                    if ((newState.mancheNumber ?? 1) > (currentState.mancheNumber ?? 1)) {
                         isValidUpdate = true;
-                    } else if ((newState.turnId ?? 0) === (currentState.turnId ?? 0)) {
-                        if (newState.phase !== currentState.phase) {
+                    } else if ((newState.mancheNumber ?? 1) === (currentState.mancheNumber ?? 1) && (newState.roundNumber ?? 1) > (currentState.roundNumber ?? 1)) {
+                        isValidUpdate = true;
+                    } else if ((newState.mancheNumber ?? 1) === (currentState.mancheNumber ?? 1) && (newState.roundNumber ?? 1) === (currentState.roundNumber ?? 1)) {
+                        if ((newState.turnId ?? 0) > (currentState.turnId ?? 0)) {
                             isValidUpdate = true;
-                        } else if (newState.boudePlayerId && !currentState.boudePlayerId) {
-                            isValidUpdate = true; // MARK_BOUDE
+                        } else if ((newState.turnId ?? 0) === (currentState.turnId ?? 0)) {
+                            if (newState.phase !== currentState.phase) {
+                                isValidUpdate = true;
+                            } else if (newState.boudePlayerId && !currentState.boudePlayerId) {
+                                isValidUpdate = true; // MARK_BOUDE
+                            }
                         }
                     }
-                }
-                
-                if (newState.phase === 'MATCH_END' && currentState.phase !== 'MATCH_END') {
-                    isValidUpdate = true;
+                    
+                    if (newState.phase === 'MATCH_END' && currentState.phase !== 'MATCH_END') {
+                        isValidUpdate = true;
+                    }
                 }
 
                 if (!isValidUpdate) {

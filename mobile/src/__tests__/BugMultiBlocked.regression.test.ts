@@ -386,7 +386,7 @@ describe('BUG-MULTI-BLOCKED — Régression LogicEngine.computeNextRoundState', 
         (state as any).tiedPlayerIds = ['p1', 'p2'];
         const nextState = computeNextRoundState(state);
 
-        expect(nextState.tiedPlayerIds).toBeNull();
+        expect(nextState.tiedPlayerIds).toBeUndefined();
     });
 });
 

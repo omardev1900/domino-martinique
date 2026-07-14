@@ -68,6 +68,8 @@ export const useAutoPass = ({
         });
         // Le son est maintenant joué par useActionDispatcher lors du MARK_BOUDE
 
+        const delay = activePlayer.status === 'DISCONNECTED' ? 3500 : BOUDE_DISPLAY_MS;
+
         const timer = setTimeout(() => {
             const freshState = gameStateRef.current;
             if (freshState && freshState.turnId === capturedTurnId) {
@@ -76,7 +78,7 @@ export const useAutoPass = ({
                     playerId: currentPlayerId
                 });
             }
-        }, BOUDE_DISPLAY_MS);
+        }, delay);
 
         return () => {
             clearTimeout(timer);
@@ -104,7 +106,7 @@ export const useAutoPass = ({
                     playerId: capturedPlayerId
                 });
             }
-        }, 5000); // 5 secondes = largement le temps de voir l'animation + latence réseau
+        }, 6500); // 6.5 secondes = largement le temps de voir l'animation + délai DISCONNECTED + latence réseau
 
         return () => clearTimeout(watchdogTimer);
     }, [gameState?.boudePlayerId, gameState?.turnId, gameState?.phase, isLocalHost]);

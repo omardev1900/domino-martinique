@@ -211,14 +211,23 @@ export const useActionDispatcher = ({
                 } else {
                     const cleanState = JSON.parse(JSON.stringify(newState));
                     try {
-                        await safeUpdateGameState(gameId, cleanState);
-                        LogService.info('ActionDispatcher', `[SYNC] Firebase update SUCCESS for ${command.type}`);
+                        let timeoutId: ReturnType<typeof setTimeout>;
+                        const timeoutPromise = new Promise<void>((_, reject) => {
+                            timeoutId = setTimeout(() => reject(new Error('timeout')), 8000);
+                        });
+                        try {
+                            await Promise.race([
+                                safeUpdateGameState(gameId, cleanState),
+                                timeoutPromise
+                            ]);
+                            LogService.info('ActionDispatcher', `[SYNC] Firebase update SUCCESS for ${command.type}`);
+                        } finally {
+                            clearTimeout(timeoutId!);
+                        }
                     } catch (syncError: any) {
-                        // ✅ FIX: Fallback local si Firebase échoue définitivement après retries.
-                        // onSnapshot corrigera la divergence automatiquement dès qu'une autre
-                        // écriture réussira (celle d'un autre joueur ou le prochain coup).
-                        LogService.warn('ActionDispatcher', `[SYNC] Firebase sync failed, applying state locally to unblock host: ${syncError?.code}`);
-                        setGameState(newState);
+                        // FIX-MULTI-P1: Ne plus appliquer l'état localement en cas d'échec Firestore (Split-Brain)
+                        // L'état local ne doit avancer que si la transaction réussit ou si on reçoit un snapshot valide.
+                        LogService.error('ActionDispatcher', `[SYNC] Firebase sync failed definitively: ${syncError?.code || syncError?.message || syncError}`);
                     }
                 }
             } else {

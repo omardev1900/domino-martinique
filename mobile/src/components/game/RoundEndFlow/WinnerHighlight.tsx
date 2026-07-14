@@ -22,9 +22,10 @@ interface WinnerHighlightProps {
     localPlayerId: string;
     visible: boolean;
     onContinue: () => void;
+    isHost?: boolean;
 }
 
-export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie, isBoude, localPlayerId, visible, onContinue }) => {
+export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie, isBoude, localPlayerId, visible, onContinue, isHost = true }) => {
     const reducedMotion = useReducedMotion();
     const { height } = useWindowDimensions();
     const isSmallScreen = height < 700;
@@ -79,15 +80,17 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
                         Le round est annulé et va recommencer.
                     </Animated.Text>
 
-                    <View style={[styles.buttonContainer, { marginTop: 40 }]}>
-                        <TouchableOpacity 
-                            style={styles.continueButton} 
-                            onPress={onContinue}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.continueText}>Continuer</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {isHost && (
+                        <View style={[styles.buttonContainer, { marginTop: 40 }]}>
+                            <TouchableOpacity 
+                                style={styles.continueButton} 
+                                onPress={onContinue}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.continueText}>Continuer</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
             ) : winner ? (
                 <View style={styles.centerBox}>
@@ -118,15 +121,17 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
                         </Text>
                     </Animated.View>
 
-                    <View style={[styles.buttonContainer, { marginTop: 40 }]}>
-                        <TouchableOpacity 
-                            style={styles.continueButton} 
-                            onPress={onContinue}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.continueText}>Continuer</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {isHost && (
+                        <View style={[styles.buttonContainer, { marginTop: 40 }]}>
+                            <TouchableOpacity 
+                                style={styles.continueButton} 
+                                onPress={onContinue}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.continueText}>Continuer</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
             ) : null}
         </Animated.View>

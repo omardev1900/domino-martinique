@@ -38,10 +38,8 @@ import { GameRoom, GameState, PlayerProfile, RoomStatus, GameMode } from '../typ
 import { LogService } from './LogService';
 import { roomNameSchema } from '../validation/schemas';
 
-// SEC-8: Debounce state for updateGameState — one pending write per roomId
-const GAME_STATE_DEBOUNCE_MS = 300;
-type PendingWrite = { data: Record<string, any>; timer: ReturnType<typeof setTimeout>; resolve: () => void; reject: (e: unknown) => void };
-const pendingGameStateWrites = new Map<string, PendingWrite>();
+// FIX-MULTI-P1: File séquentielle (FIFO) pour garantir l'ordre des écritures sans perte de données rapides
+const updateGameStateQueues = new Map<string, Promise<void>>();
 
 // Configuration Firebase
 // Configuration Firebase
@@ -443,33 +441,34 @@ export const markRoomAsFinished = async (roomId: string): Promise<void> => {
  * @param newGameState 
  */
 export const updateGameState = (roomId: string, newGameState: Partial<GameState>): Promise<void> => {
-    // SEC-8: Debounce — cancel any pending write for this room and replace with latest state
-    const existing = pendingGameStateWrites.get(roomId);
-    if (existing) {
-        clearTimeout(existing.timer);
-        existing.resolve(); // resolve the previous promise silently (superseded)
-    }
-
     const updateData: Record<string, any> = {};
     Object.keys(newGameState).forEach(key => {
         updateData[`gameState.${key}`] = (newGameState as any)[key];
     });
 
-    return new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(async () => {
-            pendingGameStateWrites.delete(roomId);
-            const roomRef = doc(db, ROOMS_COLLECTION, roomId);
-            try {
-                await updateDoc(roomRef, updateData);
-                resolve();
-            } catch (e) {
-                LogService.error('Firebase', 'Error updating game state:', e);
-                reject(e);
-            }
-        }, GAME_STATE_DEBOUNCE_MS);
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
 
-        pendingGameStateWrites.set(roomId, { data: updateData, timer, resolve, reject });
+    // FIX-MULTI-P1: Récupérer la file d'attente de cette room ou démarrer une nouvelle promesse résolue
+    let queue = updateGameStateQueues.get(roomId) || Promise.resolve();
+
+    // Ajouter la nouvelle écriture à la fin de la file
+    const updatePromise = queue.then(async () => {
+        try {
+            await updateDoc(roomRef, updateData);
+        } catch (e) {
+            LogService.error('Firebase', 'Error updating game state:', e);
+            throw e;
+        }
+    }).catch(e => {
+        // Capturer l'erreur pour ne pas bloquer les écritures suivantes de la file
+        // mais la rejeter pour que l'appelant (dispatch) puisse la traiter
+        throw e;
     });
+
+    // Mettre à jour la file avec la nouvelle promesse (en gérant les rejets pour éviter le blocage)
+    updateGameStateQueues.set(roomId, updatePromise.catch(() => {}));
+
+    return updatePromise;
 };
 
 /**

@@ -13,11 +13,12 @@ interface RoundEndFlowProps {
     localPlayerId: string;
     opponents: Player[];
     skipAnimation?: boolean;
+    isHost?: boolean;
 }
 
 type FlowPhase = 'idle' | 'dimming' | 'reveal' | 'counting' | 'result';
 
-export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, onDismiss, localPlayerId, opponents, skipAnimation }) => {
+export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, onDismiss, localPlayerId, opponents, skipAnimation, isHost }) => {
     const [phase, setPhase] = useState<FlowPhase>('idle');
     const [countsCompleted, setCountsCompleted] = useState(0);
     const [skipCountingNow, setSkipCountingNow] = useState(false);
@@ -38,6 +39,8 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
     const isTie = winner === null;
 
     useEffect(() => {
+        const timeouts: ReturnType<typeof setTimeout>[] = [];
+
         if (!visible) {
             setPhase('idle');
             setCountsCompleted(0);
@@ -62,21 +65,31 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
             }
 
             // Timeline (Accélérée)
-            setTimeout(() => {
+            timeouts.push(setTimeout(() => {
                 setPhase('reveal');
                 // Simulate clack sounds
                 const totalDominoes = gameState.players.reduce((sum, p) => sum + p.hand.length, 0);
                 const clacks = Math.min(totalDominoes, 5);
                 for (let i = 0; i < clacks; i++) {
-                    setTimeout(() => SoundManager.playSound(`clack${(i % 3) + 1}` as any), i * 100);
+                    timeouts.push(setTimeout(() => SoundManager.playSound(`clack${(i % 3) + 1}` as any), i * 100));
                 }
 
-                setTimeout(() => {
-                    setPhase('counting');
-                }, 800);
+                timeouts.push(setTimeout(() => {
+                    const playersWithDominoes = gameState.players.filter(p => p.hand.length > 0).length;
+                    if (playersWithDominoes === 0) {
+                        // Empty hand case: nobody has dominos, jump straight to result
+                        setPhase('result');
+                    } else {
+                        setPhase('counting');
+                    }
+                }, 800));
 
-            }, 600);
+            }, 600));
         }
+
+        return () => {
+            timeouts.forEach(clearTimeout);
+        };
     }, [visible, skipAnimation]);
 
     // Handle counting completion
@@ -148,7 +161,8 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
                 isBoude={isBoude}
                 localPlayerId={localPlayerId}
                 visible={phase !== 'idle' && phase !== 'dimming'} 
-                onContinue={handleContinuePress} 
+                onContinue={handleContinuePress}
+                isHost={isHost}
             />
         </View>
     );

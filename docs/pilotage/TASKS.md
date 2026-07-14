@@ -23,7 +23,8 @@ Ce sprint couvre les améliorations UX issues des retours client.
 |---|---|---|---|---|
 
 ### Ordre d'exécution recommandé
-(Tous les tickets sont terminés)
+
+(Tous les tickets de la phase P1 et P2 sont terminés. Reste à traiter P3.)
 
 
 

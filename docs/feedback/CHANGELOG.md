@@ -1,6 +1,14 @@
 # 📝 CHANGELOG — Domino Martiniquais
 
 > Journal des changements notables, classés par date (plus récent en premier).
+## [Unreleased]
+
+### Corrigé
+- **Fin de manche plus fluide** — Les animations de fin de manche ne souffrent plus de décalages ou de blocages, particulièrement avec des mains vides. De plus, seul l'hôte de la partie peut cliquer sur "Continuer", évitant toute confusion.
+- **Délai de grâce des déconnexions** — Les joueurs qui subissent une déconnexion rapide (micro-coupure) bénéficient d'un léger délai de grâce (3,5 secondes) avant que leur tour ne soit passé automatiquement.
+- **Déblocage automatique en multijoueur** — Le jeu ne reste plus figé indéfiniment si un joueur perd sa connexion au moment exact où son chronomètre tombe à zéro. Un système de relance automatique tente de faire passer le tour (jusqu'à 3 fois) avant de sécuriser la partie.
+- **Bots plus fiables** — Les bots ne joueront plus jamais à la place d'un joueur humain qui viendrait tout juste de retrouver sa connexion, même en cas de micro-coupures.
+- **Stabilité accrue en multijoueur** — Correction du bug de "saut en arrière" (rollback) de l'interface et du figeage des parties lors d'actions très rapides. Le jeu garantit désormais un ordre strict des coups joués (FIX-MULTI-P1).
 
 ## [2.5.23] - 2026-07-08
 

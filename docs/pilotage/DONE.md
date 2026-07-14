@@ -2,6 +2,12 @@
 
 ## Juillet 2026
 
+### 2026-07-14
+
+- **[FIX-MULTI-P3]** : Finitions de fluidité UX (Nettoyage propre des `setTimeout` dans `RoundEndFlow`, gestion explicite des fins de partie avec les mains vides, masquage du bouton "Continuer" pour les joueurs non-hôtes, augmentation du délai de grâce à 3.5s + 6.5s watchdog pour le passage automatique des joueurs `DISCONNECTED`).
+- **[FIX-MULTI-P2]** : Résolution des blocages UI et fiabilisation des bots (Timeout de 8s sur les mises à jour Firestore évitant les locks infinis, revalidation stricte du statut joueur `HUMAN` pour empêcher les bots de voler un tour lors d'une reconnexion, Watchdog Timer sur l'overtime limité à 3 essais pour débloquer les timeouts réseau figés). Tests unitaires validés avec succès.
+- **[FIX-MULTI-P1]** : Résolution des Rollbacks et Split-brain (Mise en place de `stateVersion`, transaction Firestore renforcée, file FIFO pour remplacer le debounce destructeur, suppression du fallback local en cas d'erreur de synchro). Tests unitaires validés (42/42).
+
 ### 2026-07-08
 
 - **[FIX-KEYSTORE-SIGNING]** *(v2 — conformité sécurité)* : Architecture de signature Android conforme aux bonnes pratiques officielles (Android/Gradle/Expo). `git rm --cached upload-keystore.jks` ; suppression exception `.gitignore` ; `build.gradle` lecture env vars + Gradle props avec `GradleException` strict (aucun fallback debug) ; `withAndroidSigning.js` réécriture idempotente via marqueur ; `build-release.ps1` validation en 7 blocs (keytool alias + SHA-256) ; `setup-signing.ps1` nouveau script de configuration initiale ; `docs/signing.md` empreintes de référence + procédures (aucun secret).
