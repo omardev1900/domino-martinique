@@ -2,15 +2,13 @@
   "expo": {
     "name": "Domino Martiniquais",
     "slug": "domino-martinique",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "landscape",
     "icon": "./src/assets/images/icon.png",
     "scheme": "domino-martinique",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "statusBarHidden": true,
       "bundleIdentifier": "com.dominomartinique.mobile",
       "associatedDomains": [
         "applinks:domino-martinique.online"
@@ -19,8 +17,7 @@
     "android": {
       "package": "com.dominomartinique.mobile",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 15,
-      "edgeToEdgeEnabled": false,
+      "versionCode": 16,
       "predictiveBackGestureEnabled": false,
       "intentFilters": [
         {
