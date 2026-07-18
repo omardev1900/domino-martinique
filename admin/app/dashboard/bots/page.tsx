@@ -59,6 +59,14 @@ const LOCAL_BOTS: BotProfile[] = [
   { id: 'bot_mk_2', name: 'Papa-Zombi', avatarId: 'avatar_bot_08', difficulty: 'METKAYALI', isLocal: true },
 ];
 
+// Avatars bundlés dans l'app mobile — aucun upload requis
+const LOCAL_BOT_AVATARS = [
+  { id: 'Chip_1',   label: 'Chip',   emoji: '🤖', color: 'bg-blue-500/20 border-blue-500/40 text-blue-300' },
+  { id: 'Spark_2',  label: 'Spark',  emoji: '⚡', color: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300' },
+  { id: 'Atlas_3',  label: 'Atlas',  emoji: '🌍', color: 'bg-green-500/20 border-green-500/40 text-green-300' },
+  { id: 'Zenith_4', label: 'Zenith', emoji: '🔭', color: 'bg-purple-500/20 border-purple-500/40 text-purple-300' },
+];
+
 const DIFF_META: Record<Difficulty, { label: string; color: string; icon: string; desc: string }> = {
   TI_MANMAY: { label: 'Ti-Manmay', color: 'border-green-500/30 text-green-400', icon: '👶', desc: 'Joue de façon basique' },
   MAPIPI: { label: 'Mapipi', color: 'border-blue-500/30 text-blue-400', icon: '🤠', desc: 'Joue de façon intelligente' },
@@ -84,6 +92,8 @@ export default function BotsPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [avatarTab, setAvatarTab] = useState<'local' | 'upload'>('local');
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   const convertToWebP = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -158,18 +168,35 @@ export default function BotsPage() {
     }
 
     setSaving(true);
+    setStorageError(null);
     try {
       let imageUrl = editing.imageUrl || '';
 
-      if (imageFile) {
+      if (avatarTab === 'upload' && imageFile) {
         setUploading(true);
-        const webpBlob = await convertToWebP(imageFile);
-        const fileName = `${Date.now()}.webp`;
-        const storageRef = ref(storage, `bots/${fileName}`);
-        const uploadResult = await uploadBytes(storageRef, webpBlob);
-        imageUrl = await getDownloadURL(uploadResult.ref);
+        try {
+          const webpBlob = await convertToWebP(imageFile);
+          const fileName = `${Date.now()}.webp`;
+          const storageRef = ref(storage, `bots/${fileName}`);
+          const uploadResult = await uploadBytes(storageRef, webpBlob);
+          imageUrl = await getDownloadURL(uploadResult.ref);
+        } catch (uploadErr: any) {
+          const msg = String(uploadErr?.message ?? uploadErr ?? '');
+          const is402 = msg.includes('402') || msg.toLowerCase().includes('payment required');
+          setStorageError(
+            is402
+              ? 'Firebase Storage requiert le plan Blaze. Utilise un avatar local ou active le plan Blaze sur console.firebase.google.com.'
+              : `Erreur upload : ${msg || 'Inconnue'}`
+          );
+          setUploading(false);
+          setSaving(false);
+          return;
+        }
         setUploading(false);
       }
+
+      // Avatar local : on efface imageUrl pour utiliser uniquement avatarId
+      if (avatarTab === 'local') imageUrl = '';
 
       const botData = { ...editing, imageUrl };
 
@@ -246,7 +273,13 @@ export default function BotsPage() {
           >
             {initializing ? 'Initialisation…' : '🔄 Initialiser Firestore'}
           </button>
-          <button onClick={() => setEditing({ ...EMPTY })}
+          <button onClick={() => {
+              setEditing({ ...EMPTY });
+              setAvatarTab('local');
+              setImagePreview(null);
+              setImageFile(null);
+              setStorageError(null);
+            }}
             className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm rounded-xl transition-all shadow-lg shadow-yellow-400/20">
             + Nouveau bot
           </button>
@@ -338,6 +371,8 @@ export default function BotsPage() {
                           <div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm border shrink-0 ${meta.color}`}>
                             {bot.imageUrl ? (
                               <img src={bot.imageUrl} alt={bot.name} className="w-full h-full object-cover" />
+                            ) : LOCAL_BOT_AVATARS.find(a => a.id === bot.avatarId) ? (
+                              <span className="text-xl">{LOCAL_BOT_AVATARS.find(a => a.id === bot.avatarId)!.emoji}</span>
                             ) : (
                               <span className="text-lg">{meta.icon}</span>
                             )}
@@ -367,8 +402,10 @@ export default function BotsPage() {
                           <div className="flex items-center justify-center gap-2">
                             <button onClick={() => {
                                 setEditing({ firestoreId: bot.firestoreId, id: bot.id, name: bot.name, avatarId: bot.avatarId, imageUrl: bot.imageUrl, difficulty: bot.difficulty });
+                                setAvatarTab(bot.imageUrl ? 'upload' : 'local');
                                 setImagePreview(bot.imageUrl || null);
                                 setImageFile(null);
+                                setStorageError(null);
                               }}
                                 className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 rounded-lg transition-all">
                                 Modifier
@@ -408,28 +445,77 @@ export default function BotsPage() {
                 />
               </div>
 
-              {/* Avatar Photo */}
+              {/* Avatar — Onglets local / upload */}
               <div>
-                <label className="text-gray-400 text-xs font-medium block mb-1.5">Avatar (Photo)</label>
-                <div className="space-y-3">
-                  {imagePreview && (
-                    <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-gray-950 border border-gray-800 mx-auto">
-                      <img src={imagePreview} alt="Bot" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }}
-                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                  <div className="relative">
-                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" id="bot-image-upload" />
-                    <label htmlFor="bot-image-upload" className="flex items-center justify-center w-full px-4 py-2.5 bg-gray-800 border border-dashed border-gray-700 rounded-xl text-gray-400 text-xs cursor-pointer hover:border-yellow-400 hover:text-yellow-400 transition-all">
-                      {imageFile ? 'Changer la photo' : 'Uploader une photo (WebP)'}
-                    </label>
-                  </div>
+                <label className="text-gray-400 text-xs font-medium block mb-2">Avatar</label>
+
+                {/* Tab switcher */}
+                <div className="flex gap-1 bg-gray-800 border border-gray-700 p-1 rounded-lg mb-3">
+                  <button type="button" onClick={() => setAvatarTab('local')}
+                    className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      avatarTab === 'local' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'
+                    }`}>
+                    🎭 Avatar local
+                  </button>
+                  <button type="button" onClick={() => setAvatarTab('upload')}
+                    className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      avatarTab === 'upload' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'
+                    }`}>
+                    📤 Photo custom
+                  </button>
                 </div>
+
+                {/* ── Onglet local : grille de sélection ──────────────── */}
+                {avatarTab === 'local' && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {LOCAL_BOT_AVATARS.map((av) => (
+                      <button
+                        key={av.id}
+                        type="button"
+                        onClick={() => setEditing(p => ({ ...p!, avatarId: av.id, imageUrl: '' }))}
+                        className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all ${
+                          editing?.avatarId === av.id
+                            ? 'border-yellow-400 bg-yellow-400/10 ring-1 ring-yellow-400/40'
+                            : 'border-gray-700 bg-gray-800 hover:border-gray-500'
+                        }`}
+                      >
+                        <span className="text-2xl leading-none">{av.emoji}</span>
+                        <span className={`text-xs font-semibold truncate w-full text-center ${
+                          editing?.avatarId === av.id ? 'text-yellow-400' : 'text-gray-500'
+                        }`}>{av.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Onglet upload : Firebase Storage ────────────────── */}
+                {avatarTab === 'upload' && (
+                  <div className="space-y-3">
+                    {storageError && (
+                      <div className="px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs leading-relaxed">
+                        ⚠️ {storageError}
+                      </div>
+                    )}
+                    {imagePreview && (
+                      <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-gray-950 border border-gray-800 mx-auto">
+                        <img src={imagePreview} alt="Bot" className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }}
+                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                    <div className="relative">
+                      <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" id="bot-image-upload" />
+                      <label htmlFor="bot-image-upload" className="flex items-center justify-center w-full px-4 py-2.5 bg-gray-800 border border-dashed border-gray-700 rounded-xl text-gray-400 text-xs cursor-pointer hover:border-yellow-400 hover:text-yellow-400 transition-all">
+                        {uploading ? '⏳ Upload en cours…' : imageFile ? '🔄 Changer la photo' : '📁 Uploader une photo (auto WebP)'}
+                      </label>
+                    </div>
+                    <p className="text-gray-600 text-xs text-center">Requiert le plan Blaze Firebase</p>
+                  </div>
+                )}
               </div>
 
               {/* Difficulté */}
@@ -450,7 +536,7 @@ export default function BotsPage() {
 
             {/* Footer Actions */}
             <div className="mt-6 flex gap-3">
-              <button onClick={() => setEditing(null)}
+              <button onClick={() => { setEditing(null); setStorageError(null); }}
                 className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 font-medium text-sm rounded-xl transition-all">
                 Annuler
               </button>
