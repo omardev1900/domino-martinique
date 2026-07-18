@@ -72,8 +72,11 @@ export const useBotDecision = ({
         const capturedTurnId = gameState.turnId;
 
         // Délai de réflexion : court pour un joueur subitement déco, naturel pour un bot
+        // FIX-REGRESSION: 100ms était trop court — un onSnapshot Firebase met 200-500ms à propager
+        // la reconnexion (DISCONNECTED → HUMAN). Le bot se déclenchait avant que le statut frais
+        // n'arrive, jouant à la place du joueur qui venait juste de se reconnecter.
         const delayMs = activePlayer.status === 'DISCONNECTED'
-            ? 100
+            ? 2500
             : Math.floor(Math.random() * 500) + 1000;
 
         let isCancelled = false;

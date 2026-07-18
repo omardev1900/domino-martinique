@@ -220,13 +220,21 @@ export const useActionDispatcher = ({
                                 safeUpdateGameState(gameId, cleanState),
                                 timeoutPromise
                             ]);
+                            // FIX-REGRESSION: Mise à jour locale immédiate après confirmation Firebase.
+                            // Sans ça, l'UI de l'hôte reste figée jusqu'à l'arrivée du onSnapshot
+                            // (200-500ms). Pendant ce délai, timers et autopass calculent sur l'ancien
+                            // état et peuvent déclencher des actions dupliquées ou hors-tour.
+                            // Le filtre onSnapshot (< strictement) absorbe le snapshot réfléchi
+                            // sans déclencher un double re-render.
+                            setGameState(cleanState);
                             LogService.info('ActionDispatcher', `[SYNC] Firebase update SUCCESS for ${command.type}`);
                         } finally {
                             clearTimeout(timeoutId!);
                         }
                     } catch (syncError: any) {
-                        // FIX-MULTI-P1: Ne plus appliquer l'état localement en cas d'échec Firestore (Split-Brain)
-                        // L'état local ne doit avancer que si la transaction réussit ou si on reçoit un snapshot valide.
+                        // Échec définitif — on ne met PAS à jour localement pour éviter la divergence.
+                        // L'état local reste sur l'ancien état confirmé ; le prochain snapshot valide
+                        // remettra le jeu en cohérence.
                         LogService.error('ActionDispatcher', `[SYNC] Firebase sync failed definitively: ${syncError?.code || syncError?.message || syncError}`);
                     }
                 }

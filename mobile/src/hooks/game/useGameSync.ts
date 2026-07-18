@@ -79,9 +79,12 @@ export const useGameSync = ({
                     const currentVersion = gameStateRef.current?.stateVersion ?? 0;
                     const incomingVersion = data.gameState.stateVersion ?? 0;
                     
-                    // Si la version entrante est plus ancienne, on ignore (sauf si c'est une vieille partie sans stateVersion)
-                    if (gameStateRef.current && incomingVersion <= currentVersion && incomingVersion !== 0) {
-                        LogService.warn('GameSync', `[SYNC] 🛑 Ignoring stale snapshot: ${incomingVersion} <= ${currentVersion}`);
+                    // FIX-REGRESSION: filtre STRICT (<) et non large (<=).
+                    // Avec <= , le snapshot réfléchi après mise à jour locale optimiste (même version)
+                    // était bloqué, empêchant les non-hosts de recevoir des mises à jour légitimes
+                    // dans certains cas de concurrence. On ignore uniquement les snapshots PLUS ANCIENS.
+                    if (gameStateRef.current && incomingVersion < currentVersion && incomingVersion !== 0) {
+                        LogService.warn('GameSync', `[SYNC] 🛑 Ignoring stale snapshot: ${incomingVersion} < ${currentVersion}`);
                         return;
                     }
 

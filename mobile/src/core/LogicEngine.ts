@@ -508,7 +508,10 @@ export const resolveBoude = (gameState: GameState): { newState: GameState; isTie
         const scores = gameState.players.map(p => ({ id: p.id, score: p.hand.reduce((s, d) => s + d.left + d.right, 0) }));
         const minScore = Math.min(...scores.map(s => s.score));
         const tiedPlayerIds = scores.filter(s => s.score === minScore).map(s => s.id);
-        return { newState: gameState, isTie: true, tiedPlayerIds };
+        // FIX-REGRESSION: incrémenter stateVersion même en cas d'égalité — sans ça la transaction
+        // Firestore voit newVersion === currentVersion et rejette l'écriture → jeu figé sur BOUDE TIE.
+        const tiedState = { ...gameState, stateVersion: (gameState.stateVersion || 0) + 1 };
+        return { newState: tiedState, isTie: true, tiedPlayerIds };
     }
 
     // Gagnant trouvé ou forcé -> On réinitialise le compteur
