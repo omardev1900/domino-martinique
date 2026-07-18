@@ -34,6 +34,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { WebFullscreenButton } from '@/components/WebFullscreenButton';
 import { USE_NEW_SIDEBAR, SIDEBAR_HIDDEN_ROUTES, SIDEBAR_HIDDEN_PREFIXES } from '@/core/config/navigation.config';
 import { LogService } from '@/core/services/LogService';
+import { AndroidStoreBanner } from '@/components/AndroidStoreBanner';
 
 Sentry.init({
   dsn: 'https://b42b9f54cd5334acbc2310a30f9fc5fb@o4511343295987712.ingest.de.sentry.io/4511343301034064',
@@ -76,11 +77,7 @@ if (Platform.OS === 'web' && typeof window !== 'undefined') {
   `;
   document.head.appendChild(style);
 
-  // REDIRECT ANDROID USERS TO PLAY STORE (Web Only)
-  const userAgent = navigator.userAgent || navigator.vendor;
-  if (/android/i.test(userAgent)) {
-    window.location.href = 'https://play.google.com/store/apps/details?id=com.dominomartinique.mobile';
-  }
+  // Android users see a dismissable banner (AndroidStoreBanner) instead of a forced redirect.
 }
 
 export const unstable_settings = {
@@ -339,6 +336,9 @@ export default Sentry.wrap(function RootLayout() {
           colors={['#2D1B4E', '#1A0E2E']}
           style={{ flex: 1 }}
         >
+          {/* Bannière Play Store pour les utilisateurs Android sur navigateur web */}
+          <AndroidStoreBanner />
+
           {/* ── Sidebar + Contenu ─────────────────────────────────────── */}
           <View style={{ flex: 1, flexDirection: 'row' }}>
 
