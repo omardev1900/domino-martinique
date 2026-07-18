@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
-import { db, findActiveRoomForUser, setUserActiveRoom } from '../core/services/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { db, findActiveRoomForUser, setUserActiveRoom, leaveRoom } from '../core/services/firebase';
 import { authService } from '../core/services/auth.service';
 import { LogService } from '../core/services/LogService';
 
@@ -99,28 +99,20 @@ export function useMultiResume(currentPath: string) {
 
             const activeRoomId = await AsyncStorage.getItem('active_roomId');
             if (activeRoomId) {
-                // Nettoyage local et user.activeRoomId
+                // FIX-GHOST-ROOM: Toujours appeler leaveRoom quel que soit le statut (WAITING ou PLAYING).
+                // L'ancienne logique ne retirait le joueur de Firestore que pour WAITING.
+                // Pour PLAYING, playerIds restait inchangé → findActiveRoomForUser retrouvait la salle
+                // indéfiniment via la requête "playerIds array-contains uid" → modal infini.
+                // leaveRoom retire le joueur de players ET playerIds (fix simultané dans firebase.ts).
+                try {
+                    await leaveRoom(activeRoomId, user.uid);
+                } catch (e) {
+                    // Non-bloquant : on nettoie quand même localement
+                    LogService.warn('useMultiResume', 'leaveRoom failed during abandon, cleaning local state anyway', e);
+                }
+
                 await AsyncStorage.removeItem('active_roomId');
                 await setUserActiveRoom(user.uid, null);
-                
-                // On essaie aussi de retirer le joueur de la table si on peut
-                // Attention, en plein milieu d'une partie PLAYING, ça pourrait nécessiter une Cloud Function
-                // pour gérer la distribution des pénalités, mais pour la démo/V1, on retire juste le joueur de la table s'il était en attente
-                try {
-                    const roomRef = doc(db, 'rooms', activeRoomId);
-                    const roomSnap = await getDoc(roomRef);
-                    if (roomSnap.exists()) {
-                        const roomData = roomSnap.data();
-                        if (roomData.status === 'WAITING') {
-                            await updateDoc(roomRef, {
-                                players: arrayRemove(user.uid)
-                            });
-                        }
-                        // Si PLAYING, la logique de déconnexion/timeout s'en chargera côté bots de remplacement ou l'admin
-                    }
-                } catch(e) {
-                    // Ignore fail to remove from room
-                }
             }
         } catch { /* non-critique */ }
         setResumeInfo(null);

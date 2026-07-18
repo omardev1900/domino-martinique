@@ -322,6 +322,10 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
 
         await updateDoc(roomRef, {
             players: updatedPlayers,
+            // FIX-GHOST-ROOM: Retirer aussi de playerIds — sans ça, la requête Firestore
+            // "playerIds array-contains userId" continue de retourner cette salle même après
+            // que le joueur l'ait quittée, causant le modal "Partie en cours" infini.
+            playerIds: arrayRemove(userId),
             lastActivity: Date.now()
         });
 
@@ -433,6 +437,40 @@ export const markRoomAsFinished = async (roomId: string): Promise<void> => {
         LogService.error('Firebase', 'Error marking room as finished:', e);
         throw e;
     }
+};
+
+/**
+ * Force-close a stuck room (admin use).
+ * Marks it FINISHED, clears activeRoomId for all listed players,
+ * and removes them from playerIds so findActiveRoomForUser ne les retrouve plus.
+ */
+export const forceCloseRoom = async (roomId: string): Promise<void> => {
+    if (!roomId) return;
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    const roomSnap = await getDoc(roomRef);
+    if (!roomSnap.exists()) {
+        LogService.warn('Firebase', `forceCloseRoom: room ${roomId} not found`);
+        return;
+    }
+    const roomData = roomSnap.data() as GameRoom;
+    // Récupérer tous les UIDs impliqués (players + playerIds + gameState.players)
+    const allUids = new Set<string>([
+        ...(roomData.playerIds ?? []),
+        ...(roomData.players ?? []).map((p: any) => p.uid),
+        ...(roomData.gameState?.players ?? []).map((p: any) => p.id),
+    ]);
+    // Marquer FINISHED
+    await updateDoc(roomRef, {
+        status: RoomStatus.FINISHED,
+        playerIds: [],
+        players: [],
+        lastActivity: Date.now(),
+    });
+    // Nettoyer activeRoomId pour chaque joueur
+    await Promise.allSettled(
+        [...allUids].filter(Boolean).map(uid => setUserActiveRoom(uid, null))
+    );
+    LogService.info('Firebase', `forceCloseRoom: room ${roomId} closed, cleared ${allUids.size} players`);
 };
 
 /**
@@ -676,6 +714,11 @@ export const findActiveRoomForUser = async (userId: string): Promise<string | nu
     try {
         LogService.debug('Firebase', `Searching for active room for user: ${userId}`);
 
+        // FIX-GHOST-ROOM: Seuil de péremption — une salle PLAYING sans activité depuis
+        // plus de 2h est considérée fantôme. Sans ce filtre, une salle bloquée en Firestore
+        // bloque le joueur indéfiniment même si tous les participants ont quitté.
+        const STALE_ROOM_MS = 2 * 60 * 60 * 1000; // 2 heures
+
         const persistedRoomId = await getUserActiveRoom(userId);
         if (persistedRoomId) {
             const persistedRoomRef = doc(db, ROOMS_COLLECTION, persistedRoomId);
@@ -686,6 +729,17 @@ export const findActiveRoomForUser = async (userId: string): Promise<string | nu
                 const isInPlayersList = persistedRoom.players.some(p => p.uid === userId);
                 const isInGameState = persistedRoom.gameState?.players?.some(p => p.id === userId) ?? false;
                 const isInPlayerIds = persistedRoom.playerIds?.includes(userId) ?? false;
+
+                // Salle périmée → forcer FINISHED et ignorer
+                const lastActivity = persistedRoom.lastActivity ?? 0;
+                const isStale = (Date.now() - lastActivity) > STALE_ROOM_MS;
+                if (isStale && isActive) {
+                    LogService.warn('Firebase', `Stale room detected (${persistedRoomId}), forcing FINISHED`);
+                    try { await markRoomAsFinished(persistedRoomId); } catch { /* best-effort */ }
+                    await setUserActiveRoom(userId, null);
+                    return null;
+                }
+
                 if (isActive && (isInPlayersList || isInGameState || isInPlayerIds)) {
                     LogService.debug('Firebase', `Found persisted active room for user ${userId}: ${persistedRoomId}`);
                     return persistedRoomId;
