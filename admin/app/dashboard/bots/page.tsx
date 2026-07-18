@@ -92,8 +92,9 @@ export default function BotsPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [avatarTab, setAvatarTab] = useState<'local' | 'upload'>('local');
+  const [avatarTab, setAvatarTab] = useState<'local' | 'upload' | 'url'>('local');
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState('');
 
   const convertToWebP = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -195,6 +196,17 @@ export default function BotsPage() {
         setUploading(false);
       }
 
+      // Avatar URL directe (imgbb, etc.) : pas d'upload, on stocke l'URL dans imageUrl
+      if (avatarTab === 'url') {
+        const trimmed = urlInput.trim();
+        if (!trimmed || (!trimmed.startsWith('http://') && !trimmed.startsWith('https://'))) {
+          setStorageError('URL invalide. Elle doit commencer par https://');
+          setSaving(false);
+          return;
+        }
+        imageUrl = trimmed;
+      }
+
       // Avatar local : on efface imageUrl pour utiliser uniquement avatarId
       if (avatarTab === 'local') imageUrl = '';
 
@@ -279,6 +291,7 @@ export default function BotsPage() {
               setImagePreview(null);
               setImageFile(null);
               setStorageError(null);
+              setUrlInput('');
             }}
             className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm rounded-xl transition-all shadow-lg shadow-yellow-400/20">
             + Nouveau bot
@@ -402,8 +415,10 @@ export default function BotsPage() {
                           <div className="flex items-center justify-center gap-2">
                             <button onClick={() => {
                                 setEditing({ firestoreId: bot.firestoreId, id: bot.id, name: bot.name, avatarId: bot.avatarId, imageUrl: bot.imageUrl, difficulty: bot.difficulty });
-                                setAvatarTab(bot.imageUrl ? 'upload' : 'local');
-                                setImagePreview(bot.imageUrl || null);
+                                const hasUrl = bot.imageUrl && (bot.imageUrl.includes('ibb.co') || !bot.imageUrl.includes('firebasestorage'));
+                                setAvatarTab(hasUrl ? 'url' : bot.imageUrl ? 'upload' : 'local');
+                                setUrlInput(bot.imageUrl || '');
+                                setImagePreview(bot.imageUrl && !hasUrl ? bot.imageUrl : null);
                                 setImageFile(null);
                                 setStorageError(null);
                               }}
@@ -455,13 +470,19 @@ export default function BotsPage() {
                     className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${
                       avatarTab === 'local' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'
                     }`}>
-                    🎭 Avatar local
+                    🎭 Local
+                  </button>
+                  <button type="button" onClick={() => setAvatarTab('url')}
+                    className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      avatarTab === 'url' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'
+                    }`}>
+                    🔗 URL directe
                   </button>
                   <button type="button" onClick={() => setAvatarTab('upload')}
                     className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${
                       avatarTab === 'upload' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'
                     }`}>
-                    📤 Photo custom
+                    📤 Upload
                   </button>
                 </div>
 
@@ -485,6 +506,39 @@ export default function BotsPage() {
                         }`}>{av.label}</span>
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {/* ── Onglet URL directe : imgbb / hébergeur ──────────── */}
+                {avatarTab === 'url' && (
+                  <div className="space-y-3">
+                    {storageError && (
+                      <div className="px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs leading-relaxed">
+                        ⚠️ {storageError}
+                      </div>
+                    )}
+                    <input
+                      type="url"
+                      value={urlInput}
+                      onChange={(e) => { setUrlInput(e.target.value); setStorageError(null); }}
+                      placeholder="https://i.ibb.co/…/avatar.jpg"
+                      className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors placeholder-gray-600"
+                    />
+                    {urlInput && (
+                      <div className="flex justify-center">
+                        <img
+                          src={urlInput}
+                          alt="Aperçu"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          onLoad={(e) => { (e.target as HTMLImageElement).style.display = 'block'; }}
+                          className="w-24 h-24 rounded-2xl object-cover border border-gray-700 bg-gray-950"
+                          style={{ display: 'none' }}
+                        />
+                      </div>
+                    )}
+                    <p className="text-gray-600 text-xs text-center">
+                      imgbb · Firebase Storage · Google Photos
+                    </p>
                   </div>
                 )}
 

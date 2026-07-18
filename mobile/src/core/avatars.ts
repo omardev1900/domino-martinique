@@ -59,21 +59,27 @@ export const AVAILABLE_AVATARS: AvatarId[] = [
     'avatar_18',
 ];
 
+// Domaines autorisés pour les URLs d'avatars distants
+// SEC-9: Whitelist stricte pour éviter l'injection d'URLs arbitraires
+const ALLOWED_AVATAR_DOMAINS = [
+    'firebasestorage.googleapis.com',
+    'lh3.googleusercontent.com', // Google Photos (comptes Google)
+    'i.ibb.co',                  // imgbb (hébergement avatars bots)
+    'ibb.co',                    // imgbb domaine principal
+];
+
 /**
- * Get the image source for an avatar ID
+ * Get the image source for an avatar ID or a remote URL.
+ * - Clé locale (ex: "avatar_05", "Chip_1") → asset bundlé
+ * - URL distante (ex: "https://i.ibb.co/…") → { uri } si domaine autorisé
+ * - Null / invalide → avatar_default
  */
 export const getAvatarImage = (avatarId: string | null | undefined) => {
     if (!avatarId) {
         return AVATAR_IMAGES.avatar_default;
     }
 
-    // Check if the avatarId is actually a remote URL (like Firebase Storage)
-    // SEC-9: Whitelist de domaines autorisés pour éviter l'injection d'URLs arbitraires
-    const ALLOWED_AVATAR_DOMAINS = [
-        'firebasestorage.googleapis.com',
-        'lh3.googleusercontent.com', // Google Photos (comptes Google)
-    ];
-
+    // URL distante : vérifier le domaine avant d'utiliser
     if (avatarId.startsWith('http://') || avatarId.startsWith('https://')) {
         try {
             const url = new URL(avatarId);
@@ -103,10 +109,7 @@ export const hasAvatarImage = (avatarId: string | null | undefined) => {
         try {
             const url = new URL(avatarId);
             const hostname = url?.hostname;
-            return !!hostname && [
-                'firebasestorage.googleapis.com',
-                'lh3.googleusercontent.com',
-            ].some(d => hostname.endsWith(d));
+            return !!hostname && ALLOWED_AVATAR_DOMAINS.some(d => hostname.endsWith(d));
         } catch {
             return false;
         }
