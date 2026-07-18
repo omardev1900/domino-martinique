@@ -19,12 +19,13 @@ export default function TablesPage() {
     
     setLoading(true);
     setRooms([]); // Clear finished rooms
-    // Filtre sur lastActivity des 6 dernières heures pour exclure les vieilles rooms abandonnées
-    const sixHoursAgo = Date.now() - 6 * 60 * 60 * 1000;
+    // FIX-ADMIN: Suppression du filtre lastActivity >= 6h.
+    // Ce filtre cachait les salles bloquées (fantômes) qui sont précisément celles
+    // qu'un admin doit pouvoir voir et fermer manuellement.
+    // Les salles périmées sont maintenant marquées visuellement côté UI (badge "Bloquée").
     const q = query(
       collection(db, 'rooms'),
-      where('status', 'in', ['WAITING', 'PLAYING']),
-      where('lastActivity', '>=', sixHoursAgo)
+      where('status', 'in', ['WAITING', 'PLAYING'])
     );
 
     const unsub = onSnapshot(q, (snap) => {

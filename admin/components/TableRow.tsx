@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, collection, getDocs, query, where, Timestamp, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { timeAgo } from '@/lib/adminAuth';
 import { logAdminAction } from '@/lib/adminLog';
@@ -11,10 +11,12 @@ export type GameRoom = {
   roomName?: string;
   status?: string;
   players?: Array<{ uid: string; displayName?: string; status?: string }>;
+  playerIds?: string[];
   gameState?: any;
   gameMode?: string;
   difficulty?: string;
   createdAt?: Timestamp | Date | number;
+  lastActivity?: number;
   winningCondition?: number;
   turnDuration?: number;
   buyIn?: number;
@@ -33,8 +35,33 @@ export default function TableRow({ room }: TableRowProps) {
   const handleClose = async () => {
     setLoading(true);
     try {
-      await updateDoc(doc(db, 'rooms', room.roomId), { status: 'FINISHED' });
-      await logAdminAction('close_room', { details: `${room.roomId} — ${room.roomName || '—'}` });
+      // Collecter tous les UIDs concernés avant de modifier la salle
+      const allUids = new Set<string>([
+        ...(room.playerIds ?? []),
+        ...(room.players ?? []).map(p => p.uid),
+        ...(room.gameState?.players ?? []).map((p: any) => p.id),
+      ]);
+
+      // 1. Marquer la salle FINISHED + vider playerIds/players
+      //    (vider playerIds est critique : c'est ce qui empêche findActiveRoomForUser
+      //     de ressortir la salle lors du prochain check mobile)
+      await updateDoc(doc(db, 'rooms', room.roomId), {
+        status: 'FINISHED',
+        playerIds: [],
+        players: [],
+        lastActivity: Date.now(),
+      });
+
+      // 2. Nettoyer activeRoomId sur chaque document utilisateur
+      if (allUids.size > 0) {
+        const batch = writeBatch(db);
+        for (const uid of allUids) {
+          if (uid) batch.update(doc(db, 'users', uid), { activeRoomId: null });
+        }
+        await batch.commit();
+      }
+
+      await logAdminAction('close_room', { details: `${room.roomId} — ${room.roomName || '—'} (${allUids.size} joueurs nettoyés)` });
       setClosed(true);
     } catch (err) {
       console.error('Erreur fermeture:', err);
@@ -42,6 +69,13 @@ export default function TableRow({ room }: TableRowProps) {
       setLoading(false);
     }
   };
+
+  // Salle bloquée = PLAYING/WAITING avec lastActivity > 2h
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  const isStale = !closed &&
+    (room.status === 'PLAYING' || room.status === 'WAITING') &&
+    room.lastActivity != null &&
+    (Date.now() - room.lastActivity) > TWO_HOURS_MS;
 
   const statusBadge = (status?: string) => {
     if (closed || status === 'FINISHED') {
@@ -119,16 +153,24 @@ export default function TableRow({ room }: TableRowProps) {
   };
 
   return (
-    <tr className="border-b border-gray-800 hover:bg-gray-800/40 transition-colors">
+    <tr className={`border-b border-gray-800 hover:bg-gray-800/40 transition-colors ${isStale ? 'bg-red-950/20' : ''}`}>
       {/* Room code */}
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span title={room.isPrivate ? 'Salle Privée' : 'Salle Publique'} className="text-sm">
             {room.isPrivate ? '🔒' : '🌍'}
           </span>
           <code className="text-yellow-400 font-mono text-xs bg-yellow-400/10 px-2 py-1 rounded border border-yellow-400/20">
             {room.roomId.slice(0, 8).toUpperCase()}
           </code>
+          {isStale && (
+            <span
+              title={`Aucune activité depuis ${Math.round((Date.now() - (room.lastActivity ?? 0)) / 3600000)}h`}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 tracking-wide"
+            >
+              BLOQUÉE
+            </span>
+          )}
         </div>
       </td>
       {/* Name */}
