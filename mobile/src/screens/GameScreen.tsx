@@ -142,37 +142,63 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     // -- ACTING HOST LOGIC --
     // Le vrai hôte est celui désigné par isHost, ou à défaut le créateur.
     let currentHostUid = roomData?.players.find(p => p.isHost)?.uid || roomData?.createdBy;
-    
-    // Si la partie est lancée et que l'hôte officiel est déconnecté (ou est un bot), 
-    // le premier joueur humain actif prend le relais (Acting Host) de manière transparente.
-    if (!isSoloMode && roomData?.players) {
-        const activeHumans = roomData.players.filter(p => p.status === 'HUMAN');
-        const isDesignatedHostActive = activeHumans.some(p => p.uid === currentHostUid);
-        if (!isDesignatedHostActive && activeHumans.length > 0) {
-            currentHostUid = activeHumans[0].uid;
+
+    // FIX-HOST-ELECTION: Utiliser gameState.players (statut en jeu HUMAN/DISCONNECTED/BOT)
+    // et NON roomData.players (statut de lobby, jamais mis à jour pendant la partie).
+    // Avant ce fix, isDesignatedHostActive était toujours true car roomData.players.status
+    // n'est jamais modifié par signalPlayerOffline() → aucune élection n'avait jamais lieu.
+    if (!isSoloMode && roomData?.players && gameState?.players) {
+        const isDesignatedHostActive = gameState.players.some(
+            gp => gp.id === currentHostUid && gp.status === 'HUMAN'
+        );
+        if (!isDesignatedHostActive) {
+            // Le premier joueur humain connecté dans l'ordre de la salle prend le relais
+            const firstActiveHumanUid = roomData.players
+                .map(rp => rp.uid)
+                .find(uid => gameState.players.some(gp => gp.id === uid && gp.status === 'HUMAN'));
+            if (firstActiveHumanUid) {
+                currentHostUid = firstActiveHumanUid;
+                LogService.info('GameScreen', `[HOST-ELECTION] Acting host elected: ${firstActiveHumanUid}`);
+            }
         }
     }
 
     const isLocalHost = isSoloMode || (currentHostUid === localPlayerId);
 
-    // -- VIGILANCE: Web Player Disconnection Tracker --
-    // L'hôte vérifie périodiquement les heartbeats (pings) des autres joueurs humains.
-    // Si un joueur n'a pas mis à jour son ping depuis 25s, il est déclaré déconnecté.
+    // -- VIGILANCE: Heartbeat tracker (tous les joueurs connectés participent) --
+    // FIX-VIGILANCE: Suppression du guard !isLocalHost.
+    // Avant ce fix : seul l'hôte tournait la vigilance → l'hôte ne pouvait jamais être
+    // marqué DISCONNECTED (deadlock : personne n'avait autorité pour le faire).
+    // Maintenant : TOUS les joueurs vérifient les heartbeats. L'écriture Firestore est
+    // idempotente (même valeur DISCONNECTED), donc les écritures simultanées de plusieurs
+    // clients sont inoffensives.
+    // FIX-VIGILANCE-REF: roomData est maintenant lu via une ref (pas dans les deps) pour
+    // éviter que l'intervalle soit clearel+recréé à chaque snapshot Firestore (toutes les 1-2s
+    // en partie active), ce qui l'empêchait de s'exécuter.
+    const roomDataRef = useRef(roomData);
+    useEffect(() => { roomDataRef.current = roomData; }, [roomData]);
+
     useEffect(() => {
-        if (!gameId || isSoloMode || !isLocalHost || !roomData || !roomData.gameState?.players) return;
+        if (!gameId || isSoloMode) return;
 
         const checkInterval = setInterval(async () => {
+            const currentRoomData = roomDataRef.current;
+            if (!currentRoomData?.gameState?.players) return;
+
             const now = Date.now();
             let hasTimedOutPlayers = false;
-            
-            const updatedPlayers = roomData.gameState!.players.map(p => {
+
+            const updatedPlayers = currentRoomData.gameState.players.map(p => {
+                // Ne pas se marquer soi-même, et ne pas re-marquer les déjà déconnectés/bots
                 if (p.id === localPlayerId || p.status !== 'HUMAN') return p;
-                
-                const lastPing = roomData.heartbeats?.[p.id] || 0;
-                // Timeout au bout de 25 secondes sans heartbeat
+
+                // heartbeats peut être absent au premier cycle — 0 est un fallback sûr
+                // car le heartbeat initial est envoyé dès le mount (< 1s), donc lastPing = 0
+                // ne se produit qu'avant le premier ping et sera sous le seuil de 25s.
+                const lastPing = currentRoomData.heartbeats?.[p.id] ?? 0;
                 if (now - lastPing > 25000) {
                     hasTimedOutPlayers = true;
-                    LogService.info('GameScreen', `Player ${p.id} heartbeat timeout. Marking as DISCONNECTED.`);
+                    LogService.info('GameScreen', `[VIGILANCE] Player ${p.id} timed out (${Math.round((now - lastPing) / 1000)}s). Marking DISCONNECTED.`);
                     return { ...p, status: 'DISCONNECTED' as const };
                 }
                 return p;
@@ -180,19 +206,19 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
             if (hasTimedOutPlayers) {
                 try {
-                    // updateDoc is directly applied to rooms to avoid full GameState rewrite conflicts
                     const { updateDoc, doc } = await import('firebase/firestore');
                     const { db } = await import('../core/services/firebase');
                     const roomRef = doc(db, 'rooms', gameId);
                     await updateDoc(roomRef, { 'gameState.players': updatedPlayers });
                 } catch (error) {
-                    LogService.error('GameScreen', 'Error updating timed out players:', error);
+                    LogService.error('GameScreen', '[VIGILANCE] Error marking player disconnected:', error);
                 }
             }
         }, 5000);
 
         return () => clearInterval(checkInterval);
-    }, [gameId, isSoloMode, isLocalHost, roomData, localPlayerId]);
+    // roomData retiré des deps — lu via roomDataRef pour éviter le reset permanent de l'intervalle
+    }, [gameId, isSoloMode, localPlayerId]);
 
     const [isPaused, setIsPaused] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
