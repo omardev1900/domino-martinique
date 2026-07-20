@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { db, rtdb } from '../../core/services/firebase';
 import { doc, runTransaction, updateDoc } from 'firebase/firestore';
-import { ref, set, onValue, off, onDisconnect as rtdbOnDisconnect } from 'firebase/database';
+import { ref, set, onValue, onDisconnect as rtdbOnDisconnect } from 'firebase/database';
 import { GameRoom } from '../../core/types';
 import { LogService } from '../../core/services/LogService';
 
