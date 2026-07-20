@@ -64,7 +64,8 @@ export const useConnectionStatus = ({
 
         // Écouter l'état de connexion RTDB pour (re)configurer le onDisconnect
         // à chaque reconnexion réseau.
-        const connectedUnsub = onValue(connectedRef, async (snap) => {
+        // onValue retourne une fonction Unsubscribe (Firebase v9 modular API)
+        const unsubConnected = onValue(connectedRef, async (snap) => {
             if (!snap.val()) return; // Pas encore connecté au RTDB
 
             try {
@@ -82,8 +83,9 @@ export const useConnectionStatus = ({
         });
 
         return () => {
-            // Démontage propre : annuler le onDisconnect serveur et écrire 'offline' soi-même
-            off(connectedRef, 'value', connectedUnsub as any);
+            // FIX-CLEANUP: unsubConnected est la fonction Unsubscribe renvoyée par onValue,
+            // pas le callback — il faut l'appeler directement, pas la passer à off().
+            unsubConnected();
             set(presenceRef, { status: 'offline', t: Date.now() }).catch(() => {});
         };
     }, [gameId, isSoloMode, localPlayerId]);

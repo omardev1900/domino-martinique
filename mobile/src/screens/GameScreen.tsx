@@ -203,50 +203,71 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     }, [gameId, isSoloMode, localPlayerId]);
 
     // -- VIGILANCE RTDB: détection rapide via présence Firebase (~3-5s) --
-    // Dès qu'un joueur passe offline dans RTDB (onDisconnect côté serveur), on le marque
-    // DISCONNECTED dans Firestore immédiatement, sans attendre les 25s du heartbeat.
+    // Dès qu'un joueur passe offline dans RTDB (onDisconnect côté serveur), on attend
+    // une GRACE PERIOD de 4s avant de le marquer DISCONNECTED dans Firestore.
+    // Ce délai évite le "flapping" sur connexion instable (slow 4G) : si le joueur
+    // se reconnecte dans les 4s, le timer est annulé et rien n'est écrit.
+    const rtdbOfflineTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
     useEffect(() => {
         if (!gameId || isSoloMode) return;
 
         const presenceRef = rtdbRef(rtdb, `presence/${gameId}`);
+        const GRACE_PERIOD_MS = 4000; // 4s — absorbe le flapping TCP sur slow 4G
 
-        rtdbOnValue(presenceRef, async (snapshot) => {
+        const unsubPresence = rtdbOnValue(presenceRef, (snapshot) => {
             const presenceData = snapshot.val() as Record<string, { status: string; t: number }> | null;
             if (!presenceData) return;
 
-            const offlinePlayers = Object.entries(presenceData)
-                .filter(([uid, data]) => uid !== localPlayerId && data.status === 'offline');
+            Object.entries(presenceData).forEach(([uid, data]) => {
+                if (uid === localPlayerId) return;
 
-            if (offlinePlayers.length === 0) return;
+                if (data.status === 'offline') {
+                    // Déjà un timer en cours pour ce joueur → pas de doublon
+                    if (rtdbOfflineTimers.current[uid]) return;
 
-            const currentRoomData = roomDataRef.current;
-            if (!currentRoomData?.gameState?.players) return;
+                    LogService.info('GameScreen', `[RTDB-PRESENCE] Player ${uid} offline — grace period ${GRACE_PERIOD_MS}ms`);
+                    rtdbOfflineTimers.current[uid] = setTimeout(async () => {
+                        delete rtdbOfflineTimers.current[uid];
 
-            let hasChanges = false;
-            const updatedPlayers = currentRoomData.gameState.players.map(p => {
-                if (p.status !== 'HUMAN') return p;
-                const isOffline = offlinePlayers.some(([uid]) => uid === p.id);
-                if (isOffline) {
-                    hasChanges = true;
-                    LogService.info('GameScreen', `[RTDB-PRESENCE] Player ${p.id} offline. Marking DISCONNECTED immediately.`);
-                    return { ...p, status: 'DISCONNECTED' as const };
+                        // Vérifier l'état actuel avant d'écrire (le joueur a peut-être déjà reconnecté)
+                        const currentRoomData = roomDataRef.current;
+                        if (!currentRoomData?.gameState?.players) return;
+
+                        const player = currentRoomData.gameState.players.find(p => p.id === uid);
+                        if (!player || player.status !== 'HUMAN') return; // Déjà DISCONNECTED ou BOT
+
+                        LogService.info('GameScreen', `[RTDB-PRESENCE] Grace period expired — marking ${uid} DISCONNECTED`);
+                        const updatedPlayers = currentRoomData.gameState.players.map(p =>
+                            p.id === uid ? { ...p, status: 'DISCONNECTED' as const } : p
+                        );
+
+                        try {
+                            const { updateDoc, doc } = await import('firebase/firestore');
+                            const { db } = await import('../core/services/firebase');
+                            await updateDoc(doc(db, 'rooms', gameId), { 'gameState.players': updatedPlayers });
+                        } catch (error) {
+                            LogService.error('GameScreen', '[RTDB-PRESENCE] Error marking player disconnected:', error);
+                        }
+                    }, GRACE_PERIOD_MS);
+
+                } else if (data.status === 'online') {
+                    // Joueur de retour pendant la grace period → annuler le timer
+                    if (rtdbOfflineTimers.current[uid]) {
+                        LogService.info('GameScreen', `[RTDB-PRESENCE] Player ${uid} back online — grace period cancelled`);
+                        clearTimeout(rtdbOfflineTimers.current[uid]);
+                        delete rtdbOfflineTimers.current[uid];
+                    }
                 }
-                return p;
             });
-
-            if (hasChanges) {
-                try {
-                    const { updateDoc, doc } = await import('firebase/firestore');
-                    const { db } = await import('../core/services/firebase');
-                    const roomRef = doc(db, 'rooms', gameId);
-                    await updateDoc(roomRef, { 'gameState.players': updatedPlayers });
-                } catch (error) {
-                    LogService.error('GameScreen', '[RTDB-PRESENCE] Error marking player disconnected:', error);
-                }
-            }
         });
 
-        return () => rtdbOff(presenceRef);
+        return () => {
+            unsubPresence();
+            // Annuler tous les timers en suspens au démontage
+            Object.values(rtdbOfflineTimers.current).forEach(clearTimeout);
+            rtdbOfflineTimers.current = {};
+        };
     }, [gameId, isSoloMode, localPlayerId]);
 
     const [isPaused, setIsPaused] = useState(false);
