@@ -11,6 +11,11 @@ export default defineConfig({
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
+  server: {
+    port: 5000,
+    host: "0.0.0.0",
+    allowedHosts: true,
+  },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
