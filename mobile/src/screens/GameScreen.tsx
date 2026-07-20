@@ -210,10 +210,23 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 // puis forcer le recalcul de boardScale dans GameTable via un remount.
                 setTimeout(() => setLayoutKey(k => k + 1), 150);
                 LogService.debug('GameScreen', 'AppState -> active, forcing layout refresh');
+
+                // FIX-CRITIQUE-1: Signaler la reconnexion au retour en foreground.
+                // Quand l'OS suspend l'app (appel entrant, changement d'app, mise en veille),
+                // le setInterval du heartbeat est mis en pause. Après 25s, l'hôte marque ce
+                // joueur DISCONNECTED. Quand il revient, Firestore se reconnecte automatiquement
+                // (le joueur voit le jeu), mais signalPlayerOnline() n'était jamais rappelé.
+                // Résultat : le bot jouait à sa place alors qu'il était bien présent.
+                if (!isSoloMode && gameId) {
+                    LogService.info('GameScreen', 'AppState -> active: re-signaling player online');
+                    signalPlayerOnline().catch(e =>
+                        LogService.error('GameScreen', 'Error re-signaling online on foreground', e)
+                    );
+                }
             }
         });
         return () => subscription.remove();
-    }, []);
+    }, [isSoloMode, gameId, signalPlayerOnline]);
 
     // Référence mutable pour stocker la fonction handleTimeout issue du moteur
     const handleTimeoutRef = useRef<((pId: string, turnId?: number) => void) | null>(null);

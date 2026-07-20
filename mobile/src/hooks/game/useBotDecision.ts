@@ -247,6 +247,14 @@ export const useBotDecision = ({
         gameState?.turnId,
         gameState?.currentPlayerId,
         gameState?.phase,
+        // FIX-CRITIQUE-2: valeur primitive dérivée hors du tableau.
+        // Sans cette dépendance, si un joueur repassait DISCONNECTED → HUMAN sur le même
+        // tour (même turnId/phase), l'effet ne se relançait pas → isCancelled restait false
+        // → le bot jouait quand même après son délai de 2500ms alors que le joueur était
+        // revenu. Avec ce selector, le cleanup (isCancelled = true) est déclenché immédiatement
+        // dès que le statut change, annulant proprement le compte à rebours.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        gameState?.players?.find(p => p.id === gameState?.currentPlayerId)?.status,
         isPaused,
         localPlayerId,
         isSoloMode,

@@ -89,6 +89,19 @@ export const useGameSync = ({
                     }
 
                     setGameState(data.gameState);
+
+                    // FIX-CRITIQUE-SAFETY-NET: Si on reçoit un snapshot qui nous montre
+                    // comme DISCONNECTED alors qu'on est bien connecté (on reçoit ce snapshot !),
+                    // se ré-annoncer immédiatement sans attendre le prochain heartbeat (10s) ou
+                    // le retour en foreground. Couvre tous les cas non gérés par l'AppState listener
+                    // (web, crash OS, reconnexion réseau silencieuse, etc.).
+                    const myPlayer = data.gameState.players?.find(p => p.id === localPlayerId);
+                    if (myPlayer?.status === 'DISCONNECTED') {
+                        LogService.warn('GameSync', '[SYNC] ⚠️ Self detected as DISCONNECTED while receiving snapshots — re-signaling online');
+                        signalPlayerOnline().catch(e =>
+                            LogService.error('useGameSync', 'Error in self-reconnect signal', e)
+                        );
+                    }
                 } else {
 
                 }
