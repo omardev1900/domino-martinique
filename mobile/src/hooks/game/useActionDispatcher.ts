@@ -54,10 +54,13 @@ export const useActionDispatcher = ({
         LogService.info('ActionDispatcher', `[DISPATCH] ➔ ${command.type}`, 'playerId' in command ? command.playerId : '');
 
         // Autorité de l'Hôte pour le TIMEOUT
+        // FIX-HOST-TIMEOUT: Utiliser isLocalHost (suit l'élection dynamique) au lieu de
+        // roomData.createdBy (statique). Si le créateur déconnecte, l'hôte élu peut
+        // continuer à exécuter les timeouts pour les bots/joueurs déconnectés.
         if (command.type === 'TIMEOUT') {
             const player = gameState.players.find(p => p.id === command.playerId);
             const isBotOrDisconnected = player?.status !== 'HUMAN';
-            if (isBotOrDisconnected && !isSoloMode && roomData && roomData.createdBy !== localPlayerId) {
+            if (isBotOrDisconnected && !isSoloMode && !isLocalHost) {
                 return;
             }
         }
@@ -255,7 +258,7 @@ export const useActionDispatcher = ({
         localPlayerId,
         isSoloMode,
         gameId,
-        roomData,
+        isLocalHost,
         startingHandSize,
         acquireLock,
         releaseLock,
