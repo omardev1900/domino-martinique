@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { db } from '../../core/services/firebase';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { db, rtdb } from '../../core/services/firebase';
 import { doc, runTransaction, updateDoc } from 'firebase/firestore';
+import { ref, set, onValue, off, onDisconnect as rtdbOnDisconnect } from 'firebase/database';
 import { GameRoom } from '../../core/types';
 import { LogService } from '../../core/services/LogService';
 
@@ -22,21 +23,22 @@ export const useConnectionStatus = ({
     gameId,
     localPlayerId,
     isSoloMode,
-    isLocalHost,
-    roomData
 }: UseConnectionStatusProps): UseConnectionStatusResult => {
     // ✅ FIX ANTI-ZOMBIE: signal visible pour l'UI quand un joueur reprend sa connexion
     const [isRejoining, setIsRejoining] = useState(false);
+    // Ref pour pouvoir appeler signalPlayerOffline dans le cleanup RTDB sans dépendance circulaire
+    const signalPlayerOfflineRef = useRef<(() => Promise<void>) | null>(null);
 
-    // 1. PING: Envoyer un heartbeat toutes les 10s (Web Disconnect tracking)
+    // ─── 1. HEARTBEAT FIRESTORE (fallback 25s) ───────────────────────────────
+    // Conservé comme filet de sécurité si RTDB n'est pas disponible.
     useEffect(() => {
         if (!gameId || isSoloMode) return;
-        
+
         const sendPing = async () => {
             try {
                 const roomRef = doc(db, 'rooms', gameId);
                 await updateDoc(roomRef, { [`heartbeats.${localPlayerId}`]: Date.now() });
-            } catch (error) {
+            } catch {
                 // Ignore silent network errors on ping
             }
         };
@@ -46,9 +48,47 @@ export const useConnectionStatus = ({
         return () => clearInterval(interval);
     }, [gameId, isSoloMode, localPlayerId]);
 
-    // Vigilance logic moved to GameScreen to avoid circular dependencies
+    // ─── 2. PRÉSENCE RTDB + onDisconnect (détection rapide ~3-5s) ────────────
+    // Structure RTDB : /presence/{gameId}/{uid} = { status: 'online'|'offline', t: timestamp }
+    //
+    // Fonctionnement :
+    //   - Au mount : on s'enregistre comme 'online' et on programme un onDisconnect 'offline'
+    //   - Firebase exécute le onDisconnect côté serveur dès que le TCP se ferme (~3s)
+    //   - GameScreen écoute ces changements et marque le joueur DISCONNECTED dans Firestore
+    //   - Au démontage propre (rage-quit, quitter la partie) : on écrit 'offline' nous-même
+    useEffect(() => {
+        if (!gameId || isSoloMode || !localPlayerId) return;
 
-    // Anti-Zombie / Reconnection logic
+        const presenceRef = ref(rtdb, `presence/${gameId}/${localPlayerId}`);
+        const connectedRef = ref(rtdb, '.info/connected');
+
+        // Écouter l'état de connexion RTDB pour (re)configurer le onDisconnect
+        // à chaque reconnexion réseau.
+        const connectedUnsub = onValue(connectedRef, async (snap) => {
+            if (!snap.val()) return; // Pas encore connecté au RTDB
+
+            try {
+                // Programmer l'écriture automatique côté serveur en cas de déconnexion
+                await rtdbOnDisconnect(presenceRef).set({
+                    status: 'offline',
+                    t: Date.now(),
+                });
+                // Se déclarer en ligne
+                await set(presenceRef, { status: 'online', t: Date.now() });
+                LogService.info('ConnectionStatus', '[RTDB] Presence set to online, onDisconnect armed.');
+            } catch (err) {
+                LogService.warn('ConnectionStatus', '[RTDB] Failed to set presence:', err);
+            }
+        });
+
+        return () => {
+            // Démontage propre : annuler le onDisconnect serveur et écrire 'offline' soi-même
+            off(connectedRef, 'value', connectedUnsub as any);
+            set(presenceRef, { status: 'offline', t: Date.now() }).catch(() => {});
+        };
+    }, [gameId, isSoloMode, localPlayerId]);
+
+    // ─── 3. SIGNAL ONLINE (reconnexion) ──────────────────────────────────────
     const signalPlayerOnline = useCallback(async () => {
         if (!gameId || isSoloMode) return;
 
@@ -62,10 +102,9 @@ export const useConnectionStatus = ({
                 const state = currentRoomData.gameState;
                 if (!state || !state.players) return;
 
-                // Remove zombie status
                 let stateUpdated = false;
                 const updatedPlayers = state.players.map((p) => {
-                    if (p.id === localPlayerId && (p.status !== 'HUMAN')) {
+                    if (p.id === localPlayerId && p.status !== 'HUMAN') {
                         stateUpdated = true;
                         return { ...p, status: 'HUMAN' as const };
                     }
@@ -73,28 +112,27 @@ export const useConnectionStatus = ({
                 });
 
                 if (stateUpdated) {
-
-                    transaction.update(roomRef, {
-                        'gameState.players': updatedPlayers
-                    });
-                    // Signal la reprise à l'UI
+                    transaction.update(roomRef, { 'gameState.players': updatedPlayers });
                     setIsRejoining(true);
                     setTimeout(() => setIsRejoining(false), 3000);
                 }
             });
+
+            // Remettre la présence RTDB à 'online' et réarmer le onDisconnect
+            if (gameId && localPlayerId) {
+                const presenceRef = ref(rtdb, `presence/${gameId}/${localPlayerId}`);
+                await rtdbOnDisconnect(presenceRef).set({ status: 'offline', t: Date.now() });
+                await set(presenceRef, { status: 'online', t: Date.now() });
+            }
         } catch (error) {
             LogService.error('ConnectionStatus', 'Error signalPlayerOnline:', error);
         }
     }, [gameId, isSoloMode, localPlayerId]);
 
-    // Disconnect logic for Rage Quit / Tab Close
+    // ─── 4. SIGNAL OFFLINE (quitter volontaire) ───────────────────────────────
     const signalPlayerOffline = useCallback(async () => {
-        if (!gameId || isSoloMode) {
+        if (!gameId || isSoloMode) return;
 
-            return;
-        }
-
-        // This transaction must run quickly (beforeunload)
         const roomRef = doc(db, 'rooms', gameId);
         try {
             await runTransaction(db, async (transaction) => {
@@ -112,19 +150,20 @@ export const useConnectionStatus = ({
                     return p;
                 });
 
-                transaction.update(roomRef, {
-                    'gameState.players': updatedPlayers
-                });
-
+                transaction.update(roomRef, { 'gameState.players': updatedPlayers });
             });
         } catch (error) {
             LogService.error('ConnectionStatus', 'Error signalPlayerOffline:', error);
         }
     }, [gameId, isSoloMode, localPlayerId]);
 
+    useEffect(() => {
+        signalPlayerOfflineRef.current = signalPlayerOffline;
+    }, [signalPlayerOffline]);
+
     return {
         isRejoining,
         signalPlayerOnline,
-        signalPlayerOffline
+        signalPlayerOffline,
     };
 };

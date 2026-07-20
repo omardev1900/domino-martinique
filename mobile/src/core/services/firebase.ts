@@ -34,6 +34,7 @@ import {
     setDoc
 } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getDatabase } from 'firebase/database';
 import { GameRoom, GameState, PlayerProfile, RoomStatus, GameMode } from '../types';
 import { LogService } from './LogService';
 import { roomNameSchema } from '../validation/schemas';
@@ -46,6 +47,7 @@ const updateGameStateQueues = new Map<string, Promise<void>>();
 const firebaseConfig = {
     apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL,
     projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
     storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
@@ -63,6 +65,9 @@ const firestoreSettings = Platform.OS === 'web'
 
 export const db = initializeFirestore(app, firestoreSettings);
 export const storage = getStorage(app);
+// Realtime Database — utilisé uniquement pour la présence (onDisconnect).
+// Toute la logique de jeu reste sur Firestore.
+export const rtdb = getDatabase(app);
 
 // Initialize Auth with cross-platform persistence
 let authInstance;
