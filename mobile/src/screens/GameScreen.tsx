@@ -1113,6 +1113,32 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             }
         }
 
+        // ── MANCHE_END ──────────────────────────────────────────────────────────
+        // Cas : un round vient de se terminer et le score de manche change.
+        // PARTIE_END → MANCHE_END arrive très vite en multi (deux updates Firestore
+        // successives). Le handler PARTIE_END a peut-être déjà lancé le RoundEndFlow
+        // et positionné pendingRoundResultTransition sur triggerMatchEnd (FAUX pour
+        // MANCHE_END). On corrige ici la pending transition pour qu'elle affiche le
+        // score de manche (MancheEndFlow) et non l'écran de fin de match.
+        if (gameState.phase === 'MANCHE_END') {
+            setScoreOverlayPhase(null);
+            // Conserver le snapshot PARTIE_END si déjà défini (transition rapide),
+            // sinon initialiser avec l'état MANCHE_END courant (arrivée directe).
+            setRoundResultSnapshot(prev => prev ?? gameState);
+            setShowRoundResult(true);
+            // Après dismiss du RoundEndFlow → afficher l'écran de score de manche
+            pendingRoundResultTransition.current = () => {
+                setScoreOverlayPhase('MANCHE_END');
+            };
+            // Filet de sécurité : dismiss automatique après 12s si l'auto-advance échoue
+            if (!roundResultTimerRef.current) {
+                roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
+            }
+            return () => {
+                if (roundResultTimerRef.current) clearTimeout(roundResultTimerRef.current);
+            };
+        }
+
         if (gameState.phase === 'PARTIE_END') {
             if (boudeHandledRef.current) {
                 // Vient de BOUDE : card déjà montrée, avancer directement sans re-afficher
