@@ -483,10 +483,30 @@ export const forceCloseRoom = async (roomId: string): Promise<void> => {
  * @param roomId 
  * @param newGameState 
  */
+/**
+ * Nettoie récursivement les valeurs rejetées par Firestore (400 Bad Request) :
+ * undefined → null, NaN/Infinity/-Infinity → null.
+ * Même logique que le cleanUndefineds de safeUpdateGameState (useGameSync).
+ */
+export const sanitizeForFirestore = (obj: any): any => {
+    if (obj === undefined) return null;
+    if (typeof obj === 'number' && !isFinite(obj)) return null;
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
+    const result: any = {};
+    for (const key of Object.keys(obj)) {
+        if (obj[key] !== undefined) {
+            result[key] = sanitizeForFirestore(obj[key]);
+        }
+    }
+    return result;
+};
+
 export const updateGameState = (roomId: string, newGameState: Partial<GameState>): Promise<void> => {
     const updateData: Record<string, any> = {};
     Object.keys(newGameState).forEach(key => {
-        updateData[`gameState.${key}`] = (newGameState as any)[key];
+        // FIX-400: nettoyer undefined/NaN/Infinity qui provoquent un 400 Firestore
+        updateData[`gameState.${key}`] = sanitizeForFirestore((newGameState as any)[key]);
     });
 
     const roomRef = doc(db, ROOMS_COLLECTION, roomId);

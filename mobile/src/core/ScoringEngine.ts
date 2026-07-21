@@ -10,6 +10,11 @@ export const calculateHandPoints = (hand: any[]): number => {
 };
 
 export const determineWinnerOnBoudé = (players: Player[]): PlayerId | 'TIE' => {
+    // Guard : Math.min(...[]) === Infinity → écriture Firestore rejetée (400)
+    if (players.length === 0) {
+        LogService.error('ScoringEngine', 'determineWinnerOnBoudé appelé sans joueurs');
+        return 'TIE';
+    }
     const scores = players.map(p => ({ id: p.id, score: calculateHandPoints(p.hand), hand: p.hand }));
     const minScore = Math.min(...scores.map(s => s.score));
     const candidates = scores.filter(s => s.score === minScore);

@@ -28,6 +28,11 @@ export const useConnectionStatus = ({
     const [isRejoining, setIsRejoining] = useState(false);
     // Ref pour pouvoir appeler signalPlayerOffline dans le cleanup RTDB sans dépendance circulaire
     const signalPlayerOfflineRef = useRef<((surrendered?: boolean) => Promise<void>) | null>(null);
+    // FIX-LEAK: timer du badge "rejoining" — nettoyé au démontage pour éviter setState après unmount
+    const rejoinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => () => {
+        if (rejoinTimerRef.current) clearTimeout(rejoinTimerRef.current);
+    }, []);
 
     // ─── 1. HEARTBEAT FIRESTORE (fallback 25s) ───────────────────────────────
     // Conservé comme filet de sécurité si RTDB n'est pas disponible.
@@ -116,7 +121,8 @@ export const useConnectionStatus = ({
                 if (stateUpdated) {
                     transaction.update(roomRef, { 'gameState.players': updatedPlayers });
                     setIsRejoining(true);
-                    setTimeout(() => setIsRejoining(false), 3000);
+                    if (rejoinTimerRef.current) clearTimeout(rejoinTimerRef.current);
+                    rejoinTimerRef.current = setTimeout(() => setIsRejoining(false), 3000);
                 }
             });
 

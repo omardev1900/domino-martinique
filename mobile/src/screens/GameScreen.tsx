@@ -1135,7 +1135,12 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                 roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
             }
             return () => {
-                if (roundResultTimerRef.current) clearTimeout(roundResultTimerRef.current);
+                // FIX-TIMER: remettre la ref à null sinon un rerun de l'effet
+                // (turnId, animations…) désarme le filet de sécurité sans re-arm possible
+                if (roundResultTimerRef.current) {
+                    clearTimeout(roundResultTimerRef.current);
+                    roundResultTimerRef.current = null;
+                }
             };
         }
 
@@ -1225,9 +1230,14 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             pendingRoundResultTransition.current = () => {
                 triggerMatchEnd();
             };
+            if (roundResultTimerRef.current) clearTimeout(roundResultTimerRef.current);
             roundResultTimerRef.current = setTimeout(handleDismissRoundResult, 12000);
             return () => {
-                if (roundResultTimerRef.current) clearTimeout(roundResultTimerRef.current);
+                // FIX-TIMER: null obligatoire pour permettre le re-arm après rerun de l'effet
+                if (roundResultTimerRef.current) {
+                    clearTimeout(roundResultTimerRef.current);
+                    roundResultTimerRef.current = null;
+                }
             };
         }
     }, [gameState?.phase, gameState?.gameId, gameState?.mancheNumber, gameState?.roundNumber, gameState?.turnId, isLocalHost, resolveBoudeOnce, isMoveAnimationActive]);
