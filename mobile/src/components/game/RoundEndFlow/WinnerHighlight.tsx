@@ -27,7 +27,7 @@ interface WinnerHighlightProps {
     autoAdvanceDelay?: number;
 }
 
-export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie, isBoude, localPlayerId, visible, onContinue, isHost = true, autoAdvanceDelay = 7000 }) => {
+export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie, isBoude, localPlayerId, visible, onContinue, isHost = true, autoAdvanceDelay = 4000 }) => {
     const reducedMotion = useReducedMotion();
     const { height } = useWindowDimensions();
     const isSmallScreen = height < 700;
@@ -55,13 +55,25 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
         }
     }, [visible, !!winner]);
 
-    // Passage automatique au round suivant — hôte uniquement, après autoAdvanceDelay ms.
+    // Passage automatique au round suivant — hôte en priorité (autoAdvanceDelay ms).
     // Évite le blocage si l'hôte ne clique pas (lag réseau, bloqueur de pub, distraction).
     useEffect(() => {
         if (!visible || !isHost || autoAdvanceDelay <= 0) return;
         const timer = setTimeout(() => {
             onContinue();
         }, autoAdvanceDelay);
+        return () => clearTimeout(timer);
+    }, [visible, isHost, autoAdvanceDelay]);
+
+    // Fallback non-hôte : si la phase n'a toujours pas changé après 2× le délai hôte,
+    // ce client tente NEXT_ROUND à son tour. Le stateVersion + runTransaction dans
+    // safeUpdateGameState rejette silencieusement la doublon si l'hôte a déjà écrit.
+    useEffect(() => {
+        if (!visible || isHost || !autoAdvanceDelay || autoAdvanceDelay <= 0) return;
+        const fallbackDelay = autoAdvanceDelay * 2; // 8s si hôte à 4s
+        const timer = setTimeout(() => {
+            onContinue();
+        }, fallbackDelay);
         return () => clearTimeout(timer);
     }, [visible, isHost, autoAdvanceDelay]);
 

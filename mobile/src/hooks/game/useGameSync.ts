@@ -201,9 +201,11 @@ export const useGameSync = ({
                 }
 
                 if (!isValidUpdate) {
-                    LogService.warn('useGameSync', 'Skipping stale state update to prevent overwrite', {
-                        newTurnId: newState.turnId,
-                        currentTurnId: currentState.turnId,
+                    // Silencieux : cas normal quand le fallback non-hôte tente NEXT_ROUND
+                    // alors que l'hôte l'a déjà écrit — le stateVersion plus récent gagne.
+                    LogService.debug('useGameSync', 'Skipping stale state update (already superseded)', {
+                        newVersion,
+                        currentVersion,
                         newPhase: newState.phase,
                         currentPhase: currentState.phase
                     });

@@ -2001,7 +2001,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     localPlayerId={localPlayerId}
                     opponents={opponents}
                     isHost={isLocalHost}
-                    autoAdvanceDelay={isSoloMode ? 0 : 7000}
+                    autoAdvanceDelay={isSoloMode ? 0 : 4000}
                 />
             )}
 
