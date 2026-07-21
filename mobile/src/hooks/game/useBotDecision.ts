@@ -75,13 +75,14 @@ export const useBotDecision = ({
         // FIX-REGRESSION: 100ms était trop court — un onSnapshot Firebase met 200-500ms à propager
         // la reconnexion (DISCONNECTED → HUMAN). Le bot se déclenchait avant que le statut frais
         // n'arrive, jouant à la place du joueur qui venait juste de se reconnecter.
-        const delayMs = activePlayer.status === 'DISCONNECTED'
+        const isAbsent = activePlayer.status === 'DISCONNECTED' || activePlayer.status === 'SURRENDERED';
+        const delayMs = isAbsent
             ? 2500
             : Math.floor(Math.random() * 500) + 1000;
 
         let isCancelled = false;
         const timers = new Set<ReturnType<typeof setTimeout>>();
-        const maxAttempts = activePlayer.status === 'DISCONNECTED' ? 12 : 18;
+        const maxAttempts = isAbsent ? 12 : 18;
 
         const schedule = (delay: number, callback: () => void) => {
             const id = setTimeout(() => {

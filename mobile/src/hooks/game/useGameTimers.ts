@@ -86,8 +86,8 @@ export const useGameTimers = ({
             return;
         }
 
-        // Durée réduite pour les joueurs déconnectés (3 secondes max au lieu de 5)
-        const effectiveDuration = player.status === 'DISCONNECTED'
+        // Durée réduite pour les joueurs déconnectés ou ayant abandonné (3s max)
+        const effectiveDuration = (player.status === 'DISCONNECTED' || player.status === 'SURRENDERED')
             ? Math.min(turnDuration, 3)
             : turnDuration;
 

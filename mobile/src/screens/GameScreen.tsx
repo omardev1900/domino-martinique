@@ -1366,7 +1366,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                             if (gameId && !isSoloMode) {
                                 try {
                                     await AsyncStorage.setItem('active_roomId', gameId);
-                                    await signalPlayerOffline();
+                                    await signalPlayerOffline(true); // Abandon volontaire confirmé
                                 } catch (err) {
                                     LogService.error('GameScreen', 'Error preserving room on exit', err);
                                 }
@@ -1606,7 +1606,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         // Cleanup Firestore AVANT la navigation (fire-and-forget)
         if (isActiveMultiplayerSession && gameId) {
             AsyncStorage.setItem('active_roomId', gameId).catch(err => LogService.error('GameScreen', 'Error setting active_roomId', err));
-            signalPlayerOffline().catch(e => LogService.error('GameScreen', 'Error marking player offline', e));
+            signalPlayerOffline(true).catch(e => LogService.error('GameScreen', 'Error marking player offline', e)); // Abandon volontaire
         } else {
             AsyncStorage.removeItem('active_roomId').catch(err => LogService.error('GameScreen', 'Error removing active_roomId', err));
             if (localPlayerId && localPlayerId !== 'p1') {

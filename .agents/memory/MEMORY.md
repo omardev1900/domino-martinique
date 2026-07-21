@@ -1,0 +1,3 @@
+- [Jest + pnpm transformIgnorePatterns](jest-pnpm-transform.md) — pnpm casse la config jest-expo ; fix : pattern `(?!.+/node_modules/)` avant la liste d'exclusions.
+- [Multiplayer bot authority](multiplayer-bot-authority.md) — TIMEOUT bots/déco doit utiliser `isLocalHost` (dynamique), pas `roomData.createdBy` (statique).
+- [SURRENDERED status](surrendered-status.md) — Abandon volontaire = statut SURRENDERED ; classé dernier dans RewardEngine ; bot joue les tours ; timer 3s comme DISCONNECTED.

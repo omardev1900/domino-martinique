@@ -16,7 +16,7 @@ export interface UseConnectionStatusProps {
 export interface UseConnectionStatusResult {
     isRejoining: boolean;
     signalPlayerOnline: () => Promise<void>;
-    signalPlayerOffline: () => Promise<void>;
+    signalPlayerOffline: (surrendered?: boolean) => Promise<void>;
 }
 
 export const useConnectionStatus = ({
@@ -27,7 +27,7 @@ export const useConnectionStatus = ({
     // ✅ FIX ANTI-ZOMBIE: signal visible pour l'UI quand un joueur reprend sa connexion
     const [isRejoining, setIsRejoining] = useState(false);
     // Ref pour pouvoir appeler signalPlayerOffline dans le cleanup RTDB sans dépendance circulaire
-    const signalPlayerOfflineRef = useRef<(() => Promise<void>) | null>(null);
+    const signalPlayerOfflineRef = useRef<((surrendered?: boolean) => Promise<void>) | null>(null);
 
     // ─── 1. HEARTBEAT FIRESTORE (fallback 25s) ───────────────────────────────
     // Conservé comme filet de sécurité si RTDB n'est pas disponible.
@@ -131,10 +131,16 @@ export const useConnectionStatus = ({
         }
     }, [gameId, isSoloMode, localPlayerId]);
 
-    // ─── 4. SIGNAL OFFLINE (quitter volontaire) ───────────────────────────────
-    const signalPlayerOffline = useCallback(async () => {
+    // ─── 4. SIGNAL OFFLINE (quitter volontaire ou crash) ─────────────────────
+    // surrendered = true  → joueur a cliqué "Quitter" volontairement → SURRENDERED
+    // surrendered = false → crash réseau / OS kill                   → DISCONNECTED
+    //
+    // SURRENDERED : le bot joue les tours restants, mais le joueur est classé DERNIER
+    // en fin de match, quelle que soit la performance de son bot.
+    const signalPlayerOffline = useCallback(async (surrendered = false) => {
         if (!gameId || isSoloMode) return;
 
+        const newStatus = surrendered ? 'SURRENDERED' as const : 'DISCONNECTED' as const;
         const roomRef = doc(db, 'rooms', gameId);
         try {
             await runTransaction(db, async (transaction) => {
@@ -147,13 +153,14 @@ export const useConnectionStatus = ({
 
                 const updatedPlayers = state.players.map((p) => {
                     if (p.id === localPlayerId) {
-                        return { ...p, status: 'DISCONNECTED' as const };
+                        return { ...p, status: newStatus };
                     }
                     return p;
                 });
 
                 transaction.update(roomRef, { 'gameState.players': updatedPlayers });
             });
+            LogService.info('ConnectionStatus', `[OFFLINE] Player ${localPlayerId} → ${newStatus}`);
         } catch (error) {
             LogService.error('ConnectionStatus', 'Error signalPlayerOffline:', error);
         }

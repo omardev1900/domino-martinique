@@ -3,7 +3,13 @@
 > Journal des changements notables, classés par date (plus récent en premier).
 ## [Unreleased]
 
+### Ajouté
+- **Pénalité d'abandon volontaire** — Un joueur qui quitte délibérément une partie en cours est désormais classé **dernier** en fin de match, même si le bot qui le remplace finit en tête. Un abandon accidentel (coupure réseau) n'est pas pénalisé de cette façon.
+
 ### Corrigé
+- **Partie figée si le créateur se déconnecte** — Quand le créateur de la room perdait sa connexion, plus personne ne pouvait gérer les timeouts des bots → la partie restait figée. L'hôte élu (premier joueur actif) prend maintenant le relais correctement.
+
+### Corrigé (précédent)
 - **Fin de manche plus fluide** — Les animations de fin de manche ne souffrent plus de décalages ou de blocages, particulièrement avec des mains vides. De plus, seul l'hôte de la partie peut cliquer sur "Continuer", évitant toute confusion.
 - **Délai de grâce des déconnexions** — Les joueurs qui subissent une déconnexion rapide (micro-coupure) bénéficient d'un léger délai de grâce (3,5 secondes) avant que leur tour ne soit passé automatiquement.
 - **Déblocage automatique en multijoueur** — Le jeu ne reste plus figé indéfiniment si un joueur perd sa connexion au moment exact où son chronomètre tombe à zéro. Un système de relance automatique tente de faire passer le tour (jusqu'à 3 fois) avant de sécuriser la partie.

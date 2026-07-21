@@ -2,6 +2,12 @@
 
 ## Juillet 2026
 
+### 2026-07-21
+
+- **[MULTI-PENALITE-ABANDON]** : Distinction abandon volontaire vs déconnexion accidentelle. Nouveau statut `SURRENDERED` ajouté à `PlayerStatus`. `signalPlayerOffline(surrendered=true)` écrit `SURRENDERED` au lieu de `DISCONNECTED` lors d'un quit volontaire (bouton "Quitter l'écran" confirmé ou `handleLeaveRoom`). Le bot joue les tours du joueur surrendered (délai 2500ms, 12 tentatives max). Timer réduit à 3s max. Classement final : SURRENDERED toujours dernier dans le RewardEngine (mobile + Cloud Function), quelle que soit la performance du bot. DISCONNECTED non pénalisé. Tests unitaires : 17/17 passants (SurrenderPenalty.test.ts). Correction du `transformIgnorePatterns` jest pour pnpm (pattern `(?!.+/node_modules/)`).
+- **[FIX-HOST-TIMEOUT]** : Bot authority corrigée dans `useActionDispatcher.ts`. TIMEOUT pour bots/déconnectés utilisait `roomData.createdBy` (statique) au lieu de `isLocalHost` (dynamique, suit l'élection). Si le créateur se déconnecte, l'hôte élu peut maintenant gérer les timeouts → plus de partie figée.
+- **[FIX-IMPORT-DEAD]** : Import `off` inutilisé supprimé de `useConnectionStatus.ts` (soligné rouge).
+
 ### 2026-07-14
 
 - **[FIX-MULTI-P3]** : Finitions de fluidité UX (Nettoyage propre des `setTimeout` dans `RoundEndFlow`, gestion explicite des fins de partie avec les mains vides, masquage du bouton "Continuer" pour les joueurs non-hôtes, augmentation du délai de grâce à 3.5s + 6.5s watchdog pour le passage automatique des joueurs `DISCONNECTED`).

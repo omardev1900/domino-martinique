@@ -436,7 +436,14 @@ export const RewardEngine = {
                 : (player.totalCochons || 0);
 
         // Classement final
+        // MULTI-PENALITE-ABANDON : un joueur SURRENDERED est TOUJOURS dernier,
+        // quelle que soit la performance de son bot pendant le reste du match.
         const sortedPlayers = [...gameState.players].sort((a, b) => {
+            const aS = a.status === 'SURRENDERED';
+            const bS = b.status === 'SURRENDERED';
+            if (aS && !bS) return 1;   // a → dernier
+            if (!aS && bS) return -1;  // b → dernier
+            // Si les deux ont abandonné, conserver l'ordre relatif par points
             if (gameState.gameMode === 'COCHON') {
                 if (getCochonRankingValue(b) !== getCochonRankingValue(a)) {
                     return getCochonRankingValue(b) - getCochonRankingValue(a);

@@ -12,7 +12,7 @@ export type PlayerId = string;
 
 export type GameMode = 'MANCHE' | 'SCORE' | 'COCHON' | 'VICTOIRE';
 export type MancheResult = 'NORMAL' | 'CHIRE' | 'COCHON';
-export type PlayerStatus = 'HUMAN' | 'BOT' | 'DISCONNECTED';
+export type PlayerStatus = 'HUMAN' | 'BOT' | 'DISCONNECTED' | 'SURRENDERED';
 
 export interface MancheHistoryRecord {
     mancheNumber: number;
