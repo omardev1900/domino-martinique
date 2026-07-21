@@ -2000,6 +2000,8 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     onDismiss={handleDismissRoundResult}
                     localPlayerId={localPlayerId}
                     opponents={opponents}
+                    isHost={isLocalHost}
+                    autoAdvanceDelay={isSoloMode ? 0 : 7000}
                 />
             )}
 

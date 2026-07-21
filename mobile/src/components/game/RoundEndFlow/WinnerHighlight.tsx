@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import Animated, { 
     ZoomIn, 
     FadeIn, 
@@ -23,9 +23,11 @@ interface WinnerHighlightProps {
     visible: boolean;
     onContinue: () => void;
     isHost?: boolean;
+    /** Délai en ms avant passage automatique au round suivant (hôte uniquement). 0 = désactivé. */
+    autoAdvanceDelay?: number;
 }
 
-export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie, isBoude, localPlayerId, visible, onContinue, isHost = true }) => {
+export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie, isBoude, localPlayerId, visible, onContinue, isHost = true, autoAdvanceDelay = 7000 }) => {
     const reducedMotion = useReducedMotion();
     const { height } = useWindowDimensions();
     const isSmallScreen = height < 700;
@@ -52,6 +54,16 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
             return () => clearTimeout(timer);
         }
     }, [visible, !!winner]);
+
+    // Passage automatique au round suivant — hôte uniquement, après autoAdvanceDelay ms.
+    // Évite le blocage si l'hôte ne clique pas (lag réseau, bloqueur de pub, distraction).
+    useEffect(() => {
+        if (!visible || !isHost || autoAdvanceDelay <= 0) return;
+        const timer = setTimeout(() => {
+            onContinue();
+        }, autoAdvanceDelay);
+        return () => clearTimeout(timer);
+    }, [visible, isHost, autoAdvanceDelay]);
 
     const pulseStyle = useAnimatedStyle(() => ({
         transform: [{ scale: pulseScale.value }]
@@ -80,17 +92,6 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
                         Le round est annulé et va recommencer.
                     </Animated.Text>
 
-                    {isHost && (
-                        <View style={[styles.buttonContainer, { marginTop: 40 }]}>
-                            <TouchableOpacity 
-                                style={styles.continueButton} 
-                                onPress={onContinue}
-                                activeOpacity={0.8}
-                            >
-                                <Text style={styles.continueText}>Continuer</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
                 </View>
             ) : winner ? (
                 <View style={styles.centerBox}>
@@ -121,17 +122,6 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
                         </Text>
                     </Animated.View>
 
-                    {isHost && (
-                        <View style={[styles.buttonContainer, { marginTop: 40 }]}>
-                            <TouchableOpacity 
-                                style={styles.continueButton} 
-                                onPress={onContinue}
-                                activeOpacity={0.8}
-                            >
-                                <Text style={styles.continueText}>Continuer</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
                 </View>
             ) : null}
         </Animated.View>

@@ -14,11 +14,13 @@ interface RoundEndFlowProps {
     opponents: Player[];
     skipAnimation?: boolean;
     isHost?: boolean;
+    /** Délai en ms avant passage automatique (hôte uniquement). 0 = désactivé. */
+    autoAdvanceDelay?: number;
 }
 
 type FlowPhase = 'idle' | 'dimming' | 'reveal' | 'counting' | 'result';
 
-export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, onDismiss, localPlayerId, opponents, skipAnimation, isHost }) => {
+export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, onDismiss, localPlayerId, opponents, skipAnimation, isHost, autoAdvanceDelay }) => {
     const [phase, setPhase] = useState<FlowPhase>('idle');
     const [countsCompleted, setCountsCompleted] = useState(0);
     const [skipCountingNow, setSkipCountingNow] = useState(false);
@@ -163,6 +165,7 @@ export const RoundEndFlow: React.FC<RoundEndFlowProps> = ({ gameState, visible, 
                 visible={phase !== 'idle' && phase !== 'dimming'} 
                 onContinue={handleContinuePress}
                 isHost={isHost}
+                autoAdvanceDelay={autoAdvanceDelay}
             />
         </View>
     );
