@@ -1190,9 +1190,9 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     }, [gameState?.phase, gameState?.gameId, gameState?.mancheNumber, gameState?.roundNumber, gameState?.turnId, isLocalHost, resolveBoudeOnce, isMoveAnimationActive]);
 
     // Afficher la popup de pub récompensée 2 secondes après l'apparition du score de fin de match
-    // Uniquement si une pub récompensée est disponible pour ce placement.
+    // Uniquement en mode SOLO — en multi la pub interstitielle AdMob est déjà gérée ailleurs.
     useEffect(() => {
-        if (scoreOverlayPhase === 'MATCH_END') {
+        if (scoreOverlayPhase === 'MATCH_END' && isSoloMode) {
             setMatchRewardAmount(100);
             const timer = setTimeout(() => {
                 setShowMatchRewardModal(true);
@@ -1201,7 +1201,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         } else {
             setShowMatchRewardModal(false);
         }
-    }, [scoreOverlayPhase]);
+    }, [scoreOverlayPhase, isSoloMode]);
 
 
     // Auto-redirect non-hôtes quand l'hôte reset la room après le match
