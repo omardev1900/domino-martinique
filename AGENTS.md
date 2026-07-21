@@ -70,6 +70,16 @@ GameScreen → useGameEngine → useActionDispatcher → LogicEngine.ts
 - Ne pas réintroduire le mode invité (supprimé définitivement)
 - Ne pas réimplémenter : système d'amis, graphismes 3D, chat texte libre, cash-prize tournois
 
+## 🔨 Build Android — règle absolue
+
+**Ce projet ne passe PAS par les serveurs EAS / Expo Application Services.**
+
+- ❌ `eas build` — interdit
+- ❌ `eas env:create` / `eas secret:create` — interdit
+- ❌ Toute commande `eas` qui contacte les serveurs Expo — interdite
+- ✅ Build local uniquement : `cd mobile/android && ./gradlew bundleRelease` (AAB) ou `./gradlew assembleRelease` (APK)
+- ✅ Les variables d'environnement sont dans `mobile/.env` (gitignored, jamais dans `eas.json`)
+
 ---
 
 ## 🛠️ Conventions de code
