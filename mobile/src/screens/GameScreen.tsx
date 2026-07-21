@@ -153,6 +153,12 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             if (firstActiveHumanUid) {
                 currentHostUid = firstActiveHumanUid;
                 LogService.info('GameScreen', `[HOST-ELECTION] Acting host elected: ${firstActiveHumanUid}`);
+            } else {
+                // Aucun joueur HUMAN trouvé — l'élection échoue silencieusement.
+                // Dans ce cas, currentHostUid reste l'hôte d'origine (déconnecté), personne
+                // n'est isLocalHost → le bot ne sera pas joué. Cela ne devrait pas arriver
+                // en jeu normal (au moins un joueur HUMAN = le joueur local lui-même).
+                LogService.warn('GameScreen', '[HOST-ELECTION] No active HUMAN player found — election produced no result. currentHostUid kept as original.');
             }
         }
     }
@@ -204,16 +210,20 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
     // -- VIGILANCE RTDB: détection rapide via présence Firebase (~3-5s) --
     // Dès qu'un joueur passe offline dans RTDB (onDisconnect côté serveur), on attend
-    // une GRACE PERIOD de 4s avant de le marquer DISCONNECTED dans Firestore.
+    // une GRACE PERIOD avant de le marquer DISCONNECTED dans Firestore.
     // Ce délai évite le "flapping" sur connexion instable (slow 4G) : si le joueur
-    // se reconnecte dans les 4s, le timer est annulé et rien n'est écrit.
+    // se reconnecte dans le délai, le timer est annulé et rien n'est écrit.
+    // FIX-MIDTURN-FREEZE: Si le joueur offline est le joueur actif (PLAYING, c'est son tour),
+    // on utilise une grace period réduite (1s au lieu de 4s) pour que l'élection d'hôte
+    // et le coup du bot se déclenchent en ~3-4s au lieu de ~7s.
     const rtdbOfflineTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
     useEffect(() => {
         if (!gameId || isSoloMode) return;
 
         const presenceRef = rtdbRef(rtdb, `presence/${gameId}`);
-        const GRACE_PERIOD_MS = 4000; // 4s — absorbe le flapping TCP sur slow 4G
+        const GRACE_PERIOD_MS = 4000;       // 4s — absorbe le flapping TCP sur slow 4G
+        const ACTIVE_TURN_GRACE_MS = 1000;  // 1s — joueur actif bloque le jeu, détection prioritaire
 
         const unsubPresence = rtdbOnValue(presenceRef, (snapshot) => {
             const presenceData = snapshot.val() as Record<string, { status: string; t: number }> | null;
@@ -226,7 +236,14 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     // Déjà un timer en cours pour ce joueur → pas de doublon
                     if (rtdbOfflineTimers.current[uid]) return;
 
-                    LogService.info('GameScreen', `[RTDB-PRESENCE] Player ${uid} offline — grace period ${GRACE_PERIOD_MS}ms`);
+                    // Réduire la grace period si c'est le joueur dont c'est le tour :
+                    // son absence bloque toute la partie, donc on accélère la détection.
+                    const currentGS = roomDataRef.current?.gameState;
+                    const isActiveTurnPlayer = currentGS?.phase === 'PLAYING'
+                        && uid === currentGS?.currentPlayerId;
+                    const effectiveGraceMs = isActiveTurnPlayer ? ACTIVE_TURN_GRACE_MS : GRACE_PERIOD_MS;
+
+                    LogService.info('GameScreen', `[RTDB-PRESENCE] Player ${uid} offline — grace period ${effectiveGraceMs}ms${isActiveTurnPlayer ? ' (ACTIVE TURN — faster detection)' : ''}`);
                     rtdbOfflineTimers.current[uid] = setTimeout(async () => {
                         delete rtdbOfflineTimers.current[uid];
 
@@ -249,7 +266,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                         } catch (error) {
                             LogService.error('GameScreen', '[RTDB-PRESENCE] Error marking player disconnected:', error);
                         }
-                    }, GRACE_PERIOD_MS);
+                    }, effectiveGraceMs);
 
                 } else if (data.status === 'online') {
                     // Joueur de retour pendant la grace period → annuler le timer
