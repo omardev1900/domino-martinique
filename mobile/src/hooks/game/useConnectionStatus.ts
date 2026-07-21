@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { db, rtdb } from '../../core/services/firebase';
 import { doc, runTransaction, updateDoc } from 'firebase/firestore';
 import { ref, set, onValue, onDisconnect as rtdbOnDisconnect } from 'firebase/database';
@@ -11,6 +11,11 @@ export interface UseConnectionStatusProps {
     isSoloMode: boolean;
     isLocalHost?: boolean;
     roomData?: GameRoom | null;
+    /**
+     * Ref mis à jour par GameScreen après useGameSync — suspend le heartbeat Firestore
+     * pendant les transitions critiques sans créer de dépendance circulaire de hook.
+     */
+    gamePhaseRef?: React.MutableRefObject<string | undefined>;
 }
 
 export interface UseConnectionStatusResult {
@@ -19,10 +24,14 @@ export interface UseConnectionStatusResult {
     signalPlayerOffline: (surrendered?: boolean) => Promise<void>;
 }
 
+/** Phases durant lesquelles le heartbeat Firestore est suspendu pour éviter d'invalider les transactions NEXT_ROUND */
+const CRITICAL_PHASES = new Set(['PARTIE_END', 'MANCHE_END', 'MATCH_END']);
+
 export const useConnectionStatus = ({
     gameId,
     localPlayerId,
     isSoloMode,
+    gamePhaseRef: externalGamePhaseRef,
 }: UseConnectionStatusProps): UseConnectionStatusResult => {
     // ✅ FIX ANTI-ZOMBIE: signal visible pour l'UI quand un joueur reprend sa connexion
     const [isRejoining, setIsRejoining] = useState(false);
@@ -36,10 +45,21 @@ export const useConnectionStatus = ({
 
     // ─── 1. HEARTBEAT FIRESTORE (fallback 25s) ───────────────────────────────
     // Conservé comme filet de sécurité si RTDB n'est pas disponible.
+    // FIX-400: intervalle porté à 20s (était 10s) et ping suspendu pendant les phases
+    // critiques (PARTIE_END/MANCHE_END/MATCH_END). Les updateDoc du heartbeat vont dans
+    // la write-queue interne du SDK et invalident les runTransaction de transition
+    // NEXT_ROUND → FAILED_PRECONDITION (HTTP 400) en boucle. La présence RTDB reste
+    // la source de vérité temps-réel ; le heartbeat Firestore est seulement un filet.
     useEffect(() => {
         if (!gameId || isSoloMode) return;
 
         const sendPing = async () => {
+            // Suspendre pendant les transitions critiques pour ne pas invalider les transactions
+            const phase = externalGamePhaseRef?.current;
+            if (phase && CRITICAL_PHASES.has(phase)) {
+                LogService.debug('ConnectionStatus', `[HEARTBEAT] Skipped during ${phase}`);
+                return;
+            }
             try {
                 const roomRef = doc(db, 'rooms', gameId);
                 await updateDoc(roomRef, { [`heartbeats.${localPlayerId}`]: Date.now() });
@@ -48,8 +68,8 @@ export const useConnectionStatus = ({
             }
         };
 
-        sendPing(); // Ping immédiat
-        const interval = setInterval(sendPing, 10000);
+        sendPing(); // Ping immédiat (phase est PLAYING au mount)
+        const interval = setInterval(sendPing, 20000); // 20s — sous le seuil de timeout 25s
         return () => clearInterval(interval);
     }, [gameId, isSoloMode, localPlayerId]);
 

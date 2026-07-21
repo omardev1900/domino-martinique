@@ -25,9 +25,14 @@ interface WinnerHighlightProps {
     isHost?: boolean;
     /** Délai en ms avant passage automatique au round suivant (hôte uniquement). 0 = désactivé. */
     autoAdvanceDelay?: number;
+    /**
+     * Index 0-based du joueur local dans le tableau players (pour échelonner les fallbacks non-hôte).
+     * Index 0 → 8s, index 1 → 10s, index 2 → 12s. Évite que tous les non-hôtes écrivent simultanément.
+     */
+    localPlayerIndex?: number;
 }
 
-export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie, isBoude, localPlayerId, visible, onContinue, isHost = true, autoAdvanceDelay = 4000 }) => {
+export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie, isBoude, localPlayerId, visible, onContinue, isHost = true, autoAdvanceDelay = 4000, localPlayerIndex = 0 }) => {
     const reducedMotion = useReducedMotion();
     const { height } = useWindowDimensions();
     const isSmallScreen = height < 700;
@@ -65,17 +70,20 @@ export const WinnerHighlight: React.FC<WinnerHighlightProps> = ({ winner, isTie,
         return () => clearTimeout(timer);
     }, [visible, isHost, autoAdvanceDelay]);
 
-    // Fallback non-hôte : si la phase n'a toujours pas changé après 2× le délai hôte,
-    // ce client tente NEXT_ROUND à son tour. Le stateVersion + runTransaction dans
-    // safeUpdateGameState rejette silencieusement la doublon si l'hôte a déjà écrit.
+    // Fallback non-hôte : si la phase n'a toujours pas changé après le délai échelonné,
+    // ce client tente la transition à son tour. Le stateVersion + runTransaction dans
+    // safeUpdateGameState rejette silencieusement le doublon si l'hôte a déjà écrit.
+    // FIX-400: délais échelonnés par index pour éviter que tous les non-hôtes écrivent
+    // simultanément et provoquent des FAILED_PRECONDITION en cascade.
+    // Index 0 → 8s, index 1 → 10s, index 2 → 12s (hôte tire toujours à 4s)
     useEffect(() => {
         if (!visible || isHost || !autoAdvanceDelay || autoAdvanceDelay <= 0) return;
-        const fallbackDelay = autoAdvanceDelay * 2; // 8s si hôte à 4s
+        const fallbackDelay = autoAdvanceDelay * 2 + localPlayerIndex * 2000;
         const timer = setTimeout(() => {
             onContinue();
         }, fallbackDelay);
         return () => clearTimeout(timer);
-    }, [visible, isHost, autoAdvanceDelay]);
+    }, [visible, isHost, autoAdvanceDelay, localPlayerIndex]);
 
     const pulseStyle = useAnimatedStyle(() => ({
         transform: [{ scale: pulseScale.value }]

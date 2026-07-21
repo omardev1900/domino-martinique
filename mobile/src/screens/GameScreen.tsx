@@ -88,8 +88,17 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const [activeTableTier] = useState<TableTier>((propTableTier as TableTier) || 'DEBUTANT');
     const persistenceUserId = authUid || userId;
 
+    // FIX-400: Ref de phase créé AVANT useConnectionStatus (gameState n'est pas encore dispo ici).
+    // Mis à jour via useEffect après useGameSync. useConnectionStatus lit .current lors de chaque ping.
+    const gamePhaseForHBRef = useRef<string | undefined>(undefined);
+
     // -- 2. Connection Status --
-    const { isRejoining, signalPlayerOnline, signalPlayerOffline } = useConnectionStatus({ gameId, localPlayerId, isSoloMode });
+    const { isRejoining, signalPlayerOnline, signalPlayerOffline } = useConnectionStatus({
+        gameId,
+        localPlayerId,
+        isSoloMode,
+        gamePhaseRef: gamePhaseForHBRef,
+    });
 
     // Rage Quit / Tab Close Web Security (Déplacé ici car GameScreen est le point de montage principal)
     useEffect(() => {
@@ -126,6 +135,10 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         setGameState,
         setRoomData
     } = useGameSync({ gameId, localPlayerId, isSoloMode, signalPlayerOnline });
+
+    // FIX-400: maintenir le ref de phase à jour pour que useConnectionStatus puisse
+    // suspendre les heartbeats Firestore pendant les transitions critiques
+    useEffect(() => { gamePhaseForHBRef.current = gameState?.phase; }, [gameState?.phase]);
 
     const [timeLeftState, setTimeLeftState] = useState<number | null>(null);
     const [overtimeState, setOvertimeState] = useState<number | null>(null);
@@ -1790,15 +1803,35 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         [confirmSidePlay, forcedOpeningDominoId, gameState, localPlayer?.hand, pendingDomino, primeLocalDominoFlight]
     );
 
+    // FIX-400: Garde anti-redispatch — empêche un même client de tenter NEXT_ROUND
+    // plusieurs fois pour le même (mancheNumber, roundNumber). La boucle se produisait
+    // quand le resync serveur re-livrait PARTIE_END/MANCHE_END et re-déclenchait les timers.
+    // La clé est remise à null quand la phase passe à PLAYING (round suivant démarré).
+    const lastNextRoundKeyRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (gameState?.phase === 'PLAYING') {
+            lastNextRoundKeyRef.current = null;
+        }
+    }, [gameState?.phase]);
+
     const interceptOverlayContinue = useCallback(() => {
         // La navigation définitive quand l'overlay (qui gère déjà Scores / Historique / Gains) est fermé.
         setScoreOverlayPhase(null);
         if (gameState?.phase === 'MATCH_END') {
              handleLeaveRoom(); // Quitte la salle définitivement après la fin du match complet
         } else {
-             handleOverlayContinue(); // Continue vers la prochaine manche
+            // Guard : une seule tentative NEXT_ROUND par (manche, round)
+            if (gameState && !isSoloMode) {
+                const key = `${gameState.mancheNumber}_${gameState.roundNumber}`;
+                if (lastNextRoundKeyRef.current === key) {
+                    LogService.warn('GameScreen', `[ANTI-REDISPATCH] NEXT_ROUND already attempted for key=${key}, skipping`);
+                    return;
+                }
+                lastNextRoundKeyRef.current = key;
+            }
+            handleOverlayContinue(); // Continue vers la prochaine manche
         }
-    }, [gameState?.phase, handleLeaveRoom, handleOverlayContinue]);
+    }, [gameState?.phase, gameState?.mancheNumber, gameState?.roundNumber, isSoloMode, handleLeaveRoom, handleOverlayContinue]);
 
 
 
@@ -2055,6 +2088,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     opponents={opponents}
                     isHost={isLocalHost}
                     autoAdvanceDelay={isSoloMode ? 0 : 4000}
+                    localPlayerIndex={(roundResultSnapshot ?? gameState)?.players.findIndex(p => p.id === localPlayerId) ?? 0}
                 />
             )}
 

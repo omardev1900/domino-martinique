@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GameState, GameRoom } from '../../core/types';
 import { db } from '../../core/services/firebase';
-import { doc, onSnapshot, runTransaction } from 'firebase/firestore';
+import { doc, onSnapshot, runTransaction, getDoc } from 'firebase/firestore';
 import { LogService } from '../../core/services/LogService';
 
 export interface UseGameSyncProps {
@@ -219,10 +219,27 @@ export const useGameSync = ({
             // 'failed-precondition' et 'aborted' sont des erreurs transitoires lors d'écritures simultanées.
             const isRetriable = error?.code === 'failed-precondition' || error?.code === 'aborted';
             if (isRetriable && retries > 0) {
-                await new Promise(r => setTimeout(r, 150));
+                // Backoff progressif : 150ms → 350ms → 550ms pour espacer les conflits
+                const backoff = 150 + (2 - retries) * 200;
+                await new Promise(r => setTimeout(r, backoff));
                 return safeUpdateGameState(targetGameId, newState, retries - 1);
             }
-            LogService.error('useGameSync', 'safeUpdateGameState failed (no retries left):', error);
+            // FIX-400: Logger le code d'erreur exact pour confirmer FAILED_PRECONDITION vs INVALID_ARGUMENT
+            LogService.error('useGameSync', `safeUpdateGameState FATAL — code=${error?.code ?? 'unknown'} msg=${error?.message ?? error}`);
+            // Resync forcé depuis le serveur : le client adopte l'état Firestore actuel au lieu
+            // de rester figé sur son état local (qui ne sera jamais confirmé).
+            try {
+                const snap = await getDoc(roomRef);
+                if (snap.exists()) {
+                    const serverRoom = snap.data() as GameRoom;
+                    if (serverRoom.gameState) {
+                        LogService.warn('useGameSync', '[RESYNC] Adopting server state after fatal write failure');
+                        setGameState(serverRoom.gameState);
+                    }
+                }
+            } catch (resyncErr) {
+                LogService.error('useGameSync', '[RESYNC] forceResync failed:', resyncErr);
+            }
             throw error;
         }
     }, [isSoloMode]);

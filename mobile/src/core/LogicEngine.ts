@@ -616,6 +616,14 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
             : determineTieBreakStarter(newPlayers, activeState.tiedPlayerIds);
     }
 
+    // FIX-400: Plafonner mancheHistory à 15 entrées pour éviter la croissance
+    // illimitée du document Firestore (limite 1 MiB). On conserve les plus récentes.
+    const MAX_MANCHE_HISTORY = 15;
+    const rawMancheHistory = activeState.mancheHistory ?? [];
+    const trimmedMancheHistory = rawMancheHistory.length > MAX_MANCHE_HISTORY
+        ? rawMancheHistory.slice(-MAX_MANCHE_HISTORY)
+        : rawMancheHistory;
+
     return {
         ...activeState, // Conserve configuration (gameId, rules...)
         players: newPlayers,
@@ -626,6 +634,7 @@ export const computeNextRoundState = (activeState: GameState, fallbackHandSize: 
         firstPlayerOfRound: null,
         history: [],
         mancheResult: null,
+        mancheHistory: trimmedMancheHistory,
         lastActionTimestamp: Date.now(),
         turnId: 0, // Reset strict du turnId pour ce tour 1
         roundNumber: isMancheEnd ? 1 : (activeState.roundNumber || 0) + 1,
