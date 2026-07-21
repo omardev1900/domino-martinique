@@ -41,6 +41,9 @@
       "@tailwindcss/oxide",
       "esbuild",
       "lightningcss"
-    ]
+    ],
+    "overrides": {
+      "tar": "^7.5.20"
+    }
   }
 }
