@@ -151,6 +151,7 @@ export const useGameSync = ({
 
                 const cleanUndefineds = (obj: any): any => {
                     if (obj === undefined) return null;
+                    if (typeof obj === 'number' && !isFinite(obj)) return null; // NaN, Infinity, -Infinity → rejetés par Firestore
                     if (obj === null || typeof obj !== 'object') return obj;
                     if (Array.isArray(obj)) return obj.map(cleanUndefineds);
                     const result: any = {};

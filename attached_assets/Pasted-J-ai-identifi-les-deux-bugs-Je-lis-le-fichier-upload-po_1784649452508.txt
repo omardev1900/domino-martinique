@@ -1,0 +1,274 @@
+J'ai identifié les deux bugs. Je lis le fichier uploadé pour comprendre le 400, et je regarde la fonction setUserActiveRoom en contexte complet.
+
+Show less
+Searched for "400|error|message"
+
+
+$ rg "400|error|message" attached_assets/Pasted-firestore-googleapis-com-google-firestore-v1-Firestore-_1784648166792.txt | head -30
+
+E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@expo\metro-runtime\src\error-overlay\LogBox.web.ts:135 Each child in a list should have a unique "key" prop.
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@expo\metro-runtime\src\error-overlay\LogBox.web.ts:135
+E:\PROJETS\clients\domino_matrinique\mobile\src\hooks\game\useGameSync.ts:144  POST https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk 400 (Bad Request)
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@sentry\browser\build\npm\esm\prod\integrations\browserapierrors.js:119
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@sentry\browser\build\npm\esm\prod\integrations\browserapierrors.js:68
+E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@sentry\browser\build\npm\esm\prod\integrations\browserapierrors.js:119  POST https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk 400 (Bad Request)
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@sentry\browser\build\npm\esm\prod\integrations\browserapierrors.js:119
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@sentry\browser\build\npm\esm\prod\integrations\browserapierrors.js:68
+E:\PROJETS\clients\domino_matrinique\mobile\src\hooks\game\useGameSync.ts:144  POST https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk 400 (Bad Request)
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@sentry\browser\build\npm\esm\prod\integrations\browserapierrors.js:119
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@sentry\browser\build\npm\esm\prod\integrations\browserapierrors.js:68
+E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@expo\metro-runtime\src\error-overlay\LogBox.web.ts:135 TypeError: Cannot read properties of undefined (reading '0')
+The above error occurred in the <RoundEndFlow> component.
+React will try to recreate this component tree from scratch using the error boundary you provided, Try.
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@expo\metro-runtime\src\error-overlay\LogBox.web.ts:135
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@expo\metro-runtime\src\error-overlay\LogBox.web.ts:60
+
+
+
+
+
+
+$ sed -n '390,420p' mobile/src/core/services/firebase.ts
+
+     }
+
+        await updateDoc(roomRef, {
+            status: RoomStatus.PLAYING,
+            gameState: sanitizedGameState
+        });
+
+        // Enregistrer la room comme active pour chaque joueur humain (facilite la reconnexion)
+        const playerIds = sanitizedGameState.players
+            .filter((p: any) => p.status === 'HUMAN')
+            .map((p: any) => p.id);
+
+        await Promise.allSettled(
+            playerIds.map((uid: string) => setUserActiveRoom(uid, roomId))
+        );
+    } catch (e) {
+        LogService.error('Firebase', 'Error starting game:', e);
+        throw e;
+    }
+};
+
+/**
+ * Resets the room to lobby state (host only)
+ * @param roomId 
+ */
+export const resetRoomToLobby = async (roomId: string): Promise<void> => {
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    try {
+        await updateDoc(roomRef, {
+            status: RoomStatus.WAITING,
+            gameState: null
+
+
+
+
+
+Deux bugs clairs identifiés, un troisième à creuser. Je lis les contextes manquants en parallèle.
+
+
+
+
+$ sed -n '680,800p' mobile/src/core/services/firebase.ts
+
+
+
+        await deleteDoc(roomRef);
+        LogService.info('Firebase', `Waiting room ${roomId} deleted by host ${userId}`);
+        return true;
+    } catch (e) {
+        LogService.error('Firebase', 'Error deleting waiting room:', e);
+        throw e;
+    }
+};
+
+export const setUserActiveRoom = async (userId: string, roomId: string | null): Promise<void> => {
+    if (!userId) return;
+    try {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, { activeRoomId: roomId ?? null }, { merge: true });
+    } catch (e) {
+        LogService.error('Firebase', 'Error setting user active room:', e);
+    }
+};
+
+export const getUserActiveRoom = async (userId: string): Promise<string | null> => {
+    if (!userId) return null;
+    try {
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) return null;
+        const data = userSnap.data();
+        return typeof data.activeRoomId === 'string' && data.activeRoomId.length > 0 ? data.activeRoomId : null;
+    } catch (e) {
+        LogService.error('Firebase', 'Error getting user active room:', e);
+        return null;
+    }
+};
+
+/**
+ * Checks if the user is already in an active game (PLAYING status).
+ * @param userId The user ID to check
+ * @returns The roomId if found, or null
+ */
+export const findActiveRoomForUser = async (userId: string): Promise<string | null> => {
+    try {
+        LogService.debug('Firebase', `Searching for active room for user: ${userId}`);
+
+        // FIX-GHOST-ROOM: Seuil de péremption — une salle PLAYING sans activité depuis
+        // plus de 2h est considérée fantôme. Sans ce filtre, une salle bloquée en Firestore
+        // bloque le joueur indéfiniment même si tous les participants ont quitté.
+        const STALE_ROOM_MS = 2 * 60 * 60 * 1000; // 2 heures
+
+        const persistedRoomId = await getUserActiveRoom(userId);
+        if (persistedRoomId) {
+            const persistedRoomRef = doc(db, ROOMS_COLLECTION, persistedRoomId);
+            const persistedRoomSnap = await getDoc(persistedRoomRef);
+            if (persistedRoomSnap.exists()) {
+                const persistedRoom = persistedRoomSnap.data() as GameRoom;
+                const isActive = persistedRoom.status === RoomStatus.PLAYING || persistedRoom.status === RoomStatus.WAITING;
+                const isInPlayersList = persistedRoom.players.some(p => p.uid === userId);
+                const isInGameState = persistedRoom.gameState?.players?.some(p => p.id === userId) ?? false;
+                const isInPlayerIds = persistedRoom.playerIds?.includes(userId) ?? false;
+
+                // Salle périmée → forcer FINISHED et ignorer
+                const lastActivity = persistedRoom.lastActivity ?? 0;
+                const isStale = (Date.now() - lastActivity) > STALE_ROOM_MS;
+                if (isStale && isActive) {
+                    LogService.warn('Firebase', `Stale room detected (${persistedRoomId}), forcing FINISHED`);
+                    try { await markRoomAsFinished(persistedRoomId); } catch { /* best-effort */ }
+                    await setUserActiveRoom(userId, null);
+                    return null;
+                }
+
+                if (isActive && (isInPlayersList || isInGameState || isInPlayerIds)) {
+                    LogService.debug('Firebase', `Found persisted active room for user ${userId}: ${persistedRoomId}`);
+                    return persistedRoomId;
+                }
+            }
+            await setUserActiveRoom(userId, null);
+        }
+
+        // Query for rooms that are PLAYING
+        // Note: Array-contains on objects requires exact match.
+        // Since we store full profiles, array-contains is tricky if profile changed slightly (e.g. wins update).
+        // Better approach: Query by status 'PLAYING' and filter client side (assuming low volume of concurrent rooms for MVP).
+        // Or better: Maintain a 'activePlayerIds' array in the room document for easier querying?
+        // For now: Fetch all PLAYING rooms and find user.
+
+        const q = query(
+            collection(db, ROOMS_COLLECTION),
+            where("status", "in", [RoomStatus.PLAYING, RoomStatus.WAITING]),
+            where("playerIds", "array-contains", userId)
+        );
+
+        const snapshot = await getDocs(q);
+        LogService.debug('Firebase', `Found ${snapshot.docs.length} PLAYING rooms to check`);
+
+        for (const doc of snapshot.docs) {
+            const data = doc.data() as GameRoom;
+
+            // Check if user is in players list (currently connected)
+            const isInPlayersList = data.players.some(p => p.uid === userId);
+
+            // Check if user is in gameState players (was in game, might be disconnected)
+            const isInGameState = data.gameState?.players?.some(p => p.id === userId) ?? false;
+
+            // Persistent membership marker, survives temporary disconnects and session resets
+            const isInPlayerIds = data.playerIds?.includes(userId) ?? false;
+
+            if (isInPlayersList || isInGameState || isInPlayerIds) {
+                LogService.debug('Firebase', `Found active room for user ${userId}: ${doc.id} (inPlayersList: ${isInPlayersList}, inGameState: ${isInGameState}, inPlayerIds: ${isInPlayerIds})`);
+                await setUserActiveRoom(userId, doc.id);
+                return doc.id;
+            }
+        }
+
+        LogService.debug('Firebase', `No active room found for user: ${userId}`);
+        return null;
+    } catch (e) {
+        LogService.error('Firebase', 'Error finding active room:', e);
+        return null; // Fail safe
+    }
+};
+
+/**
+ * Listens to available public rooms in real-time
+
+
+
+
+$ sed -n '440,490p' mobile/src/core/services/firebase.ts
+
+        LogService.info('Firebase', `Room ${roomId} marked as FINISHED`);
+    } catch (e) {
+        LogService.error('Firebase', 'Error marking room as finished:', e);
+        throw e;
+    }
+};
+
+/**
+ * Force-close a stuck room (admin use).
+ * Marks it FINISHED, clears activeRoomId for all listed players,
+ * and removes them from playerIds so findActiveRoomForUser ne les retrouve plus.
+ */
+export const forceCloseRoom = async (roomId: string): Promise<void> => {
+    if (!roomId) return;
+    const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+    const roomSnap = await getDoc(roomRef);
+    if (!roomSnap.exists()) {
+        LogService.warn('Firebase', `forceCloseRoom: room ${roomId} not found`);
+        return;
+    }
+    const roomData = roomSnap.data() as GameRoom;
+    // Récupérer tous les UIDs impliqués (players + playerIds + gameState.players)
+    const allUids = new Set<string>([
+        ...(roomData.playerIds ?? []),
+        ...(roomData.players ?? []).map((p: any) => p.uid),
+        ...(roomData.gameState?.players ?? []).map((p: any) => p.id),
+    ]);
+    // Marquer FINISHED
+    await updateDoc(roomRef, {
+        status: RoomStatus.FINISHED,
+        playerIds: [],
+        players: [],
+        lastActivity: Date.now(),
+    });
+    // Nettoyer activeRoomId pour chaque joueur
+    await Promise.allSettled(
+        [...allUids].filter(Boolean).map(uid => setUserActiveRoom(uid, null))
+    );
+    LogService.info('Firebase', `forceCloseRoom: room ${roomId} closed, cleared ${allUids.size} players`);
+};
+
+/**
+ * Updates the game state (sync moves)
+ * @param roomId 
+ * @param newGameState 
+ */
+export const updateGameState = (roomId: string, newGameState: Partial<GameState>): Promise<void> => {
+    const updateData: Record<string, any> = {};
+    Object.keys(newGameState).forEach(key => {
+        updateData[`gameState.${key}`] = (newGameState as any)[key];
+    });
+
+
+
+
+
+
+
+
+
+
+
+Trois bugs identifiés avec certitude :
+
+CRASH — opponents n'est pas passé à <RoundEndFlow> → undefined[0]
+Permissions — startGame tente d'écrire activeRoomId dans les docs des autres joueurs (impossible côté client, seul le propriétaire peut écrire son propre doc /users/{uid})
+400 Bad Request — cleanUndefineds ne filtre pas NaN/Infinity, qui ne sont pas des valeurs Firestore valides
+
+Je peux corriger les trois en parallèle.
+

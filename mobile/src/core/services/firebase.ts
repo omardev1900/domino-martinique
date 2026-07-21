@@ -378,7 +378,7 @@ export const markPlayerAsDebited = async (roomId: string, userId: string): Promi
  * @param roomId 
  * @param initialGameState 
  */
-export const startGame = async (roomId: string, initialGameState: GameState): Promise<void> => {
+export const startGame = async (roomId: string, initialGameState: GameState, callerUid?: string): Promise<void> => {
     const roomRef = doc(db, ROOMS_COLLECTION, roomId);
     try {
         // SANITIZATION: Firebase rejects 'undefined'. Replace with null.
@@ -394,14 +394,14 @@ export const startGame = async (roomId: string, initialGameState: GameState): Pr
             gameState: sanitizedGameState
         });
 
-        // Enregistrer la room comme active pour chaque joueur humain (facilite la reconnexion)
-        const playerIds = sanitizedGameState.players
-            .filter((p: any) => p.status === 'HUMAN')
-            .map((p: any) => p.id);
-
-        await Promise.allSettled(
-            playerIds.map((uid: string) => setUserActiveRoom(uid, roomId))
-        );
+        // Enregistrer la room comme active uniquement pour l'appelant (l'hôte).
+        // Les règles Firestore n'autorisent un client à écrire que son propre /users/{uid}.
+        // Les autres joueurs mettront à jour leur propre activeRoomId via leur listener de room.
+        if (callerUid) {
+            await setUserActiveRoom(callerUid, roomId).catch(e =>
+                LogService.warn('Firebase', 'Could not set activeRoomId for host:', e)
+            );
+        }
     } catch (e) {
         LogService.error('Firebase', 'Error starting game:', e);
         throw e;

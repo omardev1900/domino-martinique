@@ -1570,7 +1570,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
             });
 
             fullState.currentPlayerId = determineFirstPlayer(fullState.players);
-            await startGame(gameId, fullState);
+            await startGame(gameId, fullState, localPlayerId);
 
         } catch (error) {
             LogService.error('GameScreen', "Failed to start game:", error);
@@ -1999,6 +1999,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
                     visible={showRoundResult || !!isCurrentBoudeResultVisible}
                     onDismiss={handleDismissRoundResult}
                     localPlayerId={localPlayerId}
+                    opponents={opponents}
                 />
             )}
 
