@@ -1,0 +1,137 @@
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  124ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  228ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  92ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  81ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  69ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  76ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  247ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  143ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  100ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  70ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  72ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  90ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  112ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  103ms]
+
+❌ [ERROR][ConnectionStatus] Error signalPlayerOnline: FirebaseError: the stored version (1784731541322410) does not match the required base version (1784731540656806) entry.bundle:1498:33
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  221ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  184ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  123ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  179ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  86ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  68ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  56ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  78ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  74ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  71ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  79ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  63ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  58ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  190ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  71ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  68ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  67ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  72ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  57ms]
+
+XHRPOST
+https://firestore.googleapis.com/v1/projects/domino-martinique-v1/databases/(default)/documents:commit?key=AIzaSyB7EIcKJCivWNaUsgmF_b24J8QxEvkPFuk
+[HTTP/2 400  72ms]
+
