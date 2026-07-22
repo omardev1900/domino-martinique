@@ -312,18 +312,39 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
         // ROBUST REMOVAL: Filter out by UID explicitly
         const updatedPlayers = roomData.players.filter(p => p.uid !== userId);
 
-        // 1. If room empty, delete it
+        // 1. If room empty, delete it (with permission-error fallback)
         if (updatedPlayers.length === 0) {
-            LogService.info('Firebase', 'Room empty, deleting:', roomId);
-            await deleteDoc(roomRef);
+            LogService.info('Firebase', 'Room empty, attempting delete:', roomId);
+            try {
+                await deleteDoc(roomRef);
+                LogService.info('Firebase', 'Room deleted successfully:', roomId);
+            } catch (deleteErr: any) {
+                // Fallback: si permission refusée (non-créateur), marquer la salle FINISHED
+                // pour qu'elle expire naturellement côté serveur.
+                LogService.warn('Firebase', 'deleteDoc failed (permission?), marking room FINISHED:', deleteErr?.code ?? deleteErr?.message);
+                try {
+                    await updateDoc(roomRef, {
+                        status: 'FINISHED',
+                        players: [],
+                        playerIds: [],
+                        lastActivity: Date.now(),
+                    });
+                } catch (fallbackErr) {
+                    LogService.error('Firebase', 'Fallback updateDoc also failed:', fallbackErr);
+                }
+            }
             return;
         }
 
-        // 2. If Host left, reassign host
+        // 2. If Host left, reassign host and sync hostId in the document
         if (playerToRemove?.isHost && updatedPlayers.length > 0) {
             updatedPlayers[0].isHost = true;
             LogService.info('Firebase', `Host left. New host assigned: ${updatedPlayers[0].displayName}`);
         }
+
+        // FIX-HOST-SYNC: Inclure hostId dans le updateDoc pour rester cohérent
+        // avec les règles Firestore basées sur resource.data.hostId.
+        const newHostId = updatedPlayers.find(p => p.isHost)?.uid ?? updatedPlayers[0]?.uid;
 
         await updateDoc(roomRef, {
             players: updatedPlayers,
@@ -331,6 +352,7 @@ export const leaveRoom = async (roomId: string, userId: string): Promise<void> =
             // "playerIds array-contains userId" continue de retourner cette salle même après
             // que le joueur l'ait quittée, causant le modal "Partie en cours" infini.
             playerIds: arrayRemove(userId),
+            hostId: newHostId,
             lastActivity: Date.now()
         });
 

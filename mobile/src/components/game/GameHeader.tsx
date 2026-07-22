@@ -15,7 +15,9 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
     insets,
     onOpenOptions,
 }) => {
-    if (!gameState || gameState.phase !== 'PLAYING') return null;
+    // Visible en PLAYING, MANCHE_END et MATCH_END pour garantir un chemin de sortie en cas de blocage
+    const visiblePhases = ['PLAYING', 'MANCHE_END', 'MATCH_END'];
+    if (!gameState || !visiblePhases.includes(gameState.phase)) return null;
 
     return (
         <View style={[styles.unifiedHeader, { top: Math.max(insets.top, 10) }]} testID="game-header">

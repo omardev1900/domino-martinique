@@ -858,6 +858,23 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         }
     }, [gameState?.phase, isSoloMode, gameId, isLocalHost]);
 
+    // FIX-SURRENDER: Filet de sécurité — si tous les joueurs sont SURRENDERED/BOT (aucun HUMAN)
+    // en phase MATCH_END, personne ne peut cliquer "Continuer". On déclenche un exit automatique
+    // après 3 s pour éviter le gel total de l'interface.
+    useEffect(() => {
+        if (isSoloMode || gameState?.phase !== 'MATCH_END') return;
+        if (!gameState?.players || gameState.players.length === 0) return;
+
+        const hasHumanPlayer = gameState.players.some(p => p.status === 'HUMAN');
+        if (hasHumanPlayer) return;
+
+        LogService.info('GameScreen', '[AUTO-EXIT] All players are SURRENDERED/BOT at MATCH_END — auto-exit in 3s');
+        const timer = setTimeout(() => {
+            handleLeaveRoom();
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [gameState?.phase, gameState?.players, isSoloMode, handleLeaveRoom]);
+
     useEffect(() => {
         if (gameState?.phase === 'MATCH_END' && !statsRecordedRef.current) {
             const localPlayer = gameState.players.find(p => p.id === localPlayerId);
@@ -1679,8 +1696,14 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
 
         // Cleanup Firestore AVANT la navigation (fire-and-forget)
         if (isActiveMultiplayerSession && gameId) {
-            AsyncStorage.setItem('active_roomId', gameId).catch(err => LogService.error('GameScreen', 'Error setting active_roomId', err));
-            signalPlayerOffline(true).catch(e => LogService.error('GameScreen', 'Error marking player offline', e)); // Abandon volontaire
+            // FIX-SURRENDER: Ne PAS sauvegarder active_roomId — sinon useMultiResume rappelle le joueur.
+            // Au lieu de ça : marquer SURRENDERED, retirer de la salle, nettoyer le cache local.
+            AsyncStorage.removeItem('active_roomId').catch(err => LogService.error('GameScreen', 'Error removing active_roomId', err));
+            if (localPlayerId && localPlayerId !== 'p1') {
+                setUserActiveRoom(localPlayerId, null).catch(err => LogService.error('GameScreen', 'Error clearing active room', err));
+            }
+            signalPlayerOffline(true).catch(e => LogService.error('GameScreen', 'Error marking player offline', e)); // Abandon volontaire → SURRENDERED
+            leaveRoom(gameId, localPlayerId).catch(e => LogService.error('GameScreen', 'Error leaving room on surrender', e));
         } else {
             AsyncStorage.removeItem('active_roomId').catch(err => LogService.error('GameScreen', 'Error removing active_roomId', err));
             if (localPlayerId && localPlayerId !== 'p1') {
