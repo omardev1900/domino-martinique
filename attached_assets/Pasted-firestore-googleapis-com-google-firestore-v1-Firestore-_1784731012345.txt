@@ -1,0 +1,46 @@
+firestore.googleapis.com/google.firestore.v1.Firestore/Write/channel?VER=8&database=projects%2Fdomino-martinique-v1%2Fdatabases%2F(default)&gsessionid=am7pyg9Xiq0h1s8Wdv8QWjm5CKjNAgjbmm_rG28iNh2Mx10y_tbedA&SID=gxzr8l7CI0Hzu7hJQtGG7w&RID=13525&TYPE=terminate&zx=rwulrg764gg1:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fdomino-martinique-v1%2Fdatabases%2F(default)&gsessionid=jUeAbLY9KOq5oJKjOlh6oNNPsSKOCcB5PeVPbz9XF39HIGc6fLvOXA&SID=TEqkTdzRKT21as9bb36Y0A&RID=58042&TYPE=terminate&zx=6hig44ojzddv:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@expo\metro-runtime\src\error-overlay\LogBox.web.ts:135 ReferenceError: Cannot access 'handleLeaveRoom' before initialization
+    at GameScreen (E:\PROJETS\clients\domino_matrinique\mobile\src\screens\GameScreen.tsx:878:21)
+    at react-stack-bottom-frame (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:23864:12)
+    at renderWithHooks (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:5530:7)
+    at updateFunctionComponent (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:8905:19)
+    at beginWork (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:10529:15)
+    at runWithFiberInDEV (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:1523:17)
+    at performUnitOfWork (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:15147:57)
+    at workLoopSync (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:14957:5)
+    at renderRootSync (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:14937:11)
+    at performWorkOnRoot (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:14467:21)
+    at performSyncWorkOnRoot (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:16232:5)
+    at flushSyncWorkAcrossRoots_impl (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:16080:29)
+    at processRootScheduleInMicrotask (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:16117:5)
+    at E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:16251:9
+
+The above error occurred in the <GameScreen> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, Try.
+
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@expo\metro-runtime\src\error-overlay\LogBox.web.ts:135
+o4511343295987712.ingest.de.sentry.io/api/4511343301034064/envelope/?sentry_version=7&sentry_key=b42b9f54cd5334acbc2310a30f9fc5fb&sentry_client=sentry.javascript.react-native%2F8.10.0:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@expo\metro-runtime\src\error-overlay\LogBox.web.ts:135 ReferenceError: Cannot access 'handleLeaveRoom' before initialization
+    at GameScreen (E:\PROJETS\clients\domino_matrinique\mobile\src\screens\GameScreen.tsx:878:21)
+    at react-stack-bottom-frame (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:23864:12)
+    at renderWithHooks (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:5530:7)
+    at updateFunctionComponent (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:8905:19)
+    at beginWork (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:10529:15)
+    at runWithFiberInDEV (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:1523:17)
+    at performUnitOfWork (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:15147:57)
+    at workLoopSync (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:14957:5)
+    at renderRootSync (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:14937:11)
+    at performWorkOnRoot (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:14467:21)
+    at performSyncWorkOnRoot (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:16232:5)
+    at flushSyncWorkAcrossRoots_impl (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:16080:29)
+    at processRootScheduleInMicrotask (E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:16117:5)
+    at E:\PROJETS\clients\domino_matrinique\mobile\node_modules\react-dom\cjs\react-dom-client.development.js:16251:9
+
+The above error occurred in the <GameScreen> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, Try.
+
+(anonymous) @ E:\PROJETS\clients\domino_matrinique\mobile\node_modules\@expo\metro-runtime\src\error-overlay\LogBox.web.ts:135
+o4511343295987712.ingest.de.sentry.io/api/4511343301034064/envelope/?sentry_version=7&sentry_key=b42b9f54cd5334acbc2310a30f9fc5fb&sentry_client=sentry.javascript.react-native%2F8.10.0:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT

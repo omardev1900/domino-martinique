@@ -688,6 +688,52 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
         gameStateRef.current = gameState;
     }, [gameState]);
 
+    // FIX-TDZ: handleLeaveRoom déclarée ici (après gameStateRef, sa dernière dépendance)
+    // pour éviter le ReferenceError "Cannot access before initialization" causé par les
+    // useEffect qui la référencent avant sa position originale (~L1680).
+    const handleLeaveRoom = useCallback(() => {
+        LogService.info('GameScreen', `[QUIT] handleLeaveRoom called. isSoloMode: ${isSoloMode}, gameId: ${gameId}`);
+
+        // 0. Arrêter la musique de jeu immédiatement pour éviter la fuite audio
+        SoundManager.stopMusic();
+
+        // Purger l'état du jeu solo local de l'AsyncStorage
+        if (isSoloMode && gameId) {
+            AsyncStorage.removeItem(`@solo_game_state:${gameId}`).catch(err => LogService.error('GameScreen', 'Error purging solo game state on leave', err));
+        }
+
+        // Allow beforeRemove to pass through
+        isIntentionalLeave.current = true;
+
+        const isActiveMultiplayerSession = !isSoloMode && !!gameId && gameStateRef.current?.phase !== 'MATCH_END';
+
+        // Cleanup Firestore AVANT la navigation (fire-and-forget)
+        if (isActiveMultiplayerSession && gameId) {
+            // FIX-SURRENDER: Ne PAS sauvegarder active_roomId — sinon useMultiResume rappelle le joueur.
+            // Au lieu de ça : marquer SURRENDERED, retirer de la salle, nettoyer le cache local.
+            AsyncStorage.removeItem('active_roomId').catch(err => LogService.error('GameScreen', 'Error removing active_roomId', err));
+            if (localPlayerId && localPlayerId !== 'p1') {
+                setUserActiveRoom(localPlayerId, null).catch(err => LogService.error('GameScreen', 'Error clearing active room', err));
+            }
+            signalPlayerOffline(true).catch(e => LogService.error('GameScreen', 'Error marking player offline', e)); // Abandon volontaire → SURRENDERED
+            leaveRoom(gameId, localPlayerId).catch(e => LogService.error('GameScreen', 'Error leaving room on surrender', e));
+        } else {
+            AsyncStorage.removeItem('active_roomId').catch(err => LogService.error('GameScreen', 'Error removing active_roomId', err));
+            if (localPlayerId && localPlayerId !== 'p1') {
+                setUserActiveRoom(localPlayerId, null).catch(err => LogService.error('GameScreen', 'Error clearing active room', err));
+            }
+            if (!isSoloMode && gameId) {
+                leaveRoom(gameId, localPlayerId).catch(e => LogService.error('GameScreen', 'Error leaving room', e));
+            }
+        }
+
+        // FIX: Laisser un frame à React pour que les useEffect cleanup (cancelAnimation)
+        // s'exécutent avant la navigation — évite RetryableMountingLayerException sur Android Fabric
+        requestAnimationFrame(() => {
+            router.replace('/home');
+        });
+    }, [isSoloMode, gameId, localPlayerId, router, signalPlayerOffline]);
+
     // --- CHAT LOGIC ---
     const triggerLocalChat = useCallback(async (content: string) => {
         if (!gameId || isSoloMode) {
@@ -1677,50 +1723,6 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     // -------------------------------------------------------------------------
     // HELPERS & ACTIONS (UI-ONLY)
     // -------------------------------------------------------------------------
-
-    const handleLeaveRoom = useCallback(() => {
-        LogService.info('GameScreen', `[QUIT] handleLeaveRoom called. isSoloMode: ${isSoloMode}, gameId: ${gameId}`);
-
-        // 0. Arrêter la musique de jeu immédiatement pour éviter la fuite audio
-        SoundManager.stopMusic();
-
-        // Purger l'état du jeu solo local de l'AsyncStorage
-        if (isSoloMode && gameId) {
-            AsyncStorage.removeItem(`@solo_game_state:${gameId}`).catch(err => LogService.error('GameScreen', 'Error purging solo game state on leave', err));
-        }
-
-        // Allow beforeRemove to pass through
-        isIntentionalLeave.current = true;
-
-        const isActiveMultiplayerSession = !isSoloMode && !!gameId && gameStateRef.current?.phase !== 'MATCH_END';
-
-        // Cleanup Firestore AVANT la navigation (fire-and-forget)
-        if (isActiveMultiplayerSession && gameId) {
-            // FIX-SURRENDER: Ne PAS sauvegarder active_roomId — sinon useMultiResume rappelle le joueur.
-            // Au lieu de ça : marquer SURRENDERED, retirer de la salle, nettoyer le cache local.
-            AsyncStorage.removeItem('active_roomId').catch(err => LogService.error('GameScreen', 'Error removing active_roomId', err));
-            if (localPlayerId && localPlayerId !== 'p1') {
-                setUserActiveRoom(localPlayerId, null).catch(err => LogService.error('GameScreen', 'Error clearing active room', err));
-            }
-            signalPlayerOffline(true).catch(e => LogService.error('GameScreen', 'Error marking player offline', e)); // Abandon volontaire → SURRENDERED
-            leaveRoom(gameId, localPlayerId).catch(e => LogService.error('GameScreen', 'Error leaving room on surrender', e));
-        } else {
-            AsyncStorage.removeItem('active_roomId').catch(err => LogService.error('GameScreen', 'Error removing active_roomId', err));
-            if (localPlayerId && localPlayerId !== 'p1') {
-                setUserActiveRoom(localPlayerId, null).catch(err => LogService.error('GameScreen', 'Error clearing active room', err));
-            }
-            if (!isSoloMode && gameId) {
-                leaveRoom(gameId, localPlayerId).catch(e => LogService.error('GameScreen', 'Error leaving room', e));
-            }
-        }
-
-        // FIX: Laisser un frame à React pour que les useEffect cleanup (cancelAnimation)
-        // s'exécutent avant la navigation — évite RetryableMountingLayerException sur Android Fabric
-        requestAnimationFrame(() => {
-            router.replace('/home');
-        });
-    }, [isSoloMode, gameId, localPlayerId, router, signalPlayerOffline]);
-
 
     const handleDeleteWaitingRoom = useCallback(async () => {
         if (!gameId || !roomData || isSoloMode) return;
