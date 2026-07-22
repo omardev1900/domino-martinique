@@ -93,7 +93,7 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     const gamePhaseForHBRef = useRef<string | undefined>(undefined);
 
     // -- 2. Connection Status --
-    const { isRejoining, signalPlayerOnline, signalPlayerOffline } = useConnectionStatus({
+    const { isRejoining, signalPlayerOnline, signalPlayerOffline, forceImmediatePing } = useConnectionStatus({
         gameId,
         localPlayerId,
         isSoloMode,
@@ -137,8 +137,16 @@ export default function GameScreen({ gameId, userId, authUid, mode, difficulty, 
     } = useGameSync({ gameId, localPlayerId, isSoloMode, signalPlayerOnline });
 
     // FIX-400: maintenir le ref de phase à jour pour que useConnectionStatus puisse
-    // suspendre les heartbeats Firestore pendant les transitions critiques
-    useEffect(() => { gamePhaseForHBRef.current = gameState?.phase; }, [gameState?.phase]);
+    // suspendre les heartbeats Firestore pendant les transitions critiques.
+    // FIX-REGRESSION-#8: ping immédiat à la sortie d'une phase critique (→ PLAYING) pour
+    // réinitialiser le chrono de présence sans attendre le prochain tick du setInterval.
+    useEffect(() => {
+        const prevPhase = gamePhaseForHBRef.current;
+        gamePhaseForHBRef.current = gameState?.phase;
+        if (gameState?.phase === 'PLAYING' && prevPhase !== 'PLAYING' && prevPhase !== undefined) {
+            forceImmediatePing();
+        }
+    }, [gameState?.phase, forceImmediatePing]);
 
     const [timeLeftState, setTimeLeftState] = useState<number | null>(null);
     const [overtimeState, setOvertimeState] = useState<number | null>(null);

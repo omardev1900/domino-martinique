@@ -22,6 +22,9 @@ export interface UseConnectionStatusResult {
     isRejoining: boolean;
     signalPlayerOnline: () => Promise<void>;
     signalPlayerOffline: (surrendered?: boolean) => Promise<void>;
+    /** Ping immédiat à appeler dès la sortie d'une phase critique (ex: PARTIE_END → PLAYING) pour
+     * réinitialiser le chrono de présence sans attendre le prochain tick du setInterval. */
+    forceImmediatePing: () => Promise<void>;
 }
 
 /** Phases durant lesquelles le heartbeat Firestore est suspendu pour éviter d'invalider les transactions NEXT_ROUND */
@@ -45,32 +48,47 @@ export const useConnectionStatus = ({
 
     // ─── 1. HEARTBEAT FIRESTORE (fallback 25s) ───────────────────────────────
     // Conservé comme filet de sécurité si RTDB n'est pas disponible.
-    // FIX-400: intervalle porté à 20s (était 10s) et ping suspendu pendant les phases
-    // critiques (PARTIE_END/MANCHE_END/MATCH_END). Les updateDoc du heartbeat vont dans
-    // la write-queue interne du SDK et invalident les runTransaction de transition
-    // NEXT_ROUND → FAILED_PRECONDITION (HTTP 400) en boucle. La présence RTDB reste
-    // la source de vérité temps-réel ; le heartbeat Firestore est seulement un filet.
+    // FIX-400: ping suspendu pendant les phases critiques (PARTIE_END/MANCHE_END/MATCH_END).
+    // Les updateDoc du heartbeat vont dans la write-queue interne du SDK et invalident
+    // les runTransaction de transition NEXT_ROUND → FAILED_PRECONDITION (HTTP 400) en boucle.
+    // FIX-REGRESSION-#8: intervalle ramené à 10s (était passé à 20s dans #8).
+    // 20s + pause 12s = 32s > seuil vigilance 25s → marquage DISCONNECTED intempestif.
+    // 10s + pause 12s = 22s < 25s → sûr.
+    const sendPing = useCallback(async () => {
+        if (!gameId || isSoloMode) return;
+        // Suspendre pendant les transitions critiques pour ne pas invalider les transactions
+        const phase = externalGamePhaseRef?.current;
+        if (phase && CRITICAL_PHASES.has(phase)) {
+            LogService.debug('ConnectionStatus', `[HEARTBEAT] Skipped during ${phase}`);
+            return;
+        }
+        try {
+            const roomRef = doc(db, 'rooms', gameId);
+            await updateDoc(roomRef, { [`heartbeats.${localPlayerId}`]: Date.now() });
+        } catch {
+            // Ignore silent network errors on ping
+        }
+    }, [gameId, isSoloMode, localPlayerId]); // externalGamePhaseRef est un ref stable, pas besoin de l'inclure
+
     useEffect(() => {
         if (!gameId || isSoloMode) return;
-
-        const sendPing = async () => {
-            // Suspendre pendant les transitions critiques pour ne pas invalider les transactions
-            const phase = externalGamePhaseRef?.current;
-            if (phase && CRITICAL_PHASES.has(phase)) {
-                LogService.debug('ConnectionStatus', `[HEARTBEAT] Skipped during ${phase}`);
-                return;
-            }
-            try {
-                const roomRef = doc(db, 'rooms', gameId);
-                await updateDoc(roomRef, { [`heartbeats.${localPlayerId}`]: Date.now() });
-            } catch {
-                // Ignore silent network errors on ping
-            }
-        };
-
-        sendPing(); // Ping immédiat (phase est PLAYING au mount)
-        const interval = setInterval(sendPing, 20000); // 20s — sous le seuil de timeout 25s
+        sendPing(); // Ping immédiat au mount (phase est PLAYING)
+        const interval = setInterval(sendPing, 10000); // 10s — 10s + 12s pause max = 22s < seuil 25s
         return () => clearInterval(interval);
+    }, [gameId, isSoloMode, sendPing]);
+
+    // ─── PING DE RATTRAPAGE ───────────────────────────────────────────────────
+    // Appelé par GameScreen dès que la phase passe à PLAYING (sortie de phase critique).
+    // Réinitialise le chrono de présence immédiatement sans attendre le prochain tick.
+    const forceImmediatePing = useCallback(async () => {
+        if (!gameId || isSoloMode) return;
+        try {
+            const roomRef = doc(db, 'rooms', gameId);
+            await updateDoc(roomRef, { [`heartbeats.${localPlayerId}`]: Date.now() });
+            LogService.debug('ConnectionStatus', '[HEARTBEAT] Ping de rattrapage envoyé (sortie de phase critique)');
+        } catch {
+            // Ignore silent network errors
+        }
     }, [gameId, isSoloMode, localPlayerId]);
 
     // ─── 2. PRÉSENCE RTDB + onDisconnect (détection rapide ~3-5s) ────────────
@@ -200,5 +218,6 @@ export const useConnectionStatus = ({
         isRejoining,
         signalPlayerOnline,
         signalPlayerOffline,
+        forceImmediatePing,
     };
 };
