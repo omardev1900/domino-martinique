@@ -137,6 +137,16 @@ export const useConnectionStatus = ({
     const signalPlayerOnline = useCallback(async () => {
         if (!gameId || isSoloMode) return;
 
+        // FIX-BOUCLE-400: comme sendPing, ne jamais lancer de transaction pendant les
+        // phases critiques (MANCHE_END/PARTIE_END/MATCH_END). Les runTransaction entrent
+        // en conflit avec les écritures NEXT_ROUND de l'hôte → avalanche de FAILED_PRECONDITION,
+        // round suivant bloqué et badge "Reprise de connexion" en boucle.
+        const phase = externalGamePhaseRef?.current;
+        if (phase && CRITICAL_PHASES.has(phase)) {
+            LogService.debug('ConnectionStatus', `[ONLINE] signalPlayerOnline skipped during ${phase}`);
+            return;
+        }
+
         const roomRef = doc(db, 'rooms', gameId);
         try {
             await runTransaction(db, async (transaction) => {

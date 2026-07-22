@@ -95,8 +95,12 @@ export const useGameSync = ({
                     // se ré-annoncer immédiatement sans attendre le prochain heartbeat (10s) ou
                     // le retour en foreground. Couvre tous les cas non gérés par l'AppState listener
                     // (web, crash OS, reconnexion réseau silencieuse, etc.).
+                    // FIX-BOUCLE-400: n'agir que pendant la phase PLAYING. Pendant les
+                    // transitions de round (MANCHE_END/PARTIE_END/MATCH_END), les snapshots
+                    // intermédiaires peuvent nous montrer DISCONNECTED de façon transitoire ;
+                    // se ré-annoncer alors provoque des conflits de transaction en boucle.
                     const myPlayer = data.gameState.players?.find(p => p.id === localPlayerId);
-                    if (myPlayer?.status === 'DISCONNECTED') {
+                    if (myPlayer?.status === 'DISCONNECTED' && data.gameState.phase === 'PLAYING') {
                         LogService.warn('GameSync', '[SYNC] ⚠️ Self detected as DISCONNECTED while receiving snapshots — re-signaling online');
                         signalPlayerOnline().catch(e =>
                             LogService.error('useGameSync', 'Error in self-reconnect signal', e)
