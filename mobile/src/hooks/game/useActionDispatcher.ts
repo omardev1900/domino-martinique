@@ -71,7 +71,7 @@ export const useActionDispatcher = ({
             // On distingue l'immunité :
             // - Les pass auto (boudé) ont besoin d'être fluides (1.5s de délai total d'animation, donc 1s d'immunité suffit).
             // - Les Timeouts (fin de chrono) sont des sécurités critiques (5s anti-cascade).
-            const minAgeMs = command.type === 'TIMEOUT' ? 5000 : 1000;
+            const minAgeMs = command.type === 'TIMEOUT' ? (__DEV__ ? 1000 : 5000) : 1000;
 
             if (!canAction(command.playerId, { isAuto, minAgeMs })) {
                 LogService.info('ActionDispatcher', 'Action rejected by canAction.', {
